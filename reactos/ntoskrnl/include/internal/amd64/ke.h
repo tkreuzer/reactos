@@ -1,5 +1,9 @@
-#ifndef __NTOSKRNL_INCLUDE_INTERNAL_AMD64_KE_H
-#define __NTOSKRNL_INCLUDE_INTERNAL_AMD64_KE_H
+#ifndef __NTOSKRNL_INCLUDE_INTERNAL_I386_KE_H
+#define __NTOSKRNL_INCLUDE_INTERNAL_I386_KE_H
+
+#if __GNUC__ >=3
+#pragma GCC system_header
+#endif
 
 #define X86_EFLAGS_TF           0x00000100 /* Trap flag */
 #define X86_EFLAGS_IF           0x00000200 /* Interrupt Enable flag */
@@ -39,216 +43,28 @@
 
 #define FRAME_EDITED        0xFFF8
 
-#define X86_MSR_GSBASE          0xC0000101
-#define X86_MSR_KERNEL_GSBASE   0xC0000102
-#define X86_MSR_EFER            0xC0000080
-#define X86_MSR_STAR            0xC0000081
-#define X86_MSR_LSTAR           0xC0000082
-#define X86_MSR_CSTAR           0xC0000083
-#define X86_MSR_SFMASK          0xC0000084
-
-#define EFER_SCE 0x01
-#define EFER_LME 0x10
-#define EFER_LMA 0x40
-#define EFER_NXE 0x80
-#define EFER_SVME 0x100
-#define EFER_FFXSR 0x400
-
-#define AMD64_TSS 9
-
 #ifndef __ASM__
 
-#include "intrin_i.h"
+//#include "intrin_i.h"
 
-typedef struct _KIDT_INIT
-{
-    UCHAR InterruptId;
-    UCHAR Dpl;
-    UCHAR IstIndex;
-    PVOID ServiceRoutine;
-} KIDT_INIT, *PKIDT_INIT;
+#define KeArchFnInit() Ke386FnInit()
+#define KeArchHaltProcessor() Ke386HaltProcessor()
 
 extern ULONG Ke386CacheAlignment;
-extern ULONG KeI386NpxPresent;
-extern ULONG KeI386XMMIPresent;
-extern ULONG KeI386FxsrPresent;
-extern ULONG KeI386CpuType;
-extern ULONG KeI386CpuStep;
-
-#define IMAGE_FILE_MACHINE_ARCHITECTURE IMAGE_FILE_MACHINE_AMD64
-
-//
-// INT3 is 1 byte long
-//
-#define KD_BREAKPOINT_TYPE        UCHAR
-#define KD_BREAKPOINT_SIZE        sizeof(UCHAR)
-#define KD_BREAKPOINT_VALUE       0xCC
-
-//
-// Macros for getting and setting special purpose registers in portable code
-//
-#define KeGetContextPc(Context) \
-    ((Context)->Rip)
-
-#define KeSetContextPc(Context, ProgramCounter) \
-    ((Context)->Rip = (ProgramCounter))
-
-#define KeGetTrapFramePc(TrapFrame) \
-    ((TrapFrame)->Rip)
-
-#define KeGetContextReturnRegister(Context) \
-    ((Context)->Rax)
-
-#define KeSetContextReturnRegister(Context, ReturnValue) \
-    ((Context)->Rax = (ReturnValue))
-
-//
-// Macro to get trap and exception frame from a thread stack
-//
-#define KeGetTrapFrame(Thread) \
-    (PKTRAP_FRAME)((ULONG_PTR)((Thread)->InitialStack) - \
-                   sizeof(KTRAP_FRAME))
-
-//
-// Macro to get context switches from the PRCB
-// All architectures but x86 have it in the PRCB's KeContextSwitches
-//
-#define KeGetContextSwitches(Prcb)  \
-    (Prcb->KeContextSwitches)
-
-//
-// Macro to get the second level cache size field name which differs between
-// CISC and RISC architectures, as the former has unified I/D cache
-//
-#define KiGetSecondLevelDCacheSize() ((PKIPCR)KeGetPcr())->SecondLevelCacheSize
-
-#define KeGetExceptionFrame(Thread) \
-    (PKEXCEPTION_FRAME)((ULONG_PTR)KeGetTrapFrame(Thread) - \
-                        sizeof(KEXCEPTION_FRAME))
-
-//
-// Returns the Interrupt State from a Trap Frame.
-// ON = TRUE, OFF = FALSE
-//
-#define KeGetTrapFrameInterruptState(TrapFrame) \
-        BooleanFlagOn((TrapFrame)->EFlags, EFLAGS_INTERRUPT_MASK)
-
-//
-// Invalidates the TLB entry for a specified address
-//
-FORCEINLINE
-VOID
-KeInvalidateTlbEntry(IN PVOID Address)
-{
-    /* Invalidate the TLB entry for this address */
-    __invlpg(Address);
-}
-
-FORCEINLINE
-VOID
-KeFlushProcessTb(VOID)
-{
-    /* Flush the TLB by resetting CR3 */
-    __writecr3(__readcr3());
-}
-
-FORCEINLINE
-VOID
-KiRundownThread(IN PKTHREAD Thread)
-{
-#ifndef CONFIG_SMP
-    DbgPrint("KiRundownThread is unimplemented\n");
-#else
-    /* Nothing to do */
-#endif
-}
-
-/* Registers an interrupt handler with an IDT vector */
-FORCEINLINE
-VOID
-KeRegisterInterruptHandler(IN ULONG Vector,
-                           IN PVOID Handler)
-{                           
-    UCHAR Entry;
-    PKIDTENTRY64 Idt;
-
-    /* Get the entry from the HAL */
-    Entry = HalVectorToIDTEntry(Vector);
-
-    /* Now set the data */
-    Idt = &KeGetPcr()->IdtBase[Entry];
-    Idt->OffsetLow = (ULONG_PTR)Handler & 0xffff;
-    Idt->OffsetMiddle = ((ULONG_PTR)Handler >> 16) & 0xffff;
-    Idt->OffsetHigh = (ULONG_PTR)Handler >> 32;
-    Idt->Selector = KGDT64_R0_CODE;
-    Idt->IstIndex = 0;
-    Idt->Type = 0x0e;
-    Idt->Dpl = 0;
-    Idt->Present = 1;
-    Idt->Reserved0 = 0;
-    Idt->Reserved1 = 0;
-}
-
-/* Returns the registered interrupt handler for a given IDT vector */
-FORCEINLINE
-PVOID
-KeQueryInterruptHandler(IN ULONG Vector)
-{
-    UCHAR Entry;
-    PKIDTENTRY64 Idt;
-
-    /* Get the entry from the HAL */
-    Entry = HalVectorToIDTEntry(Vector);
-
-    /* Get the IDT entry */
-    Idt = &KeGetPcr()->IdtBase[Entry];
-
-    /* Return the address */
-    return (PVOID)((ULONG64)Idt->OffsetHigh << 32 | 
-                   (ULONG64)Idt->OffsetMiddle << 16 | 
-                   (ULONG64)Idt->OffsetLow);
-}
-
-VOID
-FORCEINLINE
-KiEndInterrupt(IN KIRQL Irql,
-               IN PKTRAP_FRAME TrapFrame)
-{
-    DbgPrint("KiEndInterrupt is unimplemented\n");
-}
-
-#define Ki386PerfEnd(x)
 
 struct _KPCR;
+VOID
+KiInitializeGdt(struct _KPCR* Pcr);
+VOID
+Ki386ApplicationProcessorInitializeTSS(VOID);
 
 VOID
 FASTCALL
-KiInitializeTss(IN PKTSS Tss, IN UINT64 Stack);
-
-VOID KiDivideErrorFault();
-VOID KiDebugTrapOrFault();
-VOID KiNmiInterrupt();
-VOID KiBreakpointTrap();
-VOID KiOverflowTrap();
-VOID KiBoundFault();
-VOID KiInvalidOpcodeFault();
-VOID KiNpxNotAvailableFault();
-VOID KiDoubleFaultAbort();
-VOID KiNpxSegmentOverrunAbort();
-VOID KiInvalidTssFault();
-VOID KiSegmentNotPresentFault();
-VOID KiStackFault();
-VOID KiGeneralProtectionFault();
-VOID KiPageFault();
-VOID KiFloatingErrorFault();
-VOID KiAlignmentFault();
-VOID KiMcheckAbort();
-VOID KiXmmException();
-VOID KiApcInterrupt();
-VOID KiRaiseAssertion();
-VOID KiDebugServiceTrap();
-VOID KiDpcInterrupt();
-VOID KiIpiInterrupt();
+Ki386InitializeTss(
+    IN PKTSS Tss,
+    IN PKIDTENTRY Idt,
+    IN PKGDTENTRY Gdt
+);
 
 VOID
 KiGdtPrepareForApplicationProcessorInit(ULONG Id);
@@ -256,6 +72,10 @@ VOID
 Ki386InitializeLdt(VOID);
 VOID
 Ki386SetProcessorFeatures(VOID);
+
+VOID
+NTAPI
+KiSetCR0Bits(VOID);
 
 VOID
 NTAPI
@@ -281,10 +101,6 @@ ULONG
 NTAPI
 KiGetFeatureBits(VOID);
 
-VOID
-NTAPI
-KiInitializeCpuFeatures();
-
 ULONG KeAllocateGdtSelector(ULONG Desc[2]);
 VOID KeFreeGdtSelector(ULONG Entry);
 VOID
@@ -293,6 +109,11 @@ VOID
 KeApplicationProcessorInitDispatcher(VOID);
 VOID
 KeCreateApplicationProcessorIdleThread(ULONG Id);
+
+typedef
+VOID
+(NTAPI*PKSYSTEM_ROUTINE)(PKSTART_ROUTINE StartRoutine,
+                    PVOID StartContext);
 
 VOID
 NTAPI
@@ -319,6 +140,6 @@ KiThreadStartup(PKSYSTEM_ROUTINE SystemRoutine,
 // HACK
 extern NTKERNELAPI volatile KSYSTEM_TIME KeTickCount;
 
-#endif /* __NTOSKRNL_INCLUDE_INTERNAL_AMD64_KE_H */
+#endif /* __NTOSKRNL_INCLUDE_INTERNAL_I386_KE_H */
 
 /* EOF */
