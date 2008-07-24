@@ -90,6 +90,25 @@ BOOLEAN MmInitializeMemoryManager(VOID)
 	MmInitPageLookupTable(PageLookupTableAddress, TotalPagesInLookupTable);
 	MmUpdateLastFreePageHint(PageLookupTableAddress, TotalPagesInLookupTable);
 
+	// Add machine-dependent stuff
+#if defined (__i386__) || defined (_M_AMD64)
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x00, 1, LoaderFirmwarePermanent); // realmode int vectors
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x01, 7, LoaderFirmwareTemporary); // freeldr stack + cmdline
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x08, 0x70, LoaderLoadedProgram); // freeldr image (roughly max. 0x64 pages)
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x78, 8, LoaderOsloaderStack); // prot mode stack. BIOSCALLBUFFER
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x80, 0x10, LoaderOsloaderHeap); // File system read buffer. FILESYSBUFFER
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x90, 0x10, LoaderOsloaderHeap); // Disk read buffer for int 13h. DISKREADBUFFER
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0xA0, 0x60, LoaderFirmwarePermanent); // ROM / Video
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0xFFF, 1, LoaderSpecialMemory); // unusable memory
+#if defined (_M_AMD64)
+	MmMarkPagesInLookupTable(PageLookupTableAddress, PML4_PAGENUM, PML4_PAGES, LoaderSpecialMemory); // the page table
+#endif
+#elif __arm__
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x00, 1, LoaderFirmwarePermanent); // arm exception handlers
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x01, 7, LoaderFirmwareTemporary); // arm board block + freeldr stack + cmdline
+	MmMarkPagesInLookupTable(PageLookupTableAddress, 0x08, 0x70, LoaderLoadedProgram); // freeldr image (roughly max. 0x64 pages)
+#endif
+
 	FreePagesInLookupTable = MmCountFreePagesInLookupTable(PageLookupTableAddress, TotalPagesInLookupTable);
 
 	MmInitializeHeap(PageLookupTableAddress);
