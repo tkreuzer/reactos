@@ -26,7 +26,7 @@
 //#define DEBUG_ALL
 //#define DEBUG_INIFILE
 //#define DEBUG_REACTOS
-//#define DEBUG_CUSTOM
+#define DEBUG_CUSTOM
 #define DEBUG_NONE
 
 #if defined (DEBUG_ALL)
