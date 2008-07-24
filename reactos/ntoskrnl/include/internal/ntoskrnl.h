@@ -16,7 +16,7 @@
 
 #ifdef _NTOSKRNL_
 
-#ifndef _ARM_
+#if !defined (_ARM_) && !defined (_M_AMD64)
 #define KeGetCurrentThread  _KeGetCurrentThread
 #define KeGetPreviousMode   _KeGetPreviousMode
 #endif
@@ -145,7 +145,7 @@ typedef struct _INFORMATION_CLASS_INFO
 
 #endif
 
-#if defined (_M_IX86) || defined(_M_AMD64)
+#ifndef _WIN64
 C_ASSERT(FIELD_OFFSET(KUSER_SHARED_DATA, SystemCall) == 0x300);
 C_ASSERT(FIELD_OFFSET(KTHREAD, InitialStack) == KTHREAD_INITIAL_STACK);
 C_ASSERT(FIELD_OFFSET(KTHREAD, Teb) == KTHREAD_TEB);
@@ -162,6 +162,9 @@ C_ASSERT(FIELD_OFFSET(KPROCESS, DirectoryTableBase) == KPROCESS_DIRECTORY_TABLE_
 #ifdef _M_IX86
 C_ASSERT(FIELD_OFFSET(KPCR, NtTib.ExceptionList) == KPCR_EXCEPTION_LIST);
 C_ASSERT(FIELD_OFFSET(KPCR, SelfPcr) == KPCR_SELF);
+#endif
+
+#ifdef _M_IX86
 C_ASSERT(FIELD_OFFSET(KPCR, IRR) == KPCR_IRR);
 C_ASSERT(FIELD_OFFSET(KPCR, IDR) == KPCR_IDR);
 C_ASSERT(FIELD_OFFSET(KPCR, Irql) == KPCR_IRQL);
