@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <assert.h>
+#include <tchar.h>
 
 #include <windows.h>
 #include <richedit.h>
@@ -634,7 +635,7 @@ static void populate_font_list(HWND hListWnd)
     fontinfo.lfPitchAndFamily = 0;
 
     EnumFontFamiliesExW(hdc, &fontinfo, enum_font_proc,
-                        (LPARAM)hListWnd, 0);
+                        (LPARAM)(UINT_PTR)hListWnd, 0);
 
     ZeroMemory(&fmt, sizeof(fmt));
     fmt.cbSize = sizeof(fmt);
@@ -1924,7 +1925,7 @@ static LRESULT OnCreate( HWND hWnd )
 
     if (!hEditorWnd)
     {
-        fprintf(stderr, "Error code %u\n", GetLastError());
+        fprintf(stderr, _T("Error code %d\n"), GetLastError());
         return -1;
     }
     assert(hEditorWnd);
@@ -2125,7 +2126,7 @@ static LRESULT OnCommand( HWND hWnd, WPARAM wParam, LPARAM lParam)
             mi.cbSize = sizeof(MENUITEMINFOW);
             mi.fMask = MIIM_DATA;
             if(GetMenuItemInfoW(hMenu, LOWORD(wParam), FALSE, &mi))
-                DoOpenFile((LPWSTR)mi.dwItemData);
+                DoOpenFile((LPWSTR)(ULONG_PTR)mi.dwItemData);
         }
         break;
 
