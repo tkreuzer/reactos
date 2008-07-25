@@ -81,5 +81,5 @@ ShowAboutDlg(HWND hWndParent)
     DialogBoxW(hInstance,
                MAKEINTRESOURCEW(IDD_ABOUTBOX),
                hWndParent,
-               (DLGPROC)AboutDialogProc);
+               AboutDialogProc);
 }
