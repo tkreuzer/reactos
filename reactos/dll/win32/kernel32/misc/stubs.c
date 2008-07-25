@@ -1259,3 +1259,15 @@ UnregisterConsoleIME(VOID)
     STUB;
     return FALSE;
 }
+
+BOOL WINAPI TermsrvAppInstallMode(void)
+{
+     STUB;
+     return FALSE;
+}
+
+DWORD WINAPI SetTermsrvAppInstallMode(BOOL bInstallMode)
+{
+    STUB;
+    return 0;
+}
