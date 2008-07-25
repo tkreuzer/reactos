@@ -121,8 +121,8 @@
 @ stdcall CreateProcessW(wstr wstr ptr ptr long long ptr wstr ptr ptr)
 @ stdcall CreateRemoteThread(long ptr long ptr long long ptr)
 @ stdcall CreateSemaphoreA(ptr long long str)
-@ stdcall CreateSemaphoreExA(ptr long long str long long)
-@ stdcall CreateSemaphoreExW(ptr long long wstr long long)
+@ stdcall CreateSemaphoreExA(ptr long long long str long long)
+@ stdcall CreateSemaphoreExW(ptr long long long wstr long long)
 @ stdcall CreateSemaphoreW(ptr long long wstr)
 @ stdcall CreateSocketHandle()
 @ stdcall CreateSymbolicLinkA(str str long)
@@ -252,10 +252,10 @@
 @ stdcall FindResourceW(long wstr wstr)
 @ stdcall FindVolumeClose(ptr)
 @ stdcall FindVolumeMountPointClose(ptr)
-;@ stdcall FlsAlloc(ptr) ; missing in XP SP3
-;@ stdcall FlsFree(long) ; missing in XP SP3
-;@ stdcall FlsGetValue(long) ; missing in XP SP3
-;@ stdcall FlsSetValue(long ptr) ; missing in XP SP3
+@ stdcall FlsAlloc(ptr)
+@ stdcall FlsFree(long)
+@ stdcall FlsGetValue(long)
+@ stdcall FlsSetValue(long ptr)
 @ stdcall FlushConsoleInputBuffer(long)
 @ stdcall FlushFileBuffers(long)
 @ stdcall FlushInstructionCache(long long long)
@@ -312,10 +312,10 @@
 @ stdcall GetConsoleAliasesW(wstr long wstr)
 @ stdcall GetConsoleCP()
 @ stdcall GetConsoleCharType(long long ptr)
-@ stdcall GetConsoleCommandHistoryA(long long long)
-@ stdcall GetConsoleCommandHistoryLengthA(long)
-@ stdcall GetConsoleCommandHistoryLengthW(long)
-@ stdcall GetConsoleCommandHistoryW(long long long)
+@ stdcall GetConsoleCommandHistoryA(long long long) #check
+@ stdcall GetConsoleCommandHistoryLengthA(long long long)#check
+@ stdcall GetConsoleCommandHistoryLengthW(long)#check
+@ stdcall GetConsoleCommandHistoryW(long long long)#check
 @ stdcall GetConsoleCursorInfo(long ptr)
 @ stdcall GetConsoleCursorMode(long ptr ptr)
 @ stdcall GetConsoleDisplayMode(ptr)
@@ -403,7 +403,7 @@
 @ stdcall GetLocalTime(ptr)
 @ stdcall GetLocaleInfoA(long long ptr long)
 @ stdcall GetLocaleInfoW(long long ptr long)
-@ stdcall GetLocaleInfoEx(wstr long wstr long)
+@ stdcall GetLocaleInfoEx(wstr long wstr long) # check
 @ stdcall GetLogicalDriveStringsA(long ptr)
 @ stdcall GetLogicalDriveStringsW(long ptr)
 @ stdcall GetLogicalDrives()
@@ -791,8 +791,8 @@
 @ stdcall -arch=x86_64 RtlRaiseException(ptr) ntdll.RtlRaiseException
 @ stdcall -arch=x86_64 RtlRestoreContext(ptr ptr) ntdll.RtlRestoreContext
 @ stdcall RtlUnwind(ptr ptr ptr long) ntdll.RtlUnwind
-@ stdcall -arch=x86_64 RtlUnwindEx(ptr ptr ptr ptr ptr ptr) ntdll.RtlUnwindEx
-@ stdcall -arch=x86_64 RtlVirtualUnwind(ptr ptr ptr long) ntdll.RtlVirtualUnwind
+@ stdcall RtlVirtualUnwind(ptr ptr ptr long) ntdll.RtlVirtualUnwind # check
+@ stdcall RtlLookupFunctionEntry(ptr ptr ptr) ntdll.RtlLookupFunctionEntry # check
 @ stdcall RtlZeroMemory(ptr long) ntdll.RtlZeroMemory
 @ stdcall ScrollConsoleScreenBufferA(long ptr ptr ptr ptr)
 @ stdcall ScrollConsoleScreenBufferW(long ptr ptr ptr ptr)
