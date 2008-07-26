@@ -345,7 +345,6 @@ typedef struct _KDESCRIPTOR
 } KDESCRIPTOR, *PKDESCRIPTOR;
 
 #ifndef NTOS_MODE_USER
-
 //
 // Special Registers Structure (outside of CONTEXT)
 //
