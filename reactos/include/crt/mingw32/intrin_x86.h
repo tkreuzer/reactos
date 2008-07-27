@@ -879,7 +879,7 @@ __INTRIN_INLINE unsigned short _rotl16(unsigned short value, unsigned char shift
 	return retval;
 }
 
-__INTRIN_INLINE unsigned long _rotl(unsigned int value, unsigned char shift)
+__INTRIN_INLINE unsigned int _rotl(unsigned int value, int shift)
 {
 	unsigned long retval;
 	__asm__("roll %b[shift], %k[retval]" : [retval] "=rm" (retval) : "[retval]" (value), [shift] "Nc" (shift));
