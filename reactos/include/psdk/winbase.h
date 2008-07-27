@@ -1844,7 +1844,6 @@ VOID WINAPI InitializeSRWLock(PSRWLOCK);
 #define InterlockedCompareExchange64 _InterlockedCompareExchange64
 #define InterlockedCompareExchangeAcquire64 InterlockedCompareExchange64
 #define InterlockedCompareExchangeRelease64 InterlockedCompareExchange64
-
 #else // !(defined (_M_AMD64) || defined (_M_IA64))
 
 LONG WINAPI InterlockedOr(IN OUT LONG volatile *,LONG);
