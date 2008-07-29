@@ -47,7 +47,7 @@ C_ASSERT(MM_ALLOCATION_GRANULARITY >= PAGE_SIZE);
 //
 // Page Table Entry Definitions
 //
-typedef struct _HARDWARE_PTE
+typedef struct _HARDWARE_PTE_AMD64
 {
     ULONG64 Valid:1;
     ULONG64 Write:1;
