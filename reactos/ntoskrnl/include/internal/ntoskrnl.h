@@ -60,6 +60,12 @@
 #define KeTryToAcquireGuardedMutex _KeTryToAcquireGuardedMutex
 
 #include "ke.h"
+#ifdef _M_AMD64
+#include "amd64/mm.h"
+#else
+#include "i386/mm.h"
+#include "i386/v86m.h"
+#endif
 #include "ob.h"
 #include "mm.h"
 #include "ex.h"
