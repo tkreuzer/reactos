@@ -1386,6 +1386,35 @@ __INTRIN_INLINE void __writedr(unsigned reg, unsigned int value)
 			break;
 	}
 }
+
+static __inline__ __attribute__((always_inline)) unsigned long __readcr0(void)
+{
+	unsigned long value;
+	__asm__ __volatile__("mov %%cr0, %[value]" : [value] "=q" (value));
+	return value;
+}
+
+static __inline__ __attribute__((always_inline)) unsigned long __readcr2(void)
+{
+	unsigned long value;
+	__asm__ __volatile__("mov %%cr2, %[value]" : [value] "=q" (value));
+	return value;
+}
+
+static __inline__ __attribute__((always_inline)) unsigned long __readcr3(void)
+{
+	unsigned long value;
+	__asm__ __volatile__("mov %%cr3, %[value]" : [value] "=q" (value));
+	return value;
+}
+
+static __inline__ __attribute__((always_inline)) unsigned long __readcr4(void)
+{
+	unsigned long value;
+	__asm__ __volatile__("mov %%cr4, %[value]" : [value] "=q" (value));
+	return value;
+}
+
 #endif
 
 __INTRIN_INLINE void __invlpg(void * const Address)
