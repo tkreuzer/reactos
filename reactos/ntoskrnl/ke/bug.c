@@ -229,7 +229,7 @@ KeRosCaptureUserStackBackTrace(IN ULONG FramesToSkip,
     return (USHORT)i;
 }
 
-
+#ifndef _M_AMD64
 VOID
 FASTCALL
 KeRosDumpStackFrameArray(IN PULONG_PTR Frames,
@@ -320,6 +320,7 @@ KeRosDumpStackFrames(IN PULONG_PTR Frame OPTIONAL,
         }
     }
 }
+#endif
 
 VOID
 NTAPI
@@ -741,8 +742,8 @@ KiDisplayBlueScreen(IN ULONG MessageId,
 
     /* Show the technical Data */
     sprintf(AnsiName,
-            "\r\n\r\n*** STOP: 0x%08lX (0x%p,0x%p,0x%p,0x%p)\r\n\r\n",
-            KiBugCheckData[0],
+            "\r\n\r\n*** STOP: 0x%p (0x%p,0x%p,0x%p,0x%p)\r\n\r\n",
+            (PVOID)KiBugCheckData[0],
             (PVOID)KiBugCheckData[1],
             (PVOID)KiBugCheckData[2],
             (PVOID)KiBugCheckData[3],
