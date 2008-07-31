@@ -1245,8 +1245,8 @@ Phase1InitializationDiscard(IN PVOID Context)
     PCHAR StringBuffer, EndBuffer, BeginBuffer, MpString = "";
     PINIT_BUFFER InitBuffer;
     ANSI_STRING TempString;
-    ULONG LastTzBias, Length, YearHack = 0, Disposition, MessageCode = 0;
-    SIZE_T Size;
+    ULONG LastTzBias, Size, YearHack = 0, Disposition, MessageCode = 0;
+    SIZE_T Length;
     PRTL_USER_PROCESS_INFORMATION ProcessInfo;
     KEY_VALUE_PARTIAL_INFORMATION KeyPartialInfo;
     UNICODE_STRING KeyName, DebugString;
