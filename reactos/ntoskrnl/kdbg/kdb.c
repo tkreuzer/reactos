@@ -1682,7 +1682,7 @@ continue_execution:
         TrapFrame->Dr6 &= ~0x0000e00f;
 
         /* Skip the current instruction */
-        Context->Eip++;
+//        Context->Eip++;
     }
 
     return ContinueType;
