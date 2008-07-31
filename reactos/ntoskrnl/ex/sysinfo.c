@@ -2032,6 +2032,9 @@ NtFlushInstructionCache(IN HANDLE ProcessHandle,
     for (;;);
 #elif defined(_M_ARM)
     __asm__ __volatile__("mov r1, #0; mcr p15, 0, r1, c7, c5, 0");
+#elif defined(_M_AMD64)
+    DPRINT1("NtFlushInstructionCache() is not implemented\n");
+    for (;;);
 #else
 #error Unknown architecture
 #endif
