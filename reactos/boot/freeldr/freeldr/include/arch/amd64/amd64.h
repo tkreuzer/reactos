@@ -36,7 +36,7 @@
 #define VA_MASK 0x0000FFFFFFFFFFFFUL
 
 #define PtrToPfn(p) \
-    ((((ULONGLONG)p) >> PAGE_SHIFT) & 0xffffffffffULL)
+    ((((ULONGLONG)p) >> PAGE_SHIFT) & 0xfffffffULL)
 
 #define VAtoPXI(va) ((((ULONG64)va) >> PXI_SHIFT) & 0x1FF)
 #define VAtoPPI(va) ((((ULONG64)va) >> PPI_SHIFT) & 0x1FF)
