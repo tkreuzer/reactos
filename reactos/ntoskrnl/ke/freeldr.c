@@ -977,7 +977,7 @@ KiRosFrldrLpbToNtLpb(IN PROS_LOADER_PARAMETER_BLOCK RosLoaderBlock,
     /* Build entries for ReactOS memory ranges, which uses ARC Descriptors */
     KiRosBuildOsMemoryMap();
 
-#if defined(_X86_)
+#if defined(_M_IX86) || defined(_M_AMD64)
     /* Build entries for the reserved map, which uses ARC Descriptors */
     KiRosBuildReservedMemoryMap();
 #endif
