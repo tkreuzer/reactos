@@ -1394,27 +1394,36 @@ static __inline__ __attribute__((always_inline)) unsigned long __readcr0(void)
 	return value;
 }
 
-static __inline__ __attribute__((always_inline)) unsigned long __readcr2(void)
+static __inline__ __attribute__((always_inline)) void __writedr(unsigned reg, unsigned __int64 value)
 {
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr2, %[value]" : [value] "=q" (value));
-	return value;
+	switch (reg)
+	{
+		case 0:
+			__asm__("movq %q[value], %%dr0" : : [value] "q" (value) : "memory");
+			break;
+		case 1:
+			__asm__("movq %q[value], %%dr1" : : [value] "q" (value) : "memory");
+			break;
+		case 2:
+			__asm__("movq %q[value], %%dr2" : : [value] "q" (value) : "memory");
+			break;
+		case 3:
+			__asm__("movq %q[value], %%dr3" : : [value] "q" (value) : "memory");
+			break;
+		case 4:
+			__asm__("movq %q[value], %%dr4" : : [value] "q" (value) : "memory");
+			break;
+		case 5:
+			__asm__("movq %q[value], %%dr5" : : [value] "q" (value) : "memory");
+			break;
+		case 6:
+			__asm__("movq %q[value], %%dr6" : : [value] "q" (value) : "memory");
+			break;
+		case 7:
+			__asm__("movq %q[value], %%dr7" : : [value] "q" (value) : "memory");
+			break;
+	}
 }
-
-static __inline__ __attribute__((always_inline)) unsigned long __readcr3(void)
-{
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr3, %[value]" : [value] "=q" (value));
-	return value;
-}
-
-static __inline__ __attribute__((always_inline)) unsigned long __readcr4(void)
-{
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr4, %[value]" : [value] "=q" (value));
-	return value;
-}
-
 #endif
 
 __INTRIN_INLINE void __invlpg(void * const Address)
