@@ -25,7 +25,7 @@ typedef struct _KD_PORT_INFORMATION
 {
     ULONG ComPort;
     ULONG BaudRate;
-    ULONG BaseAddress;
+    ULONG_PTR BaseAddress;
 } KD_PORT_INFORMATION, *PKD_PORT_INFORMATION;
 
 BOOLEAN
@@ -63,6 +63,8 @@ const ULONG BaseArray[2] = {0, 0x800003f8};
 const ULONG BaseArray[3] = {0, 0x80006000, 0x80007000};
 #elif defined(_M_ARM)
 const ULONG BaseArray[2] = {0, 0xF1012000};
+#elif defined(_M_AMD64)
+const ULONG BaseArray[5] = {0, 0x3F8, 0x2F8, 0x3E8, 0x2E8};
 #else
 #error Unknown architecture
 #endif
@@ -127,7 +129,7 @@ static BOOLEAN PortInitialized = FALSE;
 
 static BOOLEAN
 KdpDoesComPortExist(
-    IN ULONG BaseAddress)
+    IN ULONG_PTR BaseAddress)
 {
     BOOLEAN found;
     UCHAR mcr;
@@ -186,6 +188,14 @@ KdpDoesComPortExist(
 
 
 /* FUNCTIONS ****************************************************************/
+
+NTSTATUS
+DriverEntry(
+    IN PDRIVER_OBJECT  DriverObject,
+    IN PUNICODE_STRING  RegistryPath)
+{
+    return STATUS_SUCCESS;
+}
 
 /* HAL.KdPortInitialize */
 BOOLEAN
@@ -246,7 +256,7 @@ KdPortInitializeEx(
     IN ULONG Unknown1,
     IN ULONG Unknown2)
 {
-    ULONG ComPortBase;
+    ULONG_PTR ComPortBase;
     CHAR buffer[80];
     ULONG divisor;
     UCHAR lcr;
