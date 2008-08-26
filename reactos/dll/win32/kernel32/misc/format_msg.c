@@ -72,7 +72,7 @@ static LPWSTR load_messageW( HMODULE module, UINT id, WORD lang )
     DPRINT("module = %p, id = %08x\n", module, id );
 
     if (!module) module = GetModuleHandleW( NULL );
-    if ((status = RtlFindMessage( module, (ULONG)RT_MESSAGETABLE, lang, id, &mre )) != STATUS_SUCCESS)
+    if ((status = RtlFindMessage( module, (ULONG_PTR)RT_MESSAGETABLE, lang, id, &mre )) != STATUS_SUCCESS)
     {
         SetLastError( RtlNtStatusToDosError(status) );
         return NULL;
@@ -107,7 +107,7 @@ static LPSTR load_messageA( HMODULE module, UINT id, WORD lang )
     DPRINT("module = %p, id = %08x\n", module, id );
 
     if (!module) module = GetModuleHandleW( NULL );
-    if ((status = RtlFindMessage( module, (ULONG)RT_MESSAGETABLE, lang, id, &mre )) != STATUS_SUCCESS)
+    if ((status = RtlFindMessage( module, (ULONG_PTR)RT_MESSAGETABLE, lang, id, &mre )) != STATUS_SUCCESS)
     {
         SetLastError( RtlNtStatusToDosError(status) );
         return NULL;
