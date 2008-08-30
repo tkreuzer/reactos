@@ -149,8 +149,13 @@ extern "C" {
   errno_t __cdecl _set_doserrno(unsigned long _Value);
   errno_t __cdecl _get_doserrno(unsigned long *_Value);
 
-  _CRTIMP extern char *_sys_errlist[];
-  _CRTIMP extern int _sys_nerr;
+#ifdef _MSVCRT_
+  extern int*	_imp___sys_nerr;
+  extern char***	_imp__sys_errlist;
+#else 
+  __MINGW_IMPORT int	_sys_nerr;
+  __MINGW_IMPORT char*	_sys_errlist[];
+#endif
 
 //#if !defined(__x86_64)
   _CRTIMP int *__cdecl __p___argc(void);
@@ -347,10 +352,10 @@ extern "C" {
 #endif
 
 #if !defined(__GNUC__) && !defined(__clang)
-  unsigned short __cdecl _byteswap_ushort(unsigned short _Short);
+  /*unsigned short __cdecl _byteswap_ushort(unsigned short _Short); */
   unsigned long __cdecl _byteswap_ulong (unsigned long _Long);
 #if _INTEGRAL_MAX_BITS >= 64
-  __MINGW_EXTENSION unsigned __int64 __cdecl _byteswap_uint64(unsigned __int64 _Int64);
+  /*unsigned __int64 __cdecl _byteswap_uint64(unsigned __int64 _Int64);*/
 #endif
 #endif
 
@@ -472,8 +477,8 @@ extern "C" {
   _CRTIMP int __cdecl _atodbl_l(_CRT_DOUBLE *_Result,char *_Str,_locale_t _Locale);
   _CRTIMP int __cdecl _atoldbl_l(_LDOUBLE *_Result,char *_Str,_locale_t _Locale);
   _CRTIMP int __cdecl _atoflt_l(_CRT_FLOAT *_Result,char *_Str,_locale_t _Locale);
-  unsigned long __cdecl _lrotl(unsigned long _Val,int _Shift);
-  unsigned long __cdecl _lrotr(unsigned long _Val,int _Shift);
+  _CRTIMP unsigned long __cdecl __MINGW_NOTHROW _lrotl(unsigned long, int) __MINGW_ATTRIB_CONST;
+  _CRTIMP unsigned long __cdecl __MINGW_NOTHROW _lrotr(unsigned long, int) __MINGW_ATTRIB_CONST;
   _CRTIMP void __cdecl _makepath(char *_Path,const char *_Drive,const char *_Dir,const char *_Filename,const char *_Ext);
   _onexit_t __cdecl _onexit(_onexit_t _Func);
 
@@ -483,13 +488,13 @@ extern "C" {
 #endif
   _CRTIMP int __cdecl _putenv(const char *_EnvString);
 #if !defined(__GNUC__) && !defined(__clang)
-  unsigned int __cdecl _rotl(unsigned int _Val,int _Shift);
+  //_CRTIMP unsigned int __cdecl _rotl(unsigned int, int) __MINGW_ATTRIB_CONST;
 #if _INTEGRAL_MAX_BITS >= 64
-  __MINGW_EXTENSION unsigned __int64 __cdecl _rotl64(unsigned __int64 _Val,int _Shift);
+  //_CRTIMP unsigned __int64 __cdecl _rotl64(unsigned __int64, int) __MINGW_ATTRIB_CONST;
 #endif
-  unsigned int __cdecl _rotr(unsigned int _Val,int _Shift);
+  //_CRTIMP unsigned int __cdecl _rotr(unsigned int, int) __MINGW_ATTRIB_CONST;
 #if _INTEGRAL_MAX_BITS >= 64
-  __MINGW_EXTENSION unsigned __int64 __cdecl _rotr64(unsigned __int64 _Val,int _Shift);
+  //_CRTIMP unsigned __int64 __cdecl _rotr64(unsigned __int64, int) __MINGW_ATTRIB_CONST;
 #endif
 #endif
   _CRTIMP void __cdecl _searchenv(const char *_Filename,const char *_EnvVar,char *_ResultPath);
@@ -530,8 +535,8 @@ extern "C" {
 #endif
 #endif
 
-#define sys_errlist _sys_errlist
-#define sys_nerr _sys_nerr
+#define	sys_errlist	(*_imp___sys_errlist)
+#define	sys_nerr	(*_imp___sys_nerr)
 #define environ _environ
   _CRTIMP char *__cdecl ecvt(double _Val,int _NumOfDigits,int *_PtDec,int *_PtSign);
   _CRTIMP char *__cdecl fcvt(double _Val,int _NumOfDec,int *_PtDec,int *_PtSign);
@@ -565,7 +570,7 @@ extern "C" {
   __MINGW_EXTENSION char *__cdecl ulltoa (unsigned long long , char *, int);
   __MINGW_EXTENSION wchar_t *__cdecl lltow (long long, wchar_t *, int);
   __MINGW_EXTENSION wchar_t *__cdecl ulltow (unsigned long long, wchar_t *, int);
-
+#if _INTEGRAL_MAX_BITS >= 64
   /* __CRT_INLINE using non-ansi functions */
   __MINGW_EXTENSION __CRT_INLINE long long  __cdecl atoll (const char * _c) { return _atoi64 (_c); }
   __MINGW_EXTENSION __CRT_INLINE char *__cdecl lltoa (long long _n, char * _c, int _i) { return _i64toa (_n, _c, _i); }
@@ -574,7 +579,7 @@ extern "C" {
   __MINGW_EXTENSION __CRT_INLINE wchar_t *__cdecl lltow (long long _n, wchar_t * _w, int _i) { return _i64tow (_n, _w, _i); }
   __MINGW_EXTENSION __CRT_INLINE wchar_t *__cdecl ulltow (unsigned long long _n, wchar_t * _w, int _i) { return _ui64tow (_n, _w, _i); }
 #endif /* (__STRICT_ANSI__)  */
-
+#endif
 #endif /* !__NO_ISOCEXT */
 
 #ifdef __cplusplus
@@ -584,4 +589,6 @@ extern "C" {
 #pragma pack(pop)
 
 #include <sec_api/stdlib_s.h>
+#include <malloc.h>
+
 #endif

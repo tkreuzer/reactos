@@ -224,13 +224,23 @@ extern "C" {
   _CRTIMP int __cdecl vfprintf(FILE *_File,const char *_Format,va_list _ArgList);
   _CRTIMP int __cdecl vprintf(const char *_Format,va_list _ArgList);
   /* Make sure macros are not defined.  */
-#if __MINGW_GNUC_PREREQ(4,4)
+#ifdef _WIN64 //hack for old gcc in ROSBE
 #pragma push_macro("vsnprintf")
 #pragma push_macro("snprintf")
-#endif
   #undef vsnprintf
   #undef snprintf
-  _CRTIMP _CRT_INSECURE_DEPRECATE(vsnprintf_s) int __cdecl vsnprintf(char *_DstBuf,size_t _MaxCount,const char *_Format,va_list _ArgList);
+#endif
+  extern
+#ifdef gnu_printf
+  __attribute__((format(gnu_printf, 3, 0))) __attribute__((nonnull (3)))
+#endif
+  int __mingw_vsnprintf(char *_DstBuf,size_t _MaxCount,const char *_Format,va_list _ArgList);
+  extern
+#ifdef gnu_printf
+  __attribute__((format(gnu_printf, 3, 4))) __attribute__((nonnull (3)))
+#endif
+  int __mingw_snprintf(char* s, size_t n, const char*  format, ...);
+  int __cdecl vsnprintf(char *_DstBuf,size_t _MaxCount,const char *_Format,va_list _ArgList);
   _CRTIMP int __cdecl _snprintf(char *_Dest,size_t _Count,const char *_Format,...);
   _CRTIMP int __cdecl _vsnprintf(char *_Dest,size_t _Count,const char *_Format,va_list _Args);
   int __cdecl sprintf(char *_Dest,const char *_Format,...);
@@ -242,7 +252,7 @@ extern "C" {
   int __cdecl vsscanf (const char * __restrict__ _Str,const char * __restrict__ Format,va_list argp);
 #endif
 /* Restore may prior defined macros snprintf/vsnprintf.  */
-#if __MINGW_GNUC_PREREQ(4,4)
+#ifdef _WIN64 //hack for old gcc in ROSBE
 #pragma pop_macro("snprintf")
 #pragma pop_macro("vsnprintf")
 #endif
@@ -299,7 +309,7 @@ extern "C" {
   _CRTIMP int __cdecl _snwprintf(wchar_t *_Dest,size_t _Count,const wchar_t *_Format,...);
   _CRTIMP int __cdecl _vsnwprintf(wchar_t *_Dest,size_t _Count,const wchar_t *_Format,va_list _Args);
 #ifndef __NO_ISOCEXT  /* externs in libmingwex.a */
-  _CRTIMP int __cdecl snwprintf (wchar_t* s, size_t n, const wchar_t*  format, ...);
+  int __cdecl snwprintf (wchar_t* s, size_t n, const wchar_t*  format, ...);
   __CRT_INLINE int __cdecl vsnwprintf (wchar_t* s, size_t n, const wchar_t* format, va_list arg) { return _vsnwprintf(s,n,format,arg); }
   _CRTIMP int __cdecl vwscanf (const wchar_t *, va_list);
   _CRTIMP int __cdecl vfwscanf (FILE *,const wchar_t *,va_list);
