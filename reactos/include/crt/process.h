@@ -36,12 +36,12 @@ extern "C" {
   __declspec(noreturn) void __cdecl exit(int _Code);
   _CRTIMP __declspec(noreturn) void __cdecl _exit(int _Code);
 
-#if __MINGW_GNUC_PREREQ(4,4)
+#ifdef _WIN64 //hack for old gcc in ROSBE
 #pragma push_macro("abort")
 #undef abort
 #endif
   __declspec(noreturn) void __cdecl abort(void);
-#if __MINGW_GNUC_PREREQ(4,4)
+#ifdef _WIN64 //hack for old gcc in ROSBE
 #pragma pop_macro("abort")
 #undef abort
 #endif
@@ -136,17 +136,7 @@ extern "C" {
 #define WAIT_GRANDCHILD _WAIT_GRANDCHILD
 
   _CRTIMP intptr_t __cdecl cwait(int *_TermStat,intptr_t _ProcHandle,int _Action);
-#ifdef __GNUC__
-  _CRTIMP int __cdecl execl(const char *_Filename,const char *_ArgList,...);
-  _CRTIMP int __cdecl execle(const char *_Filename,const char *_ArgList,...);
-  _CRTIMP int __cdecl execlp(const char *_Filename,const char *_ArgList,...);
-  _CRTIMP int __cdecl execlpe(const char *_Filename,const char *_ArgList,...);
-#else
-  _CRTIMP intptr_t __cdecl execl(const char *_Filename,const char *_ArgList,...);
-  _CRTIMP intptr_t __cdecl execle(const char *_Filename,const char *_ArgList,...);
-  _CRTIMP intptr_t __cdecl execlp(const char *_Filename,const char *_ArgList,...);
-  _CRTIMP intptr_t __cdecl execlpe(const char *_Filename,const char *_ArgList,...);
-#endif
+  intptr_t __cdecl execlpe(const char *_Filename,const char *_ArgList,...);
   _CRTIMP intptr_t __cdecl spawnl(int,const char *_Filename,const char *_ArgList,...);
   _CRTIMP intptr_t __cdecl spawnle(int,const char *_Filename,const char *_ArgList,...);
   _CRTIMP intptr_t __cdecl spawnlp(int,const char *_Filename,const char *_ArgList,...);
@@ -157,15 +147,21 @@ extern "C" {
      stupid warnings, define them in POSIX way.  This is save, because those
      methods do not return in success case, so that the return value is not
      really dependent to its scalar width.  */
-  _CRTIMP int __cdecl execv(const char *_Filename,char *const _ArgList[]);
-  _CRTIMP int __cdecl execve(const char *_Filename,char *const _ArgList[],char *const _Env[]);
-  _CRTIMP int __cdecl execvp(const char *_Filename,char *const _ArgList[]);
-  _CRTIMP int __cdecl execvpe(const char *_Filename,char *const _ArgList[],char *const _Env[]);
+  int __cdecl execl(const char *_Filename,const char *_ArgList,...);
+  int __cdecl execle(const char *_Filename,const char *_ArgList,...);
+  int __cdecl execlp(const char *_Filename,const char *_ArgList,...);
+  int __cdecl execv(const char *_Filename,char *const _ArgList[]);
+  int __cdecl execve(const char *_Filename,char *const _ArgList[],char *const _Env[]);
+  int __cdecl execvp(const char *_Filename,char *const _ArgList[]);
+  int __cdecl execvpe(const char *_Filename,char *const _ArgList[],char *const _Env[]);
 #else
-  _CRTIMP intptr_t __cdecl execv(const char *_Filename,char *const _ArgList[]);
-  _CRTIMP intptr_t __cdecl execve(const char *_Filename,char *const _ArgList[],char *const _Env[]);
-  _CRTIMP intptr_t __cdecl execvp(const char *_Filename,char *const _ArgList[]);
-  _CRTIMP intptr_t __cdecl execvpe(const char *_Filename,char *const _ArgList[],char *const _Env[]);
+  intptr_t __cdecl execlp(const char *_Filename,const char *_ArgList,...);
+  intptr_t __cdecl execl(const char *_Filename,const char *_ArgList,...);
+  intptr_t __cdecl execle(const char *_Filename,const char *_ArgList,...);
+  intptr_t __cdecl execv(const char *_Filename,char *const _ArgList[]);
+  intptr_t __cdecl execve(const char *_Filename,char *const _ArgList[],char *const _Env[]);
+  intptr_t __cdecl execvp(const char *_Filename,char *const _ArgList[]);
+  intptr_t __cdecl execvpe(const char *_Filename,char *const _ArgList[],char *const _Env[]);
 #endif
   _CRTIMP intptr_t __cdecl spawnv(int,const char *_Filename,char *const _ArgList[]);
   _CRTIMP intptr_t __cdecl spawnve(int,const char *_Filename,char *const _ArgList[],char *const _Env[]);

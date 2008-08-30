@@ -16,6 +16,17 @@
 
 #else /* !NDEBUG */
 
+#ifdef _WIN64 //hack for old gcc in ROSBE
+#pragma push_macro("abort")
+#undef abort
+#endif
+  void __cdecl __declspec(noreturn) abort(void);
+#ifdef _WIN64 //hack for old gcc in ROSBE
+#pragma pop_macro("abort")
+#endif
+
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
