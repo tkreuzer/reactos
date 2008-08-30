@@ -5,9 +5,7 @@
  */
 
 #undef CRTDLL
-#ifndef _DLL
 #define _DLL
-#endif
 
 #define SPECIAL_CRTEXE
 
@@ -41,7 +39,7 @@ extern void _fpreset (void);
 #define SPACECHAR _T(' ')
 #define DQUOTECHAR _T('\"')
 
-__declspec(dllimport) void __setusermatherr(int (__cdecl *)(struct _exception *));
+_CRTIMP void __setusermatherr(int (__cdecl *)(struct _exception *));
 
 extern int * __MINGW_IMP_SYMBOL(_fmode);
 extern int * __MINGW_IMP_SYMBOL(_commode);
@@ -89,9 +87,9 @@ static char **argv;
 static char **envp;
 #endif
 
-static int argret;
+static int argret=0;
 static int mainret=0;
-static int managedapp;
+static int managedapp=0;
 static int has_cctor = 0;
 static _startupinfo startinfo;
 static LPTOP_LEVEL_EXCEPTION_FILTER __mingw_oldexcpt_handler = NULL;
@@ -123,10 +121,8 @@ pre_c_init (void)
   * __MINGW_IMP_SYMBOL(_fmode) = _fmode;
   * __MINGW_IMP_SYMBOL(_commode) = _commode;
 
-#ifdef WPRFLAG
-  _wsetargv();
-#else
-  _setargv();
+#ifndef WPRFLAG
+  _dowildcard = 1;
 #endif
   if (_MINGW_INSTALL_DEBUG_MATHERR)
     {
@@ -155,7 +151,7 @@ pre_cpp_init (void)
 #endif
 }
 
-static int __tmainCRTStartup (void);
+static int __mingw_CRTStartup (void);
 
 int WinMainCRTStartup (void);
 
@@ -163,7 +159,7 @@ int WinMainCRTStartup (void)
 {
   mingw_app_type = 1;
   __security_init_cookie ();
-  return __tmainCRTStartup ();
+  return __mingw_CRTStartup ();
 }
 
 int mainCRTStartup (void);
@@ -176,24 +172,25 @@ int mainCRTStartup (void)
 {
   mingw_app_type = 0;
   __security_init_cookie ();
-  return __tmainCRTStartup ();
+  return __mingw_CRTStartup ();
 }
 
 static
 __declspec(noinline) int
-__tmainCRTStartup (void)
+__mingw_CRTStartup (void)
 {
   _TCHAR *lpszCommandLine = NULL;
   STARTUPINFO StartupInfo;
   WINBOOL inDoubleQuote = FALSE;
   memset (&StartupInfo, 0, sizeof (STARTUPINFO));
-  
+  int nested = FALSE;
+
   if (mingw_app_type)
     GetStartupInfo (&StartupInfo);
   {
+#if 0 //not ready for this yet
     void *lock_free = NULL;
     void *fiberid = ((PNT_TIB)NtCurrentTeb())->StackBase;
-    int nested = FALSE;
     while((lock_free = InterlockedCompareExchangePointer ((volatile PVOID *) &__native_startup_lock,
 							  fiberid, 0)) != 0)
       {
@@ -204,6 +201,7 @@ __tmainCRTStartup (void)
 	  }
 	Sleep(1000);
       }
+#endif
     if (__native_startup_state == __initializing)
       {
 	_amsg_exit (31);
