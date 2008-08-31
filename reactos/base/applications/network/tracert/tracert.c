@@ -388,7 +388,11 @@ DecodeResponse(PAPPINFO pInfo)
     switch (IcmpHdr->icmpheader.type)
     {
            case TTL_EXCEEDED :
+#ifndef _WIN64
                 _tprintf(_T("%3lld ms"), (pInfo->lTimeEnd - pInfo->lTimeStart) / pInfo->TicksPerMs.QuadPart);
+#else
+                _tprintf(_T("%3I64d ms"), (pInfo->lTimeEnd - pInfo->lTimeStart) / pInfo->TicksPerMs.QuadPart);
+#endif
                 return 0;
 
            case ECHO_REPLY :
@@ -399,7 +403,11 @@ DecodeResponse(PAPPINFO pInfo)
                     DebugPrint(_T("Rouge packet: header id %d, process id  %d"), IcmpHdr->icmpheader.id, GetCurrentProcessId());
                     return -1;
                 }
+#ifndef _WIN64
                 _tprintf(_T("%3lld ms"), (pInfo->lTimeEnd - pInfo->lTimeStart) / pInfo->TicksPerMs.QuadPart);
+#else
+                _tprintf(_T("%3I64d ms"), (pInfo->lTimeEnd - pInfo->lTimeStart) / pInfo->TicksPerMs.QuadPart);
+#endif
                 return 1;
 
            case DEST_UNREACHABLE :
