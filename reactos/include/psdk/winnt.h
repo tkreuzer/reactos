@@ -27,7 +27,6 @@
 extern "C" {
 #endif
 
-#include <excpt.h>
 #include <basetsd.h>
 #include <guiddef.h>
 
@@ -167,7 +166,7 @@ typedef PCSTR *PZPCSTR;
   typedef WCHAR TCHAR,*PTCHAR;
   typedef WCHAR TBYTE ,*PTBYTE;
 #endif
-  typedef LPWSTR LPTCH,PTCH,PTSTR,LPTSTR,LP;
+  typedef LPWSTR LPTCH,PTCH,PTSTR,LPTSTR,LP,PTCHAR;
   typedef LPCWSTR PCTSTR,LPCTSTR;
   typedef LPUWSTR PUTSTR,LPUTSTR;
   typedef LPCUWSTR PCUTSTR,LPCUTSTR;
@@ -178,7 +177,7 @@ typedef PCSTR *PZPCSTR;
   typedef char TCHAR,*PTCHAR;
   typedef unsigned char TBYTE ,*PTBYTE;
 #endif
-  typedef LPSTR LPTCH,PTCH,PTSTR,LPTSTR,PUTSTR,LPUTSTR;
+  typedef LPSTR LPTCH,PTCH,PTSTR,LPTSTR,PUTSTR,LPUTSTR,PTCHAR;
   typedef LPCSTR PCTSTR,LPCTSTR,PCUTSTR,LPCUTSTR;
 #define __TEXT(quote) quote
 #endif
