@@ -15,7 +15,9 @@ Author:
     Alex Ionescu (alex.ionescu@reactos.com)   06-Oct-2004
 
 --*/
-
+#ifdef _M_AMD64
+# include "amd64/asm.h"
+#else
 #if defined(_M_IX86)
 #include <i386/asm.h>
 #elif defined(_M_AMD64)

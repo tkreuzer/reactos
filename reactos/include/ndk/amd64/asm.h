@@ -71,7 +71,6 @@ Author:
 #define KPCR_TSS_BASE                           0x08
 #define KPCR_SELF                               0x18
 #define KPCR_STALL_SCALE_FACTOR                 0x64
-#define KPCR_PRCB 0x180
 
 //
 // KTRAP_FRAME Offsets
