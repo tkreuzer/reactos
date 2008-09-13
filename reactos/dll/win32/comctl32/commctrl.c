@@ -707,6 +707,7 @@ CreateUpDownControl (DWORD style, INT x, INT y, INT cx, INT cy,
 VOID WINAPI
 InitCommonControls (void)
 {
+    return;
 }
 
 
