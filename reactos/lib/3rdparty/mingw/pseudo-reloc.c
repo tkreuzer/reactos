@@ -15,6 +15,9 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
+/* Only necesary on x86 and amd64 targets */
+#if defined(__i386__) || defined(__x86_64__)
+
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
