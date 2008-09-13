@@ -1,3 +1,4 @@
+
 100 stub -noname EnumPrinterPropertySheets
 101 stub -noname ClusterSplOpen
 102 stub -noname ClusterSplClose
@@ -49,6 +50,10 @@
 @ stdcall AddPortExA(str long ptr str)
 @ stdcall AddPortExW(wstr long ptr wstr)
 @ stdcall AddPortW(wstr long wstr)
+@ stdcall AddPrintProcessorA(str str str str)
+@ stdcall AddPrintProcessorW(wstr wstr wstr wstr)
+@ stdcall AddPrintProvidorA(str long ptr)
+@ stdcall AddPrintProvidorW(wstr long ptr)
 @ stdcall AddPrinterA(str long ptr)
 @ stdcall AddPrinterConnectionA(str)
 @ stdcall AddPrinterConnectionW(wstr)
@@ -57,10 +62,6 @@
 @ stdcall AddPrinterDriverExW(wstr long ptr long)
 @ stdcall AddPrinterDriverW(wstr long ptr)
 @ stdcall AddPrinterW(wstr long ptr)
-@ stdcall AddPrintProcessorA(str str str str)
-@ stdcall AddPrintProcessorW(wstr wstr wstr wstr)
-@ stdcall AddPrintProvidorA(str long ptr)
-@ stdcall AddPrintProvidorW(wstr long ptr)
 @ stdcall AdvancedDocumentPropertiesA(long long str ptr ptr)
 @ stdcall AdvancedDocumentPropertiesW(long long wstr ptr ptr)
 @ stub AdvancedSetupDialog
@@ -81,13 +82,15 @@
 @ stdcall DeleteMonitorW(wstr wstr wstr)
 @ stdcall DeletePortA(str long str)
 @ stdcall DeletePortW(wstr long wstr)
+@ stdcall DeletePrintProcessorA(str str str)
+@ stdcall DeletePrintProcessorW(wstr wstr wstr)
+@ stdcall DeletePrintProvidorA(str str str)
+@ stdcall DeletePrintProvidorW(wstr wstr wstr)
 @ stdcall DeletePrinter(long)
 @ stdcall DeletePrinterConnectionA(str)
 @ stdcall DeletePrinterConnectionW(wstr)
 @ stdcall DeletePrinterDataExA(long str str)
 @ stdcall DeletePrinterDataExW(long wstr wstr)
-@ stdcall DeletePrinterDataA(ptr str)
-@ stdcall DeletePrinterDataW(ptr wstr)
 @ stdcall DeletePrinterDriverA(str str str)
 @ stdcall DeletePrinterDriverExA(str str str long long)
 @ stdcall DeletePrinterDriverExW(wstr wstr wstr long long)
@@ -95,14 +98,11 @@
 @ stub DeletePrinterIC
 @ stub DevQueryPrint
 @ stdcall DeletePrintProcessorA(str str str)
-@ stdcall DeletePrintProcessorW(wstr wstr wstr)
-@ stdcall DeletePrintProvidorA(str str str)
-@ stdcall DeletePrintProvidorW(wstr wstr wstr)
+@ stdcall DeviceCapabilities(str str long ptr ptr) DeviceCapabilitiesA
 @ stdcall DeviceCapabilitiesA(str str long ptr ptr)
-@ stdcall DeviceCapabilitiesW(wstr wstr long ptr ptr)
+@ stdcall DeviceCapabilitiesW(wstr wstr long wstr ptr)
 @ stub DeviceMode
 @ stub DocumentEvent
-@ stdcall DllMain(ptr long ptr)
 @ stdcall DocumentPropertiesA(long long ptr ptr ptr long)
 @ stdcall DocumentPropertiesW(long long ptr ptr ptr long)
 @ stub EXTDEVICEMODE
@@ -116,6 +116,10 @@
 @ stdcall EnumMonitorsW(wstr long ptr long long long)
 @ stdcall EnumPortsA(str long ptr ptr ptr ptr)
 @ stdcall EnumPortsW(wstr long ptr ptr ptr ptr)
+@ stdcall EnumPrintProcessorDatatypesA(str str long ptr long ptr ptr)
+@ stdcall EnumPrintProcessorDatatypesW(wstr wstr long ptr long ptr ptr)
+@ stdcall EnumPrintProcessorsA(str str long ptr long ptr ptr)
+@ stdcall EnumPrintProcessorsW(wstr wstr long ptr long ptr ptr)
 @ stdcall EnumPrinterDataA(long long ptr long ptr ptr ptr long ptr)
 @ stdcall EnumPrinterDataExA(long str ptr long ptr ptr)
 @ stdcall EnumPrinterDataExW(long wstr ptr long ptr ptr)
@@ -127,10 +131,6 @@
 @ stdcall EnumPrinterKeyA(long str str long ptr)
 @ stdcall EnumPrinterKeyW(long wstr wstr long ptr)
 @ stdcall ExtDeviceMode(long long ptr str str ptr str long)
-@ stdcall EnumPrintProcessorDatatypesA(str str long ptr long ptr ptr)
-@ stdcall EnumPrintProcessorDatatypesW(wstr wstr long ptr long ptr ptr)
-@ stdcall EnumPrintProcessorsA(str str long ptr long ptr ptr)
-@ stdcall EnumPrintProcessorsW(wstr wstr long ptr long ptr ptr)
 @ stdcall FindClosePrinterChangeNotification(long)
 @ stdcall FindFirstPrinterChangeNotification(long long long ptr)
 @ stdcall FindNextPrinterChangeNotification(long ptr ptr ptr)
@@ -139,6 +139,8 @@
 @ stdcall GetFormW(long wstr long ptr long ptr)
 @ stdcall GetJobA(long long long ptr long ptr)
 @ stdcall GetJobW(long long long ptr long ptr)
+@ stdcall GetPrintProcessorDirectoryA(str str long ptr long ptr)
+@ stdcall GetPrintProcessorDirectoryW(wstr wstr long ptr long ptr)
 @ stdcall GetPrinterA(long long ptr long ptr)
 @ stdcall GetPrinterDataA(long str ptr ptr long ptr)
 @ stdcall GetPrinterDataExA(long str str ptr ptr long ptr)
@@ -149,8 +151,6 @@
 @ stdcall GetPrinterDriverDirectoryW(wstr wstr long ptr long ptr)
 @ stdcall GetPrinterDriverW(long str long ptr long ptr)
 @ stdcall GetPrinterW(long long ptr long ptr)
-@ stdcall GetPrintProcessorDirectoryA(str str long ptr long ptr)
-@ stdcall GetPrintProcessorDirectoryW(wstr wstr long ptr long ptr)
 @ stub GetSpoolFileHandle
 @ stub IsValidDevmodeA
 @ stub IsValidDevmodeW
