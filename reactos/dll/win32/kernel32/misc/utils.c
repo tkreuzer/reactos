@@ -320,7 +320,7 @@ WINAPI
 BasepFreeStack(HANDLE hProcess,
                PINITIAL_TEB InitialTeb)
 {
-    ULONG Dummy = 0;
+    SIZE_T Dummy = 0;
     
     /* Free the Stack */
     NtFreeVirtualMemory(hProcess,
