@@ -1,5 +1,12 @@
-@ stdcall AbortDoc(ptr)
-@ stdcall AbortPath(ptr)
+# ordinal exports
+100 stdcall @(long long str str str) GDI_CallDevInstall16
+101 stdcall @(long str str ptr) GDI_CallExtDeviceModePropSheet16
+102 stdcall @(long ptr str str ptr str long) GDI_CallExtDeviceMode16
+103 stdcall @(long str ptr ptr) GDI_CallAdvancedSetupDialog16
+104 stdcall @(str str long ptr ptr) GDI_CallDeviceCapabilities16
+
+@ stdcall AbortDoc(long)
+@ stdcall AbortPath(long)
 @ stdcall AddFontMemResourceEx(ptr long ptr ptr)
 @ stdcall AddFontResourceA(str)
 @ stdcall AddFontResourceExA(str long ptr)
@@ -11,15 +18,9 @@
 @ stdcall AnyLinkedFonts() NtGdiAnyLinkedFonts
 @ stdcall Arc(long long long long long long long long long)
 @ stdcall ArcTo(long long long long long long long long long)
-@ stdcall BRUSHOBJ_hGetColorTransform(ptr) NtGdiBRUSHOBJ_hGetColorTransform
-@ stdcall BRUSHOBJ_pvAllocRbrush(ptr long) NtGdiBRUSHOBJ_pvAllocRbrush
-@ stdcall BRUSHOBJ_pvGetRbrush(ptr) NtGdiBRUSHOBJ_pvGetRbrush
-@ stdcall BRUSHOBJ_ulGetBrushColor(ptr) NtGdiBRUSHOBJ_ulGetBrushColor
 @ stdcall BeginPath(long)
 @ stdcall BitBlt(long long long long long long long long long)
-@ stdcall CLIPOBJ_bEnum(ptr long long) NtGdiCLIPOBJ_bEnum
-@ stdcall CLIPOBJ_cEnumStart(ptr long long long long) NtGdiCLIPOBJ_cEnumStart
-@ stdcall CLIPOBJ_ppoGetPath(ptr) NtGdiCLIPOBJ_ppoGetPath
+@ stub ByeByeGDI
 @ stdcall CancelDC(long)
 @ stdcall CheckColorsInGamut(ptr ptr ptr long)
 @ stdcall ChoosePixelFormat(long ptr)
@@ -32,7 +33,7 @@
 @ stdcall ColorCorrectPalette(ptr ptr long long)
 @ stdcall ColorMatchToTarget(ptr ptr long)
 @ stdcall CombineRgn(long long long long)
-@ stdcall CombineTransform(ptr ptr ptr) NtGdiCombineTransform
+@ stdcall CombineTransform(ptr ptr ptr)
 @ stdcall CopyEnhMetaFileA(long str)
 @ stdcall CopyEnhMetaFileW(long wstr)
 @ stdcall CopyMetaFileA(long str)
@@ -80,69 +81,13 @@
 @ stdcall CreateScalableFontResourceW(long wstr wstr wstr)
 @ stdcall CreateSolidBrush(long)
 @ stdcall DPtoLP(long ptr long)
-@ stdcall DdEntry0(ptr ptr ptr ptr ptr ptr) NtGdiDxgGenericThunk
-@ stdcall DdEntry10(ptr ptr) NtGdiDdBeginMoCompFrame
-@ stdcall DdEntry11(ptr ptr ptr) NtGdiDdBlt
-@ stdcall DdEntry12(ptr ptr) NtGdiDdCanCreateSurface
-@ stdcall DdEntry13(ptr ptr) NtGdiDdCanCreateD3DBuffer
-@ stdcall DdEntry14(ptr ptr) NtGdiDdColorControl
-@ stdcall DdEntry15(ptr) NtGdiDdCreateDirectDrawObject
-@ stdcall DdEntry16(ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiDdCreateSurface
-@ stdcall DdEntry17(ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiDdCreateD3DBuffer
-@ stdcall DdEntry18(ptr ptr) NtGdiDdCreateMoComp
-@ stdcall DdEntry19(ptr ptr ptr ptr ptr long) NtGdiDdCreateSurfaceObject
-@ stdcall DdEntry1(ptr ptr ptr ptr) NtGdiD3dContextCreate
-@ stdcall DdEntry20(ptr) NtGdiDdDeleteDirectDrawObject
-@ stdcall DdEntry21(ptr) NtGdiDdDeleteSurfaceObject
-@ stdcall DdEntry22(ptr ptr) NtGdiDdDestroyMoComp
-@ stdcall DdEntry23(ptr long) NtGdiDdDestroySurface
-@ stdcall DdEntry24(ptr) NtGdiDdDestroyD3DBuffer
-@ stdcall DdEntry25(ptr ptr) NtGdiDdEndMoCompFrame
-@ stdcall DdEntry26(ptr ptr ptr ptr ptr) NtGdiDdFlip
-@ stdcall DdEntry27(ptr long) NtGdiDdFlipToGDISurface
-@ stdcall DdEntry28(ptr ptr) NtGdiDdGetAvailDriverMemory
-@ stdcall DdEntry29(ptr ptr) NtGdiDdGetBltStatus
-@ stdcall DdEntry2(ptr)NtGdiD3dContextDestroy
-@ stdcall DdEntry30(ptr ptr) NtGdiDdGetDC
-@ stdcall DdEntry31(ptr ptr) NtGdiDdGetDriverInfo
-@ stdcall DdEntry32(ptr ptr long) NtGdiDdGetDxHandle
-@ stdcall DdEntry33(ptr ptr) NtGdiDdGetFlipStatus
-@ stdcall DdEntry34(ptr ptr) NtGdiDdGetInternalMoCompInfo
-@ stdcall DdEntry35(ptr ptr) NtGdiDdGetMoCompBuffInfo
-@ stdcall DdEntry36(ptr ptr) NtGdiDdGetMoCompGuids
-@ stdcall DdEntry37(ptr ptr) NtGdiDdGetMoCompFormats
-@ stdcall DdEntry38(ptr ptr) NtGdiDdGetScanLine
-@ stdcall DdEntry39(ptr ptr ptr) NtGdiDdLock
-@ stdcall DdEntry3(ptr) NtGdiD3dContextDestroyAll
-@ stdcall DdEntry40(ptr ptr) NtGdiDdLockD3D
-@ stdcall DdEntry41(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiDdQueryDirectDrawObject
-@ stdcall DdEntry42(ptr ptr) NtGdiDdQueryMoCompStatus
-@ stdcall DdEntry43(ptr ptr) NtGdiDdReenableDirectDrawObject
-@ stdcall DdEntry44(ptr) NtGdiDdReleaseDC
-@ stdcall DdEntry45(ptr ptr) NtGdiDdRenderMoComp
-@ stdcall DdEntry46(ptr ptr) NtGdiDdResetVisrgn
-@ stdcall DdEntry47(ptr ptr) NtGdiDdSetColorKey
-@ stdcall DdEntry48(ptr ptr) NtGdiDdSetExclusiveMode
-@ stdcall DdEntry49(ptr ptr ptr) NtGdiDdSetGammaRamp
-@ stdcall DdEntry4(ptr) NtGdiD3dValidateTextureStageState
-@ stdcall DdEntry50(ptr ptr long)NtGdiDdCreateSurfaceEx
-@ stdcall DdEntry51(ptr ptr ptr) NtGdiDdSetOverlayPosition
-@ stdcall DdEntry52(ptr ptr) NtGdiDdUnattachSurface
-@ stdcall DdEntry53(ptr ptr) NtGdiDdUnlock
-@ stdcall DdEntry54(ptr ptr) NtGdiDdUnlockD3D
-@ stdcall DdEntry55(ptr ptr long) NtGdiDdUpdateOverlay
-@ stdcall DdEntry56(ptr ptr) NtGdiDdWaitForVerticalBlank
-@ stdcall DdEntry5(ptr ptr ptr ptr ptr ptr ptr) NtGdiD3dDrawPrimitives2
-@ stdcall DdEntry6(ptr) NtGdiDdGetDriverState
-@ stdcall DdEntry7(ptr ptr ptr) NtGdiDdAddAttachedSurface
-@ stdcall DdEntry8(ptr ptr ptr) NtGdiDdAlphaBlt
-@ stdcall DdEntry9(ptr ptr) NtGdiDdAttachSurface
 @ stdcall DeleteColorSpace(long) NtGdiDeleteColorSpace
 @ stdcall DeleteDC(long)
 @ stdcall DeleteEnhMetaFile(long)
 @ stdcall DeleteMetaFile(long)
 @ stdcall DeleteObject(long)
 @ stdcall DescribePixelFormat(long long long ptr)
+@ stub DeviceCapabilitiesEx
 @ stdcall DeviceCapabilitiesExA(str str long str ptr)
 @ stdcall DeviceCapabilitiesExW(wstr wstr long wstr ptr)
 @ stdcall DrawEscape(long long long ptr)
@@ -152,55 +97,6 @@
 @ stdcall EndFormPage(ptr)
 @ stdcall EndPage(long)
 @ stdcall EndPath(long)
-@ stdcall EngAcquireSemaphore(ptr)
-@ stdcall EngAlphaBlend(ptr ptr ptr ptr ptr ptr ptr) NtGdiEngAlphaBlend
-@ stdcall EngAssociateSurface(ptr ptr long) NtGdiEngAssociateSurface
-@ stdcall EngBitBlt(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiEngBitBlt
-@ stdcall EngCheckAbort(ptr) NtGdiEngCheckAbort
-@ stdcall EngComputeGlyphSet(ptr ptr ptr)
-@ stdcall EngCopyBits(ptr ptr ptr ptr ptr ptr) NtGdiEngCopyBits
-# @ stdcall EngCreateBitmap(longlong long long long ptr) NtGdiEngCreateBitmap
-@ stdcall EngCreateBitmap(long long long long long ptr) NtGdiEngCreateBitmap
-@ stdcall EngCreateClip() NtGdiEngCreateClip
-# @ stdcall EngCreateDeviceBitmap(ptr longlong long) NtGdiEngCreateDeviceBitmap
-@ stdcall EngCreateDeviceBitmap(ptr long long long) NtGdiEngCreateDeviceBitmap
-# @ stdcall EngCreateDeviceSurface(ptr longlong long) NtGdiEngCreateDeviceSurface
-@ stdcall EngCreateDeviceSurface(ptr long long long) NtGdiEngCreateDeviceSurface
-@ stdcall EngCreatePalette(long long ptr long long long) NtGdiEngCreatePalette
-@ stdcall EngCreateSemaphore()
-@ stdcall EngDeleteClip(ptr) NtGdiEngDeleteClip
-@ stdcall EngDeletePalette(ptr) NtGdiEngDeletePalette
-@ stdcall EngDeletePath(ptr) NtGdiEngDeletePath
-@ stdcall EngDeleteSemaphore(ptr)
-@ stdcall EngDeleteSurface(ptr) NtGdiEngDeleteSurface
-@ stdcall EngEraseSurface(ptr ptr long) NtGdiEngEraseSurface
-@ stdcall EngFillPath(ptr ptr ptr ptr ptr ptr ptr) NtGdiEngFillPath
-@ stdcall EngFindResource(ptr long long ptr)
-@ stdcall EngFreeModule(ptr)
-@ stdcall EngGetCurrentCodePage(ptr ptr)
-@ stdcall EngGetDriverName(ptr)
-@ stdcall EngGetPrinterDataFileName(ptr)
-@ stdcall EngGradientFill(ptr ptr ptr ptr long ptr long ptr ptr long) NtGdiEngGradientFill
-@ stdcall EngLineTo(ptr ptr ptr long long long long ptr ptr) NtGdiEngLineTo
-@ stdcall EngLoadModule(ptr)
-@ stdcall EngLockSurface(ptr) NtGdiEngLockSurface
-@ stdcall EngMarkBandingSurface(ptr) NtGdiEngMarkBandingSurface
-@ stdcall EngMultiByteToUnicodeN(wstr long ptr str long) RtlMultiByteToUnicodeN
-@ stdcall EngMultiByteToWideChar(long wstr long str long)
-@ stdcall EngPaint(ptr ptr ptr ptr ptr) NtGdiEngPaint
-@ stdcall EngPlgBlt(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr long) NtGdiEngPlgBlt
-@ stdcall EngQueryEMFInfo(ptr ptr)
-@ stdcall EngQueryLocalTime(ptr)
-@ stdcall EngReleaseSemaphore(ptr)
-@ stdcall EngStretchBlt(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr long) NtGdiEngStretchBlt
-@ stdcall EngStretchBltROP(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr long ptr long) NtGdiEngStretchBltROP
-@ stdcall EngStrokeAndFillPath(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiEngStrokeAndFillPath
-@ stdcall EngStrokePath(ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiEngStrokePath
-@ stdcall EngTextOut(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr) NtGdiEngTextOut
-@ stdcall EngTransparentBlt(ptr ptr ptr ptr ptr ptr long long) NtGdiEngTransparentBlt
-@ stdcall EngUnicodeToMultiByteN(str long long wstr long) RtlUnicodeToMultiByteN
-@ stdcall EngUnlockSurface(ptr) NtGdiEngUnlockSurface
-@ stdcall EngWideCharToMultiByte(long wstr long str long)
 @ stdcall EnumEnhMetaFile(long long ptr ptr ptr)
 @ stdcall EnumFontFamiliesA(long str ptr long)
 @ stdcall EnumFontFamiliesExA(long ptr ptr long long)
@@ -224,14 +120,6 @@
 @ stdcall ExtSelectClipRgn(long long long)
 @ stdcall ExtTextOutA(long long long long ptr str long ptr)
 @ stdcall ExtTextOutW(long long long long ptr wstr long ptr)
-@ stdcall FONTOBJ_cGetAllGlyphHandles(ptr ptr) NtGdiFONTOBJ_cGetAllGlyphHandles
-@ stdcall FONTOBJ_cGetGlyphs(ptr long long ptr ptr) NtGdiFONTOBJ_cGetGlyphs
-@ stdcall FONTOBJ_pQueryGlyphAttrs(ptr long) NtGdiFONTOBJ_pQueryGlyphAttrs
-@ stdcall FONTOBJ_pfdg(ptr) NtGdiFONTOBJ_pfdg
-@ stdcall FONTOBJ_pifi(ptr) NtGdiFONTOBJ_pifi
-@ stdcall FONTOBJ_pvTrueTypeFontFile(ptr ptr) NtGdiFONTOBJ_pvTrueTypeFontFile
-@ stdcall FONTOBJ_pxoGetXform(ptr) NtGdiFONTOBJ_pxoGetXform
-@ stdcall FONTOBJ_vGetInfo(ptr long ptr) NtGdiFONTOBJ_vGetInfo
 @ stdcall FillPath(long)
 @ stdcall FillRgn(long long long)
 @ stdcall FixBrushOrgEx(long long long ptr)
@@ -239,11 +127,13 @@
 @ stdcall FloodFill(long long long long)
 @ stdcall FontIsLinked(long) NtGdiFontIsLinked
 @ stdcall FrameRgn(long long long long long)
+@ stub FreeImageColorMatcher
 @ stdcall GdiAddFontResourceW(ptr ptr ptr)
 @ stdcall GdiAddGlsBounds(ptr ptr)
 @ stdcall GdiAddGlsRecord(ptr long ptr ptr)
 @ stdcall GdiAlphaBlend(long long long long long long long long long long long)
 @ stdcall GdiArtificialDecrementDriver(wstr long)
+@ stub GdiAssociateObject
 @ stdcall GdiCleanCacheDC(ptr)
 @ stdcall GdiComment(long long ptr)
 @ stdcall GdiConsoleTextOut(ptr ptr long ptr) NtGdiConsoleTextOut
@@ -258,40 +148,41 @@
 @ stdcall GdiConvertPalette(ptr)
 @ stdcall GdiConvertRegion(ptr)
 @ stdcall GdiConvertToDevmodeW(ptr)
+@ stub GdiCreateLocalBitmap
+@ stub GdiCreateLocalBrush
 @ stdcall GdiCreateLocalEnhMetaFile(ptr)
+@ stub GdiCreateLocalFont
 @ stdcall GdiCreateLocalMetaFilePict(ptr)
+@ stub GdiCreateLocalPalette
+@ stub GdiCreateLocalRegion
+@ stub GdiDciBeginAccess
+@ stub GdiDciCreateOffscreenSurface
+@ stub GdiDciCreateOverlaySurface
+@ stub GdiDciCreatePrimarySurface
+@ stub GdiDciDestroySurface
+@ stub GdiDciDrawSurface
+@ stub GdiDciEndAccess
+@ stub GdiDciEnumSurface
+@ stub GdiDciInitialize
+@ stub GdiDciSetClipList
+@ stub GdiDciSetDestination
 @ stdcall GdiDeleteLocalDC(ptr)
+@ stub GdiDeleteLocalObject
 @ stdcall GdiDeleteSpoolFileHandle(ptr)
 @ stdcall GdiDescribePixelFormat(ptr long long ptr) NtGdiDescribePixelFormat
 @ stdcall GdiDllInitialize(ptr long ptr)
 @ stdcall GdiDrawStream(ptr long ptr)
 @ stdcall GdiEndDocEMF(ptr)
 @ stdcall GdiEndPageEMF(ptr long)
-@ stdcall GdiEntry10(ptr long)
-@ stdcall GdiEntry11(ptr ptr)
-@ stdcall GdiEntry12(ptr ptr)
-@ stdcall GdiEntry13()
-@ stdcall GdiEntry14(ptr ptr long)
-@ stdcall GdiEntry15(ptr ptr ptr)
-@ stdcall GdiEntry16(ptr ptr ptr)
-@ stdcall GdiEntry1(ptr ptr)
-@ stdcall GdiEntry2(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr)
-@ stdcall GdiEntry3(ptr)
-@ stdcall GdiEntry4(ptr long)
-@ stdcall GdiEntry5(ptr)
-@ stdcall GdiEntry6(ptr ptr)
-@ stdcall GdiEntry7(ptr ptr)
-@ stdcall GdiEntry8(ptr)
-@ stdcall GdiEntry9(ptr ptr ptr ptr ptr ptr)
 @ stdcall GdiFixUpHandle(ptr)
 @ stdcall GdiFlush()
 @ stdcall GdiFullscreenControl(ptr ptr long ptr ptr) NtGdiFullscreenControl 
 @ stdcall GdiGetBatchLimit()
-@ stdcall GdiGetBitmapBitsSize(ptr)
 @ stdcall GdiGetCharDimensions(long ptr ptr)
 @ stdcall GdiGetCodePage(long)
 @ stdcall GdiGetDC(ptr)
 @ stdcall GdiGetDevmodeForPage(ptr long ptr ptr)
+@ stub GdiGetLocalBitmap
 @ stdcall GdiGetLocalBrush(ptr)
 @ stdcall GdiGetLocalDC(ptr)
 @ stdcall GdiGetLocalFont(ptr)
@@ -329,6 +220,10 @@
 @ stdcall GdiSwapBuffers(ptr) NtGdiSwapBuffers
 @ stdcall GdiTransparentBlt(long long long long long long long long long long long)
 @ stdcall GdiValidateHandle(ptr)
+@ stub GdiWinWatchClose
+@ stub GdiWinWatchDidStatusChange
+@ stub GdiWinWatchGetClipList
+@ stub GdiWinWatchOpen
 @ stdcall GetArcDirection(long)
 @ stdcall GetAspectRatioFilterEx(long ptr)
 @ stdcall GetBitmapAttributes(ptr)
@@ -352,6 +247,7 @@
 @ stdcall GetCharWidthI(ptr long long ptr ptr)
 @ stdcall GetCharWidthInfo(ptr ptr) NtGdiGetCharWidthInfo
 @ stdcall GetCharWidthW(long long long long)
+@ stub GetCharWidthWOW
 @ stdcall GetCharacterPlacementA(long str long long ptr long)
 @ stdcall GetCharacterPlacementW(long wstr long long ptr long)
 @ stdcall GetClipBox(long ptr)
@@ -381,6 +277,7 @@
 @ stdcall GetFontAssocStatus(ptr)
 @ stdcall GetFontData(long long long ptr long)
 @ stdcall GetFontLanguageInfo(long)
+@ stub GetFontResourceInfo
 @ stdcall GetFontResourceInfoW(str ptr ptr long)
 @ stdcall GetFontUnicodeRanges(ptr ptr) NtGdiGetFontUnicodeRanges
 @ stdcall GetGlyphIndicesA(long ptr long ptr long)
@@ -455,8 +352,6 @@
 @ stdcall GetWindowExtEx(long ptr)
 @ stdcall GetWindowOrgEx(long ptr)
 @ stdcall GetWorldTransform(long ptr)
-@ stdcall HT_Get8BPPFormatPalette(ptr long long long) NtGdiHT_Get8BPPFormatPalette
-@ stdcall HT_Get8BPPMaskPalette(ptr long long long long long) NtGdiHT_Get8BPPMaskPalette
 @ stdcall IntersectClipRect(long long long long long)
 @ stdcall InvertRgn(long long)
 @ stdcall IsValidEnhMetaRecord(long long)
@@ -464,6 +359,8 @@
 @ stdcall LPtoDP(long ptr long)
 @ stdcall LineDDA(long long long long ptr long)
 @ stdcall LineTo(long long long)
+@ stub LoadImageColorMatcherA
+@ stub LoadImageColorMatcherW
 @ stdcall MaskBlt(long long long long long long long long long long long long)
 @ stdcall MirrorRgn(ptr ptr)
 @ stdcall ModifyWorldTransform(long ptr long)
@@ -473,11 +370,6 @@
 @ stdcall OffsetRgn(long long long)
 @ stdcall OffsetViewportOrgEx(long long long ptr)
 @ stdcall OffsetWindowOrgEx(long long long ptr)
-@ stdcall PATHOBJ_bEnum(ptr ptr) NtGdiPATHOBJ_bEnum
-@ stdcall PATHOBJ_bEnumClipLines(ptr long ptr) NtGdiPATHOBJ_bEnumClipLines
-@ stdcall PATHOBJ_vEnumStart(ptr) NtGdiPATHOBJ_vEnumStart
-@ stdcall PATHOBJ_vEnumStartClipLines(ptr ptr ptr ptr) NtGdiPATHOBJ_vEnumStartClipLines
-@ stdcall PATHOBJ_vGetBounds(ptr ptr) NtGdiPATHOBJ_vGetBounds
 @ stdcall PaintRgn(long long)
 @ stdcall PatBlt(long long long long long long)
 @ stdcall PathToRegion(long)
@@ -516,11 +408,6 @@
 @ stdcall ResizePalette(long long)
 @ stdcall RestoreDC(long long)
 @ stdcall RoundRect(long long long long long long long)
-@ stdcall STROBJ_bEnum(ptr ptr ptr) NtGdiSTROBJ_bEnum
-@ stdcall STROBJ_bEnumPositionsOnly(ptr ptr ptr) NtGdiSTROBJ_bEnumPositionsOnly
-@ stdcall STROBJ_bGetAdvanceWidths(ptr long long ptr) NtGdiSTROBJ_bGetAdvanceWidths
-@ stdcall STROBJ_dwGetCodePage(ptr) NtGdiSTROBJ_dwGetCodePage
-@ stdcall STROBJ_vEnumStart(ptr) NtGdiSTROBJ_vEnumStart
 @ stdcall SaveDC(long)
 @ stdcall ScaleViewportExtEx(long long long long long ptr)
 @ stdcall ScaleWindowExtEx(long long long long long ptr)
@@ -562,6 +449,7 @@
 @ stdcall SetMetaFileBitsEx(long ptr)
 @ stdcall SetMetaRgn(long)
 @ stdcall SetMiterLimit(long long ptr)
+@ stdcall SetObjectOwner(long long)
 @ stdcall SetPaletteEntries(long long long ptr)
 @ stdcall SetPixel(long long long long)
 @ stdcall SetPixelFormat(long long ptr)
@@ -598,16 +486,47 @@
 @ stdcall UnloadNetworkFonts(long)
 @ stdcall UnrealizeObject(long)
 @ stdcall UpdateColors(long)
+@ stdcall UpdateICMRegKey(long str str long) UpdateICMRegKeyA
 @ stdcall UpdateICMRegKeyA(long str str long)
 @ stdcall UpdateICMRegKeyW(long wstr wstr long)
 @ stdcall WidenPath(long)
-@ stdcall XFORMOBJ_bApplyXform(ptr long long ptr ptr) NtGdiXFORMOBJ_bApplyXform
-@ stdcall XFORMOBJ_iGetXform(ptr ptr) NtGdiXFORMOBJ_iGetXform
-@ stdcall XLATEOBJ_cGetPalette(ptr long long ptr) NtGdiXLATEOBJ_cGetPalette
-@ stdcall XLATEOBJ_hGetColorTransform(ptr) NtGdiXLATEOBJ_hGetColorTransform
-@ stdcall XLATEOBJ_iXlate(ptr long) NtGdiXLATEOBJ_iXlate
-@ stdcall XLATEOBJ_piVector(ptr)
-@ stdcall bInitSystemAndFontsDirectoriesW(wstr wstr)
-@ stdcall bMakePathNameW(wstr wstr wstr long)
-@ stdcall cGetTTFFromFOT(long long long long long long long)
-@ stdcall gdiPlaySpoolStream(long long long long long long)
+@ stub gdiPlaySpoolStream
+@ extern pfnRealizePalette
+@ extern pfnSelectPalette
+@ stub pstackConnect
+
+################################################################
+# Wine extensions: OpenGL support
+#
+@ stdcall wglCopyContext(long long long)
+@ stdcall wglCreateContext(long)
+@ stdcall wglDeleteContext(long)
+@ stdcall wglGetCurrentContext()
+@ stdcall wglGetCurrentDC()
+@ stdcall -private wglGetProcAddress(str)
+@ stdcall wglMakeCurrent(long long)
+@ stdcall wglShareLists(long long)
+@ stdcall wglUseFontBitmapsA(long long long long)
+@ stdcall wglUseFontBitmapsW(long long long long)
+
+################################################################
+# Wine extensions: Win16 functions that are needed by other dlls
+#
+@ stdcall CloseJob16(long)
+@ stdcall DrvGetPrinterData16(str str ptr ptr long ptr)
+@ stdcall DrvSetPrinterData16(str str long ptr long)
+@ stdcall GetDCHook(long ptr)
+@ stdcall OpenJob16(str str long)
+@ stdcall SelectVisRgn(long long)
+@ stdcall SetDCHook(long ptr long)
+@ stdcall SetHookFlags(long long)
+@ stdcall WriteSpool16(long ptr long)
+
+################################################################
+# Wine internal extensions
+#
+# All functions must be prefixed with '__wine_' (for internal functions)
+# or 'wine_' (for user-visible functions) to avoid namespace conflicts.
+
+# GDI objects
+@ cdecl __wine_make_gdi_object_system(long long)
