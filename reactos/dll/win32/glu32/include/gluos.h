@@ -40,6 +40,7 @@
 #define NOIME
 #define NOMINMAX
 
+
 #ifndef STRICT
   #define STRICT 1
 #endif
