@@ -709,7 +709,7 @@ GetGlyphOutlineWow(
  */
 DWORD
 WINAPI
-gdiPlaySpoolStream(
+GdiPlaySpoolStream(
 	DWORD	a0,
 	DWORD	a1,
 	DWORD	a2,
