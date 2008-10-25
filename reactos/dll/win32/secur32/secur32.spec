@@ -1,10 +1,6 @@
-@ stdcall LsaRegisterLogonProcess(ptr ptr ptr)
-@ stdcall LsaLogonUser(ptr ptr long long ptr long ptr ptr ptr ptr ptr ptr ptr ptr)
-@ stdcall LsaDeregisterLogonProcess(long)
-@ stdcall LsaConnectUntrusted(long)
-@ stdcall LsaLookupAuthenticationPackage(ptr ptr ptr)
-@ stdcall LsaFreeReturnBuffer(ptr)
-@ stdcall LsaCallAuthenticationPackage(long long ptr long ptr ptr ptr)
+1 stub SecDeleteUserModeContext
+2 stub SecInitUserModeContext
+
 @ stdcall AcceptSecurityContext(ptr ptr ptr long long ptr ptr ptr ptr)
 @ stdcall AcquireCredentialsHandleA(str str long ptr ptr ptr ptr ptr ptr)
 @ stdcall AcquireCredentialsHandleW(wstr wstr long ptr ptr ptr ptr ptr ptr)
@@ -12,8 +8,7 @@
 @ stdcall AddCredentialsW(ptr wstr wstr long ptr ptr ptr ptr)
 @ stub AddSecurityPackageA
 @ stub AddSecurityPackageW
-@ stdcall ApplyControlTokenA(ptr ptr)
-@ stdcall ApplyControlToken(ptr ptr) ApplyControlTokenW
+@ stdcall ApplyControlToken(ptr ptr)
 @ stdcall CompleteAuthToken(ptr ptr)
 @ stub CredMarshalTargetInfo
 @ stub CredUnmarshalTargetInfo
@@ -39,8 +34,15 @@
 @ stdcall InitSecurityInterfaceW()
 @ stdcall InitializeSecurityContextA(ptr ptr str long long long ptr long ptr ptr ptr ptr)
 @ stdcall InitializeSecurityContextW(ptr ptr wstr long long long ptr long ptr ptr ptr ptr)
+@ stdcall LsaCallAuthenticationPackage(long long ptr long ptr ptr ptr)
+@ stdcall LsaConnectUntrusted(long)
+@ stdcall LsaDeregisterLogonProcess(long)
 @ stdcall LsaEnumerateLogonSessions(ptr ptr)
+@ stdcall LsaFreeReturnBuffer(ptr)
 @ stdcall LsaGetLogonSessionData(ptr ptr)
+@ stdcall LsaLogonUser(ptr ptr long long ptr long ptr ptr ptr ptr ptr ptr ptr ptr)
+@ stdcall LsaLookupAuthenticationPackage(ptr ptr ptr)
+@ stdcall LsaRegisterLogonProcess(ptr ptr ptr)
 @ stdcall LsaRegisterPolicyChangeNotification(long ptr)
 @ stdcall LsaUnregisterPolicyChangeNotification(long ptr)
 @ stdcall MakeSignature(ptr long ptr long)
@@ -63,9 +65,7 @@
 @ stub SaslInitializeSecurityContextW
 @ stdcall SealMessage(ptr long ptr long) EncryptMessage
 @ stub SecCacheSspiPackages
-@ stub SecDeleteUserModeContext
 @ stub SecGetLocaleSpecificEncryptionRules
-@ stub SecInitUserModeContext
 @ stub SecpFreeMemory
 @ stub SecpTranslateName
 @ stub SecpTranslateNameEx
