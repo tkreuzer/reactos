@@ -18,7 +18,7 @@
 @ stub gluErrorUnicodeStringEXT
 @ stdcall gluGetNurbsProperty(ptr long ptr)
 @ stdcall gluGetString(long)
-@ stdcall gluGetTessProperty(ptr long double)
+@ stdcall gluGetTessProperty(ptr long ptr)
 @ stdcall gluLoadSamplingMatrices(ptr ptr ptr ptr)
 @ stdcall gluLookAt(double double double double double double double double double)
 @ stdcall gluNewNurbsRenderer()
