@@ -36,8 +36,8 @@ RegisterWaitForInputIdle(WaitForInputIdleType lpfnRegisterWaitForInputIdle);
 BOOL
 WINAPI
 GetProcessAffinityMask(HANDLE hProcess,
-                       LPDWORD lpProcessAffinityMask,
-                       LPDWORD lpSystemAffinityMask)
+                       PDWORD_PTR lpProcessAffinityMask,
+                       PDWORD_PTR lpSystemAffinityMask)
 {
     PROCESS_BASIC_INFORMATION ProcessInfo;
     SYSTEM_BASIC_INFORMATION SystemInfo;
@@ -77,7 +77,7 @@ GetProcessAffinityMask(HANDLE hProcess,
 BOOL
 WINAPI
 SetProcessAffinityMask(HANDLE hProcess,
-                       DWORD dwProcessAffinityMask)
+                       DWORD_PTR dwProcessAffinityMask)
 {
     NTSTATUS Status;
 
