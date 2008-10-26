@@ -17,6 +17,19 @@
 /*
  * @unimplemented
  */
+PVOID
+NTAPI
+RtlLookupFunctionEntry(IN ULONGLONG ControlPC,
+                       OUT PULONGLONG ImageBase,
+                       OUT PULONGLONG TargetGp)
+{
+    UNIMPLEMENTED;
+    return NULL;
+}
+
+/*
+ * @unimplemented
+ */
 VOID
 NTAPI
 RtlInitializeContext(IN HANDLE ProcessHandle,
@@ -24,6 +37,17 @@ RtlInitializeContext(IN HANDLE ProcessHandle,
                      IN PVOID ThreadStartParam  OPTIONAL,
                      IN PTHREAD_START_ROUTINE ThreadStartAddress,
                      IN PINITIAL_TEB InitialTeb)
+{
+    UNIMPLEMENTED;
+    return;
+}
+
+/*
+ * @unimplemented
+ */
+VOID
+NTAPI
+RtlCaptureContext(OUT PCONTEXT ContextRecord)
 {
     UNIMPLEMENTED;
     return;
