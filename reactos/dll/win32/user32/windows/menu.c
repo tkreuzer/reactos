@@ -4529,7 +4529,7 @@ InsertMenuA(
   HMENU hMenu,
   UINT uPosition,
   UINT uFlags,
-  UINT uIDNewItem,
+  UINT_PTR uIDNewItem,
   LPCSTR lpNewItem)
 {
   MENUITEMINFOA mii;
@@ -4651,7 +4651,7 @@ InsertMenuW(
   HMENU hMenu,
   UINT uPosition,
   UINT uFlags,
-  UINT uIDNewItem,
+  UINT_PTR uIDNewItem,
   LPCWSTR lpNewItem)
 {
   MENUITEMINFOW mii;
@@ -4789,7 +4789,7 @@ ModifyMenuA(
   HMENU hMnu,
   UINT uPosition,
   UINT uFlags,
-  UINT uIDNewItem,
+  UINT_PTR uIDNewItem,
   LPCSTR lpNewItem)
 {
   ROSMENUINFO mi;
@@ -4836,7 +4836,7 @@ ModifyMenuW(
   HMENU hMnu,
   UINT uPosition,
   UINT uFlags,
-  UINT uIDNewItem,
+  UINT_PTR uIDNewItem,
   LPCWSTR lpNewItem)
 {
   ROSMENUINFO mi;
