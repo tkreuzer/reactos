@@ -157,6 +157,7 @@ extern "C" {
     __time64_t st_mtime;
     __time64_t st_ctime;
   };
+/* #endif */
 
 
 #endif /* _INTEGRAL_MAX_BITS >= 64 */

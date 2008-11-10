@@ -36,12 +36,12 @@ extern "C" {
   __declspec(noreturn) void __cdecl exit(int _Code);
   _CRTIMP __declspec(noreturn) void __cdecl _exit(int _Code);
 
-#ifdef _WIN64 //hack for old gcc in ROSBE
+#if __MINGW_GNUC_PREREQ(4,4)
 #pragma push_macro("abort")
 #undef abort
 #endif
   __declspec(noreturn) void __cdecl abort(void);
-#ifdef _WIN64 //hack for old gcc in ROSBE
+#if __MINGW_GNUC_PREREQ(4,4)
 #pragma pop_macro("abort")
 #undef abort
 #endif
