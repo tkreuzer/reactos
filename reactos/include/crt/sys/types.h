@@ -15,11 +15,9 @@
 #ifdef _USE_32BIT_TIME_T
 #ifdef _WIN64
 #undef _USE_32BIT_TIME_T
-#define _USE_64BIT_TIME_T
 #endif
 #else
 #if _INTEGRAL_MAX_BITS < 64
-#undef _USE_64BIT_TIME_T
 #define _USE_32BIT_TIME_T
 #endif
 #endif
