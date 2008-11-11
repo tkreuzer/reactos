@@ -101,13 +101,6 @@ typedef union _UNWIND_CODE
     USHORT FrameOffset;
 } UNWIND_CODE, *PUNWIND_CODE;
 
-enum
-{
-    UNW_FLAG_EHANDLER  = 0x01,
-    UNW_FLAG_UHANDLER  = 0x02,
-    UNW_FLAG_CHAININFO = 0x03,
-};
-
 typedef struct _UNWIND_INFO
 {
     UBYTE Version:3;
@@ -136,7 +129,7 @@ typedef struct _C_SCOPE_TABLE_ENTRY
 typedef struct _C_SCOPE_TABLE
 {
     ULONG NumEntries;
-    C_SCOPE_TABLE_ENTRY Entry[1];
+    C_SCOPE_TABLE_ENTRY Table[1];
 } C_SCOPE_TABLE, *PC_SCOPE_TABLE;
 
 
@@ -159,14 +152,11 @@ typedef struct
     PIMAGE_FILE_HEADER FileHeader;
     PIMAGE_OPTIONAL_HEADER64 OptionalHeader;
     PIMAGE_SECTION_HEADER SectionHeaders;
-    PIMAGE_SECTION_HEADER NewSectionHeaders;
-    ULONG NewSectionHeaderSize;
     PIMAGE_BASE_RELOCATION Relocations;
     void *Symbols;
     char *Strings;
     ULONG64 ImageBase;
     ULONG HeaderSize;
-    char *UseSection;
 
     /* Sections */
     ULONG AllSections;

@@ -54,6 +54,10 @@ $(RSYM_INT_)rsym64.o: $(RSYM_BASE_)rsym64.c | $(RSYM_INT)
 	$(ECHO_CC)
 	${host_gcc} $(RSYM_HOST_CFLAGS) -c $< -o $@
 
+$(RSYM_INT_)rsym64.o: $(RSYM_BASE_)rsym64.c | $(RSYM_INT)
+	$(ECHO_CC)
+	${host_gcc} $(RSYM_HOST_CFLAGS) -c $< -o $@
+
 $(RSYM_INT_)rsym_common.o: $(RSYM_BASE_)rsym_common.c | $(RSYM_INT)
 	$(ECHO_CC)
 	${host_gcc} $(RSYM_HOST_CFLAGS) -c $< -o $@
