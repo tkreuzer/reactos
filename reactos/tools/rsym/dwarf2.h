@@ -751,7 +751,8 @@ enum dwarf_macinfo_record_type
     DW_MACINFO_end_file = 4,
     DW_MACINFO_vendor_ext = 255
   };
-
+
+
 /* @@@ For use with GNU frame unwind information.  */
 
 #define DW_EH_PE_absptr		0x00
@@ -801,39 +802,27 @@ typedef struct
 
 typedef struct
 {
-    unsigned long Length;
+    ULONG Length;
     char *Next;
     char *CiePointer;
-    unsigned long PcBegin;
-    unsigned long PcRange;
-    unsigned long AugLength;
+    ULONG PcBegin;
+    ULONG PcRange;
+    ULONG AugLength;
     char *AugData;
     char *Instructions;
 } DW2FDE, *PDW2FDE;
 
-typedef struct _SEHBLOCK
-{
-    unsigned long BeginTry;
-    unsigned long EndTry;
-    unsigned long Target;
-    unsigned long Handler;
-    unsigned long End;
-} SEHBLOCK, *PSEHBLOCK;
-
 typedef struct _CFSTATE
 {
-    unsigned long Location;
-    unsigned long Code;
-    unsigned long Reg;
-    unsigned long Reg2;
-    long FramePtr;
-    long FramePtrDiff;
-    long Offset;
-    unsigned long IsUwop;
-    unsigned long Scope;
-    unsigned long cScopes;
-    unsigned long TryLevel;
-    SEHBLOCK SehBlock[20];
+    ULONG Location;
+    ULONG Code;
+    ULONG Reg;
+    ULONG Reg2;
+    ULONG FramePtr;
+    ULONG FramePtrDiff;
+    ULONG Offset;
+    ULONG IsUwop;
+    ULONG Scope;
 } DW2CFSTATE, *PDW2CFSTATE;
 
 #define NextCIE(p) ((void*)((char*)p + p->Length + 4))

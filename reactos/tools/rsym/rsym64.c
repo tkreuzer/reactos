@@ -6,11 +6,6 @@
 #include "rsym64.h"
 #include "dwarf2.h"
 
-char DoPrint = 0;
-ULONG g_ehframep;
-
-#define DPRINT if(DoPrint) printf
-
 struct {char *name; char regnt;} regs[] =
 { {"rax", REG_RAX}, {"rdx", REG_RDX}, {"rcx", REG_RCX}, {"rbx", REG_RBX},
   {"rsi", REG_RSI}, {"rdi", REG_RDI}, {"rbp", REG_RBP}, {"rsp", REG_RSP},
@@ -40,7 +35,7 @@ DwDecodeUleb128(unsigned long *pResult, char *pc)
 	{
 		current = pc[ulSize];
 		ulSize++;
-		ulResult |= (current & 0x7f) << ulShift;
+		ulResult |= current & 0x7f << ulShift;
 		ulShift += 7;
 	}
 	while (current & 0x80);
@@ -61,7 +56,7 @@ DwDecodeSleb128(long *pResult, char *pc)
 	{
 		current = pc[ulSize];
 		ulSize++;
-		lResult |= (current & 0x7f) << ulShift;
+		lResult |= current & 0x7f << ulShift;
 		ulShift += 7;
 	}
 	while (current & 0x80);
@@ -92,7 +87,7 @@ DwDecodeCie(PDW2CIE Cie, char *pc)
     pc += Cie->AugLength;
     Cie->Instructions = pc;
 
-    return Cie->Length + 4;
+    return Cie->Length;
 }
 
 unsigned long
@@ -108,7 +103,7 @@ DwDecodeFde(PDW2FDE Fde, char *pc)
     Fde->AugData = pc;
     Fde->Instructions = Fde->AugData + Fde->AugLength;
 
-    return Fde->Length + 4;
+    return Fde->Length;
 }
 
 unsigned long
@@ -131,7 +126,7 @@ DwExecIntruction(PDW2CFSTATE State, char *pc)
     {
         State->Code = DW_CFA_offset;
         State->Reg = Code & 0x3f;
-        Length += DwDecodeUleb128((unsigned long*)&State->Offset, pc + 1);
+        Length += DwDecodeUleb128(&State->Offset, pc + 1);
         State->Offset *= 8; // fixme data alignment
         State->IsUwop = 1;
     }
@@ -154,24 +149,15 @@ DwExecIntruction(PDW2CFSTATE State, char *pc)
             break;
         case DW_CFA_advance_loc2:
             Length = 3;
-//            printf("Found a DW_CFA_advance_loc2 : 0x%lx ->", *(WORD*)(pc + 1));
             State->Location += *(WORD*)(pc + 1);
-//            printf(" 0x%lx\n", State->Location);
             break;
         case DW_CFA_advance_loc4:
             Length = 5;
-//            printf("Found a DW_CFA_advance_loc4 : 0x%lx ->", *(DWORD*)(pc + 1));
             State->Location += *(DWORD*)(pc + 1);
-//            printf(" 0x%lx\n", State->Location);
             break;
         case DW_CFA_offset_extended:
             Length += DwDecodeUleb128(&State->Reg, pc + Length);
-            Length += DwDecodeUleb128((unsigned long*)&State->Offset, pc + Length);
-            State->IsUwop = 1;
-            break;
-        case DW_CFA_offset_extended_sf:
-            Length += DwDecodeUleb128(&State->Reg, pc + Length);
-            Length += DwDecodeSleb128(&State->Offset, pc + Length);
+            Length += DwDecodeUleb128(&State->Offset, pc + Length);
             State->IsUwop = 1;
             break;
         case DW_CFA_restore_extended:
@@ -193,109 +179,37 @@ DwExecIntruction(PDW2CFSTATE State, char *pc)
             break;
         case DW_CFA_def_cfa:
             Length += DwDecodeUleb128(&State->Reg, pc + Length);
-            Length += DwDecodeUleb128((unsigned long*)&State->FramePtr, pc + Length);
+            Length += DwDecodeUleb128(&State->FramePtr, pc + Length);
             State->IsUwop = 1;
             break;
         case DW_CFA_def_cfa_register:
             Length += DwDecodeUleb128(&State->Reg, pc + Length);
             break;
         case DW_CFA_def_cfa_offset:
-            Length += DwDecodeUleb128((unsigned long*)&State->FramePtr, pc + Length);
+            Length += DwDecodeUleb128(&State->FramePtr, pc + Length);
             State->IsUwop = 1;
             break;
         case DW_CFA_def_cfa_sf:
             Length += DwDecodeUleb128(&State->Reg, pc + Length);
-            Length += DwDecodeSleb128(&State->FramePtr, pc + Length);
+            Length += DwDecodeSleb128((LONG*)&State->FramePtr, pc + Length);
             State->FramePtr *= 8; // data alignment
             State->IsUwop = 1;
             break;
-        case DW_CFA_GNU_args_size:
-        {
-            unsigned long argsize;
-            printf("Warning, DW_CFA_GNU_args_size is unimplemented\n");
-            Length += DwDecodeUleb128(&argsize, pc + Length);
+        /* PSEH types */
+        case 0x1c:
+            State->Scope = 1;
             break;
-        }
-        /* PSEH */
-        case 0x21:
-        {
-            unsigned long SehType;
-
-//            printf("found 0x21 at %lx\n", State->Location);
-            Length += DwDecodeUleb128(&SehType, pc + Length);
-            switch (SehType)
-            {
-                case 1: /* Begin Try */
-                    State->TryLevel++;
-                    if (State->TryLevel >= 20)
-                    {
-                        printf("WTF? Trylevel of 20 exceeded...\n");
-                        exit(1);
-                    }
-                    State->SehBlock[State->TryLevel-1].BeginTry = State->Location;
-//                    printf("Found begintry at 0x%lx\n", State->Location);
-                    State->Scope = 1;
-                    break;
-
-                case 2: /* End Try */
-                    State->SehBlock[State->TryLevel-1].EndTry = State->Location;
-                    State->Scope = 2;
-                    break;
-
-                case 3: /* Jump target */
-                    State->SehBlock[State->TryLevel-1].Target = State->Location;
-                    State->Scope = 3;
-                    break;
-
-                case 4: /* SEH End */
-                    if (State->TryLevel == 20)
-                    {
-                        printf("Ooops, end of SEH with trylevel at 0!\n");
-                        exit(1);
-                    }
-                    State->SehBlock[State->TryLevel-1].End = State->Location;
-                    State->TryLevel--;
-                    State->cScopes++;
-                    State->Scope = 0;
-                    break;
-
-                case 5: /* Constant filter */
-                {
-                    unsigned long value;
-                    Length += DwDecodeUleb128(&value, pc + Length);
-                    State->SehBlock[State->TryLevel-1].Handler = value;
-//                     printf("Found a constant filter at 0x%lx\n", State->Location);
-                    break;
-                }
-
-               /* These work differently. We are in a new function.
-                 * We have to parse a lea opcode to find the adress of
-                 * the jump target. This is the reference to find the 
-                 * appropriate C_SCOPE_TABLE. */
-                case 6: /* Filter func */
-//                    printf("Found a filter func at 0x%lx\n", State->Location);
-                    break;
-
-                case 7: /* Finally func */
-                {
-//                     printf("Found a finally func at 0x%lx\n", State->Location);
-                    break;
-                }
-
-                default:
-                    printf("Found unknow PSEH code 0x%lx\n", SehType);
-                    exit(1);
-            }
+        case 0x1d:
+            State->Scope = 2;
             break;
-        }
         default:
             fprintf(stderr, "unknown instruction 0x%x at 0x%p\n", Code, pc);
             exit(1);
     }
     
     State->FramePtrDiff = State->FramePtr - PrevFramePtr;
-    DPRINT("@%p: code=%x, Loc=%lx, offset=%lx, reg=0x%lx:%s\n", 
-        (void*)((ULONG)pc - g_ehframep), Code, State->Location, State->Offset, State->Reg, regs[State->Reg].name);
+    
+//printf("@%p: code=%x, Loc=%lx, offset=%lx, reg=0x%lx:%s\n", pc, code, State->Location, State->Offset, State->Reg, regnames_64[State->Reg]);
     return Length;
 }
 
@@ -354,8 +268,8 @@ StoreUnwindCodes(PUNWIND_INFO Info, PDW2CFSTATE State, ULONG FunctionStart)
             {
                 Code[0].UnwindOp = UWOP_ALLOC_LARGE;
                 Code[0].OpInfo = 1;
-                Code[1].FrameOffset = (USHORT)AllocSize;
-                Code[2].FrameOffset = (USHORT)(AllocSize >> 16);
+                Code[1].FrameOffset = (AllocSize / 8);
+                Code[2].FrameOffset = (AllocSize / 8) >> 16;
                 cCodes = 3;
             }
             break;
@@ -380,6 +294,9 @@ StoreUnwindCodes(PUNWIND_INFO Info, PDW2CFSTATE State, ULONG FunctionStart)
 
     return cCodes;
 }
+
+#define GetSectionPointer(Info, i) \
+    ((void*)(Info->FilePtr + Info->SectionHeaders[i].PointerToRawData))
 
 #define GetxdataSize(cFuncs, cUWOP, cScopes) \
     ( cFuncs * (sizeof(UNWIND_INFO) + 2 + 4 + 4) \
@@ -409,8 +326,6 @@ StoreUnwindInfo(PUNWIND_INFO Info, PDW2FDE pFde, ULONG FunctionStart)
     /* Initialize state */
     State.Location = FunctionStart;
     State.FramePtr = 0;
-    State.TryLevel = 0;
-    State.cScopes = 0;
 
     /* Parse the CIE's initial instructions */
     pInst = Cie.Instructions;
@@ -431,39 +346,16 @@ StoreUnwindInfo(PUNWIND_INFO Info, PDW2FDE pFde, ULONG FunctionStart)
             cbSize += c * sizeof(UNWIND_CODE);
             Info->SizeOfProlog = State.Location - FunctionStart;
         }
+//        else if
+        // if is scope
+            // if is first scope
+                // align 4
+                // emit gcc_specific handler
+                // create pointer to C_SCOPE_TABLE
+            // 
+
     }
     cbSize = ROUND_UP(cbSize, 4);
-
-    /* Do we have scope table to write? */
-    if (State.cScopes > 0)
-    {
-        unsigned long i;
-        ULONG *pExceptionHandler;
-        PC_SCOPE_TABLE pScopeTable;
-
-        /* Set flag for exception handler */ 
-        Info->Flags |= UNW_FLAG_EHANDLER;
-
-        /* Store address of handler and number of scope tables */
-        pExceptionHandler = (ULONG*)((char*)Info + cbSize);
-        // HACK for testing purpose
-        *pExceptionHandler = FunctionStart; // _C_specific_handler
-
-        pScopeTable = (PC_SCOPE_TABLE)(pExceptionHandler + 1);
-        pScopeTable->NumEntries = State.cScopes;
-
-        /* Store the scope table entries */
-        for (i = 0; i < State.cScopes; i++)
-        {
-            pScopeTable->Entry[i].Begin = State.SehBlock[i].BeginTry;
-            pScopeTable->Entry[i].End = State.SehBlock[i].EndTry;
-            pScopeTable->Entry[i].Handler = 1;//State.SehBlock[i].Handler;
-            pScopeTable->Entry[i].Target = State.SehBlock[i].Target;
-        }
-        
-        /* Update size */
-        cbSize += 8 + State.cScopes * sizeof(C_SCOPE_TABLE_ENTRY);
-    }
 
     return cbSize;
 }
@@ -473,18 +365,16 @@ CountUnwindData(PFILE_INFO File)
 {
     DW2CIEFDE *p;
     DW2FDE Fde;
-    char *pInst, *pmax;
+    char *pInst;
     DW2CFSTATE State;
 
     File->cFuncs = 0;
     File->cScopes = 0;
     File->cUWOP = 0;
     State.FramePtr = 0;
-    State.TryLevel = 0;
 
-    p = File->eh_frame.p;
-    pmax = (char*)p + File->eh_frame.psh->Misc.VirtualSize;
-    for (; p->Length && (char*)p < pmax; p = NextCIE(p))
+    p = GetSectionPointer(File, File->eh_frame.idx);
+    for (; p->Length; p = NextCIE(p))
     {
         /* Is this an FDE? */
         if (p->CiePointer != 0)
@@ -525,37 +415,25 @@ GeneratePData(PFILE_INFO File)
     ULONG cbSize;
     PIMAGE_SECTION_HEADER pshp, pshx;
     ULONG FileAlignment;
-    char *pmax;
 
     FileAlignment = File->OptionalHeader->FileAlignment;
 
     /* Get pointer to eh_frame section */
-    eh_frame = File->eh_frame.p;
-    g_ehframep = (ULONG)eh_frame;
+    eh_frame = GetSectionPointer(File, File->eh_frame.idx);
 
     /* Get sizes */
     CountUnwindData(File);
 //    printf("cFuncs = %ld, cUWOPS = %ld, cScopes = %ld\n", 
 //        File->cFuncs, File->cUWOP, File->cScopes);
 
-    /* Initialize section header for .pdata */
-    i = File->pdata.idx = File->UsedSections;
-    pshp = File->pdata.psh = &File->NewSectionHeaders[i];
+    /* Allocate .pdata buffer */
+    File->pdata.idx = File->UsedSections;
+    pshp = File->pdata.psh = &File->SectionHeaders[File->pdata.idx];
     memcpy(pshp->Name, ".pdata", 7);
     pshp->Misc.VirtualSize = (File->cFuncs + 1) * sizeof(RUNTIME_FUNCTION);
-    pshp->VirtualAddress = File->NewSectionHeaders[i - 1].VirtualAddress +
-                           File->NewSectionHeaders[i - 1].SizeOfRawData;
+//    pshp->VirtualAddress = 
     pshp->SizeOfRawData = ROUND_UP(pshp->Misc.VirtualSize, FileAlignment);
-    pshp->PointerToRawData = File->NewSectionHeaders[i - 1].PointerToRawData +
-                           File->NewSectionHeaders[i - 1].SizeOfRawData;
-    pshp->PointerToRelocations = 0;
-    pshp->PointerToLinenumbers = 0;
-    pshp->NumberOfRelocations = 0;
-    pshp->NumberOfLinenumbers = 0;
-    pshp->Characteristics = IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_NOT_PAGED |
-                            IMAGE_SCN_CNT_INITIALIZED_DATA;
-
-    /* Allocate .pdata buffer */
+//    pshp->PointerToRawData = 
     pdata = File->pdata.p = malloc(pshp->SizeOfRawData);
     memset(File->pdata.p, pshp->SizeOfRawData, 0);
 
@@ -564,32 +442,22 @@ GeneratePData(PFILE_INFO File)
     Dir->VirtualAddress = pshp->VirtualAddress;
     Dir->Size = pshp->Misc.VirtualSize;
 
-    /* Initialize section header for .xdata */
+    /* Allocate .xdata buffer */
     File->xdata.idx = File->pdata.idx + 1;
-    pshx = File->xdata.psh = &File->NewSectionHeaders[File->xdata.idx];
+    pshx = File->xdata.psh = &File->SectionHeaders[File->xdata.idx];
     memcpy(pshx->Name, ".xdata", 7);
     pshx->Misc.VirtualSize = GetxdataSize(File->cFuncs, File->cUWOP, File->cScopes);
     pshx->VirtualAddress = pshp->VirtualAddress + pshp->SizeOfRawData;
     pshx->SizeOfRawData = ROUND_UP(pshx->Misc.VirtualSize, FileAlignment);
     pshx->PointerToRawData = pshp->PointerToRawData + pshp->SizeOfRawData;
-    pshx->PointerToRelocations = 0;
-    pshx->PointerToLinenumbers = 0;
-    pshx->NumberOfRelocations = 0;
-    pshx->NumberOfLinenumbers = 0;
-    pshx->Characteristics = IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_NOT_PAGED |
-                            IMAGE_SCN_CNT_INITIALIZED_DATA;
-
-    /* Allocate .xdata buffer */
     File->xdata.p = malloc(pshx->SizeOfRawData);
-    memset(File->xdata.p, pshx->SizeOfRawData, 0);
+    memset(File->pdata.p, pshx->SizeOfRawData, 0);
 
     i = 0;
     Offset = File->eh_frame.psh->VirtualAddress;
     xdata_va = pshx->VirtualAddress;
     xdata_p = File->xdata.p;
-    pmax = (char*)eh_frame + File->eh_frame.psh->Misc.VirtualSize - 100;
-
-    for (p = eh_frame; p->Length && (char*)p < pmax; p = NextCIE(p))
+    for (p = eh_frame; p->Length; p = NextCIE(p))
     {
         /* Is this an FDE? */
         if (p->CiePointer != 0)
@@ -624,7 +492,7 @@ CalculateChecksum(DWORD Start, void *pFile, ULONG cbSize)
     DWORD i;
     DWORD checksum = Start;
 
-    for (i = 0; i < (cbSize + 1) / sizeof(WORD); i++)
+    for (i = 0; i < (cbSize + 1) / sizeof(WORD); i += 1)
     {
         checksum += Ptr[i];
         checksum = (checksum + (checksum >> 16)) & 0xffff;
@@ -636,74 +504,24 @@ CalculateChecksum(DWORD Start, void *pFile, ULONG cbSize)
 void
 WriteOutFile(FILE *handle, PFILE_INFO File)
 {
-    int ret, Size, Pos = 0;
-    DWORD CheckSum;
-    ULONG i, Alignment;
+    int ret, Size, Pos;
+    DWORD Checksum;
 
-    Alignment = File->OptionalHeader->FileAlignment;
-
-    /* Update section count */
+    /* Correct section count */
     File->FileHeader->NumberOfSections = File->UsedSections + 2; // FIXME!!!
 
-    /* Update SizeOfImage */
-    Size = File->xdata.psh->VirtualAddress
-           + File->xdata.psh->SizeOfRawData;
-    File->OptionalHeader->SizeOfImage = Size;
+    /* Calculate size of file beginning */
+    Size = File->SectionHeaders[File->UsedSections].PointerToRawData;
 
     /* Recalculate checksum */
-    CheckSum = CalculateChecksum(0, File->FilePtr, File->HeaderSize);
-    for (i = 0; i < File->AllSections; i++)
-    {
-        if (File->UseSection[i])
-        {
-            Size = File->SectionHeaders[i].SizeOfRawData;
-            if (Size)
-            {
-                void *p;
-                p = File->FilePtr + File->SectionHeaders[i].PointerToRawData;
-                CheckSum = CalculateChecksum(CheckSum, p, Size);
-            }
-        }
-    }
-    Size = File->pdata.psh->Misc.VirtualSize;
-    CheckSum = CalculateChecksum(CheckSum, File->pdata.p, Size);
-    Size = File->xdata.psh->Misc.VirtualSize;
-    CheckSum = CalculateChecksum(CheckSum, File->xdata.p, Size);
-    CheckSum += File->HeaderSize;
-    CheckSum += File->pdata.psh->Misc.VirtualSize;
-    CheckSum += File->xdata.psh->Misc.VirtualSize;
-    File->OptionalHeader->CheckSum = CheckSum;
+    Checksum = CalculateChecksum(0, File->FilePtr, Size);
+    Checksum = CalculateChecksum(Checksum, File->pdata.p, File->pdata.psh->Misc.VirtualSize);
+    Checksum = CalculateChecksum(Checksum, File->xdata.p, File->xdata.psh->Misc.VirtualSize);
+    File->OptionalHeader->CheckSum = Checksum + Size + File->pdata.psh->Misc.VirtualSize;
 
-    /* Write file header */
-    Size = File->HeaderSize;
+    /* Write file beginning */
     ret = fwrite(File->DosHeader, 1, Size, handle);
     Pos = Size;
-
-    /* Write Section headers */
-    Size = File->NewSectionHeaderSize;
-    ret = fwrite(File->NewSectionHeaders, 1, Size, handle);
-    Pos += Size;
-
-    /* Fill up to next alignement */
-    Size = ROUND_UP(Pos, Alignment) - Pos;
-    ret = fwrite(File->AlignBuf, 1, Size, handle);
-    Pos += Size;
-
-    /* Write sections */
-    for (i = 0; i < File->AllSections; i++)
-    {
-        if (File->UseSection[i])
-        {
-            void *p;
-            Size = File->SectionHeaders[i].SizeOfRawData;
-            if (Size)
-            {
-                p = File->FilePtr + File->SectionHeaders[i].PointerToRawData;
-                ret = fwrite(p, 1, Size, handle);
-                Pos += Size;
-            }
-        }
-    }
 
     /* Write .pdata section */
     Size = File->pdata.psh->SizeOfRawData;
@@ -722,38 +540,35 @@ int
 ParsePEHeaders(PFILE_INFO File)
 {
     DWORD OldChecksum, Checksum;
-    ULONG Alignment, CurrentPos;
-    int i, j;
+    int i;
 
     /* Check if MZ header exists  */
     File->DosHeader = (PIMAGE_DOS_HEADER)File->FilePtr;
-    if ((File->DosHeader->e_magic != IMAGE_DOS_MAGIC) || 
-        (File->DosHeader->e_lfanew == 0L))
+    if ((File->DosHeader->e_magic != IMAGE_DOS_MAGIC) || File->DosHeader->e_lfanew == 0L)
     {
         perror("Input file is not a PE image.\n");
-        return -1;
+        return 0;
     }
 
     /* Locate PE file header  */
     File->FileHeader = (PIMAGE_FILE_HEADER)(File->FilePtr + 
-                               File->DosHeader->e_lfanew + sizeof(ULONG));
-
-    /* Check for x64 image */
+                                     File->DosHeader->e_lfanew + sizeof(ULONG));
     if (File->FileHeader->Machine != IMAGE_FILE_MACHINE_AMD64)
     {
         perror("Input file is not an x64 image.\n");
-        return -1;
+        return 0;
     }
 
     /* Locate optional header */
     File->OptionalHeader = (PIMAGE_OPTIONAL_HEADER64)(File->FileHeader + 1);
+    File->ImageBase = File->OptionalHeader->ImageBase;
 
     /* Check if checksum is correct */
     OldChecksum = File->OptionalHeader->CheckSum;
     File->OptionalHeader->CheckSum = 0;
-    Checksum = CalculateChecksum(0, File->FilePtr, File->cbInFileSize);
-    Checksum += File->cbInFileSize;
-    if ((Checksum & 0xffff) != (OldChecksum & 0xffff))
+    Checksum = CalculateChecksum(0, File->FilePtr, File->cbInFileSize)
+               + File->cbInFileSize;
+    if (Checksum != OldChecksum)
     {
         fprintf(stderr, "Input file has incorrect PE checksum: 0x%lx (calculated: 0x%lx)\n",
             OldChecksum, Checksum);
@@ -772,81 +587,38 @@ ParsePEHeaders(PFILE_INFO File)
     if (!File->FileHeader->PointerToSymbolTable)
     {
         fprintf(stderr, "No symbol table.\n");
-        return -1;
+        return 0;
     }
 
-    /* Create some shortcuts */
-    File->ImageBase = File->OptionalHeader->ImageBase;
     File->Symbols = File->FilePtr + File->FileHeader->PointerToSymbolTable;
     File->Strings = (char*)File->Symbols + File->FileHeader->NumberOfSymbols * 18;
 
     /* Check section names */
     File->AllSections = File->FileHeader->NumberOfSections;
-    Alignment = File->OptionalHeader->FileAlignment;
-    File->NewSectionHeaders = malloc((File->AllSections+2) * sizeof(IMAGE_SECTION_HEADER));
-    File->UsedSections = 0;
     File->eh_frame.idx = -1;
-
-    /* Allocate array of chars, specifiying wheter to copy the section */
-    File->UseSection = malloc(File->AllSections);
-
     for (i = 0; i < File->AllSections; i++)
     {
         char *pName = (char*)File->SectionHeaders[i].Name;
-        File->UseSection[i] = 1;
 
         /* Check for long name */
         if (pName[0] == '/')
         {
             unsigned long index = strtoul(pName+1, 0, 10);
             pName = File->Strings + index;
-            
-            // Hack, simply remove all sections with long names
-            File->UseSection[i] = 0;
+        }
+        else
+        {
+            /* Mark last section with a short name */
+            File->UsedSections = i + 1;
         }
 
-        /* Chek if we have the eh_frame section */
         if (strcmp(pName, ".eh_frame") == 0)
         {
-            File->eh_frame.psh = &File->SectionHeaders[i];
             File->eh_frame.idx = i;
-            File->eh_frame.p = File->FilePtr + File->eh_frame.psh->PointerToRawData;
-        }
-        
-        /* Increase number of used sections */
-        if (File->UseSection[i])
-            File->UsedSections = i+1;
-
-    }
-
-    /* This is the actual size of the new section headers */
-    File->NewSectionHeaderSize = 
-        (File->UsedSections+2) * sizeof(IMAGE_SECTION_HEADER);
-
-    /* Calculate the position to start writing the sections to */
-    CurrentPos = File->HeaderSize + File->NewSectionHeaderSize;
-    CurrentPos = ROUND_UP(CurrentPos, Alignment);
-
-    /* Create new section headers */
-    for (i = 0, j = 0; i < File->UsedSections; i++)
-    {
-        /* Copy section header */
-        File->NewSectionHeaders[j] = File->SectionHeaders[i];
-
-        /* Shall we strip the section? */
-        if (File->UseSection[i] == 0)
-        {
-            /* Make it a bss section */
-            File->NewSectionHeaders[j].PointerToRawData = 0;
-            File->NewSectionHeaders[j].SizeOfRawData = 0;
-            File->NewSectionHeaders[j].Characteristics = 0xC0500080;
+            File->eh_frame.psh = &File->SectionHeaders[i];
+            File->eh_frame.p = GetSectionPointer(File, i);
         }
 
-        /* Fix Offset into File */
-        File->NewSectionHeaders[j].PointerToRawData =
-              File->NewSectionHeaders[j].PointerToRawData ? CurrentPos : 0;
-        CurrentPos += File->NewSectionHeaders[j].SizeOfRawData;
-        j++;
     }
 
     if (File->eh_frame.idx == -1)
@@ -864,7 +636,6 @@ int main(int argc, char* argv[])
     char* pszOutFile;
     FILE_INFO File;
     FILE* outfile;
-    int ret;
 
     if (argc != 3)
     {
@@ -882,11 +653,10 @@ int main(int argc, char* argv[])
         exit(1);
     }
 
-    ret = ParsePEHeaders(&File);
-    if (ret != 1)
+    if (!ParsePEHeaders(&File))
     {
         free(File.FilePtr);
-        exit(ret == -1 ? 1 : 0);
+        exit(1);
     }
 
     File.AlignBuf = malloc(File.OptionalHeader->FileAlignment);
