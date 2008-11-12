@@ -229,13 +229,13 @@ KeRosCaptureUserStackBackTrace(IN ULONG FramesToSkip,
     return (USHORT)i;
 }
 
-#ifndef _M_AMD64
 VOID
 FASTCALL
 KeRosDumpStackFrameArray(IN PULONG_PTR Frames,
                          IN ULONG FrameCount)
 {
-    ULONG i, Addr;
+    ULONG i;
+    ULONG_PTR Addr;
     BOOLEAN InSystem;
     PVOID p;
 
@@ -320,7 +320,7 @@ KeRosDumpStackFrames(IN PULONG_PTR Frame OPTIONAL,
         }
     }
 }
-#endif
+
 
 VOID
 NTAPI
