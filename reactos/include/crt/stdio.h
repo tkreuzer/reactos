@@ -227,9 +227,10 @@ extern "C" {
 #if __MINGW_GNUC_PREREQ(4,4)
 #pragma push_macro("vsnprintf")
 #pragma push_macro("snprintf")
+#endif
   #undef vsnprintf
   #undef snprintf
-#endif
+
   extern
 #ifdef gnu_printf
   __attribute__((format(gnu_printf, 3, 0))) __attribute__((nonnull (3)))
@@ -246,14 +247,7 @@ extern "C" {
   int __cdecl sprintf(char *_Dest,const char *_Format,...);
   int __cdecl vsprintf(char *_Dest,const char *_Format,va_list _Args);
 #ifndef __NO_ISOCEXT  /* externs in libmingwex.a */
-  __CRT_INLINE int __cdecl snprintf(char* s, size_t n, const char*  format, ...) {
-	  int r;
-	  va_list a;
-	  __mingw_va_start(a, format);
-	  r = _vsnprintf (s, n, format, a);
-	  __mingw_va_end(a);
-	  return r;
-  }
+  int __cdecl snprintf(char* s, size_t n, const char*  format, ...);
   int __cdecl vscanf(const char * __restrict__ Format, va_list argp);
   int __cdecl vfscanf (FILE * __restrict__ fp, const char * Format,va_list argp);
   int __cdecl vsscanf (const char * __restrict__ _Str,const char * __restrict__ Format,va_list argp);

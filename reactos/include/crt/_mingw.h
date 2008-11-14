@@ -22,10 +22,20 @@
 #define __stdcall
 #endif
 
-#ifndef __GNUC__
+#if defined(_MSC_VER)
+# ifdef _DLL
 # ifndef __MINGW_IMPORT
 #  define __MINGW_IMPORT  __declspec(dllimport)
 # endif
+#else
+# ifndef __MINGW_IMPORT
+#  define __MINGW_IMPORT __declspec(dllimport)
+# endif
+# ifndef _CRTIMP
+#  define _CRTIMP __declspec(dllimport)
+# endif
+# define __DECLSPEC_SUPPORTED
+# define __attribute__(x)/* nothing */
 #endif
 
 #ifdef _MSC_VER
@@ -40,6 +50,14 @@
 #define __MINGW_GNUC_PREREQ(major, minor)  0
 #endif
 
+#if defined (_MSC_VER)
+#define __MINGW_MSC_PREREQ(major,minor) \
+  ((_MSC_VER /100) > (major) \
+   || ((_MSC)VER /100) == (major) && (_MSC_VER) % 100) >=(minor)))
+#else
+#define __MINGW_MSC_PREREQ(major, minor) 0
+#endif
+
 #define USE___UUIDOF	0
 
 #ifdef __cplusplus
@@ -47,7 +65,9 @@
 #elif defined(_MSC_VER)
 # define __CRT_INLINE __inline
 #elif defined(__GNUC__)
-# if ( __MINGW_GNUC_PREREQ(4, 3)  &&  __STDC_VERSION__ >= 199901L)
+# if defined(_MSC_VER)
+#  define __CRT_INLINE __inline
+# elif  __GNUC_STDC_INLINE__
 #  define __CRT_INLINE extern inline __attribute__((__always_inline__,__gnu_inline__))
 # else
 #  define __CRT_INLINE extern __inline__ __attribute__((__always_inline__))
