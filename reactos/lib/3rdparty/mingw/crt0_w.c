@@ -9,17 +9,13 @@
    defined to wWinMain.  */
 int WINAPI wWinMain(HINSTANCE hInstance,HINSTANCE hPrevInstance,LPWSTR lpCmdLine,int nShowCmd);
 
-extern HINSTANCE __mingw_winmain_hInstance;
-extern LPWSTR __mingw_winmain_lpCmdLine;
-extern DWORD __mingw_winmain_nShowCmd;
-
-int wmain (int, wchar_t **, wchar_t **);
-
-/*ARGSUSED*/
-int wmain (int flags __attribute__ ((__unused__)),
-	   wchar_t **cmdline __attribute__ ((__unused__)),
-	   wchar_t **inst __attribute__ ((__unused__)))
+void __main(void);
+int wmain (int flags, wchar_t **cmdline, wchar_t **inst)
 {
-  return (int) wWinMain (__mingw_winmain_hInstance, NULL,
-			__mingw_winmain_lpCmdLine, __mingw_winmain_nShowCmd);
+#ifdef __GNUC__
+  /* C++ initialization. (gcc inserts this call automatically for
+   * a function called "main", but not for "wmain") */
+  __main();
+#endif
+  return (int) wWinMain ((HINSTANCE) inst, NULL, (LPWSTR) cmdline,(DWORD) flags);
 }

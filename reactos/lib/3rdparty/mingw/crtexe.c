@@ -5,7 +5,7 @@
  */
 
 #undef CRTDLL
-#define _DLL
+//#define _DLL
 
 #define SPECIAL_CRTEXE
 
@@ -121,8 +121,10 @@ pre_c_init (void)
   * __MINGW_IMP_SYMBOL(_fmode) = _fmode;
   * __MINGW_IMP_SYMBOL(_commode) = _commode;
 
-#ifndef WPRFLAG
-  _dowildcard = 1;
+#ifdef WPRFLAG
+  _wsetargv();
+#else
+  _setargv();
 #endif
   if (_MINGW_INSTALL_DEBUG_MATHERR)
     {
@@ -151,7 +153,7 @@ pre_cpp_init (void)
 #endif
 }
 
-static int __mingw_CRTStartup (void);
+static int __tmainCRTStartup (void);
 
 int WinMainCRTStartup (void);
 
@@ -177,20 +179,19 @@ int mainCRTStartup (void)
 
 static
 __declspec(noinline) int
-__mingw_CRTStartup (void)
+__tmainCRTStartup (void)
 {
   _TCHAR *lpszCommandLine = NULL;
   STARTUPINFO StartupInfo;
   WINBOOL inDoubleQuote = FALSE;
   memset (&StartupInfo, 0, sizeof (STARTUPINFO));
-  int nested = FALSE;
-
+  
   if (mingw_app_type)
     GetStartupInfo (&StartupInfo);
   {
-#if 0 //not ready for this yet
     void *lock_free = NULL;
     void *fiberid = ((PNT_TIB)NtCurrentTeb())->StackBase;
+    int nested = FALSE;
     while((lock_free = InterlockedCompareExchangePointer ((volatile PVOID *) &__native_startup_lock,
 							  fiberid, 0)) != 0)
       {
@@ -201,7 +202,6 @@ __mingw_CRTStartup (void)
 	  }
 	Sleep(1000);
       }
-#endif
     if (__native_startup_state == __initializing)
       {
 	_amsg_exit (31);
