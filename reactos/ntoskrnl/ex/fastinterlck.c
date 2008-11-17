@@ -8,7 +8,7 @@
 
 /* INCLUDES *******************************************************************/
 
-#if defined(_ARM_) || defined(_PPC_) || defined(NTOS_USE_GENERICS)
+#if defined(_ARM_) || defined(_PPC_) || defined(_M_AMD64) || defined(NTOS_USE_GENERICS)
 
 #include <ntoskrnl.h>
 #define NDEBUG
@@ -313,6 +313,7 @@ ExInterlockedCompareExchange64(IN OUT LONGLONG volatile *Destination,
     return Result;
 }
 
+#ifndef _M_AMD64
 VOID
 NTAPI
 READ_REGISTER_BUFFER_UCHAR(IN PUCHAR Register,
@@ -456,5 +457,6 @@ WRITE_REGISTER_USHORT(IN PUSHORT Register,
     *(volatile USHORT * const)Register = Value;
     KeFlushWriteBuffer();  
 }
+#endif // !_M_AMD64
 
 #endif
