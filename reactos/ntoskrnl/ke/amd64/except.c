@@ -88,3 +88,22 @@ KeInitExceptions(VOID)
 
 }
 
+VOID
+NTAPI
+KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
+                    IN PKEXCEPTION_FRAME ExceptionFrame,
+                    IN PKTRAP_FRAME TrapFrame,
+                    IN KPROCESSOR_MODE PreviousMode,
+                    IN BOOLEAN FirstChance)
+{
+    UNIMPLEMENTED;
+}
+
+NTSTATUS
+NTAPI
+KeRaiseUserException(IN NTSTATUS ExceptionCode)
+{
+    UNIMPLEMENTED;
+    return STATUS_UNSUCCESSFUL;
+}
+
