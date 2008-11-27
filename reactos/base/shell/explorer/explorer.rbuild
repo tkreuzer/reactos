@@ -60,7 +60,9 @@
 		<file>xs-native.cpp</file>
 	</directory>
 	<file>explorer.cpp</file>
-	<file>i386-stub-win32.c</file>
+	<if property="ARCH" value="i386">
+		<file>i386-stub-win32.c</file>
+	</if>
 	<file>explorer.rc</file>
 	<linkerflag>--enable-stdcall-fixup</linkerflag>
 </module>
