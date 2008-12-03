@@ -41,6 +41,184 @@ BOOLEAN KiSMTProcessorsPresent;
 /* FUNCTIONS *****************************************************************/
 
 
+    /* Start by assuming no CPUID data */
+    KeGetCurrentPrcb()->CpuID = 0;
+
+    /* Save EFlags */
+    Ke386SaveFlags(EFlags);
+
+    /* Do CPUID 1 now */
+    __cpuid(Reg, 1);
+
+    /*
+     * Get the Stepping and Type. The stepping contains both the
+     * Model and the Step, while the Type contains the returned Type.
+     * We ignore the family.
+     *
+     * For the stepping, we convert this: zzzzzzxy into this: x0y
+     */
+    Stepping = Reg[0] & 0xF0;
+    Stepping <<= 4;
+    Stepping += (Reg[0] & 0xFF);
+    Stepping &= 0xF0F;
+    Type = Reg[0] & 0xF00;
+    Type >>= 8;
+
+    /* Save them in the PRCB */
+    KeGetCurrentPrcb()->CpuID = TRUE;
+    KeGetCurrentPrcb()->CpuType = (UCHAR)Type;
+    KeGetCurrentPrcb()->CpuStep = (USHORT)Stepping;
+
+    /* Restore EFLAGS */
+    Ke386RestoreFlags(EFlags);
+}
+
+ULONG
+NTAPI
+KiGetCpuVendor(VOID)
+{
+    PKPRCB Prcb = KeGetCurrentPrcb();
+    INT Vendor[5];
+    ULONG Temp;
+
+    /* Assume no Vendor ID and fail if no CPUID Support. */
+    Prcb->VendorString[0] = 0;
+    if (!Prcb->CpuID) return 0;
+
+    /* Get the Vendor ID and null-terminate it */
+    __cpuid(Vendor, 0);
+    Vendor[4] = 0;
+
+    /* Re-arrange vendor string */
+    Temp = Vendor[2];
+    Vendor[2] = Vendor[3];
+    Vendor[3] = Temp;
+
+    /* Copy it to the PRCB and null-terminate it again */
+    RtlCopyMemory(Prcb->VendorString,
+                  &Vendor[1],
+                  sizeof(Prcb->VendorString) - sizeof(CHAR));
+    Prcb->VendorString[sizeof(Prcb->VendorString) - sizeof(CHAR)] = ANSI_NULL;
+
+    /* Now check the CPU Type */
+    if (!strcmp((PCHAR)Prcb->VendorString, CmpIntelID))
+    {
+        return CPU_INTEL;
+    }
+    else if (!strcmp((PCHAR)Prcb->VendorString, CmpAmdID))
+    {
+        return CPU_AMD;
+    }
+    else if (!strcmp((PCHAR)Prcb->VendorString, CmpCyrixID))
+    {
+        DPRINT1("Cyrix CPUs not fully supported\n");
+        return 0;
+    }
+    else if (!strcmp((PCHAR)Prcb->VendorString, CmpTransmetaID))
+    {
+        DPRINT1("Transmeta CPUs not fully supported\n");
+        return 0;
+    }
+    else if (!strcmp((PCHAR)Prcb->VendorString, CmpCentaurID))
+    {
+        DPRINT1("VIA CPUs not fully supported\n");
+        return 0;
+    }
+    else if (!strcmp((PCHAR)Prcb->VendorString, CmpRiseID))
+    {
+        DPRINT1("Rise CPUs not fully supported\n");
+        return 0;
+    }
+
+    /* Invalid CPU */
+    return 0;
+}
+
+ULONG
+NTAPI
+KiGetFeatureBits(VOID)
+{
+    PKPRCB Prcb = KeGetCurrentPrcb();
+    ULONG Vendor;
+    ULONG FeatureBits = KF_WORKING_PTE;
+    INT Reg[4];
+    ULONG CpuFeatures = 0;
+
+    /* Get the Vendor ID */
+    Vendor = KiGetCpuVendor();
+
+    /* Make sure we got a valid vendor ID at least. */
+    if (!Vendor) return FeatureBits;
+
+    /* Get the CPUID Info. Features are in Reg[3]. */
+    __cpuid(Reg, 1);
+
+    /* Set the initial APIC ID */
+    Prcb->InitialApicId = (UCHAR)(Reg[1] >> 24);
+
+    /* Set the current features */
+    CpuFeatures = Reg[3];
+
+    /* Convert all CPUID Feature bits into our format */
+    if (CpuFeatures & 0x00000002) FeatureBits |= KF_V86_VIS | KF_CR4;
+    if (CpuFeatures & 0x00000008) FeatureBits |= KF_LARGE_PAGE | KF_CR4;
+    if (CpuFeatures & 0x00000010) FeatureBits |= KF_RDTSC;
+    if (CpuFeatures & 0x00000100) FeatureBits |= KF_CMPXCHG8B;
+    if (CpuFeatures & 0x00000800) FeatureBits |= KF_FAST_SYSCALL;
+    if (CpuFeatures & 0x00001000) FeatureBits |= KF_MTRR;
+    if (CpuFeatures & 0x00002000) FeatureBits |= KF_GLOBAL_PAGE | KF_CR4;
+    if (CpuFeatures & 0x00008000) FeatureBits |= KF_CMOV;
+    if (CpuFeatures & 0x00010000) FeatureBits |= KF_PAT;
+    if (CpuFeatures & 0x00200000) FeatureBits |= KF_DTS;
+    if (CpuFeatures & 0x00800000) FeatureBits |= KF_MMX;
+    if (CpuFeatures & 0x01000000) FeatureBits |= KF_FXSR;
+    if (CpuFeatures & 0x02000000) FeatureBits |= KF_XMMI;
+    if (CpuFeatures & 0x04000000) FeatureBits |= KF_XMMI64;
+
+    /* Check if the CPU has hyper-threading */
+    if (CpuFeatures & 0x10000000)
+    {
+        /* Set the number of logical CPUs */
+        Prcb->LogicalProcessorsPerPhysicalProcessor = (UCHAR)(Reg[1] >> 16);
+        if (Prcb->LogicalProcessorsPerPhysicalProcessor > 1)
+        {
+            /* We're on dual-core */
+            KiSMTProcessorsPresent = TRUE;
+        }
+    }
+    else
+    {
+        /* We only have a single CPU */
+        Prcb->LogicalProcessorsPerPhysicalProcessor = 1;
+    }
+
+    /* Check extended cpuid features */
+    __cpuid(Reg, 0x80000000);
+    if ((Reg[0] & 0xffffff00) == 0x80000000)
+    {
+        /* Check if CPUID 0x80000001 is supported */
+        if (Reg[0] >= 0x80000001)
+        {
+            /* Check which extended features are available. */
+            __cpuid(Reg, 0x80000001);
+
+            /* Check if NX-bit is supported */
+            if (Reg[3] & 0x00100000) FeatureBits |= KF_NX_BIT;
+
+            /* Now handle each features for each CPU Vendor */
+            switch (Vendor)
+            {
+                case CPU_AMD:
+                    if (Reg[3] & 0x80000000) FeatureBits |= KF_3DNOW;
+                    break;
+            }
+        }
+    }
+
+    /* Return the Feature Bits */
+    return FeatureBits;
+}
+
 VOID
 FASTCALL
 Ki386InitializeTss(IN PKTSS Tss,
