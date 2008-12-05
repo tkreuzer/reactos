@@ -4,6 +4,7 @@
  * FILE:            ntoskrnl/ke/i386/kiinit.c
  * PURPOSE:         Kernel Initialization for x86 CPUs
  * PROGRAMMERS:     Alex Ionescu (alex.ionescu@reactos.org)
+ *                  Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
 /* INCLUDES *****************************************************************/
@@ -11,6 +12,9 @@
 #include <ntoskrnl.h>
 #define NDEBUG
 #include <debug.h>
+
+#define REQUIRED_FEATURE_BITS (KF_RDTSC|KF_CR4|KF_CMPXCHG8B|KF_XMMI|KF_XMMI64| \
+                               KF_NX_BIT)
 
 /* GLOBALS *******************************************************************/
 
@@ -366,6 +370,7 @@ KiInitializePcr(IN ULONG ProcessorNumber,
 
     /* Start us out at PASSIVE_LEVEL */
 //    Pcr->Irql = PASSIVE_LEVEL;
+    KeSetCurrentIrql(PASSIVE_LEVEL);
 
     /* Set the GDI, IDT, TSS and DPC Stack */
     Pcr->GdtBase = (PVOID)Gdt;
@@ -373,8 +378,14 @@ KiInitializePcr(IN ULONG ProcessorNumber,
     Pcr->TssBase = Tss;
     Pcr->Prcb.DpcStack = DpcStack;
 
+    Pcr->Prcb.RspBase = Tss->Rsp0;
+
     /* Setup the processor set */
     Pcr->Prcb.MultiThreadProcessorSet = Pcr->Prcb.SetMember;
+
+    /* Clear DR6/7 to cleanup bootloader debugging */
+    Pcr->Prcb.ProcessorState.SpecialRegisters.KernelDr6 = 0;
+    Pcr->Prcb.ProcessorState.SpecialRegisters.KernelDr7 = 0;
 }
 
 VOID
@@ -386,30 +397,27 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
                    IN CCHAR Number,
                    IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
-#if 0
-    BOOLEAN NpxPresent;
     ULONG FeatureBits;
-    LARGE_INTEGER PageDirectory;
+    ULONG PageDirectory[2];
     PVOID DpcStack;
-    ULONG Vendor[3];
 
     /* Detect and set the CPU Type */
     KiSetProcessorType();
 
-    /* Set CR0 features based on detected CPU */
-    KiSetCR0Bits();
-
-    /* Check if an FPU is present */
-    NpxPresent = KiIsNpxPresent();
-
     /* Initialize the Power Management Support for this PRCB */
-    PoInitializePrcb(Prcb);
-
-    /* Bugcheck if this is a 386 CPU */
-    if (Prcb->CpuType == 3) KeBugCheckEx(0x5D, 0x386, 0, 0, 0);
+//    PoInitializePrcb(Prcb);
 
     /* Get the processor features for the CPU */
     FeatureBits = KiGetFeatureBits();
+
+    /* Check if we support all needed features */
+    if ((FeatureBits & REQUIRED_FEATURE_BITS) != REQUIRED_FEATURE_BITS)
+    {
+        /* If not, bugcheck system */
+        DPRINT1("CPU doesn't have needed features! Has: 0x%x, required: 0x%x\n",
+                FeatureBits, REQUIRED_FEATURE_BITS);
+        KeBugCheck(0);
+    }
 
     /* Set the default NX policy (opt-in) */
     SharedUserData->NXSupportPolicy = NX_SUPPORT_POLICY_OPTIN;
@@ -444,6 +452,9 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     /* Save feature bits */
     Prcb->FeatureBits = FeatureBits;
 
+    /* Initialize the CPU features */
+    KiInitializeCpuFeatures();
+
     /* Save CPU state */
     KiSaveProcessorControlState(&Prcb->ProcessorState);
 
@@ -454,7 +465,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     KiInitSpinLocks(Prcb, Number);
 
     /* Check if this is the Boot CPU */
-    if (!Number)
+    if (Number == 0)
     {
         /* Set Node Data */
         KeNodeBlock[0] = &KiNode0;
@@ -462,7 +473,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         KeNodeBlock[0]->ProcessorMask = Prcb->SetMember;
 
         /* Set boot-level flags */
-        KeI386NpxPresent = NpxPresent;
+        KeI386NpxPresent = TRUE;
         KeI386CpuType = Prcb->CpuType;
         KeI386CpuStep = Prcb->CpuStep;
         KeProcessorArchitecture = PROCESSOR_ARCHITECTURE_INTEL;
@@ -471,20 +482,6 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         KeFeatureBits = FeatureBits;
         KeI386FxsrPresent = (KeFeatureBits & KF_FXSR) ? TRUE : FALSE;
         KeI386XMMIPresent = (KeFeatureBits & KF_XMMI) ? TRUE : FALSE;
-
-        /* Detect 8-byte compare exchange support */
-        if (!(KeFeatureBits & KF_CMPXCHG8B))
-        {
-            /* Copy the vendor string */
-            RtlCopyMemory(Vendor, Prcb->VendorString, sizeof(Vendor));
-
-            /* Bugcheck the system. Windows *requires* this */
-            KeBugCheckEx(0x5D,
-                         (1 << 24 ) | (Prcb->CpuType << 16) | Prcb->CpuStep,
-                         Vendor[0],
-                         Vendor[1],
-                         Vendor[2]);
-        }
 
         /* Set the current MP Master KPRCB to the Boot PRCB */
         Prcb->MultiThreadSetMaster = Prcb;
@@ -501,11 +498,12 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
 
         /* Initialize the Idle Process and the Process Listhead */
         InitializeListHead(&KiProcessListHead);
-        PageDirectory.QuadPart = 0;
+        PageDirectory[0] = 0;
+        PageDirectory[1] = 0;
         KeInitializeProcess(InitProcess,
                             0,
                             0xFFFFFFFF,
-                            &PageDirectory,
+                            PageDirectory,
                             FALSE);
         InitProcess->QuantumReset = MAXCHAR;
     }
@@ -514,6 +512,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         /* FIXME */
         DPRINT1("SMP Boot support not yet present\n");
     }
+FrLdrDbgPrint("before KeInitializeThread\n");
 
     /* Setup the Idle Thread */
     KeInitializeThread(InitProcess,
@@ -524,6 +523,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
                        NULL,
                        NULL,
                        IdleStack);
+FrLdrDbgPrint("after KeInitializeThread\n");
     InitThread->NextProcessor = Number;
     InitThread->Priority = HIGH_PRIORITY;
     InitThread->State = Running;
@@ -575,14 +575,14 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         Prcb->DpcStack = DpcStack;
 
         /* Allocate the IOPM save area. */
-        Ki386IopmSaveArea = ExAllocatePoolWithTag(PagedPool,
-                                                  PAGE_SIZE * 2,
-                                                  TAG('K', 'e', ' ', ' '));
-        if (!Ki386IopmSaveArea)
-        {
-            /* Bugcheck. We need this for V86/VDM support. */
-            KeBugCheckEx(NO_PAGES_AVAILABLE, 2, PAGE_SIZE * 2, 0, 0);
-        }
+//        Ki386IopmSaveArea = ExAllocatePoolWithTag(PagedPool,
+//                                                  PAGE_SIZE * 2,
+//                                                  TAG('K', 'e', ' ', ' '));
+//        if (!Ki386IopmSaveArea)
+//        {
+//            /* Bugcheck. We need this for V86/VDM support. */
+//            KeBugCheckEx(NO_PAGES_AVAILABLE, 2, PAGE_SIZE * 2, 0, 0);
+//        }
     }
 
     /* Raise to Dispatch */
@@ -599,7 +599,6 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     /* Raise back to HIGH_LEVEL and clear the PRCB for the loader block */
     KfRaiseIrql(HIGH_LEVEL);
     LoaderBlock->Prcb = 0;
-#endif
 }
 
 VOID
@@ -614,15 +613,8 @@ KiGetMachineBootPointers(IN PKGDTENTRY *Gdt,
     USHORT Tr = 0;
 
     /* Get GDT and IDT descriptors */
-    Ke386GetGlobalDescriptorTable(GdtDescriptor.Limit);
-    Ke386GetInterruptDescriptorTable(IdtDescriptor.Limit);
-
-    // FIXME: for some strange reason the gdt needs some time before it's finished...
-    if (!GdtDescriptor.Base)
-    {
-        FrLdrDbgPrint("1. Base = %p, Limit = 0x%x\n", GdtDescriptor.Base, GdtDescriptor.Limit);
-    }
-    FrLdrDbgPrint("2. Base = %p, Limit = 0x%x\n", GdtDescriptor.Base, GdtDescriptor.Limit);
+    __sgdt(&GdtDescriptor.Limit);
+    __sidt(&IdtDescriptor.Limit);
 
     /* Save IDT and GDT */
     *Gdt = (PKGDTENTRY)GdtDescriptor.Base;
@@ -640,6 +632,17 @@ KiGetMachineBootPointers(IN PKGDTENTRY *Gdt,
                               TssSelector.Bytes.BaseMiddle << 16 |
                               TssSelector.Bytes.BaseHigh << 24 |
                               (ULONG64)TssSelector.BaseUpper << 32);
+}
+
+// Hack
+VOID KiRosPrepareForSystemStartup(ULONG, PROS_LOADER_PARAMETER_BLOCK);
+
+VOID
+NTAPI
+KiSystemStartup(IN ULONG_PTR Dummy,
+                IN PROS_LOADER_PARAMETER_BLOCK LoaderBlock)
+{
+    KiRosPrepareForSystemStartup(Dummy, LoaderBlock);
 }
 
 VOID
@@ -681,6 +684,9 @@ KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     InitialStack = LoaderBlock->KernelStack; // Chekme
     InitialThread = (PKTHREAD)LoaderBlock->Thread;
 
+    /* Align stack to 16 bytes */
+    InitialStack &= ~(16 - 1);
+
     /* Clean the APC List Head */
     InitializeListHead(&InitialThread->ApcState.ApcListHead[KernelMode]);
 
@@ -696,7 +702,7 @@ KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 FrLdrDbgPrint("Gdt = %p, Idt = %p, Pcr = %p, Tss = %p\n", Gdt, Idt, Pcr, Tss);
 
         /* Setup the TSS descriptors and entries */
-        Ki386InitializeTss(Tss, Idt, Gdt);
+        Ki386InitializeTss(Tss, Idt, Gdt, InitialStack);
 
         /* Initialize the PCR */
         RtlZeroMemory(Pcr, PAGE_SIZE);
@@ -711,10 +717,6 @@ FrLdrDbgPrint("Gdt = %p, Idt = %p, Pcr = %p, Tss = %p\n", Gdt, Idt, Pcr, Tss);
         /* Set us as the current process */
         InitialThread->ApcState.Process = &KiInitialProcess.Pcb;
 
-        /* Clear DR6/7 to cleanup bootloader debugging */
-        Pcr->Prcb.ProcessorState.SpecialRegisters.KernelDr6 = 0;
-        Pcr->Prcb.ProcessorState.SpecialRegisters.KernelDr7 = 0;
-
         /* Setup the IDT */
         KeInitExceptions();
 
@@ -724,7 +726,7 @@ FrLdrDbgPrint("Gdt = %p, Idt = %p, Pcr = %p, Tss = %p\n", Gdt, Idt, Pcr, Tss);
 //        Ke386SetFs(KGDT_32_R3_TEB | RPL_MASK);
 
         /* LDT is unused */
-        Ke386SetLocalDescriptorTable(0);
+        __sldt(0);
 
         /* Save NMI and double fault traps */
 //        RtlCopyMemory(&NmiEntry, &Idt[2], sizeof(KIDTENTRY));
@@ -746,14 +748,14 @@ FrLdrDbgPrint("Gdt = %p, Idt = %p, Pcr = %p, Tss = %p\n", Gdt, Idt, Pcr, Tss);
     {
         /* Loop until execution can continue */
         while (*(volatile PKSPIN_LOCK*)&KiFreezeExecutionLock == (PVOID)1);
-    } while(InterlockedBitTestAndSet((PLONG)&KiFreezeExecutionLock, 0));
+    } while(InterlockedBitTestAndSet64((PLONG64)&KiFreezeExecutionLock, 0));
 
     /* Setup CPU-related fields */
     Pcr->Prcb.Number = Cpu;
     Pcr->Prcb.SetMember = 1 << Cpu;
 
     /* Initialize the Processor with HAL */
-//    HalInitializeProcessor(Cpu, KeLoaderBlock);
+    HalInitializeProcessor(Cpu, KeLoaderBlock);
 
     /* Set active processors */
     KeActiveProcessors |= 1 << Cpu;
@@ -763,20 +765,17 @@ FrLdrDbgPrint("Gdt = %p, Idt = %p, Pcr = %p, Tss = %p\n", Gdt, Idt, Pcr, Tss);
     if (Cpu == 0)
     {
         /* Initialize debugging system */
-//        KdInitSystem(0, KeLoaderBlock);
+        KdInitSystem(0, KeLoaderBlock);
 
         /* Check for break-in */
 //        if (KdPollBreakIn()) DbgBreakPointWithStatus(1);
     }
+DPRINT1("after KdInitSystem\n");
 
     /* Raise to HIGH_LEVEL */
     KfRaiseIrql(HIGH_LEVEL);
 
-    /* Align stack and make space for the trap frame and NPX frame */
-    InitialStack &= ~(KTRAP_FRAME_ALIGN - 1);
-
-FrLdrDbgPrint("Before KiSetupStackAndInitializeKernel\n");
-for(;;);
+FrLdrDbgPrint("before KiSetupStackAndInitializeKernel\n");
 
     /* Switch to new kernel stack and start kernel bootstrapping */
     KiSetupStackAndInitializeKernel(&KiInitialProcess.Pcb,
@@ -785,4 +784,36 @@ for(;;);
                                     &Pcr->Prcb,
                                     (CCHAR)Cpu,
                                     KeLoaderBlock);
+}
+
+
+VOID
+NTAPI
+KiInitializeKernelAndGotoIdleLoop(IN PKPROCESS InitProcess,
+                                  IN PKTHREAD InitThread,
+                                  IN PVOID IdleStack,
+                                  IN PKPRCB Prcb,
+                                  IN CCHAR Number,
+                                  IN PLOADER_PARAMETER_BLOCK LoaderBlock)
+{
+    /* Initialize kernel */
+    KiInitializeKernel(InitProcess,
+                       InitThread,
+                       IdleStack,
+                       Prcb,
+                       Number,
+                       KeLoaderBlock);
+
+    /* Set the priority of this thread to 0 */
+    InitThread->Priority = 0;
+
+    /* Force interrupts enabled and lower IRQL back to DISPATCH_LEVEL */
+    _enable();
+    KeLowerIrql(DISPATCH_LEVEL);
+
+    /* Set the right wait IRQL */
+    InitThread->WaitIrql = DISPATCH_LEVEL;
+
+    /* Jump into the idle loop */
+    KiIdleLoop();
 }

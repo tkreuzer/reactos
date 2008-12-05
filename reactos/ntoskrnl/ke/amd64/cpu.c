@@ -220,6 +220,130 @@ KiGetFeatureBits(VOID)
 }
 
 VOID
+NTAPI
+KiInitializeCpuFeatures()
+{
+    /* Enable Write-Protection */
+    __writecr0(__readcr0() | CR0_WP);
+
+    /* Disable fpu monitoring */
+    __writecr0(__readcr0() & ~CR0_MP);
+
+    /* Enable fx save restore support */
+    __writecr4(__readcr4() | CR4_FXSR);
+
+}
+
+VOID
+NTAPI
+KiGetCacheInformation(VOID)
+{
+    PKIPCR Pcr = (PKIPCR)KeGetPcr();
+    ULONG Vendor;
+    INT Data[4];
+    ULONG CacheRequests = 0, i;
+    ULONG CurrentRegister;
+    UCHAR RegisterByte;
+    BOOLEAN FirstPass = TRUE;
+
+    /* Set default L2 size */
+    Pcr->SecondLevelCacheSize = 0;
+
+    /* Get the Vendor ID and make sure we support CPUID */
+    Vendor = KiGetCpuVendor();
+    if (!Vendor) return;
+
+    /* Check the Vendor ID */
+    switch (Vendor)
+    {
+        /* Handle Intel case */
+        case CPU_INTEL:
+
+            /*Check if we support CPUID 2 */
+            __cpuid(Data, 0);
+            if (Data[0] >= 2)
+            {
+                /* We need to loop for the number of times CPUID will tell us to */
+                do
+                {
+                    /* Do the CPUID call */
+                    __cpuid(Data, 2);
+
+                    /* Check if it was the first call */
+                    if (FirstPass)
+                    {
+                        /*
+                         * The number of times to loop is the first byte. Read
+                         * it and then destroy it so we don't get confused.
+                         */
+                        CacheRequests = Data[0] & 0xFF;
+                        Data[0] &= 0xFFFFFF00;
+
+                        /* Don't go over this again */
+                        FirstPass = FALSE;
+                    }
+
+                    /* Loop all 4 registers */
+                    for (i = 0; i < 4; i++)
+                    {
+                        /* Get the current register */
+                        CurrentRegister = Data[i];
+
+                        /*
+                         * If the upper bit is set, then this register should
+                         * be skipped.
+                         */
+                        if (CurrentRegister & 0x80000000) continue;
+
+                        /* Keep looping for every byte inside this register */
+                        while (CurrentRegister)
+                        {
+                            /* Read a byte, skip a byte. */
+                            RegisterByte = (UCHAR)(CurrentRegister & 0xFF);
+                            CurrentRegister >>= 8;
+                            if (!RegisterByte) continue;
+
+                            /*
+                             * Valid values are from 0x40 (0 bytes) to 0x49
+                             * (32MB), or from 0x80 to 0x89 (same size but
+                             * 8-way associative.
+                             */
+                            if (((RegisterByte > 0x40) &&
+                                 (RegisterByte <= 0x49)) ||
+                                ((RegisterByte > 0x80) &&
+                                (RegisterByte <= 0x89)))
+                            {
+                                /* Mask out only the first nibble */
+                                RegisterByte &= 0x0F;
+
+                                /* Set the L2 Cache Size */
+                                Pcr->SecondLevelCacheSize = 0x10000 <<
+                                                            RegisterByte;
+                            }
+                        }
+                    }
+                } while (--CacheRequests);
+            }
+            break;
+
+        case CPU_AMD:
+
+            /* Check if we support CPUID 0x80000006 */
+            __cpuid(Data, 0x80000000);
+            if (Data[0] >= 6)
+            {
+                /* Get 2nd level cache and tlb size */
+                __cpuid(Data, 0x80000006);
+
+                /* Set the L2 Cache Size */
+                Pcr->SecondLevelCacheSize = (Data[2] & 0xFFFF0000) >> 6;
+            }
+            break;
+    }
+}
+
+
+VOID
 FASTCALL
 Ki386InitializeTss(IN PKTSS Tss,
                    IN PKIDTENTRY Idt,
