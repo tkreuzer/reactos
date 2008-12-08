@@ -10,6 +10,7 @@
 				<file>framebased-gcchack-asm.S</file>
 			</group>
 		</directory>
+		<file>framebased-gcchack.c</file>
 	</if>
 	<if property="ARCH" value="powerpc">
 		<directory name="powerpc">
