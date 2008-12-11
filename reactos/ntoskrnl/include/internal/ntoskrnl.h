@@ -96,6 +96,8 @@
 #include "hal.h"
 #include "arch/intrin_i.h"
 
+extern ULONG (*FrLdrDbgPrint)(const char *Format, ...);
+
 /*
  * generic information class probing code
  */
