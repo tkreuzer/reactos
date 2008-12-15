@@ -53,6 +53,7 @@ static inline int needs_relay( const ORDDEF *odp )
     if (!odp) return 0;
     /* skip non-functions */
     if ((odp->type != TYPE_STDCALL) && (odp->type != TYPE_CDECL)) return 0;
+    if ((odp->type == TYPE_CDECL) && (target_cpu == CPU_x86_64)) return 0;
     /* skip norelay and forward entry points */
     if (odp->flags & (FLAG_NORELAY|FLAG_FORWARD)) return 0;
     return 1;
@@ -108,7 +109,7 @@ static void output_relay_debug( DLLSPEC *spec )
     /* first the table of entry point offsets */
 
     output( "\t%s\n", get_asm_rodata_section() );
-    output( "\t.align %d\n", get_alignment(4) );
+    output( "\t.align %d\n", get_alignment(get_ptr_size()) );
     output( ".L__wine_spec_relay_entry_point_offsets:\n" );
 
     for (i = spec->base; i <= spec->limit; i++)
@@ -116,14 +117,14 @@ static void output_relay_debug( DLLSPEC *spec )
         ORDDEF *odp = spec->ordinals[i];
 
         if (needs_relay( odp ))
-            output( "\t.long .L__wine_spec_relay_entry_point_%d-__wine_spec_relay_entry_points\n", i );
+            output( "\t.long __wine_spec_relay_entry_point_%d-__wine_spec_relay_entry_points\n", i );
         else
             output( "\t.long 0\n" );
     }
 
     /* then the table of argument types */
 
-    output( "\t.align %d\n", get_alignment(4) );
+    output( "\t.align %d\n", get_alignment(get_ptr_size()) );
     output( ".L__wine_spec_relay_arg_types:\n" );
 
     for (i = spec->base; i <= spec->limit; i++)
