@@ -59,6 +59,7 @@ extern "C" {
 #undef UNALIGNED
 #define UNALIGNED __unaligned
 #else
+#undef UNALIGNED
 #define UNALIGNED
 #endif
 
