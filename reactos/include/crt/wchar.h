@@ -50,10 +50,7 @@ extern "C" {
 
 #ifndef _STDIO_DEFINED
   _CRTIMP FILE *__cdecl __iob_func(void);
-  _CRTDATA(extern FILE _iob[];)
-#ifdef _M_CEE_PURE
-#define _iob __iob_func()
-#endif
+  _CRTIMP extern FILE _iob[];
 #endif
 
 #ifndef _STDSTREAM_DEFINED
