@@ -6,7 +6,7 @@
 #ifndef _INC_STDIO
 #define _INC_STDIO
 
-#include <crtdefs.h>
+#include <_mingw.h>
 
 #define __need___va_list
 #include <stdarg.h>
@@ -95,10 +95,7 @@ extern "C" {
 
 #ifndef _STDIO_DEFINED
   _CRTIMP FILE *__cdecl __iob_func(void);
-  _CRTDATA(extern FILE _iob[];)
-#ifdef _M_CEE_PURE
-#define _iob __iob_func()
-#endif
+  _CRTIMP extern FILE _iob[];
 #endif
 
 #ifndef _FPOS_T_DEFINED
@@ -116,11 +113,17 @@ extern "C" {
 #endif
 
 #ifndef _STDSTREAM_DEFINED
-#define _STDSTREAM_DEFINED
-#define stdin (&_iob[0])
-#define stdout (&_iob[1])
-#define stderr (&_iob[1])
-#endif /* !_STDSTREAM_DEFINED */
+ #define _STDSTREAM_DEFINED
+ #ifdef _M_CEE_PURE
+  #define stdin (&__iob_func()[0])
+  #define stdout (&__iob_func()[1])
+  #define stderr (&__iob_func()[2])
+ #else // !_M_CEE_PURE
+  #define stdin (&_iob[0])
+  #define stdout (&_iob[1])
+  #define stderr (&_iob[2])
+ #endif
+#endif
 
 #define _IOREAD 0x0001
 #define _IOWRT 0x0002
@@ -134,6 +137,9 @@ extern "C" {
 #define _IOERR 0x0020
 #define _IOSTRG 0x0040
 #define _IORW 0x0080
+#ifdef _POSIX_
+#define _IOAPPEND 0x0200
+#endif
 
 #define _TWO_DIGIT_EXPONENT 0x1
 
@@ -146,21 +152,21 @@ extern "C" {
 #else
   _CRTIMP FILE *__cdecl _fsopen(const char *_Filename,const char *_Mode,int _ShFlag);
 #endif
-  _CRTIMP void __cdecl clearerr(FILE *_File);
-  _CRTIMP int __cdecl fclose(FILE *_File);
+  void __cdecl clearerr(FILE *_File);
+  int __cdecl fclose(FILE *_File);
   _CRTIMP int __cdecl _fcloseall(void);
 #ifdef _POSIX_
   FILE *__cdecl fdopen(int _FileHandle,const char *_Mode);
 #else
   _CRTIMP FILE *__cdecl _fdopen(int _FileHandle,const char *_Mode);
 #endif
-  _CRTIMP int __cdecl feof(FILE *_File);
-  _CRTIMP int __cdecl ferror(FILE *_File);
-  _CRTIMP int __cdecl fflush(FILE *_File);
-  _CRTIMP int __cdecl fgetc(FILE *_File);
+  int __cdecl feof(FILE *_File);
+  int __cdecl ferror(FILE *_File);
+  int __cdecl fflush(FILE *_File);
+  int __cdecl fgetc(FILE *_File);
   _CRTIMP int __cdecl _fgetchar(void);
-  _CRTIMP int __cdecl fgetpos(FILE *_File ,fpos_t *_Pos);
-  _CRTIMP char *__cdecl fgets(char *_Buf,int _MaxCount,FILE *_File);
+  int __cdecl fgetpos(FILE *_File ,fpos_t *_Pos);
+  char *__cdecl fgets(char *_Buf,int _MaxCount,FILE *_File);
 #ifdef _POSIX_
   int __cdecl fileno(FILE *_File);
 #else
@@ -168,61 +174,68 @@ extern "C" {
 #endif
   _CRTIMP char *__cdecl _tempnam(const char *_DirName,const char *_FilePrefix);
   _CRTIMP int __cdecl _flushall(void);
-  _CRTIMP FILE *__cdecl fopen(const char *_Filename,const char *_Mode);
-  _CRTIMP int __cdecl fprintf(FILE *_File,const char *_Format,...);
-  _CRTIMP int __cdecl fputc(int _Ch,FILE *_File);
+  FILE *__cdecl fopen(const char *_Filename,const char *_Mode);
+  FILE *fopen64(const char *filename,const char *mode);
+  int __cdecl fprintf(FILE *_File,const char *_Format,...);
+  int __cdecl fputc(int _Ch,FILE *_File);
   _CRTIMP int __cdecl _fputchar(int _Ch);
-  _CRTIMP int __cdecl fputs(const char *_Str,FILE *_File);
-  _CRTIMP size_t __cdecl fread(void *_DstBuf,size_t _ElementSize,size_t _Count,FILE *_File);
-  _CRTIMP _CRT_INSECURE_DEPRECATE(freopen_s) FILE *__cdecl freopen(const char *_Filename,const char *_Mode,FILE *_File);
-  _CRTIMP _CRT_INSECURE_DEPRECATE(fscanf_s) int __cdecl fscanf(FILE *_File,const char *_Format,...);
-  _CRTIMP int __cdecl fsetpos(FILE *_File,const fpos_t *_Pos);
-  _CRTIMP int __cdecl fseek(FILE *_File,long _Offset,int _Origin);
-  _CRTIMP long __cdecl ftell(FILE *_File);
-  __MINGW_EXTENSION _CRTIMP int __cdecl _fseeki64(FILE *_File,__int64 _Offset,int _Origin);
-  __MINGW_EXTENSION _CRTIMP __int64 __cdecl _ftelli64(FILE *_File);
-  _CRTIMP size_t __cdecl fwrite(const void *_Str,size_t _Size,size_t _Count,FILE *_File);
-  _CRTIMP int __cdecl getc(FILE *_File);
-  _CRTIMP int __cdecl getchar(void);
+  int __cdecl fputs(const char *_Str,FILE *_File);
+  size_t __cdecl fread(void *_DstBuf,size_t _ElementSize,size_t _Count,FILE *_File);
+  FILE *__cdecl freopen(const char *_Filename,const char *_Mode,FILE *_File);
+  int __cdecl fscanf(FILE *_File,const char *_Format,...);
+  int __cdecl fsetpos(FILE *_File,const fpos_t *_Pos);
+  int __cdecl fseek(FILE *_File,long _Offset,int _Origin);
+   int fseeko64(FILE* stream, _off64_t offset, int whence);
+  long __cdecl ftell(FILE *_File);
+  _off64_t ftello64(FILE * stream);
+  int __cdecl _fseeki64(FILE *_File,__int64 _Offset,int _Origin);
+  __int64 __cdecl _ftelli64(FILE *_File);
+  size_t __cdecl fwrite(const void *_Str,size_t _Size,size_t _Count,FILE *_File);
+  int __cdecl getc(FILE *_File);
+  int __cdecl getchar(void);
   _CRTIMP int __cdecl _getmaxstdio(void);
-  _CRTIMP char *__cdecl gets(char *_Buffer); // FIXME: non-standard
-  _CRTIMP int __cdecl _getw(FILE *_File);
+  char *__cdecl gets(char *_Buffer);
+  int __cdecl _getw(FILE *_File);
 #ifndef _CRT_PERROR_DEFINED
 #define _CRT_PERROR_DEFINED
-  _CRTIMP void __cdecl perror(const char *_ErrMsg);
+  void __cdecl perror(const char *_ErrMsg);
 #endif
   _CRTIMP int __cdecl _pclose(FILE *_File);
   _CRTIMP FILE *__cdecl _popen(const char *_Command,const char *_Mode);
-  _CRTIMP int __cdecl printf(const char *_Format,...);
-  _CRTIMP int __cdecl putc(int _Ch,FILE *_File);
-  _CRTIMP int __cdecl putchar(int _Ch);
-  _CRTIMP int __cdecl puts(const char *_Str);
+#if !defined(NO_OLDNAMES) && !defined(popen)
+#define popen	_popen
+#define pclose	_pclose
+#endif
+  int __cdecl printf(const char *_Format,...);
+  int __cdecl putc(int _Ch,FILE *_File);
+  int __cdecl putchar(int _Ch);
+  int __cdecl puts(const char *_Str);
   _CRTIMP int __cdecl _putw(int _Word,FILE *_File);
 #ifndef _CRT_DIRECTORY_DEFINED
 #define _CRT_DIRECTORY_DEFINED
-  _CRTIMP int __cdecl remove(const char *_Filename);
-  _CRTIMP int __cdecl rename(const char *_OldFilename,const char *_NewFilename);
+  int __cdecl remove(const char *_Filename);
+  int __cdecl rename(const char *_OldFilename,const char *_NewFilename);
   _CRTIMP int __cdecl _unlink(const char *_Filename);
-#ifndef NO_OLDNAMES
-  _CRTIMP _CRT_NONSTDC_DEPRECATE(_unlink) int __cdecl unlink(const char *_Filename);
+#ifndef	NO_OLDNAMES
+  int __cdecl unlink(const char *_Filename);
 #endif
 #endif
-  _CRTIMP void __cdecl rewind(FILE *_File);
+  void __cdecl rewind(FILE *_File);
   _CRTIMP int __cdecl _rmtmp(void);
-  _CRTIMP _CRT_INSECURE_DEPRECATE_CORE(scanf_s) int __cdecl scanf(const char *_Format,...);
-  _CRTIMP _CRT_INSECURE_DEPRECATE(setvbuf) void __cdecl setbuf(FILE *_File,char *_Buffer);
+  int __cdecl scanf(const char *_Format,...);
+  void __cdecl setbuf(FILE *_File,char *_Buffer);
   _CRTIMP int __cdecl _setmaxstdio(int _Max);
   _CRTIMP unsigned int __cdecl _set_output_format(unsigned int _Format);
   _CRTIMP unsigned int __cdecl _get_output_format(void);
-  _CRTIMP int __cdecl setvbuf(FILE *_File,char *_Buf,int _Mode,size_t _Size);
+  int __cdecl setvbuf(FILE *_File,char *_Buf,int _Mode,size_t _Size);
   _CRTIMP int __cdecl _scprintf(const char *_Format,...);
-  _CRTIMP _CRT_INSECURE_DEPRECATE_CORE(sscanf_s) int __cdecl sscanf(const char *_Src,const char *_Format,...);
-  _CRTIMP _CRT_INSECURE_DEPRECATE_CORE(_snscanf_s) int __cdecl _snscanf(const char *_Src,size_t _MaxCount,const char *_Format,...);
-  _CRTIMP _CRT_INSECURE_DEPRECATE(tmpfile_s) FILE *__cdecl tmpfile(void);
-  _CRTIMP char *__cdecl tmpnam(char *_Buffer);
-  _CRTIMP_ALT int __cdecl ungetc(int _Ch,FILE *_File);
-  _CRTIMP int __cdecl vfprintf(FILE *_File,const char *_Format,va_list _ArgList);
-  _CRTIMP int __cdecl vprintf(const char *_Format,va_list _ArgList);
+  int __cdecl sscanf(const char *_Src,const char *_Format,...);
+  _CRTIMP int __cdecl _snscanf(const char *_Src,size_t _MaxCount,const char *_Format,...);
+  FILE *__cdecl tmpfile(void);
+  char *__cdecl tmpnam(char *_Buffer);
+  int __cdecl ungetc(int _Ch,FILE *_File);
+  int __cdecl vfprintf(FILE *_File,const char *_Format,va_list _ArgList);
+  int __cdecl vprintf(const char *_Format,va_list _ArgList);
   /* Make sure macros are not defined.  */
 #if __MINGW_GNUC_PREREQ(4,4)
 #pragma push_macro("vsnprintf")
@@ -248,6 +261,9 @@ extern "C" {
   int __cdecl vsprintf(char *_Dest,const char *_Format,va_list _Args);
 #ifndef __NO_ISOCEXT  /* externs in libmingwex.a */
   int __cdecl snprintf(char* s, size_t n, const char*  format, ...);
+  __CRT_INLINE int __cdecl vsnprintf (char* s, size_t n, const char* format,va_list arg) {
+    return _vsnprintf ( s, n, format, arg);
+  }
   int __cdecl vscanf(const char * __restrict__ Format, va_list argp);
   int __cdecl vfscanf (FILE * __restrict__ fp, const char * Format,va_list argp);
   int __cdecl vsscanf (const char * __restrict__ _Str,const char * __restrict__ Format,va_list argp);
@@ -257,22 +273,26 @@ extern "C" {
 #pragma pop_macro("snprintf")
 #pragma pop_macro("vsnprintf")
 #endif
-
-#ifndef vsnprintf
-  #define vsnprintf _vsnprintf
-#endif
-#ifndef snprintf
-  #define snprintf _snprintf
+/* Check if vsnprintf and snprintf are defaulting to gnu-style.  */
+#if defined(USE_MINGW_GNU_SNPRINTF) && USE_MINGW_GNU_SNPRINTF
+  #ifndef vsnprint
+    #define vsnprintf __mingw_vsnprintf
+  #endif
+  #ifndef snprintf
+    #define snprintf __mingw_snprintf
+  #endif
+#else
+  #ifndef vsnprint
+    #define vsnprintf _vsnprintf
+  #endif
+  #ifndef snprintf
+    #define snprintf _snprintf
+  #endif
 #endif
 
   _CRTIMP int __cdecl _vscprintf(const char *_Format,va_list _ArgList);
-#ifdef _SAFECRT_IMPL
-#define _set_printf_count_output(i)
-#define _get_printf_count_output() (FALSE)
-#else
   _CRTIMP int __cdecl _set_printf_count_output(int _Value);
-  _CRTIMP int __cdecl _get_printf_count_output(void);
-#endif
+  _CRTIMP int __cdecl _get_printf_count_output();
 
 #ifndef _WSTDIO_DEFINED
 
@@ -285,24 +305,24 @@ extern "C" {
 #else
   _CRTIMP FILE *__cdecl _wfsopen(const wchar_t *_Filename,const wchar_t *_Mode,int _ShFlag);
 #endif
-  _CRTIMP wint_t __cdecl fgetwc(FILE *_File);
+  wint_t __cdecl fgetwc(FILE *_File);
   _CRTIMP wint_t __cdecl _fgetwchar(void);
-  _CRTIMP wint_t __cdecl fputwc(wchar_t _Ch,FILE *_File);
+  wint_t __cdecl fputwc(wchar_t _Ch,FILE *_File);
   _CRTIMP wint_t __cdecl _fputwchar(wchar_t _Ch);
-  _CRTIMP wint_t __cdecl getwc(FILE *_File);
-  _CRTIMP wint_t __cdecl getwchar(void);
-  _CRTIMP wint_t __cdecl putwc(wchar_t _Ch,FILE *_File);
-  _CRTIMP wint_t __cdecl putwchar(wchar_t _Ch);
-  _CRTIMP wint_t __cdecl ungetwc(wint_t _Ch,FILE *_File);
-  _CRTIMP wchar_t *__cdecl fgetws(wchar_t *_Dst,int _SizeInWords,FILE *_File);
-  _CRTIMP int __cdecl fputws(const wchar_t *_Str,FILE *_File);
+  wint_t __cdecl getwc(FILE *_File);
+  wint_t __cdecl getwchar(void);
+  wint_t __cdecl putwc(wchar_t _Ch,FILE *_File);
+  wint_t __cdecl putwchar(wchar_t _Ch);
+  wint_t __cdecl ungetwc(wint_t _Ch,FILE *_File);
+  wchar_t *__cdecl fgetws(wchar_t *_Dst,int _SizeInWords,FILE *_File);
+  int __cdecl fputws(const wchar_t *_Str,FILE *_File);
   _CRTIMP wchar_t *__cdecl _getws(wchar_t *_String);
   _CRTIMP int __cdecl _putws(const wchar_t *_Str);
-  _CRTIMP int __cdecl fwprintf(FILE *_File,const wchar_t *_Format,...);
-  _CRTIMP int __cdecl wprintf(const wchar_t *_Format,...);
+  int __cdecl fwprintf(FILE *_File,const wchar_t *_Format,...);
+  int __cdecl wprintf(const wchar_t *_Format,...);
   _CRTIMP int __cdecl _scwprintf(const wchar_t *_Format,...);
-  _CRTIMP int __cdecl vfwprintf(FILE *_File,const wchar_t *_Format,va_list _ArgList);
-  _CRTIMP int __cdecl vwprintf(const wchar_t *_Format,va_list _ArgList);
+  int __cdecl vfwprintf(FILE *_File,const wchar_t *_Format,va_list _ArgList);
+  int __cdecl vwprintf(const wchar_t *_Format,va_list _ArgList);
   _CRTIMP int __cdecl swprintf(wchar_t*, const wchar_t*, ...);
   _CRTIMP int __cdecl vswprintf(wchar_t*, const wchar_t*,va_list);
   _CRTIMP int __cdecl _swprintf_c(wchar_t *_DstBuf,size_t _SizeInWords,const wchar_t *_Format,...);
@@ -319,9 +339,9 @@ extern "C" {
 	  return r;
   }
   __CRT_INLINE int __cdecl vsnwprintf (wchar_t* s, size_t n, const wchar_t* format, va_list arg) { return _vsnwprintf(s,n,format,arg); }
-  _CRTIMP int __cdecl vwscanf (const wchar_t *, va_list);
-  _CRTIMP int __cdecl vfwscanf (FILE *,const wchar_t *,va_list);
-  _CRTIMP int __cdecl vswscanf (const wchar_t *,const wchar_t *,va_list);
+  int __cdecl vwscanf (const wchar_t *, va_list);
+  int __cdecl vfwscanf (FILE *,const wchar_t *,va_list);
+  int __cdecl vswscanf (const wchar_t *,const wchar_t *,va_list);
 #endif
   _CRTIMP int __cdecl _swprintf(wchar_t *_Dest,const wchar_t *_Format,...);
   _CRTIMP int __cdecl _vswprintf(wchar_t *_Dest,const wchar_t *_Format,va_list _Args);
@@ -341,10 +361,10 @@ extern "C" {
 
   _CRTIMP wchar_t *__cdecl _wtempnam(const wchar_t *_Directory,const wchar_t *_FilePrefix);
   _CRTIMP int __cdecl _vscwprintf(const wchar_t *_Format,va_list _ArgList);
-  _CRTIMP int __cdecl fwscanf(FILE *_File,const wchar_t *_Format,...);
-  _CRTIMP int __cdecl swscanf(const wchar_t *_Src,const wchar_t *_Format,...);
+  int __cdecl fwscanf(FILE *_File,const wchar_t *_Format,...);
+  int __cdecl swscanf(const wchar_t *_Src,const wchar_t *_Format,...);
   _CRTIMP int __cdecl _snwscanf(const wchar_t *_Src,size_t _MaxCount,const wchar_t *_Format,...);
-  _CRTIMP int __cdecl wscanf(const wchar_t *_Format,...);
+  int __cdecl wscanf(const wchar_t *_Format,...);
   _CRTIMP FILE *__cdecl _wfdopen(int _FileHandle ,const wchar_t *_Mode);
   _CRTIMP FILE *__cdecl _wfopen(const wchar_t *_Filename,const wchar_t *_Mode);
   _CRTIMP FILE *__cdecl _wfreopen(const wchar_t *_Filename,const wchar_t *_Mode,FILE *_OldFile);
@@ -381,7 +401,7 @@ extern "C" {
 #endif
 
 #define _STDIO_DEFINED
-#endif
+#endif // !_STDIO_DEFINED
 
 #define _fgetc_nolock(_stream) (--(_stream)->_cnt >= 0 ? 0xff & *(_stream)->_ptr++ : _filbuf(_stream))
 #define _fputc_nolock(_c,_stream) (--(_stream)->_cnt >= 0 ? 0xff & (*(_stream)->_ptr++ = (char)(_c)) : _flsbuf((_c),(_stream)))
