@@ -99,7 +99,7 @@ typedef struct tagARENA_FREE
 #define ALIGNMENT              (2*sizeof(void*))
 #define ARENA_OFFSET (ALIGNMENT - sizeof(ARENA_INUSE))
 
-#define ROUND_SIZE(size)       ((((size) + ALIGNMENT - 1) & ~(ALIGNMENT-1)) + ARENA_OFFSET)
+#define ROUND_SIZE(size)       (((size) + ALIGNMENT - 1) & ~(ALIGNMENT-1)) + ARENA_OFFSET
 
 
 #define QUIET                  1           /* Suppress messages  */
@@ -121,7 +121,7 @@ static const DWORD HEAP_freeListSizes[HEAP_NB_FREE_LISTS] =
 typedef union
 {
     ARENA_FREE  arena;
-    void        *aligment[4];
+    void *alignment[4];
 } FREE_LIST_ENTRY;
 
 struct tagHEAP;
