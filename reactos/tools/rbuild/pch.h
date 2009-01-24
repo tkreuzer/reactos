@@ -29,6 +29,8 @@
 #include <set>
 #include <utility>
 #include <bitset>
+#include <cstdlib>
+#include <cstdio>
 
 #ifdef WIN32
 #include <windows.h>
