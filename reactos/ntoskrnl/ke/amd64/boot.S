@@ -59,6 +59,8 @@ _KiSetupStackAndInitializeKernel:
     mov rsi, rsp
 
     /* Setup the new stack */
+    mov ax, 0x18
+    mov ss, ax
     mov rsp, r8
     sub rsp, NPX_FRAME_LENGTH + KTRAP_FRAME_ALIGN + KTRAP_FRAME_LENGTH
     push CR0_EM + CR0_TS + CR0_MP
