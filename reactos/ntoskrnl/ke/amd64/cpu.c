@@ -349,7 +349,50 @@ Ki386InitializeTss(IN PKTSS Tss,
                    IN PKIDTENTRY Idt,
                    IN PKGDTENTRY Gdt)
 {
- //   UNIMPLEMENTED;
+    PKGDTENTRY64 TssEntry;
+
+    /* Initialize the TSS descriptor entry */
+    TssEntry = (PVOID)((ULONG64)Gdt + KGDT_TSS);
+    TssEntry->Bits.Type = 9;//AMD64_TSS;
+    TssEntry->Bits.Dpl = 0;
+    TssEntry->Bits.Present = 1;
+    TssEntry->Bits.System = 0;
+    TssEntry->Bits.LongMode = 0;
+    TssEntry->Bits.DefaultBig = 0;
+    TssEntry->Bits.Granularity = 0;
+    TssEntry->MustBeZero = 0;
+
+    /* Descriptor base is the TSS address */
+    TssEntry->BaseLow = (ULONG64)Tss & 0xffff;
+    TssEntry->Bits.BaseMiddle = ((ULONG64)Tss >> 16) & 0xff;
+    TssEntry->Bits.BaseHigh = ((ULONG64)Tss >> 24) & 0xff;
+    TssEntry->BaseUpper = (ULONG64)Tss >> 32;
+
+    /* Set the limit */
+    TssEntry->LimitLow = sizeof(KTSS64) -1;
+    TssEntry->Bits.LimitHigh = 0;
+
+    /* Zero out the TSS */
+    RtlZeroMemory(Tss, sizeof(KTSS));
+
+    /* FIXME: I/O Map? */
+    Tss->IoMapBase = 0x68;
+
+    /* Setup ring 0 stack pointer */
+    Tss->Rsp0 = Stack;
+
+    /* Setup a stack for Double Fault Traps */
+    Tss->Ist[1] = (ULONG64)KiDoubleFaultStack;
+
+    /* Setup a stack for CheckAbort Traps */
+    Tss->Ist[2] = (ULONG64)KiDoubleFaultStack;
+
+    /* Setup a stack for NMI Traps */
+    Tss->Ist[3] = (ULONG64)KiDoubleFaultStack;
+
+    /* Load the task register */
+    Ke386SetTr(KGDT_TSS);
+
 }
 
 VOID
