@@ -52,7 +52,7 @@
 #define EH_STACK_INVALID    0x08
 #define EH_NESTED_CALL      0x10
 
-#ifndef _M_ARM
+#ifdef _M_IX86
 
 #ifdef _MSC_VER
 #pragma warning(push)
