@@ -2393,7 +2393,7 @@ LdrpLoadModule(IN PWSTR SearchPath OPTIONAL,
 
         RtlEnterCriticalSection(NtCurrentPeb()->LoaderLock);
         InsertTailList(&NtCurrentPeb()->Ldr->InInitializationOrderModuleList,
-                       &(*Module)->InInitializationOrderModuleList);
+                       &(*Module)->InInitializationOrderLinks);
         RtlLeaveCriticalSection (NtCurrentPeb()->LoaderLock);
       }
     return STATUS_SUCCESS;
@@ -2781,7 +2781,7 @@ LdrpDetachProcess(BOOLEAN UnloadAll)
    Entry = ModuleListHead->Blink;
    while (Entry != ModuleListHead)
      {
-       Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderModuleList);
+       Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks);
        if (((UnloadAll && Module->LoadCount == LDRP_PROCESS_CREATION_TIME) || Module->LoadCount == 0) &&
            Module->Flags & LDRP_ENTRY_PROCESSED &&
            !(Module->Flags & LDRP_UNLOAD_IN_PROGRESS))
@@ -2814,14 +2814,14 @@ LdrpDetachProcess(BOOLEAN UnloadAll)
        Entry = ModuleListHead->Blink;
        while (Entry != ModuleListHead)
          {
-           Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderModuleList);
+           Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks);
            Entry = Entry->Blink;
            if (Module->Flags & LDRP_UNLOAD_IN_PROGRESS &&
                ((UnloadAll && Module->LoadCount != LDRP_PROCESS_CREATION_TIME) || Module->LoadCount == 0))
              {
                /* remove the module entry from the list */
                RemoveEntryList (&Module->InLoadOrderLinks);
-               RemoveEntryList (&Module->InInitializationOrderModuleList);
+               RemoveEntryList (&Module->InInitializationOrderLinks);
 
                NtUnmapViewOfSection (NtCurrentProcess (), Module->DllBase);
                NtClose (Module->SectionPointer);
@@ -2874,7 +2874,7 @@ LdrpAttachProcess(VOID)
    Entry = ModuleListHead->Flink;
    while (Entry != ModuleListHead)
      {
-       Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderModuleList);
+       Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks);
        if (!(Module->Flags & (LDRP_LOAD_IN_PROGRESS|LDRP_UNLOAD_IN_PROGRESS|LDRP_ENTRY_PROCESSED)))
          {
            Module->Flags |= LDRP_LOAD_IN_PROGRESS;
@@ -2949,7 +2949,7 @@ LdrpAttachThread (VOID)
 
       while (Entry != ModuleListHead)
         {
-          Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderModuleList);
+          Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks);
           if (Module->Flags & LDRP_PROCESS_ATTACH_CALLED &&
               !(Module->Flags & LDRP_DONT_CALL_FOR_THREADS) &&
               !(Module->Flags & LDRP_UNLOAD_IN_PROGRESS))
@@ -2993,7 +2993,7 @@ LdrShutdownThread (VOID)
    Entry = ModuleListHead->Blink;
    while (Entry != ModuleListHead)
      {
-       Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderModuleList);
+       Module = CONTAINING_RECORD(Entry, LDR_DATA_TABLE_ENTRY, InInitializationOrderLinks);
 
        if (Module->Flags & LDRP_PROCESS_ATTACH_CALLED &&
            !(Module->Flags & LDRP_DONT_CALL_FOR_THREADS) &&
