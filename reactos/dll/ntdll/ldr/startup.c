@@ -424,7 +424,7 @@ LdrpInit2(PCONTEXT Context,
     InsertTailList(&Peb->Ldr->InLoadOrderModuleList,
                    &NtModule->InLoadOrderLinks);
     InsertTailList(&Peb->Ldr->InInitializationOrderModuleList,
-                   &NtModule->InInitializationOrderModuleList);
+                   &NtModule->InInitializationOrderLinks);
 
     /* add entry for executable (becomes first list entry) */
     ExeModule = (PLDR_DATA_TABLE_ENTRY)
