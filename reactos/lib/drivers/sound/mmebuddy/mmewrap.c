@@ -93,7 +93,7 @@ MMRESULT
 MmeGetSoundDeviceCapabilities(
     IN  MMDEVICE_TYPE DeviceType,
     IN  DWORD DeviceId,
-    IN  PVOID Capabilities,
+    IN  DWORD_PTR Capabilities,
     IN  DWORD CapabilitiesSize)
 {
     PSOUND_DEVICE SoundDevice;
@@ -124,7 +124,7 @@ MmeOpenWaveDevice(
     IN  UINT DeviceId,
     IN  LPWAVEOPENDESC OpenParameters,
     IN  DWORD Flags,
-    OUT DWORD_PTR* PrivateHandle)
+    OUT SIZE_T* PrivateHandle)
 {
     MMRESULT Result;
 
@@ -195,7 +195,7 @@ MmeOpenWaveDevice(
 
 MMRESULT
 MmeCloseDevice(
-    IN  DWORD_PTR PrivateHandle)
+    IN SIZE_T PrivateHandle)
 {
     MMRESULT Result;
     PSOUND_DEVICE_INSTANCE SoundDeviceInstance;
@@ -235,7 +235,7 @@ MmeCloseDevice(
 
 MMRESULT
 MmeResetWavePlayback(
-    IN  DWORD_PTR PrivateHandle)
+    IN SIZE_T PrivateHandle)
 {
     PSOUND_DEVICE_INSTANCE SoundDeviceInstance;
 
