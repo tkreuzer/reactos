@@ -1490,7 +1490,7 @@ typedef struct _MMIOINFO {
 	HPSTR pchEndWrite;
 	LONG lBufOffset;
 	LONG lDiskOffset;
-	DWORD adwInfo[3];
+	DWORD adwInfo[4];
 	DWORD dwReserved1;
 	DWORD dwReserved2;
 	HMMIO hmmio;
