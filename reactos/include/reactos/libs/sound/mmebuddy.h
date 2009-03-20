@@ -161,7 +161,7 @@ struct _SOUND_DEVICE_INSTANCE;
         IN  DWORD CapabilitiesSize);
 
 /* This one is for those of us who don't care */
-DEFINE_GETCAPS_FUNCTYPE(MMGETCAPS_FUNC, PVOID);
+DEFINE_GETCAPS_FUNCTYPE(MMGETCAPS_FUNC, DWORD_PTR);
 
 /* These are for those of us that do */
 DEFINE_GETCAPS_FUNCTYPE(MMGETWAVEOUTCAPS_FUNC, LPWAVEOUTCAPS);
@@ -407,7 +407,7 @@ MMRESULT
 MmeGetSoundDeviceCapabilities(
     IN  MMDEVICE_TYPE DeviceType,
     IN  DWORD DeviceId,
-    IN  PVOID Capabilities,
+    IN  DWORD_PTR Capabilities,
     IN  DWORD CapabilitiesSize);
 
 MMRESULT
@@ -416,7 +416,7 @@ MmeOpenWaveDevice(
     IN  UINT DeviceId,
     IN  LPWAVEOPENDESC OpenParameters,
     IN  DWORD Flags,
-    OUT DWORD_PTR* PrivateHandle);
+    OUT SIZE_T* PrivateHandle);
 
 MMRESULT
 MmeCloseDevice(
@@ -456,7 +456,7 @@ MmeSetState(
 
 MMRESULT
 MmeResetWavePlayback(
-    IN  DWORD_PTR PrivateHandle);
+    IN  SIZE_T PrivateHandle);
 
 
 /*

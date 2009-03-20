@@ -175,7 +175,7 @@ mxdMessage(
         {
             Result = MmeGetSoundDeviceCapabilities(MIXER_DEVICE_TYPE,
                                                    DeviceId,
-                                                   (PVOID) Parameter1,
+                                                   Parameter1,
                                                    Parameter2);
             break;
         }

@@ -48,7 +48,7 @@ midMessage(
         {
             Result = MmeGetSoundDeviceCapabilities(MIDI_IN_DEVICE_TYPE,
                                                    DeviceId,
-                                                   (PVOID) Parameter1,
+                                                   Parameter1,
                                                    Parameter2);
             break;
         }
