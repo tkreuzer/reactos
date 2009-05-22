@@ -28,7 +28,6 @@
 #include <windows.h>
 #include <ndk/ntndk.h>
 #include <fmifs/fmifs.h>
-#include <largeint.h>
 
 #include <precomp.h>
 
