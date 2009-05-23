@@ -1,8 +1,4 @@
 @ stub ApplyAcls
-@ stub AsrAddSifEntryW
-@ stub AsrCreateStateFileW
-@ stub AsrFreeContext
-@ stub AsrRestorePlugPlayRegistryData
 @ stub DevInstallW
 @ stub GenerateScsiHwIdList
 @ stdcall InitializeSetupActionLog(long)
@@ -22,7 +18,7 @@
 @ stub ScsiClassInstaller
 @ stdcall SetupChangeFontSize(ptr wstr)
 @ stdcall SetupChangeLocale(ptr long)
-@ stdcall SetupChangeLocaleEx(ptr long wstr str long long)
+@ stdcall SetupChangeLocaleEx(ptr long wstr long long long)
 @ stub SetupCreateOptionalComponentsPage
 @ stub SetupInfObjectInstallActionW
 @ stub SetupSetLargeDialogFont
