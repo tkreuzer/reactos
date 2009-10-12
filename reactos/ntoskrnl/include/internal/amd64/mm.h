@@ -12,10 +12,14 @@ PULONG_PTR MmGetPageDirectory(VOID);
 #define PAE_PAGE_MASK(x)	((x)&(~0xfffLL))
 
 /* Base addresses of PTE and PDE */
-#define PAGETABLE_MAP       (0xc0000000)
-#define PAGEDIRECTORY_MAP   (0xc0000000 + (PAGETABLE_MAP / (1024)))
+//#define PAGETABLE_MAP       PTE_BASE
+//#define PAGEDIRECTORY_MAP   (0xc0000000 + (PAGETABLE_MAP / (1024)))
 
 /* Converting address to a corresponding PDE or PTE entry */
+#define MiAddressToPxe(x) \
+    ((PMMPTE)(((((ULONG64)(x)) >> PXI_SHIFT) << 3) + PXE_BASE))
+#define MiAddressToPpe(x) \
+    ((PMMPTE)(((((ULONG64)(x)) >> PPI_SHIFT) << 3) + PPE_BASE))
 #define MiAddressToPde(x) \
     ((PMMPTE)(((((ULONG)(x)) >> 22) << 2) + PAGEDIRECTORY_MAP))
 #define MiAddressToPte(x) \
