@@ -310,7 +310,7 @@ KdpRestoreBreakPointEx(IN PDBGKD_MANIPULATE_STATE64 State,
 
 VOID
 NTAPI
-DumpTraceData(IN PSTRING TraceData)
+DumpTraceData(OUT PSTRING TraceData)
 {
     /* Update the buffer */
     TraceDataBuffer[0] = TraceDataBufferPosition;
@@ -327,7 +327,7 @@ VOID
 NTAPI
 KdpSetCommonState(IN ULONG NewState,
                   IN PCONTEXT Context,
-                  IN PDBGKD_ANY_WAIT_STATE_CHANGE WaitStateChange)
+                  OUT PDBGKD_WAIT_STATE_CHANGE64 WaitStateChange)
 {
     ULONG InstructionCount;
     BOOLEAN HadBreakpoints;
@@ -411,6 +411,7 @@ KdpReadVirtualMemory(IN PDBGKD_MANIPULATE_STATE64 State,
     PDBGKD_READ_MEMORY64 ReadMemory = &State->u.ReadMemory;
     STRING Header;
     ULONG Length = ReadMemory->TransferCount;
+    ULONG64 TargetBaseAddress = State->u.ReadMemory.TargetBaseAddress;
 
     /* Setup the header */
     Header.Length = sizeof(DBGKD_MANIPULATE_STATE64);
@@ -1548,7 +1549,7 @@ KdpReportExceptionStateChange(IN PEXCEPTION_RECORD ExceptionRecord,
         KdpSetContextState(&WaitStateChange, Context);
 
         /* Setup the actual header to send to KD */
-        Header.Length = sizeof(DBGKD_ANY_WAIT_STATE_CHANGE);
+        Header.Length = sizeof(DBGKD_WAIT_STATE_CHANGE64) - sizeof(CONTEXT);
         Header.Buffer = (PCHAR)&WaitStateChange;
 
         /* Setup the trace data */
