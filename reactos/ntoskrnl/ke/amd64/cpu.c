@@ -38,6 +38,28 @@ KAFFINITY KeActiveProcessors = 1;
 BOOLEAN KiI386PentiumLockErrataPresent;
 BOOLEAN KiSMTProcessorsPresent;
 
+/* SUPPORT ROUTINES FOR MSVC COMPATIBILITY ***********************************/
+
+VOID
+NTAPI
+CPUID(IN ULONG InfoType,
+      OUT PULONG CpuInfoEax,
+      OUT PULONG CpuInfoEbx,
+      OUT PULONG CpuInfoEcx,
+      OUT PULONG CpuInfoEdx)
+{
+    ULONG CpuInfo[4];
+
+    /* Perform the CPUID Operation */
+    __cpuid((int*)CpuInfo, InfoType);
+
+    /* Return the results */
+    *CpuInfoEax = CpuInfo[0];
+    *CpuInfoEbx = CpuInfo[1];
+    *CpuInfoEcx = CpuInfo[2];
+    *CpuInfoEdx = CpuInfo[3];
+}
+
 /* FUNCTIONS *****************************************************************/
 
 
