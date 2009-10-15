@@ -56,6 +56,41 @@
 
 extern ULONG Ke386CacheAlignment;
 
+#define IMAGE_FILE_MACHINE_ARCHITECTURE IMAGE_FILE_MACHINE_I386
+
+//
+// INT3 is 1 byte long
+//
+#define KD_BREAKPOINT_TYPE        UCHAR
+#define KD_BREAKPOINT_SIZE        sizeof(UCHAR)
+#define KD_BREAKPOINT_VALUE       0xCC
+
+//
+// Macros for getting and setting special purpose registers in portable code
+//
+#define KeGetContextPc(Context) \
+    ((Context)->Rip)
+
+#define KeSetContextPc(Context, ProgramCounter) \
+    ((Context)->Rip = (ProgramCounter))
+
+#define KeGetTrapFramePc(TrapFrame) \
+    ((TrapFrame)->Rip)
+
+#define KeGetContextReturnRegister(Context) \
+    ((Context)->Rax)
+
+#define KeSetContextReturnRegister(Context, ReturnValue) \
+    ((Context)->Rax = (ReturnValue))
+
+//
+// Returns the Interrupt State from a Trap Frame.
+// ON = TRUE, OFF = FALSE
+//
+#define KeGetTrapFrameInterruptState(TrapFrame) \
+        BooleanFlagOn((TrapFrame)->EFlags, EFLAGS_INTERRUPT_MASK)
+
+
 struct _KPCR;
 VOID
 KiInitializeGdt(struct _KPCR* Pcr);
