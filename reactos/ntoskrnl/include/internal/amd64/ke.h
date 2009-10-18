@@ -97,6 +97,9 @@ KiInitializeGdt(struct _KPCR* Pcr);
 VOID
 Ki386ApplicationProcessorInitializeTSS(VOID);
 
+// Hack
+VOID KiRosPrepareForSystemStartup(ULONG, PROS_LOADER_PARAMETER_BLOCK);
+
 VOID
 FASTCALL
 Ki386InitializeTss(
