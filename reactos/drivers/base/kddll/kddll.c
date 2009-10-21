@@ -231,13 +231,18 @@ KdReceivePacket(
         if (PacketType == PACKET_TYPE_KD_ACKNOWLEDGE)
         {
             /* We received something different, start over */
-            continue;
+//            continue;
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
+            CurrentPacketId ^= 1;
+            return KDP_PACKET_RECEIVED;
         }
 
         /* Did we get the right packet type? */
         if (PacketType != Packet.PacketType)
         {
             /* We received something different, start over */
+            KdpDbgPrint("KdReceivePacket - wrong PacketType\n");
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
             continue;
         }
 
@@ -263,7 +268,8 @@ KdReceivePacket(
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
             /* Didn't receive data. Packet needs to be resent. */
-            KdpDbgPrint("KdReceivePacket - Didn't receive message header data. Start over\n");
+            KdpDbgPrint("KdReceivePacket - Didn't receive message header data.\n");
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
             continue;
         }
 
@@ -273,11 +279,14 @@ KdReceivePacket(
         Checksum = KdpCalculateChecksum(MessageHeader->Buffer,
                                         MessageHeader->Length);
 
+        /* Calculate the length of the message data */
+        *DataLength = Packet.ByteCount - MessageHeader->Length;
+
         /* Shall we receive messsage data? */
         if (MessageData)
         {
-            /* Calculate the length of the message data */
-            MessageData->Length = Packet.ByteCount - MessageHeader->Length;
+            /* Set the length of the message data */
+            MessageData->Length = *DataLength;
 
             /* Do we have data? */
             if (MessageData->Length)
@@ -290,7 +299,8 @@ KdReceivePacket(
                 if (KdStatus != KDP_PACKET_RECEIVED)
                 {
                     /* Didn't receive data. Start over. */
-                    KdpDbgPrint("KdReceivePacket - Didn't receive message data. Start over\n");
+                    KdpDbgPrint("KdReceivePacket - Didn't receive message data.\n");
+                    KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
                     continue;
                 }
 
@@ -312,14 +322,20 @@ KdReceivePacket(
         /* Compare checksum */
         if (Packet.Checksum != Checksum)
         {
-            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, CurrentPacketId);
             KdpDbgPrint("KdReceivePacket - wrong cheksum, got %x, calculated %x\n",
                           Packet.Checksum, Checksum);
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
             continue;
         }
 
         /* We must receive a PACKET_TRAILING_BYTE now */
         KdStatus = KdpReceiveBuffer(&Byte, sizeof(UCHAR));
+        if (KdStatus != KDP_PACKET_RECEIVED || Byte != PACKET_TRAILING_BYTE)
+        {
+            KdpDbgPrint("KdReceivePacket - wrong trailing byte (0x%x), status 0x%x\n", Byte, KdStatus);
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
+            continue;
+        }
 
         /* Did we get the right packet type? */
         if (PacketType == Packet.PacketType)
@@ -350,6 +366,21 @@ KdSendPacket(
     KD_PACKET Packet;
     KDP_STATUS KdStatus;
     ULONG Retries;
+
+    /* Initialize a KD_PACKET */
+    Packet.PacketLeader = PACKET_LEADER;
+    Packet.PacketType = PacketType;
+    Packet.ByteCount = MessageHeader->Length;
+    Packet.Checksum = KdpCalculateChecksum(MessageHeader->Buffer,
+                                           MessageHeader->Length);
+
+    /* If we have message data, add it to the packet */
+    if (MessageData)
+    {
+        Packet.ByteCount += MessageData->Length;
+        Packet.Checksum += KdpCalculateChecksum(MessageData->Buffer,
+                                                MessageData->Length);
+    }
 
     for (;;)
     {
@@ -400,7 +431,7 @@ KdSendPacket(
         if (PacketType == PACKET_TYPE_KD_DEBUG_IO)
         {
             /* No response, silently fail. */
-//            return;
+            return;
         }
 
         if (KdStatus == KDP_PACKET_TIMEOUT)
