@@ -230,10 +230,15 @@ KdReceivePacket(
         /* Did we wait for an ack packet? */
         if (PacketType == PACKET_TYPE_KD_ACKNOWLEDGE)
         {
-            /* We received something different */
-            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
-            CurrentPacketId ^= 1;
-            return KDP_PACKET_RECEIVED;
+            /* We received something different, start over */
+            continue;
+        }
+
+        /* Did we get the right packet type? */
+        if (PacketType != Packet.PacketType)
+        {
+            /* We received something different, start over */
+            continue;
         }
 
         /* Get size of the message header */
@@ -258,8 +263,7 @@ KdReceivePacket(
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
             /* Didn't receive data. Packet needs to be resent. */
-            KDDBGPRINT("KdReceivePacket - Didn't receive message header data.\n");
-            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
+            KdpDbgPrint("KdReceivePacket - Didn't receive message header data. Start over\n");
             continue;
         }
 
@@ -269,19 +273,16 @@ KdReceivePacket(
         Checksum = KdpCalculateChecksum(MessageHeader->Buffer,
                                         MessageHeader->Length);
 
-        /* Calculate the length of the message data */
-        *DataLength = Packet.ByteCount - MessageHeader->Length;
-
         /* Shall we receive messsage data? */
         if (MessageData)
         {
-            /* Set the length of the message data */
-            MessageData->Length = *DataLength;
+            /* Calculate the length of the message data */
+            MessageData->Length = Packet.ByteCount - MessageHeader->Length;
 
             /* Do we have data? */
             if (MessageData->Length)
             {
-                KDDBGPRINT("KdReceivePacket - got data\n");
+                KdpDbgPrint("KdReceivePacket - got data\n");
 
                 /* Receive the message data */
                 KdStatus = KdpReceiveBuffer(MessageData->Buffer,
@@ -289,8 +290,7 @@ KdReceivePacket(
                 if (KdStatus != KDP_PACKET_RECEIVED)
                 {
                     /* Didn't receive data. Start over. */
-                    KDDBGPRINT("KdReceivePacket - Didn't receive message data.\n");
-                    KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
+                    KdpDbgPrint("KdReceivePacket - Didn't receive message data. Start over\n");
                     continue;
                 }
 
@@ -312,21 +312,14 @@ KdReceivePacket(
         /* Compare checksum */
         if (Packet.Checksum != Checksum)
         {
-            KDDBGPRINT("KdReceivePacket - wrong cheksum, got %x, calculated %x\n",
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, CurrentPacketId);
+            KdpDbgPrint("KdReceivePacket - wrong cheksum, got %x, calculated %x\n",
                           Packet.Checksum, Checksum);
-            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
             continue;
         }
 
-        /* Acknowledge the received packet */
-        KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
-
-        /* Check if the received PacketId is ok */
-        if (Packet.PacketId != RemotePacketId)
-        {
-            /* Continue with next packet */
-            continue;
-        }
+        /* We must receive a PACKET_TRAILING_BYTE now */
+        KdStatus = KdpReceiveBuffer(&Byte, sizeof(UCHAR));
 
         /* Did we get the right packet type? */
         if (PacketType == Packet.PacketType)
@@ -337,8 +330,9 @@ KdReceivePacket(
             return KDP_PACKET_RECEIVED;
         }
 
-        /* We received something different, ignore it. */
-        KDDBGPRINT("KdReceivePacket - wrong PacketType\n");
+//KdpDbgPrint("KdReceivePacket - all ok\n");
+
+        return KDP_PACKET_RECEIVED;
     }
 
     return KDP_PACKET_RECEIVED;
@@ -357,20 +351,14 @@ KdSendPacket(
     KDP_STATUS KdStatus;
     ULONG Retries;
 
-    /* Initialize a KD_PACKET */
-    Packet.PacketLeader = PACKET_LEADER;
-    Packet.PacketType = PacketType;
-    Packet.ByteCount = MessageHeader->Length;
-    Packet.Checksum = KdpCalculateChecksum(MessageHeader->Buffer,
-                                           MessageHeader->Length);
-
-    /* If we have message data, add it to the packet */
-    if (MessageData)
+    for (;;)
     {
-        Packet.ByteCount += MessageData->Length;
-        Packet.Checksum += KdpCalculateChecksum(MessageData->Buffer,
-                                                MessageData->Length);
-    }
+        /* Initialize a KD_PACKET */
+        Packet.PacketLeader = PACKET_LEADER;
+        Packet.PacketType = PacketType;
+        Packet.ByteCount = MessageHeader->Length;
+        Packet.Checksum = KdpCalculateChecksum(MessageHeader->Buffer,
+                                               MessageHeader->Length);
 
     Retries = KdContext->KdpDefaultRetries;
 
@@ -412,7 +400,7 @@ KdSendPacket(
         if (PacketType == PACKET_TYPE_KD_DEBUG_IO)
         {
             /* No response, silently fail. */
-            return;
+//            return;
         }
 
         if (KdStatus == KDP_PACKET_TIMEOUT)
