@@ -140,7 +140,7 @@ KdReceivePacket(
             /* Check if we got a breakin  */
             if (KdStatus == KDP_PACKET_RESEND)
             {
-                KdContext->BreakInRequested = TRUE;
+                KdContext->KdpControlCPending = TRUE;
             }
             return KdStatus;
         }
