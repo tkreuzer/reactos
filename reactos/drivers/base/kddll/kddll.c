@@ -236,15 +236,6 @@ KdReceivePacket(
             return KDP_PACKET_RECEIVED;
         }
 
-        /* Did we get the right packet type? */
-        if (PacketType != Packet.PacketType)
-        {
-            /* We received something different, start over */
-            KDDBGPRINT("KdReceivePacket - wrong PacketType\n");
-            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
-            continue;
-        }
-
         /* Get size of the message header */
         MessageHeader->Length = MessageHeader->MaximumLength;
 
@@ -337,13 +328,16 @@ KdReceivePacket(
         }
 
         /* Did we get the right packet type? */
-        if (PacketType == Packet.PacketType)
+        if (PacketType != Packet.PacketType)
         {
-            /* Yes, return success */
-            //KDDBGPRINT("KdReceivePacket - all ok\n");
-            RemotePacketId ^= 1;
-            return KDP_PACKET_RECEIVED;
+            /* We received something different, ignore it. */
+            KDDBGPRINT("KdReceivePacket - wrong PacketType\n");
+            KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
+            continue;
         }
+
+        /* Acknowledge the received packet */
+        KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
 
         //KDDBGPRINT("KdReceivePacket - all ok\n");
 
