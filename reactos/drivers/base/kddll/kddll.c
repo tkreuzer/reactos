@@ -318,30 +318,19 @@ KdReceivePacket(
             continue;
         }
 
-        /* We must receive a PACKET_TRAILING_BYTE now */
-        KdStatus = KdpReceiveBuffer(&Byte, sizeof(UCHAR));
-        if (KdStatus != KDP_PACKET_RECEIVED || Byte != PACKET_TRAILING_BYTE)
-        {
-            KDDBGPRINT("KdReceivePacket - wrong trailing byte (0x%x), status 0x%x\n", Byte, KdStatus);
-            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
-            continue;
-        }
-
-        /* Did we get the right packet type? */
-        if (PacketType != Packet.PacketType)
-        {
-            /* We received something different, ignore it. */
-            KDDBGPRINT("KdReceivePacket - wrong PacketType\n");
-            KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
-            continue;
-        }
-
         /* Acknowledge the received packet */
         KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
 
-        //KDDBGPRINT("KdReceivePacket - all ok\n");
+        /* Did we get the right packet type? */
+        if (PacketType == Packet.PacketType)
+        {
+            /* Yes, return success */
+            //KDDBGPRINT("KdReceivePacket - all ok\n");
+            return KDP_PACKET_RECEIVED;
+        }
 
-        return KDP_PACKET_RECEIVED;
+        /* We received something different, ignore it. */
+        KDDBGPRINT("KdReceivePacket - wrong PacketType\n");
     }
 
     return KDP_PACKET_RECEIVED;
