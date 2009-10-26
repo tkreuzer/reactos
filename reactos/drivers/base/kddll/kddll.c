@@ -149,8 +149,8 @@ KdReceivePacket(
         KdStatus = KdpReceiveBuffer(&Packet.PacketType, sizeof(USHORT));
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
-            /* Didn't receive a PacketType. */
-            return KdStatus;
+            /* Didn't receive a PacketType or PacketType is bad. Start over. */
+            continue;
         }
 
         /* Check if we got a resend packet */
@@ -162,18 +162,18 @@ KdReceivePacket(
 
         /* Step 3 - Read ByteCount */
         KdStatus = KdpReceiveBuffer(&Packet.ByteCount, sizeof(USHORT));
-        if (KdStatus != KDP_PACKET_RECEIVED)
+        if (KdStatus != KDP_PACKET_RECEIVED || Packet.ByteCount > PACKET_MAX_SIZE)
         {
-            /* Didn't receive ByteCount. */
-            return KdStatus;
+            /* Didn't receive ByteCount or it's too big. Start over. */
+            continue;
         }
 
         /* Step 4 - Read PacketId */
         KdStatus = KdpReceiveBuffer(&Packet.PacketId, sizeof(ULONG));
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
-            /* Didn't receive PacketId. */
-            return KdStatus;
+            /* Didn't receive PacketId. Start over. */
+            continue;
         }
 
 /*
@@ -188,8 +188,8 @@ KdReceivePacket(
         KdStatus = KdpReceiveBuffer(&Packet.Checksum, sizeof(ULONG));
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
-            /* Didn't receive Checksum. */
-            return KdStatus;
+            /* Didn't receive Checksum. Start over. */
+            continue;
         }
 
         /* Step 6 - Handle control packets */
@@ -237,11 +237,29 @@ KdReceivePacket(
         }
 
         /* Get size of the message header */
-        MessageHeader->Length = MessageHeader->MaximumLength;
+        switch (Packet.PacketType)
+        {
+            case PACKET_TYPE_KD_STATE_CHANGE64:
+                MessageHeader->Length = sizeof(DBGKD_WAIT_STATE_CHANGE64);
+                break;
 
-        /* Packet smaller than expected or too big? */
-        if (Packet.ByteCount < MessageHeader->Length ||
-            Packet.ByteCount > PACKET_MAX_SIZE)
+            case PACKET_TYPE_KD_STATE_MANIPULATE:
+                MessageHeader->Length = sizeof(DBGKD_MANIPULATE_STATE64);
+                break;
+
+            case PACKET_TYPE_KD_DEBUG_IO:
+                MessageHeader->Length = sizeof(DBGKD_DEBUG_IO);
+                break;
+
+            default:
+                KDDBGPRINT("KdReceivePacket - unknown PacketType\n");
+                return KDP_PACKET_RESEND;
+        }
+
+        //KDDBGPRINT("KdReceivePacket - got normal PacketType\n");
+
+        /* Packet smaller than expected? */
+        if (MessageHeader->Length > Packet.ByteCount)
         {
             KDDBGPRINT("KdReceivePacket - too few data (%d) for type %d\n",
                           Packet.ByteCount, MessageHeader->Length);
@@ -321,11 +339,19 @@ KdReceivePacket(
         /* Acknowledge the received packet */
         KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
 
+        /* Check if the received PacketId is ok */
+        if (Packet.PacketId != RemotePacketId)
+        {
+            /* Continue with next packet */
+            continue;
+        }
+
         /* Did we get the right packet type? */
         if (PacketType == Packet.PacketType)
         {
             /* Yes, return success */
             //KDDBGPRINT("KdReceivePacket - all ok\n");
+            RemotePacketId ^= 1;
             return KDP_PACKET_RECEIVED;
         }
 
@@ -343,7 +369,7 @@ KdSendPacket(
     IN ULONG PacketType,
     IN PSTRING MessageHeader,
     IN PSTRING MessageData,
-    IN OUT PKD_CONTEXT KdContext)
+    IN OUT PKD_CONTEXT Context)
 {
     KD_PACKET Packet;
     KDP_STATUS KdStatus;
@@ -364,16 +390,7 @@ KdSendPacket(
                                                 MessageData->Length);
     }
 
-    for (;;)
-    {
-        /* Initialize a KD_PACKET */
-        Packet.PacketLeader = PACKET_LEADER;
-        Packet.PacketType = PacketType;
-        Packet.ByteCount = MessageHeader->Length;
-        Packet.Checksum = KdpCalculateChecksum(MessageHeader->Buffer,
-                                               MessageHeader->Length);
-
-    Retries = KdContext->KdpDefaultRetries;
+    Retries = Context->KdpDefaultRetries;
 
     do
     {
@@ -400,7 +417,7 @@ KdSendPacket(
                                    NULL,
                                    NULL,
                                    0,
-                                   KdContext);
+                                   Context);
 
         /* Did we succeed? */
         if (KdStatus == KDP_PACKET_RECEIVED)
@@ -422,8 +439,9 @@ KdSendPacket(
         }
 
         /* Packet timed out, send it again */
-        KDDBGPRINT("KdSendPacket got KdStatus 0x%x\n", KdStatus);
     }
     while (Retries > 0);
+
+    return;
 }
 
