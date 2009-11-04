@@ -26,7 +26,7 @@
   typedef void (__cdecl *_PVFI)(int);
 #endif
 
-extern WINBOOL __mingw_TLScallback (HANDLE hDllHandle, DWORD reason, LPVOID reserved);
+extern BOOL __mingw_TLScallback (HANDLE hDllHandle, DWORD reason, LPVOID reserved);
 
 #define FUNCS_PER_NODE 30
 
@@ -116,7 +116,11 @@ __dyn_tls_init (HANDLE hDllHandle, DWORD dwReason, LPVOID lpreserved)
 	return TRUE;
       }
     _CRT_MT = 1;
-    return TRUE;
+    {
+      if (dwReason == DLL_PROCESS_ATTACH)
+        __mingw_TLScallback (hDllHandle, dwReason, lpreserved);
+      return TRUE;
+    }
   }
 #endif
   /* We don't let us trick here.  */
