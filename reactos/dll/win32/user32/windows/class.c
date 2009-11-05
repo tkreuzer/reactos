@@ -701,7 +701,7 @@ LONG_PTR IntGetWindowLong( HWND hwnd, INT offset, UINT size, BOOL unicode )
 			SetLastError(ERROR_ACCESS_DENIED);
 			retvalue = 0;
 		}
-		retvalue = (ULONG_PTR)IntGetWndProc(wndPtr, !unicode);
+		retvalue = (ULONG_PTR)IntGetWndProc(wndPtr, unicode);
         break;
 	}
     default:
@@ -719,7 +719,7 @@ LONG
 WINAPI
 GetWindowLongA ( HWND hWnd, int nIndex )
 {
-    return IntGetWindowLong( hWnd, nIndex, sizeof(LONG), FALSE );
+    return Internal_GetWindowLong( hWnd, nIndex, sizeof(LONG), FALSE );
 }
 
 /*
