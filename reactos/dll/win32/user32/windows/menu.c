@@ -606,7 +606,7 @@ static void FASTCALL MenuGetBitmapItemSize(PROSMENUITEMINFO lpitem, SIZE *size, 
           case (INT_PTR) HBMMENU_SYSTEM:
             if (0 != lpitem->dwItemData)
               {
-                bmp = (HBITMAP) lpitem->dwItemData;
+                bmp = (HBITMAP)(ULONG_PTR) lpitem->dwItemData;
                 break;
               }
             /* fall through */
@@ -1982,9 +1982,9 @@ static LPCSTR MENU_ParseResource( LPCSTR res, HMENU hMenu, BOOL unicode )
             if(!(res = MENU_ParseResource(res, hSubMenu, unicode)))
                 return NULL;
             if(!unicode)
-                AppendMenuA(hMenu, flags, (UINT)hSubMenu, str);
+                AppendMenuA(hMenu, flags, (UINT_PTR)hSubMenu, str);
             else
-                AppendMenuW(hMenu, flags, (UINT)hSubMenu, (LPCWSTR)str);
+                AppendMenuW(hMenu, flags, (UINT_PTR)hSubMenu, (LPCWSTR)str);
         }
         else  /* Not a popup */
         {
@@ -2060,7 +2060,7 @@ static LPCSTR MENUEX_ParseResource( LPCSTR res, HMENU hMenu)
             }
             mii.fMask |= MIIM_SUBMENU;
             mii.fType |= MF_POPUP;
-            mii.wID = (UINT) mii.hSubMenu;
+            mii.wID = (UINT_PTR) mii.hSubMenu;
         }
         else if(!*mii.dwTypeData && !(mii.fType & MF_SEPARATOR))
         {

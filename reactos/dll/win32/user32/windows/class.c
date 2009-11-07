@@ -325,7 +325,7 @@ IntGetWndProc(PWND pWnd, BOOL Ansi)
 
   gcpd = (WNDPROC)NtUserGetCPD( UserHMGetHandle(pWnd),
                                 (Ansi ? UserGetCPDA2U : UserGetCPDU2A )|UserGetCPDWindow,
-                                (ULONG_PTR)Ret);
+                                (ULONG_PTR)&Ret);
 
   return (gcpd ? gcpd : Ret);
 }
@@ -719,7 +719,7 @@ LONG
 WINAPI
 GetWindowLongA ( HWND hWnd, int nIndex )
 {
-    return Internal_GetWindowLong( hWnd, nIndex, sizeof(LONG), FALSE );
+    return IntGetWindowLong( hWnd, nIndex, sizeof(LONG), FALSE );
 }
 
 /*

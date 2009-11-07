@@ -164,8 +164,8 @@ MsgiUMToKMMessage(PMSG UMMsg, PMSG KMMsg, BOOL Posted)
             {
               DdeLparam->Packed = TRUE;
               if (! UnpackDDElParam(UMMsg->message, UMMsg->lParam,
-                                    &DdeLparam->Value.Packed.uiLo,
-                                    &DdeLparam->Value.Packed.uiHi))
+                                    (PUINT_PTR)&DdeLparam->Value.Packed.uiLo,
+                                    (PUINT_PTR)&DdeLparam->Value.Packed.uiHi))
                 {
                   return FALSE;
                 }
