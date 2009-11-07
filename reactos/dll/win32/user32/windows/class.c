@@ -266,11 +266,11 @@ IntGetClsWndProc(PWND pWnd, PCLS Class, BOOL Ansi)
 //
 // Based on IntGetClsWndProc
 //
-ULONG_PTR FASTCALL
+WNDPROC FASTCALL
 IntGetWndProc(PWND pWnd, BOOL Ansi)
 {
   INT i;
-  ULONG_PTR gcpd, Ret = 0;
+  WNDPROC gcpd, Ret = 0;
   PCLS Class = DesktopPtrToUser(pWnd->pcls);
 
   if (!Class) return Ret;
@@ -282,9 +282,9 @@ IntGetWndProc(PWND pWnd, BOOL Ansi)
          if (GETPFNSERVER(i) == pWnd->lpfnWndProc)
          {
             if (Ansi)
-               Ret = (ULONG_PTR)GETPFNCLIENTA(i);
+               Ret = GETPFNCLIENTA(i);
             else
-               Ret = (ULONG_PTR)GETPFNCLIENTW(i);
+               Ret = GETPFNCLIENTW(i);
          }
      }
      return Ret;
@@ -296,36 +296,36 @@ IntGetWndProc(PWND pWnd, BOOL Ansi)
       is treated specially.
    */
   if (Class->fnid == FNID_EDIT)
-     Ret = (ULONG_PTR)pWnd->lpfnWndProc;
+     Ret = pWnd->lpfnWndProc;
   else
   {
      // Set return proc.
-     Ret = (ULONG_PTR)pWnd->lpfnWndProc;
+     Ret = pWnd->lpfnWndProc;
 
      if (Class->fnid <= FNID_GHOST && Class->fnid >= FNID_BUTTON)
      {
         if (Ansi)
         {
            if (GETPFNCLIENTW(Class->fnid) == pWnd->lpfnWndProc)
-              Ret = (ULONG_PTR)GETPFNCLIENTA(Class->fnid);
+              Ret = GETPFNCLIENTA(Class->fnid);
         }
         else
         {
            if (GETPFNCLIENTA(Class->fnid) == pWnd->lpfnWndProc)
-              Ret = (ULONG_PTR)GETPFNCLIENTW(Class->fnid);
+              Ret = GETPFNCLIENTW(Class->fnid);
         }
      }
      // Return on the change.
-     if ( Ret != (ULONG_PTR)pWnd->lpfnWndProc)
+     if ( Ret != pWnd->lpfnWndProc)
         return Ret;
   }
 
   if ( Ansi == !!(pWnd->state & WNDS_ANSIWINDOWPROC) )
      return Ret;
 
-  gcpd = NtUserGetCPD( UserHMGetHandle(pWnd),
-                      (Ansi ? UserGetCPDA2U : UserGetCPDU2A )|UserGetCPDWindow,
-                       Ret);
+  gcpd = (WNDPROC)NtUserGetCPD( UserHMGetHandle(pWnd),
+                                (Ansi ? UserGetCPDA2U : UserGetCPDU2A )|UserGetCPDWindow,
+                                (ULONG_PTR)&Ret);
 
   return (gcpd ? gcpd : Ret);
 }
@@ -627,7 +627,7 @@ GetClassWord(
 }
 
 
-LONG_PTR Internal_GetWindowLong( HWND hwnd, INT offset, UINT size, BOOL unicode )
+LONG_PTR IntGetWindowLong( HWND hwnd, INT offset, UINT size, BOOL unicode )
 {
     LONG_PTR retvalue = 0;
     WND *wndPtr;
@@ -693,7 +693,7 @@ LONG
 WINAPI
 GetWindowLongA ( HWND hWnd, int nIndex )
 {
-    return Internal_GetWindowLong( hWnd, nIndex, sizeof(LONG), FALSE );
+    return IntGetWindowLong( hWnd, nIndex, sizeof(LONG), FALSE );
 }
 
 /*
@@ -703,7 +703,7 @@ LONG
 WINAPI
 GetWindowLongW(HWND hWnd, int nIndex)
 {
-    return Internal_GetWindowLong( hWnd, nIndex, sizeof(LONG), TRUE );
+    return IntGetWindowLong( hWnd, nIndex, sizeof(LONG), TRUE );
 }
 
 /*
@@ -728,17 +728,7 @@ GetWindowWord(HWND hWnd, int nIndex)
         }
         break;
     }
-    return Internal_GetWindowLong( hWnd, nIndex, sizeof(WORD), FALSE );
-}
-
-/*
- * @implemented
- */
-WORD
-WINAPI
-SetWindowWord ( HWND hWnd,int nIndex,WORD wNewWord )
-{
-  return (WORD)NtUserSetWindowLong ( hWnd, nIndex, (LONG)wNewWord, TRUE );
+    return IntGetWindowLong( hWnd, nIndex, sizeof(WORD), FALSE );
 }
 
 /*
@@ -1144,7 +1134,7 @@ SetClassLongA (HWND hWnd,
                int nIndex,
                LONG dwNewLong)
 {
-    PSTR lpStr = (PSTR)dwNewLong;
+    PSTR lpStr = (PSTR)(ULONG_PTR)dwNewLong;
     UNICODE_STRING Value = {0};
     BOOL Allocated = FALSE;
     DWORD Ret;
@@ -1167,7 +1157,7 @@ SetClassLongA (HWND hWnd,
         else
             Value.Buffer = (PWSTR)lpStr;
 
-        dwNewLong = (LONG)&Value;
+        dwNewLong = (LONG_PTR)&Value;
     }
     else if (nIndex == GCW_ATOM && lpStr != NULL)
     {
@@ -1185,7 +1175,7 @@ SetClassLongA (HWND hWnd,
         else
             Value.Buffer = (PWSTR)lpStr;
 
-        dwNewLong = (LONG)&Value;
+        dwNewLong = (LONG_PTR)&Value;
     }
 
     Ret = (DWORD)NtUserSetClassLong(hWnd,
@@ -1211,7 +1201,7 @@ SetClassLongW(HWND hWnd,
               int nIndex,
               LONG dwNewLong)
 {
-    PWSTR lpStr = (PWSTR)dwNewLong;
+    PWSTR lpStr = (PWSTR)(ULONG_PTR)dwNewLong;
     UNICODE_STRING Value = {0};
 
     TRACE("%p %d %lx\n", hWnd, nIndex, dwNewLong);
@@ -1228,7 +1218,7 @@ SetClassLongW(HWND hWnd,
         else
             Value.Buffer = lpStr;
 
-        dwNewLong = (LONG)&Value;
+        dwNewLong = (LONG_PTR)&Value;
     }
     else if (nIndex == GCW_ATOM && lpStr != NULL)
     {
@@ -1240,7 +1230,7 @@ SetClassLongW(HWND hWnd,
         else
             Value.Buffer = lpStr;
 
-        dwNewLong = (LONG)&Value;
+        dwNewLong = (LONG_PTR)&Value;
     }
 
     return (DWORD)NtUserSetClassLong(hWnd,
@@ -1269,6 +1259,30 @@ SetClassWord(
     return (WORD) SetClassLongW ( hWnd, nIndex, wNewWord );
 }
 
+/*
+ * @implemented
+ */
+WORD
+WINAPI
+SetWindowWord ( HWND hWnd,int nIndex,WORD wNewWord )
+{
+    switch(nIndex)
+    {
+    case GWLP_ID:
+    case GWLP_HINSTANCE:
+    case GWLP_HWNDPARENT:
+        break;
+    default:
+        if (nIndex < 0)
+        {
+            WARN("Invalid offset %d\n", nIndex );
+            SetLastError( ERROR_INVALID_INDEX );
+            return 0;
+        }
+        break;
+    }
+    return NtUserSetWindowLong( hWnd, nIndex, wNewWord, FALSE );
+}
 
 /*
  * @implemented
@@ -1282,7 +1296,6 @@ SetWindowLongA(
 {
   return NtUserSetWindowLong(hWnd, nIndex, dwNewLong, TRUE);
 }
-
 
 /*
  * @implemented
