@@ -253,31 +253,23 @@ BOOL	DRIVER_GetLibName(LPCWSTR keyName, LPCWSTR sectName, LPWSTR buf, int sz)
     static const WCHAR wszSystemIni[] = {'S','Y','S','T','E','M','.','I','N','I',0};
     WCHAR       wsznull = '\0';
 
-    /* This takes us as far as Windows NT\CurrentVersion */
+    TRACE("registry: %s, %s, %p, %d\n", debugstr_w(keyName), debugstr_w(sectName), buf, sz);
+
     lRet = RegOpenKeyExW(HKEY_LOCAL_MACHINE, HKLM_BASE, 0, KEY_QUERY_VALUE, &hKey);
-
-    if (lRet == ERROR_SUCCESS)
-    {
-        /* Now we descend into the section name that we were given */
-	    lRet = RegOpenKeyExW(hKey, sectName, 0, KEY_QUERY_VALUE, &hSecKey);
-
-	    if (lRet == ERROR_SUCCESS)
-        {
-            /* Retrieve the desired value - this is the filename of the lib */
+    if (lRet == ERROR_SUCCESS) {
+	lRet = RegOpenKeyExW(hKey, sectName, 0, KEY_QUERY_VALUE, &hSecKey);
+	if (lRet == ERROR_SUCCESS) {
             bufLen = sz;
-	        lRet = RegQueryValueExW(hSecKey, keyName, 0, 0, (void*)buf, &bufLen);
-	        RegCloseKey( hSecKey );
-	    }
-
+	    lRet = RegQueryValueExW(hSecKey, keyName, 0, 0, (void*)buf, &bufLen);
+	    RegCloseKey( hSecKey );
+	}
         RegCloseKey( hKey );
     }
-
-    /* Finish up if we've got what we want from the registry */
-    if (lRet == ERROR_SUCCESS)
-        return TRUE;
+    if (lRet == ERROR_SUCCESS) return TRUE;
 
     /* default to system.ini if we can't find it in the registry,
      * to support native installations where system.ini is still used */
+    TRACE("system.ini: %s, %s, %p, %d\n", debugstr_w(keyName), debugstr_w(sectName), buf, sz);
     return GetPrivateProfileStringW(sectName, keyName, &wsznull, buf, sz / sizeof(WCHAR), wszSystemIni);
 }
 
@@ -295,40 +287,21 @@ LPWINE_DRIVER	DRIVER_TryOpenDriver32(LPCWSTR fn, LPARAM lParam2)
 
     TRACE("(%s, %08lX);\n", debugstr_w(fn), lParam2);
 
-    if ((ptr = strchrW(fn, ' ')) != NULL)
-    {
-        *ptr++ = '\0';
-
-        while (*ptr == ' ')
-            ptr++;
-
-        if (*ptr == '\0')
-            ptr = NULL;
+    if ((ptr = strchrW(fn, ' ')) != NULL) {
+	*ptr++ = '\0';
+	while (*ptr == ' ') ptr++;
+	if (*ptr == '\0') ptr = NULL;
     }
 
     lpDrv = HeapAlloc(GetProcessHeap(), 0, sizeof(WINE_DRIVER));
+    if (lpDrv == NULL) {cause = "OOM"; goto exit;}
 
-    if (lpDrv == NULL)
-    {
-        cause = "OOM";
-        goto exit;
-    }
-
-    if ((hModule = LoadLibraryW(fn)) == 0)
-    {
-        cause = "Not a 32 bit lib";
-        goto exit;
-    }
+    if ((hModule = LoadLibraryW(fn)) == 0) {cause = "Not a 32 bit lib"; goto exit;}
 
     lpDrv->lpDrvProc = (DRIVERPROC)GetProcAddress(hModule, "DriverProc");
+    if (lpDrv->lpDrvProc == NULL) {cause = "no DriverProc"; goto exit;}
 
-    if (lpDrv->lpDrvProc == NULL)
-    {
-        cause = "no DriverProc";
-        goto exit;
-    }
-
-    lpDrv->dwFlags          = 0;
+    lpDrv->dwFlags    = 0;
     lpDrv->hModule    = hModule;
     lpDrv->dwDriverID = 0;
 
@@ -352,18 +325,15 @@ LPWINE_DRIVER	DRIVER_TryOpenDriver32(LPCWSTR fn, LPARAM lParam2)
             cause = "load1 failed";
             goto exit;
         }
+        lpDrv->dwFlags |= WINE_GDF_SESSION;
         return ret;
     }
 
     if (!DRIVER_AddToList(lpDrv, (LPARAM)ptr, lParam2))
-    {
-        cause = "load failed";
-        goto exit;
-    }
+    {cause = "load failed"; goto exit;}
 
     TRACE("=> %p\n", lpDrv);
     return lpDrv;
-
  exit:
     FreeLibrary(hModule);
     HeapFree(GetProcessHeap(), 0, lpDrv);
@@ -416,55 +386,28 @@ done:
 HDRVR WINAPI OpenDriver(LPCWSTR lpDriverName, LPCWSTR lpSectionName, LPARAM lParam)
 {
     LPWINE_DRIVER	lpDrv = NULL;
-    WCHAR 		libName[128];
+    WCHAR 		libName[MAX_PATH + 1];
     LPCWSTR		lsn = lpSectionName;
 
     TRACE("(%s, %s, 0x%08lx);\n", 
           debugstr_w(lpDriverName), debugstr_w(lpSectionName), lParam);
 
-    /* If no section name is specified, either the caller is intending on
-       opening a driver by filename, or wants to open a user-installable
-       driver that has an entry in the Drivers32 key in the registry */
-    if (lsn == NULL)
-    {
-        /* Default registry key */
+    DRIVER_Dump("BEFORE:");
+
+    if (lsn == NULL) {
         static const WCHAR wszDrivers32[] = {'D','r','i','v','e','r','s','3','2',0};
+	lstrcpynW(libName, lpDriverName, sizeof(libName) / sizeof(WCHAR));
 
-        lstrcpynW(libName, lpDriverName, sizeof(libName) / sizeof(WCHAR));
-
-        /* Try and open the driver by filename */
-        if ( (lpDrv = DRIVER_TryOpenDriver32(libName, lParam)) )
-            goto the_end;
-
-        /* If we got here, the file wasn't found. So we assume the caller
-           wanted a driver specified under the Drivers32 registry key */
-        lsn = wszDrivers32;
+	if ((lpDrv = DRIVER_TryOpenDriver32(libName, lParam)))
+	    goto the_end;
+	lsn = wszDrivers32;
     }
+    if (DRIVER_GetLibName(lpDriverName, lsn, libName, sizeof(libName)) &&
+	(lpDrv = DRIVER_TryOpenDriver32(libName, lParam)))
+	goto the_end;
 
-    /* Attempt to locate the driver filename in the registry */
-    if ( DRIVER_GetLibName(lpDriverName, lsn, libName, sizeof(libName)) )
-    {
-        /* Now we have the filename, we can try and load it */
-        if ( (lpDrv = DRIVER_TryOpenDriver32(libName, lParam)) )
-            goto the_end;
-    }
-
-    /* now we will try a 16 bit driver (and add all the glue to make it work... which
-     * is located in our mmsystem implementation)
-     * so ensure, we can load our mmsystem, otherwise just fail
-     */
-    WINMM_CheckForMMSystem();
-#if 0
-    if (pFnOpenDriver16 &&
-        (lpDrv = pFnOpenDriver16(lpDriverName, lpSectionName, lParam)))
-    {
-        if (DRIVER_AddToList(lpDrv, 0, lParam)) goto the_end;
-        HeapFree(GetProcessHeap(), 0, lpDrv);
-    }
     TRACE("Failed to open driver %s from system.ini file, section %s\n", 
           debugstr_w(lpDriverName), debugstr_w(lpSectionName));
-#endif
-    return 0;
 
  the_end:
     if (lpDrv)	TRACE("=> %p\n", lpDrv);

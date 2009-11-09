@@ -834,7 +834,7 @@ static	DWORD	MCI_LoadMciDriver(LPCWSTR _strDevTyp, LPWINE_MCIDRIVER* lpwmd)
 
     wmd->lpfnYieldProc = MCI_DefYieldProc;
     wmd->dwYieldData = VK_CANCEL;
-    wmd->CreatorThread = GetCurrentThreadId();
+    wmd->CreatorThread = GetCurrentThread();
 
     EnterCriticalSection(&WINMM_cs);
     /* wmd must be inserted in list before sending opening the driver, because it
@@ -1155,8 +1155,8 @@ static	DWORD	MCI_HandleReturnValues(DWORD dwRet, LPWINE_MCIDRIVER wmd, DWORD ret
 {
     static const WCHAR wszLd  [] = {'%','l','d',0};
     static const WCHAR wszLd4 [] = {'%','l','d',' ','%','l','d',' ','%','l','d',' ','%','l','d',0};
-    static const WCHAR wszCol3[] = {'%','d',':','%','d',':','%','d',0};
-    static const WCHAR wszCol4[] = {'%','d',':','%','d',':','%','d',':','%','d',0};
+    static const WCHAR wszCol3[] = {'%','0','2','d',':','%','0','2','d',':','%','0','2','d',0};
+    static const WCHAR wszCol4[] = {'%','0','2','d',':','%','0','2','d',':','%','0','2','d',':','%','0','2','d',0};
 
     if (lpstrRet) {
 	switch (retType) {
@@ -1398,13 +1398,13 @@ DWORD WINAPI mciSendStringW(LPCWSTR lpstrCommand, LPWSTR lpstrRet,
      * ask for device closing while processing the notification mechanism
      */
     if (lpstrRet && uRetLen) *lpstrRet = '\0';
-
+/*
     TRACE("[%d, %s, %08x, %08x/%s %08x/%s %08x/%s %08x/%s %08x/%s %08x/%s]\n",
 	  wmd->wDeviceID, MCI_MessageToString(MCI_GetMessage(lpCmd)), dwFlags,
 	  data[0], debugstr_w((WCHAR *)data[0]), data[1], debugstr_w((WCHAR *)data[1]),
 	  data[2], debugstr_w((WCHAR *)data[2]), data[3], debugstr_w((WCHAR *)data[3]),
 	  data[4], debugstr_w((WCHAR *)data[4]), data[5], debugstr_w((WCHAR *)data[5]));
-
+*/
     if (strcmpW(verb, wszOpen) == 0) {
 	if ((dwRet = MCI_FinishOpen(wmd, (LPMCI_OPEN_PARMSW)data, dwFlags)))
 	    MCI_UnLoadMciDriver(wmd);
@@ -1466,7 +1466,7 @@ BOOL WINAPI mciExecute(LPCSTR lpstrCommand)
     ret = mciSendStringA(lpstrCommand, strRet, sizeof(strRet), 0);
     if (ret != 0) {
 	if (!mciGetErrorStringA(ret, strRet, sizeof(strRet))) {
-	    sprintf(strRet, "Unknown MCI error (%lu)", ret);
+	    sprintf(strRet, "Unknown MCI error (%d)", ret);
 	}
 	MessageBoxA(0, strRet, "Error in mciExecute()", MB_OK);
     }
@@ -1746,8 +1746,8 @@ static	DWORD MCI_SysInfo(UINT uDevID, DWORD dwFlags, LPMCI_SYSINFO_PARMSW lpParm
     LPWINE_MCIDRIVER	wmd;
     HKEY		hKey;
 
-    if (lpParms == NULL || lpParms->lpstrReturn == NULL)
-        return MCIERR_NULL_PARAMETER_BLOCK;
+    if (lpParms == NULL)			return MCIERR_NULL_PARAMETER_BLOCK;
+    if (lpParms->lpstrReturn == NULL)		return MCIERR_PARAM_OVERFLOW;
 
     TRACE("(%08x, %08X, %p[num=%d, wDevTyp=%u])\n",
 	  uDevID, dwFlags, lpParms, lpParms->dwNumber, lpParms->wDeviceType);
