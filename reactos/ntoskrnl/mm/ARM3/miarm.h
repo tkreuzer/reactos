@@ -6,6 +6,44 @@
  * PROGRAMMERS:     ReactOS Portable Systems Group
  */
 
+#ifdef _M_AMD64
+
+#define MI_MIN_PAGES_FOR_NONPAGED_POOL_TUNING ((255*1024*1024) >> PAGE_SHIFT)
+#define MI_MIN_PAGES_FOR_SYSPTE_TUNING         ((19*1024*1024) >> PAGE_SHIFT)
+#define MI_MIN_PAGES_FOR_SYSPTE_BOOST          ((32*1024*1024) >> PAGE_SHIFT)
+#define MI_MAX_INIT_NONPAGED_POOL_SIZE         (128 * 1024 * 1024)
+#define MI_MAX_NONPAGED_POOL_SIZE              (128 * 1024 * 1024)
+#define MI_MAX_FREE_PAGE_LISTS                 4
+
+#define MI_MIN_INIT_PAGED_POOLSIZE             (32 * 1024 * 1024)
+
+#define MI_SESSION_VIEW_SIZE                   (20 * 1024 * 1024)
+#define MI_SESSION_POOL_SIZE                   (16 * 1024 * 1024)
+#define MI_SESSION_IMAGE_SIZE                  (8 * 1024 * 1024)
+#define MI_SESSION_WORKING_SET_SIZE            (4 * 1024 * 1024)
+#define MI_SESSION_SIZE                        (MI_SESSION_VIEW_SIZE + \
+                                                MI_SESSION_POOL_SIZE + \
+                                                MI_SESSION_IMAGE_SIZE + \
+                                                MI_SESSION_WORKING_SET_SIZE)
+
+#define MI_SYSTEM_VIEW_SIZE                    (16 * 1024 * 1024)
+
+#define MI_PAGED_POOL_START                    (PVOID)0xFFFFFA8000000000ULL
+#define MI_NONPAGED_POOL_END                   (PVOID)0xFFFFFAE000000000ULL
+
+#define MM_HIGHEST_VAD_ADDRESS \
+    (PVOID)((ULONG_PTR)MM_HIGHEST_USER_ADDRESS - (16 * PAGE_SIZE))
+
+
+//
+// FIXFIX: These should go in ex.h after the pool merge
+//
+#define POOL_LISTS_PER_PAGE (PAGE_SIZE / sizeof(LIST_ENTRY))
+#define BASE_POOL_TYPE_MASK 1
+#define POOL_MAX_ALLOC (PAGE_SIZE - (sizeof(POOL_HEADER) + sizeof(LIST_ENTRY)))
+
+#else
+
 #define MI_MIN_PAGES_FOR_NONPAGED_POOL_TUNING ((255*1024*1024) >> PAGE_SHIFT)
 #define MI_MIN_PAGES_FOR_SYSPTE_TUNING         ((19*1024*1024) >> PAGE_SHIFT)
 #define MI_MIN_PAGES_FOR_SYSPTE_BOOST          ((32*1024*1024) >> PAGE_SHIFT)
@@ -238,6 +276,8 @@ MmProtectToPteMask[32] =
 #define BASE_POOL_TYPE_MASK 1
 #define POOL_MAX_ALLOC (PAGE_SIZE - (sizeof(POOL_HEADER) + POOL_BLOCK_SIZE))
 
+#endif
+
 typedef struct _POOL_DESCRIPTOR
 {
     POOL_TYPE PoolType;
@@ -374,29 +414,29 @@ extern LIST_ENTRY MiLargePageDriverList;
 extern BOOLEAN MiLargePageAllDrivers;
 extern ULONG MmVerifyDriverBufferLength;
 extern ULONG MmLargePageDriverBufferLength;
-extern ULONG MmSizeOfNonPagedPoolInBytes;
-extern ULONG MmMaximumNonPagedPoolInBytes;
+extern ULONG_PTR MmSizeOfNonPagedPoolInBytes;
+extern ULONG_PTR MmMaximumNonPagedPoolInBytes;
 extern PFN_NUMBER MmMaximumNonPagedPoolInPages;
 extern PFN_NUMBER MmSizeOfPagedPoolInPages;
 extern PVOID MmNonPagedSystemStart;
 extern PVOID MmNonPagedPoolStart;
 extern PVOID MmNonPagedPoolExpansionStart;
 extern PVOID MmNonPagedPoolEnd;
-extern ULONG MmSizeOfPagedPoolInBytes;
+extern ULONG_PTR MmSizeOfPagedPoolInBytes;
 extern PVOID MmPagedPoolStart;
 extern PVOID MmPagedPoolEnd;
 extern PVOID MmSessionBase;
-extern ULONG MmSessionSize;
+extern ULONG_PTR MmSessionSize;
 extern PMMPTE MmFirstReservedMappingPte, MmLastReservedMappingPte;
 extern PMMPTE MiFirstReservedZeroingPte;
 extern MI_PFN_CACHE_ATTRIBUTE MiPlatformCacheAttributes[2][MmMaximumCacheType];
 extern PPHYSICAL_MEMORY_DESCRIPTOR MmPhysicalMemoryBlock;
-extern ULONG MmBootImageSize;
+extern ULONG_PTR MmBootImageSize;
 extern PMMPTE MmSystemPtesStart[MaximumPtePoolTypes];
 extern PMMPTE MmSystemPtesEnd[MaximumPtePoolTypes];
 extern PMEMORY_ALLOCATION_DESCRIPTOR MxFreeDescriptor;
 extern MEMORY_ALLOCATION_DESCRIPTOR MxOldFreeDescriptor;
-extern ULONG MxPfnAllocation;
+extern ULONG_PTR MxPfnAllocation;
 extern MM_PAGED_POOL_INFO MmPagedPoolInfo;
 extern RTL_BITMAP MiPfnBitMap;
 extern KGUARDED_MUTEX MmPagedPoolMutex;
@@ -404,14 +444,14 @@ extern PVOID MmPagedPoolStart;
 extern PVOID MmPagedPoolEnd;
 extern PVOID MmNonPagedSystemStart;
 extern PVOID MiSystemViewStart;
-extern ULONG MmSystemViewSize;
+extern ULONG_PTR MmSystemViewSize;
 extern PVOID MmSessionBase;
 extern PVOID MiSessionSpaceEnd;
 extern PMMPTE MiSessionImagePteStart;
 extern PMMPTE MiSessionImagePteEnd;
 extern PMMPTE MiSessionBasePte;
 extern PMMPTE MiSessionLastPte;
-extern ULONG MmSizeOfPagedPoolInBytes;
+extern ULONG_PTR MmSizeOfPagedPoolInBytes;
 extern PMMPTE MmSystemPagePtes;
 extern PVOID MmSystemCacheStart;
 extern PVOID MmSystemCacheEnd;
