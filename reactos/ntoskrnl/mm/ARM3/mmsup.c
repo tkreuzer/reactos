@@ -57,6 +57,7 @@ MmSetAddressRangeModified(IN PVOID Address,
    return FALSE;
 }
 
+#ifndef _M_AMD64
 /*
  * @implemented
  */
@@ -82,6 +83,7 @@ MmIsAddressValid(IN PVOID VirtualAddress)
     //
     return TRUE;
 }
+#endif
 
 /*
  * @unimplemented
