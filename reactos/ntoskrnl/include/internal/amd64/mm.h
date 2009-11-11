@@ -14,19 +14,48 @@ PULONG_PTR MmGetPageDirectory(VOID);
 #define HYPER_SPACE 0xFFFFF70000000000ULL
 #define HYPER_SPACE_END   0xFFFFF77FFFFFFFFFULL
 
-/* Base addresses of PTE and PDE */
-//#define PAGETABLE_MAP       PTE_BASE
-//#define PAGEDIRECTORY_MAP   (0xc0000000 + (PAGETABLE_MAP / (1024)))
+PULONG64
+FORCEINLINE
+MmGetPageDirectory(VOID)
+{
+    return (PULONG64)__readcr3();
+}
 
-/* Converting address to a corresponding PDE or PTE entry */
-#define MiAddressToPxe(x) \
-    ((PMMPTE)((((((ULONG64)(x)) >> PXI_SHIFT) & PXI_MASK) << 3) + PXE_BASE))
-#define MiAddressToPpe(x) \
-    ((PMMPTE)((((((ULONG64)(x)) >> PPI_SHIFT) & PPI_MASK) << 3) + PPE_BASE))
-#define MiAddressToPde(x) \
-    ((PMMPTE)(((((ULONG)(x)) >> 22) << 2) + PAGEDIRECTORY_MAP))
-#define MiAddressToPte(x) \
-    ((PMMPTE)(((((ULONG)(x)) >> 12) << 2) + PAGETABLE_MAP))
+PMMPTE
+FORCEINLINE
+MiAddressToPxe(PVOID Address)
+{
+    ULONG64 Offset = (ULONG64)Address >> (PXI_SHIFT - 3);
+    Offset &= PXI_MASK << 3;
+    return (PMMPTE)(PXE_BASE + Offset);
+}
+
+PMMPTE
+FORCEINLINE
+MiAddressToPpe(PVOID Address)
+{
+    ULONG64 Offset = (ULONG64)Address >> (PPI_SHIFT - 3);
+    Offset &= 0x3FFFF << 3;
+    return (PMMPTE)(PPE_BASE + Offset);
+}
+
+PMMPTE
+FORCEINLINE
+MiAddressToPde(PVOID Address)
+{
+    ULONG64 Offset = (ULONG64)Address >> (PDI_SHIFT - 3);
+    Offset &= 0x7FFFFFF << 3;
+    return (PMMPTE)(PDE_BASE + Offset);
+}
+
+PMMPTE
+FORCEINLINE
+MiAddressToPte(PVOID Address)
+{
+    ULONG64 Offset = (ULONG64)Address >> (PTI_SHIFT - 3);
+    Offset &= 0xFFFFFFFFFULL << 3;
+    return (PMMPTE)(PTE_BASE + Offset);
+}
 
 #define ADDR_TO_PAGE_TABLE(v) (((ULONG)(v)) / (1024 * PAGE_SIZE))
 #define ADDR_TO_PDE_OFFSET(v) ((((ULONG)(v)) / (1024 * PAGE_SIZE)))
