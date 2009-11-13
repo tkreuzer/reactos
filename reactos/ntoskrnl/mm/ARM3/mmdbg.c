@@ -24,8 +24,8 @@
 
 /* GLOBALS ********************************************************************/
 
-PMMPTE MmDebugPte = MiAddressToPte(MI_DEBUG_MAPPING);
-BOOLEAN MiDbgReadyForPhysical = FALSE;
+PVOID MiDebugMapping = MI_DEBUG_MAPPING;
+PMMPTE MmDebugPte = NULL;
 
 /* FUNCTIONS ******************************************************************/
 
@@ -51,7 +51,7 @@ MiDbgTranslatePhysicalAddress(IN ULONG64 PhysicalAddress,
     //
     // Check if we are called too early 
     //
-    if (MiDbgReadyForPhysical == FALSE)
+    if (MmDebugPte == NULL)
     {
         //
         // The structures we require aren't initialized yet, fail
