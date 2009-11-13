@@ -373,6 +373,14 @@ MmInitSystem(IN ULONG Phase,
         
         /* Initialize ARM³ in phase 0 */
         MmArmInitSystem(0, KeLoaderBlock);    
+
+#if defined(_WINKD_)
+        //
+        // Everything required for the debugger to read and write
+        // physical memory is now set up
+        //
+        MmDebugPte = MiAddressToPte(MiDebugMapping);
+#endif
         
         /* Put the paged pool after the loaded modules */
         MmPagedPoolBase = (PVOID)PAGE_ROUND_UP((ULONG_PTR)MmSystemRangeStart +
@@ -409,7 +417,7 @@ MmInitSystem(IN ULONG Phase,
         //
         // Now get the PTE for shared data, and read the PFN that holds it
         //
-        PointerPte = MiAddressToPte(KI_USER_SHARED_DATA);
+        PointerPte = MiAddressToPte((PVOID)KI_USER_SHARED_DATA);
         ASSERT(PointerPte->u.Hard.Valid == 1);
         PageFrameNumber = PFN_FROM_PTE(PointerPte);
         
