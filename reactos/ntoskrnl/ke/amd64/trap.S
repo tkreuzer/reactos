@@ -20,7 +20,7 @@ _MsgUnimplemented:
 .asciz "WARNING:  %s at %s:%d is UNIMPLEMENTED!\n"
 
 _MsgPageFault:
-.ascii "Page fault 0x%x at %p!\n\0"
+.ascii "Page fault! Code = 0x%x, RIP = %p, FaultingAddress = %p\n\0"
 
 _MsgGeneralProtFault:
 .ascii "General protection fault at %p!\n\0"
@@ -492,24 +492,25 @@ KiDebugTrapOrFaultKMode:
     .pushframe 1
     /* We have an error code */
 
-    lea rcx, _MsgPageFault[rip]
-    mov rdx, [rsp]
-    mov r8, [rsp+8]
-    mov r9, rsp
-    lea rax, _FrLdrDbgPrint[rip]
-    call [rax]
-
     ENTER_TRAP_FRAME (0x28), TRAPFLAG_ALL
+
+#if 0
+    lea rcx, _MsgPageFault[rip]
+    mov rdx, [rbp + KTRAP_FRAME_ErrorCode]
+    mov r8, [rbp + KTRAP_FRAME_Rip]
+    mov r9, [rbp + KTRAP_FRAME_FaultAddress]
+    call _FrLdrDbgPrint[rip]
+#endif
 
     /* Save page fault address */
     mov rdx, cr2
     mov [rbp  + KTRAP_FRAME_FaultAddress], rdx
 
     /* Call page fault handler */
-    mov ecx, [ebp + KTRAP_FRAME_ErrorCode] // StoreInstruction
+    mov ecx, [rbp + KTRAP_FRAME_ErrorCode] // StoreInstruction
     and ecx, 1
     // rdx == Address
-    mov r8b, [ebp + KTRAP_FRAME_SegCs] // Mode
+    mov r8b, [rbp + KTRAP_FRAME_SegCs] // Mode
     and r8b, 1
     mov r9, rbp // TrapInformation
 //    call _MmAccessFault
@@ -522,7 +523,7 @@ KiDebugTrapOrFaultKMode:
     jge PageFaultReturn
 
     /* Set parameter 1 to error code */
-    mov r9d, [ebp + KTRAP_FRAME_ErrorCode]
+    mov r9d, [rbp + KTRAP_FRAME_ErrorCode]
 
     /* Set parameter2 to faulting address */
     mov r10, cr2  // Param2 = faulting address

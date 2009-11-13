@@ -43,6 +43,8 @@
 
 #define FRAME_EDITED        0xFFF8
 
+#define AMD64_TSS 9
+
 #ifndef __ASM__
 
 #include "intrin_i.h"
@@ -107,13 +109,6 @@ KeInvalidateTlbEntry(IN PVOID Address)
 }
 
 struct _KPCR;
-VOID
-KiInitializeGdt(struct _KPCR* Pcr);
-VOID
-Ki386ApplicationProcessorInitializeTSS(VOID);
-
-// Hack
-VOID KiRosPrepareForSystemStartup(ULONG, PROS_LOADER_PARAMETER_BLOCK);
 
 VOID
 FASTCALL
