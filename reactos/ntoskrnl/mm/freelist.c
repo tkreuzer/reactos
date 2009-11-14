@@ -27,13 +27,46 @@
 //
 // ReactOS to NT Physical Page Descriptor Entry Legacy Mapping Definitions
 //
-//        REACTOS                 NT
-//
-#define RmapListHead         AweReferenceCount
-#define PHYSICAL_PAGE        MMPFN
-#define PPHYSICAL_PAGE       PMMPFN
 
 PPHYSICAL_PAGE MmPfnDatabase;
+typedef union
+{
+    MMPFN Pfn;
+
+    struct
+    {
+        LIST_ENTRY ListEntry; // 0x000
+        ULONG_PTR RmapListHead;   // 0x008
+        USHORT ReferenceCount; // 0x00C
+        struct // 0x00$
+        {
+            USHORT _unused1:1;
+            USHORT StartOfAllocation:1;
+            USHORT EndOfAllocation:1;
+            USHORT Zero:1; 
+            USHORT LockCount:4;
+            USHORT Consumer:3;
+            USHORT _unused2:1;
+            USHORT Type:2;
+            USHORT _unused3:1;
+            USHORT _unused4:1;
+        } Flags;
+        LONG MapCount; // 0x10
+        ULONG_PTR SavedSwapEntry; // 0x018
+    };
+} PHYSICAL_PAGE, *PPHYSICAL_PAGE;
+
+C_ASSERT(sizeof(PHYSICAL_PAGE) == sizeof(MMPFN));
+
+#define MiGetPfnEntry(Pfn) ((PPHYSICAL_PAGE)MiGetPfnEntry(Pfn))
+#define MiGetPfnEntryIndex(x) MiGetPfnEntryIndex((struct _MMPFN*)x)
+#define LockCount            Flags.LockCount
+
+MMPFN MmPfnDatabase;
+#define MmPfnDatabase (*(PPHYSICAL_PAGE)MmPfnDatabase)
+
+#define MMPFN PHYSICAL_PAGE
+#define PMMPFN PPHYSICAL_PAGE
 
 PFN_NUMBER MmAvailablePages;
 PFN_NUMBER MmResidentAvailablePages;
@@ -453,7 +486,7 @@ MmSetRmapListHeadPage(PFN_NUMBER Pfn, struct _MM_RMAP_ENTRY* ListHead)
    KIRQL oldIrql;
     
    oldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
-   MiGetPfnEntry(Pfn)->RmapListHead = (LONG)ListHead;
+   MiGetPfnEntry(Pfn)->RmapListHead = (LONG_PTR)ListHead;
    KeReleaseQueuedSpinLock(LockQueuePfnLock, oldIrql);
 }
 
@@ -565,7 +598,29 @@ MmDereferencePage(PFN_NUMBER Pfn)
    if (Page->u3.e2.ReferenceCount == 0)
    {
       MmAvailablePages++;
-      Page->u3.e1.PageLocation = FreePageList;
+      if (Page->RmapListHead != (LONG_PTR)NULL)
+      {
+         DPRINT1("Freeing page with rmap entries.\n");
+         KeBugCheck(MEMORY_MANAGEMENT);
+      }
+      if (Page->LockCount > 0)
+      {
+         DPRINT1("Freeing locked page\n");
+         KeBugCheck(MEMORY_MANAGEMENT);
+      }
+      if (Page->SavedSwapEntry != 0)
+      {
+         DPRINT1("Freeing page with swap entry.\n");
+         KeBugCheck(MEMORY_MANAGEMENT);
+      }
+      if (Page->Flags.Type != MM_PHYSICAL_PAGE_USED)
+      {
+         DPRINT1("Freeing page with flags %x\n",
+                  Page->Flags.Type);
+         KeBugCheck(MEMORY_MANAGEMENT);
+      }
+      Page->Flags.Type = MM_PHYSICAL_PAGE_FREE;
+      Page->Consumer = MC_MAXIMUM;
       MiInsertInListTail(&MmFreePageListHead, Page);
       if (MmFreePageListHead.Total > 8 && 0 == KeReadStateEvent(&ZeroPageThreadEvent))
       {
