@@ -18,6 +18,7 @@ extern ULONG MmLowestPhysicalPage;
 extern ULONG MmHighestPhysicalPage;
 extern ULONG MmAvailablePages;
 extern ULONG MmResidentAvailablePages;
+extern ULONG MmNumberOfSystemPtes;
 
 extern PVOID MmPagedPoolBase;
 extern ULONG MmPagedPoolSize;

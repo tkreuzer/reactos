@@ -20,6 +20,7 @@ PULONG MmGetPageDirectory(VOID);
 #define PDE_TOP     0xC0300FFF
 #define PTE_TOP     0xC03FFFFF
 #define HYPER_SPACE 0xC0400000
+#define HYPER_SPACE_END 0xC07FFFFF
 
 /* Converting address to a corresponding PDE or PTE entry */
 #define MiAddressToPde(x) \
