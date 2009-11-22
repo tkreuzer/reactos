@@ -1190,7 +1190,7 @@ MiUnmapPageInHyperSpace(IN PEPROCESS Process,
 
 PVOID
 NTAPI
-MiMapPagesToZeroInHyperSpace(IN PMMPFN *Pages,
+MiMapPagesToZeroInHyperSpace(IN PFN_NUMBER *Pages,
                              IN PFN_NUMBER NumberOfPages);
 
 VOID
@@ -1213,8 +1213,7 @@ FORCEINLINE
 PVOID
 MiMapPageToZeroInHyperSpace(IN PFN_NUMBER Page)
 {
-    PMMPFN Pfn1 = MiGetPfnEntry(Page);
-    return MiMapPagesToZeroInHyperSpace(&Pfn1, 1);
+    return MiMapPagesToZeroInHyperSpace(&Page, 1);
 }
 
 #define MmDeleteHyperspaceMapping(x) MiUnmapPageInHyperSpace(HyperProcess, x, HyperIrql);
