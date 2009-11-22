@@ -112,13 +112,12 @@ MiUnmapPageInHyperSpace(IN PEPROCESS Process,
 
 PVOID
 NTAPI
-MiMapPagesToZeroInHyperSpace(IN PMMPFN *Pages,
+MiMapPagesToZeroInHyperSpace(IN PFN_NUMBER *Pages,
                              IN PFN_NUMBER NumberOfPages)
 {
     MMPTE TempPte;
     PMMPTE PointerPte;
     PFN_NUMBER Offset, PageFrameIndex;
-    PMMPFN Page;
 
     //
     // Sanity checks
@@ -162,8 +161,7 @@ MiMapPagesToZeroInHyperSpace(IN PMMPFN *Pages,
         //
         // Get the first page entry and its PFN
         //
-        Page = *Pages++;
-        PageFrameIndex = MiGetPfnEntryIndex(Page);
+        PageFrameIndex = *Pages++;
         
         //
         // Write the PFN
