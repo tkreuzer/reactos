@@ -526,11 +526,6 @@ MiFreeContiguousMemory(IN PVOID BaseAddress)
     MmUnmapIoSpace(BaseAddress, PageCount << PAGE_SHIFT);
     
     //
-    // Lock the PFN database
-    //
-    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
-    
-    //
     // Loop all the pages
     //
     LastPage = PageFrameIndex + PageCount;
@@ -540,11 +535,6 @@ MiFreeContiguousMemory(IN PVOID BaseAddress)
         /* Decrement the share count and move on */
         MiDecrementShareCount(Pfn1++, PageFrameIndex++);
     } while (PageFrameIndex < LastPage);
-    
-    //
-    // Release the PFN lock
-    //
-    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
 /* PUBLIC FUNCTIONS ***********************************************************/
