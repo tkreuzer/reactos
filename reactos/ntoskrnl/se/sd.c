@@ -442,10 +442,10 @@ SeCaptureSecurityDescriptor(IN PSECURITY_DESCRIPTOR _OriginalSecurityDescriptor,
                 {
                     PISECURITY_DESCRIPTOR_RELATIVE RelSD = (PISECURITY_DESCRIPTOR_RELATIVE)OriginalSecurityDescriptor;
 
-                    DescriptorCopy.Owner = (PSID)RelSD->Owner;
-                    DescriptorCopy.Group = (PSID)RelSD->Group;
-                    DescriptorCopy.Sacl = (PACL)RelSD->Sacl;
-                    DescriptorCopy.Dacl = (PACL)RelSD->Dacl;
+                    DescriptorCopy.Owner = (PSID)((PCHAR)RelSD + RelSD->Owner);
+                    DescriptorCopy.Group = (PSID)((PCHAR)RelSD + RelSD->Group);
+                    DescriptorCopy.Sacl = (PACL)((PCHAR)RelSD + RelSD->Sacl);
+                    DescriptorCopy.Dacl = (PACL)((PCHAR)RelSD + RelSD->Dacl);
                 }
                 else
                 {
@@ -489,10 +489,10 @@ SeCaptureSecurityDescriptor(IN PSECURITY_DESCRIPTOR _OriginalSecurityDescriptor,
             {
                 PISECURITY_DESCRIPTOR_RELATIVE RelSD = (PISECURITY_DESCRIPTOR_RELATIVE)OriginalSecurityDescriptor;
 
-                DescriptorCopy.Owner = (PSID)RelSD->Owner;
-                DescriptorCopy.Group = (PSID)RelSD->Group;
-                DescriptorCopy.Sacl = (PACL)RelSD->Sacl;
-                DescriptorCopy.Dacl = (PACL)RelSD->Dacl;
+                DescriptorCopy.Owner = (PSID)((PCHAR)RelSD + RelSD->Owner);
+                DescriptorCopy.Group = (PSID)((PCHAR)RelSD + RelSD->Group);
+                DescriptorCopy.Sacl = (PACL)((PCHAR)RelSD + RelSD->Sacl);
+                DescriptorCopy.Dacl = (PACL)((PCHAR)RelSD + RelSD->Dacl);
             }
             else
             {
