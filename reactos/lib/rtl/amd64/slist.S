@@ -108,7 +108,7 @@ _ExpInterlockedPopEntrySListEnd:
 
     /* Use rcx as pointer template */
     mov rdx, ~SLIST8_POINTER_MASK
-    and rdx, rcx
+    or rdx, rcx
 
     /* Combine result and return */
     or rax, rdx
@@ -178,14 +178,17 @@ _RtlInterlockedPopEntrySListEmpty16:
 .proc RtlInterlockedPushEntrySList
 _ExpInterlockedPushEntrySList:
 
+    /* Move 2nd parameter to r9 */
+    mov r9, rdx
+
+    /* Load ListHead->Region into rdx */
+    mov rdx, [rcx + 8]
+
     /* Load ListHead->Alignment into rax */
     mov rax, [rcx]
 
-    /* Load ListHead->Region into rdx */
-    mov r9, [rcx + 8]
-
     /* Check what kind of header this is */
-    test r9, SLIST8B_HEADERTYPE_MASK
+    test rdx, SLIST8B_HEADERTYPE_MASK
     jnz _RtlInterlockedPushEntrySList16
 
     /* We have an 8 byte header */
@@ -195,36 +198,28 @@ _RtlInterlockedPushEntrySListLoop:
     /* Get ListHead->NextEntry */
     mov r8, rax
     and r8, SLIST8A_NEXTENTRY_MASK
-    jz _RtlInterlockedPushEntrySListEmpty
 
     /* Shift the NextEntry pointer */
     shr r8, SLIST8A_NEXTENTRY_SHIFT
 
     /* Create a pointer template from rcx in rdx */
-    mov r9, ~SLIST8_POINTER_MASK
-    and r9, rcx
+    mov rdx, ~SLIST8_POINTER_MASK
+    and rdx, rcx
 
     /* Combine to new pointer and save as ListEntry->NextEntry */
-    or r8, r9
-
-_RtlInterlockedPushEntrySListEmpty:
-    /* Store the NextEntry pointer in the new ListEntry */
-    mov [rdx], r8
+    or rdx, r8
+    mov [r9], rdx
 
     /* Shift and mask the new ListEntry pointer */
-    mov r8, rdx
-    shl r8, SLIST8A_NEXTENTRY_SHIFT
-    and r8, SLIST8A_NEXTENTRY_MASK
+    shl r9, SLIST8A_NEXTENTRY_SHIFT
+    and r9, SLIST8A_NEXTENTRY_MASK
 
     /* Copy and adjust depth and sequence number */
-    lea r9, [rax + SLIST8A_DEPTH_INC + SLIST8A_SEQUENCE_INC]
-    and r9, SLIST8A_SEQUENCE_MASK | SLIST8A_DEPTH_MASK
+    lea r8, [rax + SLIST8A_DEPTH_INC + SLIST8A_SEQUENCE_INC]
+    and r8, SLIST8A_SEQUENCE_MASK | SLIST8A_DEPTH_MASK
 
     /* Combine to exchange value in r8 */
     or r8, r9
-
-    /* Save the NextEntry in r9 */
-    mov r9, [rdx]
 
     /* If [rcx] equals rax, exchange it with r8 */
     lock cmpxchg [rcx], r8
@@ -232,8 +227,16 @@ _RtlInterlockedPushEntrySListEmpty:
     /* If not equal, retry with rax, being the content of [rcx] now */
     jnz _RtlInterlockedPushEntrySListLoop
 
-    /* Return the old NextEntry pointer */
-    mov rax, r9
+    /* Shift the pointer bits in place */
+    and rax, SLIST8A_NEXTENTRY_MASK
+    shr rax, SLIST8A_NEXTENTRY_SHIFT
+
+    /* Use rcx as pointer template */
+    mov rdx, ~SLIST8_POINTER_MASK
+    or rdx, rcx
+
+    /* Combine result and return */
+    or rax, rdx
     ret
 
 _RtlInterlockedPushEntrySList16:
@@ -242,15 +245,12 @@ _RtlInterlockedPushEntrySList16:
     /* Save rbx */
     push rbx
 
-    /* Copy rcx/rdx to r8/r9, as we need rcx/rdx for the exchange */
+    /* Copy rcx to r8, as we need rcx for the exchange */
     mov r8, rcx
-    mov r9, rdx
 
     /* Set ListHead->HeaderType = 1 and  ListHead->Init = 1 */
-    mov rcx, rdx
+    mov rcx, r9
     or rcx, 0x3
-
-    mov rdx, [r8 + 8]
 
 _RtlInterlockedPushEntrySListLoop16:
 
