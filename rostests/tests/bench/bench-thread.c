@@ -7,7 +7,7 @@
 DWORD WINAPI
 thread_main1(LPVOID param)
 {
-   printf("Thread 1 running (Counter %lu)\n", PtrToUlong(param));
+   printf("Thread 1 running (Counter %lu)\n", param);
    SleepEx(INFINITE, TRUE);
    return 0;
 }
@@ -16,7 +16,7 @@ thread_main1(LPVOID param)
 DWORD WINAPI
 thread_main2(LPVOID param)
 {
-   printf("Thread 2 running (Counter %lu)\n", PtrToUlong(param));
+   printf("Thread 2 running (Counter %lu)\n", param);
    Sleep(INFINITE);
    return 0;
 }

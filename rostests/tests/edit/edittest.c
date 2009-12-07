@@ -277,7 +277,7 @@ CreateCheckButton(const char* lpWindowName, DWORD xSize, DWORD id)
 		          xSize,   /* nWidth  */
 		          20,      /* nHeight */
 			  g_hwnd,
-			  UlongToHandle(id),
+			  (HMENU)(ULONG_PTR)id, // LongToHandle?
 			  g_hInst,
 			  NULL
                          );
