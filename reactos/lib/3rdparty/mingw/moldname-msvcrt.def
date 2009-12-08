@@ -1,4 +1,4 @@
-LIBRARY crtdll.dll
+LIBRARY msvcrt.dll
 
 EXPORTS
 access==_access
