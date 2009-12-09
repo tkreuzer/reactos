@@ -187,7 +187,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT msg, WPARAM wParam,
          assert(hListBox != NULL);
 
          SetWindowLongPtr(
-            hListBox, GWL_ID, reinterpret_cast<LONG_PTR>(hListBox)
+            hListBox, GWL_ID, reinterpret_cast<LPARAM>(hListBox)
             );
 
          SNDMSG(hListBox, LB_ADDSTRING, 0,
