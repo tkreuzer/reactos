@@ -1546,6 +1546,12 @@ MmAllocateSection(
     PVOID BaseAddress
 );
 
+VOID
+NTAPI
+MmFreeSection(
+    PVOID BaseAddress
+);
+
 NTSTATUS
 NTAPI
 MmQuerySectionView(
