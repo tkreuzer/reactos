@@ -169,9 +169,7 @@ C_ASSERT(FIELD_OFFSET(STRUCT(PEB), ImageSubsystem) == 0x128);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), ImageProcessAffinityMask) == 0x138);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), PostProcessInitRoutine) == 0x230);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), SessionId) == 0x2C0);
-#if (NTDDI_VERSION >= NTDDI_WS03)
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), FlsHighIndex) == 0x350);
-#endif
 #else
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), Mutant) == 0x04);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), Ldr) == 0x0C);
@@ -184,9 +182,7 @@ C_ASSERT(FIELD_OFFSET(STRUCT(PEB), ImageSubsystem) == 0x0B4);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), ImageProcessAffinityMask) == 0x0C0);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), PostProcessInitRoutine) == 0x14C);
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), SessionId) == 0x1D4);
-#if (NTDDI_VERSION >= NTDDI_WS03)
 C_ASSERT(FIELD_OFFSET(STRUCT(PEB), FlsHighIndex) == 0x22C);
-#endif
 #endif
 
 //
@@ -223,7 +219,7 @@ typedef struct STRUCT(_TEB)
     LONG                   ExceptionCode;
 #if (NTDDI_VERSION >= NTDDI_LONGHORN)
     PTR(struct _ACTIVATION_CONTEXT_STACK*) ActivationContextStackPointer;
-    UCHAR                  SpareBytes1[0x30 - 3 * sizeof(PTR(PVOID))];
+    UCHAR                  SpareBytes1[0x30 - 3 * sizeof(PTR(PVOID)];
     ULONG                  TxFsContext;
 #elif (NTDDI_VERSION >= NTDDI_WS03)
     PTR(struct _ACTIVATION_CONTEXT_STACK*) ActivationContextStackPointer;
@@ -262,11 +258,10 @@ typedef struct STRUCT(_TEB)
     ULONG                  HardErrorsAreDisabled;
 #endif
 #if (NTDDI_VERSION >= NTDDI_LONGHORN)
-    PTR(PVOID)             Instrumentation[13 - sizeof(GUID)/sizeof(PTR(PVOID))];
+    PTR(PVOID)             Instrumentation[9];
     GUID                   ActivityId;
     PTR(PVOID)             SubProcessTag;
     PTR(PVOID)             EtwLocalData;
-    PTR(PVOID)             EtwTraceData;
 #elif (NTDDI_VERSION >= NTDDI_WS03)
     PTR(PVOID)             Instrumentation[14];
     PTR(PVOID)             SubProcessTag;
@@ -369,6 +364,7 @@ C_ASSERT(FIELD_OFFSET(STRUCT(TEB), GdiTebBatch) == 0x2F0);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), LastStatusValue) == 0x1250);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), Vdm) == 0x1690);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), HardErrorMode) == 0x16B0);
+C_ASSERT(FIELD_OFFSET(STRUCT(TEB), SubProcessTag) == 0x1728);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), GdiBatchCount) == 0x1740);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), IdealProcessor) == 0x1747);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), WaitingOnLoaderLock) == 0x1760);
@@ -381,6 +377,8 @@ C_ASSERT(FIELD_OFFSET(STRUCT(TEB), ExceptionCode) == 0x1A4);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), GdiTebBatch) == 0x1D4);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), LastStatusValue) == 0xBF4);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), Vdm) == 0xF18);
+C_ASSERT(FIELD_OFFSET(STRUCT(TEB), HardErrorMode) == 0xF28);
+C_ASSERT(FIELD_OFFSET(STRUCT(TEB), SubProcessTag) == 0xF64);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), GdiBatchCount) == 0xF70);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), TlsExpansionSlots) == 0xF94);
 C_ASSERT(FIELD_OFFSET(STRUCT(TEB), ActiveFrame) == 0xFB0);
