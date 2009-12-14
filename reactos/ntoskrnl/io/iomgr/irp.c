@@ -1627,7 +1627,7 @@ IoGetRequestorSessionId(IN PIRP Irp,
                         OUT PULONG pSessionId)
 {
     /* Return the session */
-    *pSessionId = IoGetRequestorProcess(Irp)->Session;
+    *pSessionId = (ULONG_PTR)IoGetRequestorProcess(Irp)->Session;
     return STATUS_SUCCESS;
 }
 
