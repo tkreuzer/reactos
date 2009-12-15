@@ -45,6 +45,12 @@
 #include "sqltypes.h"
 #include "sqlext.h"
 
+#undef TRACE_ON
+
+#include "wine/debug.h"
+#include "wine/library.h"
+#include "wine/unicode.h"
+
 #include "proxyodbc.h"
 
 static BOOL ODBC_LoadDriverManager(void);
