@@ -633,7 +633,7 @@ typedef struct _GROUP_AFFINITY {
 #define Int64ShrlMod32(a,b) ((DWORDLONG)(a)>>(b))
 
 /* C_ASSERT Definition */
-#define C_ASSERT(expr) extern char (*c_assert(void)) [(expr) ? 1 : -1]
+#define C_ASSERT(exp) char __c_assert_p(char c_assert[(exp)?1:-1])
 
 /*  Primary language IDs. */
 #define LANG_NEUTRAL                     0x00

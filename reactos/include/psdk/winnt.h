@@ -235,7 +235,7 @@ typedef BYTE FCHAR;
 typedef WORD FSHORT;
 typedef DWORD FLONG;
 
-#define C_ASSERT(exp) extern char __c_assert__[exp ? 1 : -1];
+#define C_ASSERT(exp) char __c_assert_p(char c_assert[(exp)?1:-1])
 
 #include "intrin.h"
 
