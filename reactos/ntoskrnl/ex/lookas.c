@@ -72,10 +72,6 @@ ExInitPoolLookasidePointers(VOID)
         InitializeSListHead(&Entry->ListHead);
 
         /* Bind to PRCB */
-#ifdef _M_AMD64
-    DPRINT1("Something is missing here, Prcb = %p\n", Prcb);
- // FIXME
-#else
         Prcb->PPNPagedLookasideList[i].P = Entry;
         Prcb->PPNPagedLookasideList[i].L = Entry;
 
