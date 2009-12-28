@@ -4,6 +4,7 @@
  * FILE:            halx86/generic/misc.c
  * PURPOSE:         NMI, I/O Mapping and x86 Subs
  * PROGRAMMERS:     ReactOS Portable Systems Group
+ *                  Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
 /* INCLUDES *******************************************************************/
@@ -14,6 +15,7 @@
 
 /* GLOBALS  *******************************************************************/
 
+LARGE_INTEGER HalpPerformanceFrequency;
 BOOLEAN HalpNMIInProgress;
 
 UCHAR HalpSerialLen;
@@ -398,3 +400,23 @@ KeReleaseSpinLock(PKSPIN_LOCK SpinLock,
 
 #endif
 
+
+LARGE_INTEGER
+NTAPI
+KeQueryPerformanceCounter(
+    OUT PLARGE_INTEGER PerformanceFrequency OPTIONAL)
+{
+    LARGE_INTEGER Result;
+
+    ASSERT(HalpPerformanceFrequency.QuadPart != 0);
+
+    /* Does the caller want the frequency? */
+    if (PerformanceFrequency)
+    {
+        /* Return value */
+        *PerformanceFrequency = HalpPerformanceFrequency;
+    }
+
+    Result.QuadPart = __rdtsc();
+    return Result;
+}
