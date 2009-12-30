@@ -281,5 +281,47 @@ HalSetTimeIncrement(
     IN ULONG Increment
 );
 
+// x86 BIOS emulator
+#ifdef _X86BIOS_
+NTSTATUS
+NTAPI
+x86BiosAllocateBuffer (
+    ULONG *Size,
+    USHORT *Segment,
+    USHORT *Offset
+);
+
+BOOLEAN
+NTAPI
+x86BiosCall (
+    ULONG InterruptNumber,
+    X86_BIOS_REGISTERS *Registers
+);
+
+NTSTATUS
+NTAPI
+x86BiosFreeBuffer (
+    USHORT Segment,
+    USHORT Offset
+);
+
+NTSTATUS
+x86BiosReadMemory (
+    USHORT Segment,
+    USHORT Offset,
+    PVOID Buffer,
+    ULONG Size
+);
+
+NTSTATUS
+NTAPI
+x86BiosWriteMemory (
+    USHORT Segment,
+    USHORT Offset,
+    PVOID Buffer,
+    ULONG Size
+);
+#endif
+
 #endif
 #endif
