@@ -18,7 +18,6 @@ _HalpLastPerfCounterHigh:   .long 0
 _HalpPerfCounter:
 _HalpPerfCounterLow:        .long 0
 _HalpPerfCounterHigh:       .long 0
-_HalpSystemHardwareFlags:   .long 0
 
 _UnhandledMsg:
     .asciz "\n\x7\x7!!! Unhandled or Unexpected Code at line: %lx!!!\n"
