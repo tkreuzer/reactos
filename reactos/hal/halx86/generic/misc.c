@@ -213,6 +213,62 @@ HalpFlushTLB(VOID)
     __writeeflags(Flags);
 }
 
+#ifdef _M_AMD64
+VOID
+NTAPI
+HalpInitIdtEntry(PKIDTENTRY64 Idt, PVOID Address)
+{
+    Idt->OffsetLow = (ULONG_PTR)Address & 0xffff;
+    Idt->OffsetMiddle = ((ULONG_PTR)Address >> 16) & 0xffff;
+    Idt->OffsetHigh = (ULONG_PTR)Address >> 32;
+    Idt->Selector = KGDT_64_R0_CODE;
+    Idt->IstIndex = 0;
+    Idt->Type = 0x0e;
+    Idt->Dpl = 0;
+    Idt->Present = 1;
+    Idt->Reserved0 = 0;
+    Idt->Reserved1 = 0;
+}
+
+VOID
+NTAPI
+HalpSetInterruptGate(ULONG Index, PVOID Address)
+{
+    ULONG_PTR Flags;
+
+    /* Disable interupts */
+    Flags = __readeflags();
+    _disable();
+
+    /* Initialize the entry */
+    HalpInitIdtEntry(&KeGetPcr()->IdtBase[Index], Address);
+
+    /* Enable interrupts if they were enabled previously */
+    __writeeflags(Flags);
+}
+#else
+VOID
+NTAPI
+HalpSetInterruptGate(ULONG Index, PVOID address)
+{
+  KIDTENTRY *idt;
+  KIDT_ACCESS Access;
+
+  /* Set the IDT Access Bits */
+  Access.Reserved = 0;
+  Access.Present = 1;
+  Access.Dpl = 0; /* Kernel-Mode */
+  Access.SystemSegmentFlag = 0;
+  Access.SegmentType = I386_INTERRUPT_GATE;
+  
+  idt = (KIDTENTRY*)((ULONG)KeGetPcr()->IDT + index * sizeof(KIDTENTRY));
+  idt->Offset = (USHORT)((ULONG_PTR)address & 0xffff);
+  idt->Selector = KGDT_R0_CODE;
+  idt->Access = Access.Value;
+  idt->ExtendedOffset = (USHORT)((ULONG_PTR)address >> 16);
+}
+#endif
+
 /* FUNCTIONS *****************************************************************/
 
 /*
