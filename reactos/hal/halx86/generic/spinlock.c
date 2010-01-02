@@ -4,6 +4,7 @@
  * FILE:            hal/halx86/up/spinlock.c
  * PURPOSE:         Spinlock and Queued Spinlock Support
  * PROGRAMMERS:     Alex Ionescu (alex.ionescu@reactos.org)
+ *                  Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
 /* INCLUDES ******************************************************************/
