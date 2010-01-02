@@ -62,8 +62,8 @@ KxAcquireSpinLock(IN PKSPIN_LOCK SpinLock)
         /* It's locked... spin until it's unlocked */
         while (*(volatile KSPIN_LOCK *)SpinLock & 1)
         {
-                /* Yield and keep looping */
-                YieldProcessor();
+            /* Yield and keep looping */
+            YieldProcessor();
         }
 #endif
     }
