@@ -14,6 +14,8 @@
 #define NDEBUG
 #include <debug.h>
 
+extern ULONG64 InterruptDispatchTable[256];
+
 /* GLOBALS *******************************************************************/
 
 KIDT_INIT KiInterruptInitTable[] =
@@ -72,7 +74,7 @@ KeInitExceptions(VOID)
         }
         else
         {
-            Offset = (ULONG64)KiUnexpectedInterrupt;
+            Offset = (ULONG64)&InterruptDispatchTable[i];
             KiIdt[i].Dpl = 0;
         }
         KiIdt[i].OffsetLow = Offset & 0xffff;
