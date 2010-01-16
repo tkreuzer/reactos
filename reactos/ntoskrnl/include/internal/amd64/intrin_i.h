@@ -70,10 +70,10 @@ KiInitGdtEntry(PKGDTENTRY64 Entry, ULONG64 Base, ULONG Size, UCHAR Type, UCHAR D
     : /* no outputs */ \
     : "m" (X));
 
-#define Ke386SetGlobalDescriptorTable(X) \
-    __asm__("lgdt %0\n\t" \
-    : /* no outputs */ \
-    : "m" (X));
+static __inline__ __attribute__((always_inline)) void __lldt(unsigned short Value)
+{
+	__asm__ __volatile__("lldt %0" : : "rm"(Value));
+}
 
 #define Ke386GetGlobalDescriptorTable(X) \
     __asm__("sgdt %0\n\t" \
