@@ -599,7 +599,7 @@ KdbpCmdDisassembleX(
         while (Count > 0)
         {
             if (!KdbSymPrintAddress((PVOID)Address))
-                KdbpPrint("<%x>:", Address);
+                KdbpPrint("<%p>:", Address);
             else
                 KdbpPrint(":");
 
@@ -625,7 +625,7 @@ KdbpCmdDisassembleX(
         while (Count-- > 0)
         {
             if (!KdbSymPrintAddress((PVOID)Address))
-                KdbpPrint("<%x>: ", Address);
+                KdbpPrint("<%p>: ", Address);
             else
                 KdbpPrint(": ");
 
@@ -2780,7 +2780,7 @@ KdbpReadCommand(
             NextKey = '\0';
         }
 
-        if ((ULONG)(Buffer - Orig) >= (Size - 1))
+        if ((ULONG_PTR)(Buffer - Orig) >= (Size - 1))
         {
             /* Buffer is full, accept only newlines */
             if (Key != '\n')
