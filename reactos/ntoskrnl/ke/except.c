@@ -167,6 +167,8 @@ KiRaiseException(IN PEXCEPTION_RECORD ExceptionRecord,
 
 /* SYSTEM CALLS ***************************************************************/
 
+#ifndef _M_AMD64
+
 NTSTATUS
 NTAPI
 NtRaiseException(IN PEXCEPTION_RECORD ExceptionRecord,
@@ -241,5 +243,6 @@ NtContinue(IN PCONTEXT Context,
     /* We don't actually make it here */
     return Status;
 }
+#endif
 
 /* EOF */
