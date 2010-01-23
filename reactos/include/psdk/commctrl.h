@@ -2447,6 +2447,9 @@ extern "C" {
 #define LVM_SETITEMPOSITION (LVM_FIRST+15)
 #define ListView_SetItemPosition(hwndLV,i,x,y) (WINBOOL)SNDMSG((hwndLV),LVM_SETITEMPOSITION,(WPARAM)(int)(i),MAKELPARAM((x),(y)))
 
+#define TreeView_EnsureVisible(hwnd, hitem) \
+    (BOOL)SNDMSG((hwnd), TVM_ENSUREVISIBLE, 0, (LPARAM)(hitem))
+
 #define LVM_GETITEMPOSITION (LVM_FIRST+16)
 #define ListView_GetItemPosition(hwndLV,i,ppt) (WINBOOL)SNDMSG((hwndLV),LVM_GETITEMPOSITION,(WPARAM)(int)(i),(LPARAM)(POINT *)(ppt))
 
