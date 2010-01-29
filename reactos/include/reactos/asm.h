@@ -129,7 +129,6 @@ ENDM
     .set cfa_current_offset, cfa_current_offset - \size
 .endm
 
-code = 1
 .macro .pushframe param=0
     .if (\param)
         .cfi_adjust_cfa_offset 0x30
@@ -167,8 +166,9 @@ code = 1
 .macro UNIMPLEMENTED2 file, line, func
 
     jmp 3f
+    .equ expr, 12
 1:  .asciz "\func"
-2:  .asciz \file
+2:  .asciz "\file"
 3:
     sub rsp, 0x20
     lea rcx, MsgUnimplemented[rip]
