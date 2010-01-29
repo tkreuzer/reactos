@@ -19,11 +19,12 @@ ULONG KeTimeAdjustment;
 
 /* FUNCTIONS ******************************************************************/
 
+#ifdef _M_IX86
 VOID
 FASTCALL
 KeUpdateSystemTime(IN PKTRAP_FRAME TrapFrame,
-                   IN ULONG Increment,
-                   IN KIRQL Irql)                   
+                   IN KIRQL Irql,
+                   IN ULONG Increment)
 {
     PKPRCB Prcb = KeGetCurrentPrcb();
     ULARGE_INTEGER CurrentTime, InterruptTime;
@@ -128,7 +129,7 @@ KeUpdateRunTime(IN PKTRAP_FRAME TrapFrame,
     Prcb->InterruptCount++;
     
     /* Check if we came from user mode */
-#if !defined(_M_ARM) && !defined(_M_AMD64)
+#if defined(_M_IX86)
     if ((TrapFrame->SegCs & MODE_MASK) || (TrapFrame->EFlags & EFLAGS_V86_MASK))
 #else
     if (TrapFrame->PreviousMode == UserMode)
