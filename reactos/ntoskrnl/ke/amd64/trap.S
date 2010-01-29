@@ -8,8 +8,8 @@
 
 /* INCLUDES ******************************************************************/
 
-//#include <asm.h>
-#include <ndk/amd64/asmmacro.S>
+#include <reactos/asm.h>
+#include <ndk/amd64/asm.h>
 
 /* GLOBALS *******************************************************************/
 
