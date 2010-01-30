@@ -163,10 +163,11 @@ ENDM
 .macro .endprolog
 .endm
 
-.macro UNIMPLEMENTED2 file, line, func
+// Note the file1. This is a hack, as "\file" doesn't work with __FILE__, when
+// .altmacro is specified.
+.macro UNIMPLEMENTED2 file1, line, func
 
     jmp 3f
-    .equ expr, 12
 1:  .asciz "\func"
 2:  .asciz "\file"
 3:
