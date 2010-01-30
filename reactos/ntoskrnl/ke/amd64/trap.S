@@ -12,7 +12,7 @@
 #include <ndk/amd64/asm.h>
 
 EXTERN _KiDispatchException:PROC
-EXTERN _FrLdrDbgPrint:PROC
+EXTERN _FrLdrDbgPrint:DWORD
 EXTERN _KeBugCheckWithTf:PROC
 EXTERN _MmAccessFault:PROC
 
@@ -46,16 +46,16 @@ _MsgTrapInfo:
 .ascii "Trap: %s at %p\n\0"
 
 MACRO(TRAPINFO, func)
+LOCAL label1, label2
 #if 0
-    jmp 2f
-    .equ expr, 12
-1:  .asciz "\func"
-2:
+    jmp label2
+label1:  .asciz "\func"
+label2:
     sub rsp, 32
     lea rcx, RIP(_MsgTrapInfo)
     lea rdx, 1b[rip]
     mov r8, [rbp + KTRAP_FRAME_Rip]
-    call _FrLdrDbgPrint[rip]
+    call qword ptr RIP(_FrLdrDbgPrint)
     add rsp, 32
 #endif
 ENDM
@@ -87,6 +87,7 @@ ENDM
  * ENTER_TRAP_FRAME - Allocate SIZE_KTRAP_FRAME and save registers to it
  */
 MACRO(ENTER_TRAP_FRAME, Flags)
+LOCAL dont_swap
     SIZE_INITIAL_FRAME = 7 * 8
     SIZE_TRAP_FRAME_ALLOC = SIZE_KTRAP_FRAME - SIZE_INITIAL_FRAME
     TRAPFLAGS = VAL(Flags)
@@ -146,9 +147,9 @@ endif
     mov ax, [rbp + KTRAP_FRAME_SegCs]
     and al, 1
     mov [rbp + KTRAP_FRAME_PreviousMode], al
-    jz 1f
+    jz dont_swap
     swapgs
-1:
+dont_swap:
 
     /* Save previous irql */
     mov rax, cr8
@@ -190,7 +191,7 @@ ENDM
  *  LEAVE_TRAP_FRAME - Restore registers and free stack space
  */
 MACRO(LEAVE_TRAP_FRAME)
-
+LOCAL dont_swap_back
 if (TRAPFLAGS AND TRAPFLAG_SEGMENTS)
     /* Restore segment selectors */
     mov ax, [rbp + KTRAP_FRAME_SegDs]
@@ -202,9 +203,9 @@ if (TRAPFLAGS AND TRAPFLAG_SEGMENTS)
 endif
 
     test byte ptr [rbp + KTRAP_FRAME_PreviousMode], 1
-    jz 1f
+    jz dont_swap_back
     swapgs
-1:
+dont_swap_back:
 
 if (TRAPFLAGS AND TRAPFLAG_NONVOLATILES)
     /* Restore non-volatile registers */
@@ -331,7 +332,7 @@ _InternalDispatchException:
 
 PUBLIC _KiDivideErrorFault
 .PROC _KiDivideErrorFault
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -344,7 +345,7 @@ PUBLIC _KiDivideErrorFault
 
 PUBLIC _KiDebugTrapOrFault
 .PROC _KiDebugTrapOrFault
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -378,7 +379,7 @@ KiDebugTrapOrFaultKMode:
 
 PUBLIC _KiNmiInterrupt
 .PROC _KiNmiInterrupt
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -391,7 +392,7 @@ PUBLIC _KiNmiInterrupt
 
 PUBLIC _KiBreakpointTrap
 .PROC _KiBreakpointTrap
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -423,7 +424,7 @@ PUBLIC _KiBreakpointTrap
 
 PUBLIC _KiOverflowTrap
 .PROC _KiOverflowTrap
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -435,7 +436,7 @@ PUBLIC _KiOverflowTrap
 
 PUBLIC _KiBoundFault
 .PROC _KiBoundFault
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -454,7 +455,7 @@ PUBLIC _KiBoundFault
 
 PUBLIC _KiInvalidOpcodeFault
 .PROC _KiInvalidOpcodeFault
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -468,7 +469,7 @@ PUBLIC _KiInvalidOpcodeFault
 
     mov rdx, [rbp + KTRAP_FRAME_Rip]
     lea rcx, RIP(_MsgInvalidOpcodeFault)
-    call RIP(_FrLdrDbgPrint)
+    call qword ptr RIP(_FrLdrDbgPrint)
     jmp $
 
     /* Return */
@@ -478,7 +479,7 @@ PUBLIC _KiInvalidOpcodeFault
 
 PUBLIC _KiNpxNotAvailableFault
 .PROC _KiNpxNotAvailableFault
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -491,7 +492,7 @@ PUBLIC _KiNpxNotAvailableFault
 
 PUBLIC _KiDoubleFaultAbort
 .PROC _KiDoubleFaultAbort
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -502,7 +503,7 @@ PUBLIC _KiDoubleFaultAbort
     lea rcx, RIP(_MsgDoubleFault)
     mov rdx, [rbp + KTRAP_FRAME_FaultAddress]
     mov r8, rbp
-    call RIP(_FrLdrDbgPrint)
+    call qword ptr RIP(_FrLdrDbgPrint)
 
     /* Bugcheck code UNEXPECTED_KERNEL_MODE_TRAP */
     mov rcx, HEX(0000007F)
@@ -520,7 +521,7 @@ PUBLIC _KiDoubleFaultAbort
 
 PUBLIC _KiNpxSegmentOverrunAbort
 .PROC _KiNpxSegmentOverrunAbort
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -533,7 +534,7 @@ PUBLIC _KiNpxSegmentOverrunAbort
 
 PUBLIC _KiInvalidTssFault
 .PROC _KiInvalidTssFault
-    .pushframe 1
+    .pushframe code
     /* We have an error code */
     .endprolog
 
@@ -544,7 +545,7 @@ PUBLIC _KiInvalidTssFault
 
 PUBLIC _KiSegmentNotPresentFault
 .PROC _KiSegmentNotPresentFault
-    .pushframe 1
+    .pushframe
     /* We have an error code */
     .endprolog
 
@@ -555,7 +556,7 @@ PUBLIC _KiSegmentNotPresentFault
 
 PUBLIC _KiStackFault
 .PROC _KiStackFault
-    .pushframe 1
+    .pushframe code
     /* We have an error code */
     .endprolog
 
@@ -566,7 +567,7 @@ PUBLIC _KiStackFault
 
 PUBLIC _KiGeneralProtectionFault
 .PROC _KiGeneralProtectionFault
-    .pushframe 1
+    .pushframe code
     /* We have an error code */
     .endprolog
 
@@ -577,7 +578,7 @@ PUBLIC _KiGeneralProtectionFault
 
     mov rdx, [rbp + KTRAP_FRAME_Rip]
     lea rcx, RIP(_MsgGeneralProtFault)
-    call RIP(_FrLdrDbgPrint)
+    call qword ptr RIP(_FrLdrDbgPrint)
 
     /* Check if this was from user-mode */
     cmp byte ptr [rbp + KTRAP_FRAME_PreviousMode], KernelMode
@@ -679,7 +680,7 @@ KiGpfExit:
 
 PUBLIC _KiPageFault
 .PROC _KiPageFault
-    .pushframe 1
+    .pushframe code
     /* We have an error code */
     .endprolog
 
@@ -692,7 +693,7 @@ PUBLIC _KiPageFault
     mov rdx, [rbp + KTRAP_FRAME_ErrorCode]
     mov r8, [rbp + KTRAP_FRAME_Rip]
     mov r9, [rbp + KTRAP_FRAME_FaultAddress]
-    call RIP(_FrLdrDbgPrint)
+    call qword ptr RIP(_FrLdrDbgPrint)
 #endif
 
     /* Save page fault address */
@@ -749,7 +750,7 @@ PageFaultReturn:
 
 PUBLIC _KiFloatingErrorFault
 .PROC _KiFloatingErrorFault
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -762,7 +763,7 @@ PUBLIC _KiFloatingErrorFault
 
 PUBLIC _KiAlignmentFault
 .PROC _KiAlignmentFault
-    .pushframe 1
+    .pushframe code
     /* We have an error code */
     .endprolog
 
@@ -773,7 +774,7 @@ PUBLIC _KiAlignmentFault
 
 PUBLIC _KiMcheckAbort
 .PROC _KiMcheckAbort
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -786,7 +787,7 @@ PUBLIC _KiMcheckAbort
 
 PUBLIC _KiXmmException
 .PROC _KiXmmException
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -799,7 +800,7 @@ PUBLIC _KiXmmException
 
 PUBLIC _KiApcInterrupt
 .PROC _KiApcInterrupt
-    .pushframe 1
+    .pushframe code
     .endprolog
 
     UNIMPLEMENTED KiApcInterrupt
@@ -809,7 +810,7 @@ PUBLIC _KiApcInterrupt
 
 PUBLIC _KiRaiseAssertion
 .PROC _KiRaiseAssertion
-    .pushframe 1
+    .pushframe code
     .endprolog
 
     UNIMPLEMENTED KiRaiseAssertion
@@ -819,7 +820,7 @@ PUBLIC _KiRaiseAssertion
 
 PUBLIC _KiDebugServiceTrap
 .PROC _KiDebugServiceTrap
-    .pushframe 0
+    .pushframe
     /* Push pseudo error code */
     push 0
     .allocstack 8
@@ -858,7 +859,7 @@ PUBLIC _KiDebugServiceTrap
 
 PUBLIC _KiDpcInterrupt
 .PROC _KiDpcInterrupt
-    .pushframe 1
+    .pushframe code
     .endprolog
 
     UNIMPLEMENTED KiDpcInterrupt
@@ -868,7 +869,7 @@ PUBLIC _KiDpcInterrupt
 
 PUBLIC _KiIpiInterrupt
 .PROC _KiIpiInterrupt
-    .pushframe 1
+    .pushframe code
     .endprolog
 
     UNIMPLEMENTED KiIpiInterrupt
@@ -878,7 +879,7 @@ PUBLIC _KiIpiInterrupt
 
 PUBLIC _KiUnexpectedInterrupt
 .PROC _KiUnexpectedInterrupt
-    .pushframe 0
+    .pushframe
     .endprolog
 
     /* The error code is the vector */
