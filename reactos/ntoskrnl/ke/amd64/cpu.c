@@ -356,7 +356,7 @@ Ki386InitializeTss(IN PKTSS Tss,
     PKGDTENTRY64 TssEntry;
 
     /* Get pointer to the GDT entry */
-    TssEntry = KiGetGdtEntry(KeGetPcr()->GdtBase, KGDT_TSS);
+    TssEntry = KiGetGdtEntry(KeGetPcr()->GdtBase, KGDT64_SYS_TSS);
 
     /* Initialize the GDT entry */
     KiInitGdtEntry(TssEntry, (ULONG64)Tss, sizeof(KTSS64), AMD64_TSS, 0);
@@ -380,7 +380,7 @@ Ki386InitializeTss(IN PKTSS Tss,
     Tss->Ist[3] = (ULONG64)KiDoubleFaultStack;
 
     /* Load the task register */
-    __ltr(KGDT_TSS);
+    __ltr(KGDT64_SYS_TSS);
 }
 
 VOID
