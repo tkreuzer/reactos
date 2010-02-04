@@ -1,8 +1,8 @@
 /*
  * COPYRIGHT:         See COPYING in the top level directory
  * PROJECT:           ReactOS system libraries
- * PURPOSE:           Implementation of log10
- * FILE:              lib/sdk/crt/math/amd64/log10.S
+ * PURPOSE:           Implementation of alldiv
+ * FILE:              lib/sdk/crt/math/amd64/alldiv.S
  * PROGRAMMER:        Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
@@ -13,8 +13,16 @@
 
 /* DATA *********************************************************************/
 
-PUBLIC log10
-log10:
-    UNIMPLEMENTED log10
+PUBLIC _fltused
+_fltused:
+        .long 0x9875
+
+/* FUNCTIONS ****************************************************************/
+
+.code64
+
+.proc alldiv
+    UNIMPLEMENTED alldiv
     ret
 
+.endp alldiv
