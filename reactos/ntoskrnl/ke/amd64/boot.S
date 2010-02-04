@@ -8,15 +8,16 @@
 
 /* INCLUDES ******************************************************************/
 
-#include <asm.h>
-.intel_syntax noprefix
-.code64
+#include <reactos/asm.h>
+#include <ndk/amd64/asm.h>
+
 
 /* GLOBALS *******************************************************************/
 
 
 /* FUNCTIONS *****************************************************************/
 .global _KiSystemStartup
+.code64
 .text
 .func KiSystemStartup
 _KiSystemStartup:
@@ -39,9 +40,8 @@ _KiSystemStartup:
  *               esp+20 -> rsp + 8
  *               esp+24 -> rsp + 16?
  */
-.globl _KiSetupStackAndInitializeKernel
-.func KiSetupStackAndInitializeKernel
-_KiSetupStackAndInitializeKernel:
+PUBLIC KiSetupStackAndInitializeKernel
+.PROC KiSetupStackAndInitializeKernel
 
     /* Save current stack */
     mov rsi, rsp

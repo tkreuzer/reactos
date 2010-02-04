@@ -1,8 +1,8 @@
 /*
  * COPYRIGHT:         See COPYING in the top level directory
  * PROJECT:           ReactOS system libraries
- * PURPOSE:           Implementation of log10
- * FILE:              lib/sdk/crt/math/amd64/log10.S
+ * PURPOSE:           Implementation of pow
+ * FILE:              lib/sdk/crt/math/amd64/pow.S
  * PROGRAMMER:        Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
@@ -13,8 +13,8 @@
 
 /* DATA *********************************************************************/
 
-PUBLIC log10
-log10:
-    UNIMPLEMENTED log10
+PUBLIC pow
+pow:
+    UNIMPLEMENTED pow
     ret
 
