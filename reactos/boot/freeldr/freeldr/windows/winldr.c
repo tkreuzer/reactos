@@ -264,7 +264,10 @@ WinLdrLoadDeviceDriver(PLOADER_PARAMETER_BLOCK LoaderBlock,
 	_snprintf(FullPath, sizeof(FullPath), "%s%wZ", BootPath, FilePath);
 	Status = WinLdrLoadImage(FullPath, LoaderBootDriver, &DriverBase);
 	if (!Status)
+	{
+		DPRINTM(DPRINT_WINDOWS, "WinLdrLoadImage() failed\n");
 		return FALSE;
+	}
 
 	// Allocate a DTE for it
 	Status = WinLdrAllocateDataTableEntry(LoaderBlock, DllName, DllName, DriverBase, DriverDTE);
@@ -318,6 +321,7 @@ WinLdrLoadBootDrivers(PLOADER_PARAMETER_BLOCK LoaderBlock,
 		//FIXME: Maybe remove it from the list and try to continue?
 		if (!Status)
 		{
+			DPRINTM(DPRINT_WARNING, "Can't load boot driver: %wZ\n", &BootDriver->FilePath);
 			UiMessageBox("Can't load boot driver!");
 			return FALSE;
 		}
@@ -595,11 +599,15 @@ LoadAndBootWindows(PCSTR OperatingSystemName,
 	/* Turn on paging mode of CPU*/
 	WinLdrTurnOnPaging(LoaderBlock, PcrBasePage, TssBasePage, GdtIdt);
 
+DbgPrint("Heeelooo\n");
+
 	/* Save final value of LoaderPagesSpanned */
 	LoaderBlockVA->Extension->LoaderPagesSpanned = LoaderPagesSpanned;
 
 	DPRINTM(DPRINT_WINDOWS, "Hello from paged mode, KiSystemStartup %p, LoaderBlockVA %p!\n",
 		KiSystemStartup, LoaderBlockVA);
+
+DbgPrint("Heeelooo\n");
 
 	WinLdrpDumpMemoryDescriptors(LoaderBlockVA);
 	WinLdrpDumpBootDriver(LoaderBlockVA);
