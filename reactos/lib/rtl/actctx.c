@@ -244,23 +244,23 @@ static UNICODE_STRING xmlstr2unicode(const xmlstr_t *xmlstr)
     return res;
 }
 
-static inline BOOL xmlstr_cmp(const xmlstr_t* xmlstr, const WCHAR *str)
+static __inline BOOL xmlstr_cmp(const xmlstr_t* xmlstr, const WCHAR *str)
 {
     return !strncmpW(xmlstr->ptr, str, xmlstr->len) && !str[xmlstr->len];
 }
 
-static inline BOOL xmlstr_cmpi(const xmlstr_t* xmlstr, const WCHAR *str)
+static __inline BOOL xmlstr_cmpi(const xmlstr_t* xmlstr, const WCHAR *str)
 {
     return !strncmpiW(xmlstr->ptr, str, xmlstr->len) && !str[xmlstr->len];
 }
 
-static inline BOOL xmlstr_cmp_end(const xmlstr_t* xmlstr, const WCHAR *str)
+static __inline BOOL xmlstr_cmp_end(const xmlstr_t* xmlstr, const WCHAR *str)
 {
     return (xmlstr->len && xmlstr->ptr[0] == '/' &&
             !strncmpW(xmlstr->ptr + 1, str, xmlstr->len - 1) && !str[xmlstr->len - 1]);
 }
 
-static inline BOOL isxmlspace( WCHAR ch )
+static __inline BOOL isxmlspace( WCHAR ch )
 {
     return (ch == ' ' || ch == '\r' || ch == '\n' || ch == '\t');
 }
@@ -508,7 +508,7 @@ static WCHAR *build_assembly_dir(struct assembly_identity* ai)
     return ret;
 }
 
-static inline void append_string( WCHAR *buffer, const WCHAR *prefix, const WCHAR *str )
+static __inline void append_string( WCHAR *buffer, const WCHAR *prefix, const WCHAR *str )
 {
     WCHAR *p = buffer;
 
@@ -573,7 +573,7 @@ static ACTIVATION_CONTEXT *check_actctx( HANDLE h )
     return ret;
 }
 
-static inline void actctx_addref( ACTIVATION_CONTEXT *actctx )
+static __inline void actctx_addref( ACTIVATION_CONTEXT *actctx )
 {
     _InterlockedExchangeAdd( &actctx->ref_count, 1 );
 }
