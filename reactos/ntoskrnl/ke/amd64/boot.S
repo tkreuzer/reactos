@@ -11,6 +11,7 @@
 #include <reactos/asm.h>
 #include <ndk/amd64/asm.h>
 
+EXTERN KiInitializeKernelAndGotoIdleLoop:PROC
 
 /* GLOBALS *******************************************************************/
 
@@ -47,7 +48,7 @@ PUBLIC KiSetupStackAndInitializeKernel
     mov rsi, rsp
 
     /* Setup the new stack */
-    mov ax, 0x18
+    mov ax, HEX(18)
     mov ss, ax
     mov rsp, r8
     sub rsp, NPX_FRAME_LENGTH + KTRAP_FRAME_ALIGN + KTRAP_FRAME_LENGTH
