@@ -874,5 +874,8 @@ KeGetCurrentPrcb(VOID)
     return (struct _KPRCB *)__readgsqword(FIELD_OFFSET(KIPCR, CurrentPrcb));
 }
 
+// HACK
+extern NTKERNELAPI volatile KSYSTEM_TIME KeTickCount;
+
 #endif
 #endif
