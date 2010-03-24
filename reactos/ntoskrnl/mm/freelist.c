@@ -31,7 +31,7 @@
 PPHYSICAL_PAGE MmPfnDatabase;
 typedef union
 {
-    MMPFN Pfn;
+    MMPFN;// Pfn;
 
     struct
     {
@@ -58,16 +58,18 @@ typedef union
 
 C_ASSERT(sizeof(PHYSICAL_PAGE) == sizeof(MMPFN));
 
-#define MiGetPfnEntry(Pfn) ((PPHYSICAL_PAGE)MiGetPfnEntry(Pfn))
+//#define MiGetPfnEntry(Pfn) ((PPHYSICAL_PAGE)MiGetPfnEntry(Pfn))
 #define MiGetPfnEntryIndex(x) MiGetPfnEntryIndex((struct _MMPFN*)x)
 #define LockCount            Flags.LockCount
 
 MMPFN MmPfnDatabase;
 #define MmPfnDatabase (*(PPHYSICAL_PAGE)MmPfnDatabase)
 
-#define MMPFN PHYSICAL_PAGE
-#define PMMPFN PPHYSICAL_PAGE
+//#define MMPFN PHYSICAL_PAGE
+//#define PMMPFN PPHYSICAL_PAGE
 
+/* The first array contains ReactOS PFNs, the second contains ARM3 PFNs */
+//PPHYSICAL_PAGE MmPfnDatabase[2];
 PFN_NUMBER MmAvailablePages;
 PFN_NUMBER MmResidentAvailablePages;
 PFN_NUMBER MmResidentAvailableAtInit;
@@ -192,7 +194,7 @@ MiAllocatePagesForMdl(IN PHYSICAL_ADDRESS LowAddress,
     PFN_NUMBER PageCount, LowPage, HighPage, SkipPages, PagesFound = 0, Page;
     PPFN_NUMBER MdlPage, LastMdlPage;
     KIRQL OldIrql;
-    PPHYSICAL_PAGE Pfn1;
+    PMMPFN Pfn1;
     INT LookForZeroedPages;
     ASSERT (KeGetCurrentIrql() <= APC_LEVEL);
     
@@ -428,7 +430,7 @@ NTAPI
 MmDumpPfnDatabase(VOID)
 {
     ULONG i;
-    PPHYSICAL_PAGE Pfn1;
+    PMMPFN Pfn1;
     PCHAR State = "????", Type = "Unknown";
     KIRQL OldIrql;
     ULONG Totals[5] = {0}, FreePages = 0;
@@ -466,7 +468,7 @@ MmDumpPfnDatabase(VOID)
                  State,
                  Type,
                  Pfn1->u3.e2.ReferenceCount,
-                 Pfn1->RmapListHead);
+                 ((PPHYSICAL_PAGE)Pfn1)->RmapListHead);
     }
     
     DbgPrint("Nonpaged Pool:       %d pages\t[%d KB]\n", Totals[MC_NPPOOL], (Totals[MC_NPPOOL] << PAGE_SHIFT) / 1024);
@@ -486,7 +488,7 @@ MmSetRmapListHeadPage(PFN_NUMBER Pfn, struct _MM_RMAP_ENTRY* ListHead)
    KIRQL oldIrql;
     
    oldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
-   MiGetPfnEntry(Pfn)->RmapListHead = (LONG_PTR)ListHead;
+   ((PPHYSICAL_PAGE)MiGetPfnEntry(Pfn))->RmapListHead = (LONG_PTR)ListHead;
    KeReleaseQueuedSpinLock(LockQueuePfnLock, oldIrql);
 }
 
@@ -498,7 +500,7 @@ MmGetRmapListHeadPage(PFN_NUMBER Pfn)
    struct _MM_RMAP_ENTRY* ListHead;
     
    oldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
-   ListHead = (struct _MM_RMAP_ENTRY*)MiGetPfnEntry(Pfn)->RmapListHead;
+   ListHead = (struct _MM_RMAP_ENTRY*)((PPHYSICAL_PAGE)MiGetPfnEntry(Pfn))->RmapListHead;
    KeReleaseQueuedSpinLock(LockQueuePfnLock, oldIrql);
     
    return(ListHead);

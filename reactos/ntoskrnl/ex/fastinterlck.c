@@ -253,11 +253,11 @@ ExInterlockedPopEntryList(IN PSINGLE_LIST_ENTRY ListHead,
                           IN PKSPIN_LOCK Lock)
 {
     KIRQL OldIrql;
-    PSINGLE_LIST_ENTRY OldHead = NULL;
+    PSINGLE_LIST_ENTRY FirstEntry;
     KeAcquireSpinLock(Lock, &OldIrql);
-    OldHead = PopEntryList(ListHead);
+    FirstEntry = PopEntryList(ListHead);
     KeReleaseSpinLock(Lock, OldIrql);
-    return OldHead;
+    return FirstEntry;
 }
 
 PSINGLE_LIST_ENTRY
