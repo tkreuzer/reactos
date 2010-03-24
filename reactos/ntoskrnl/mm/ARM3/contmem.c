@@ -595,7 +595,7 @@ MmAllocateContiguousMemorySpecifyCache(IN SIZE_T NumberOfBytes,
  */
 PVOID
 NTAPI
-MmAllocateContiguousMemory(IN ULONG NumberOfBytes,
+MmAllocateContiguousMemory(IN SIZE_T NumberOfBytes,
                            IN PHYSICAL_ADDRESS HighestAcceptableAddress)
 {
     PFN_NUMBER HighestPfn;
