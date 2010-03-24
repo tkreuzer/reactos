@@ -18,7 +18,7 @@ extern PFN_NUMBER MmLowestPhysicalPage;
 extern PFN_NUMBER MmHighestPhysicalPage;
 extern PFN_NUMBER MmAvailablePages;
 extern PFN_NUMBER MmResidentAvailablePages;
-extern ULONG MmNumberOfSystemPtes;
+extern ULONG_PTR MmNumberOfSystemPtes;
 
 extern PVOID MmPagedPoolBase;
 extern SIZE_T MmPagedPoolSize;

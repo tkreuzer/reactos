@@ -33,6 +33,8 @@
 #define MI_NONPAGED_POOL_END                   (PVOID)0xFFBE0000
 #define MI_DEBUG_MAPPING                       (PVOID)0xFFBFF000
 
+#endif /* !_M_AMD64 */
+
 #define MI_MIN_SECONDARY_COLORS                 8
 #define MI_SECONDARY_COLORS                     64
 #define MI_MAX_SECONDARY_COLORS                 1024
@@ -46,6 +48,9 @@
 #define _1KB (1024)
 #define _1MB (1024 * _1KB)
 
+/* Size of a page directory, and size of a page table */
+#define PD_SIZE (PDE_COUNT * sizeof(MMPDE))
+
 /* Area mapped by a PDE */
 #define PDE_MAPPED_VA  (PTE_COUNT * PAGE_SIZE)
 
@@ -57,7 +62,11 @@
 #define PD_COUNT  1
 #define PDE_COUNT 1024
 #define PTE_COUNT 1024
-#elif _M_ARM
+#elif defined(_M_AMD64)
+#define PD_COUNT  (512 * 512)
+#define PDE_COUNT 512
+#define PTE_COUNT 512
+#elif defined(_M_ARM)
 #define PD_COUNT  1
 #define PDE_COUNT 4096
 #define PTE_COUNT 256
@@ -243,8 +252,6 @@ MmProtectToPteMask[32] =
 #define BASE_POOL_TYPE_MASK 1
 #define POOL_MAX_ALLOC (PAGE_SIZE - (sizeof(POOL_HEADER) + POOL_BLOCK_SIZE))
 
-#endif
-
 typedef struct _POOL_DESCRIPTOR
 {
     POOL_TYPE PoolType;
@@ -408,24 +415,24 @@ extern LIST_ENTRY MiLargePageDriverList;
 extern BOOLEAN MiLargePageAllDrivers;
 extern ULONG MmVerifyDriverBufferLength;
 extern ULONG MmLargePageDriverBufferLength;
-extern ULONG_PTR MmSizeOfNonPagedPoolInBytes;
-extern ULONG_PTR MmMaximumNonPagedPoolInBytes;
+extern SIZE_T MmSizeOfNonPagedPoolInBytes;
+extern SIZE_T MmMaximumNonPagedPoolInBytes;
 extern PFN_NUMBER MmMaximumNonPagedPoolInPages;
 extern PFN_NUMBER MmSizeOfPagedPoolInPages;
 extern PVOID MmNonPagedSystemStart;
 extern PVOID MmNonPagedPoolStart;
 extern PVOID MmNonPagedPoolExpansionStart;
 extern PVOID MmNonPagedPoolEnd;
-extern ULONG_PTR MmSizeOfPagedPoolInBytes;
+extern SIZE_T MmSizeOfPagedPoolInBytes;
 extern PVOID MmPagedPoolStart;
 extern PVOID MmPagedPoolEnd;
 extern PVOID MmSessionBase;
-extern ULONG_PTR MmSessionSize;
+extern SIZE_T MmSessionSize;
 extern PMMPTE MmFirstReservedMappingPte, MmLastReservedMappingPte;
 extern PMMPTE MiFirstReservedZeroingPte;
 extern MI_PFN_CACHE_ATTRIBUTE MiPlatformCacheAttributes[2][MmMaximumCacheType];
 extern PPHYSICAL_MEMORY_DESCRIPTOR MmPhysicalMemoryBlock;
-extern ULONG_PTR MmBootImageSize;
+extern SIZE_T MmBootImageSize;
 extern PMMPTE MmSystemPtesStart[MaximumPtePoolTypes];
 extern PMMPTE MmSystemPtesEnd[MaximumPtePoolTypes];
 extern PMEMORY_ALLOCATION_DESCRIPTOR MxFreeDescriptor;
@@ -438,14 +445,9 @@ extern PVOID MmPagedPoolStart;
 extern PVOID MmPagedPoolEnd;
 extern PVOID MmNonPagedSystemStart;
 extern PVOID MiSystemViewStart;
-extern ULONG_PTR MmSystemViewSize;
+extern SIZE_T MmSystemViewSize;
 extern PVOID MmSessionBase;
 extern PVOID MiSessionSpaceEnd;
-extern PMMPTE MiSessionImagePteStart;
-extern PMMPTE MiSessionImagePteEnd;
-extern PMMPTE MiSessionBasePte;
-extern PMMPTE MiSessionLastPte;
-extern ULONG_PTR MmSizeOfPagedPoolInBytes;
 extern PMMPTE MmSystemPagePtes;
 extern PVOID MmSystemCacheStart;
 extern PVOID MmSystemCacheEnd;
@@ -461,7 +463,6 @@ extern SIZE_T MmDefaultMaximumNonPagedPool;
 extern ULONG MmMaxAdditionNonPagedPoolPerMb;
 extern ULONG MmSecondaryColors;
 extern ULONG MmSecondaryColorMask;
-extern ULONG MmNumberOfSystemPtes;
 extern ULONG MmMaximumNonPagedPoolPercent;
 extern ULONG MmLargeStackSize;
 extern PMMCOLOR_TABLES MmFreePagesByColor[FreePageList + 1];
