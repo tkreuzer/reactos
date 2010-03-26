@@ -244,76 +244,15 @@ extern "C" {
 #define _W64
 #endif
 
-#ifndef _CRTIMP_NOIA64
-#ifdef __ia64__
-#define _CRTIMP_NOIA64
+#if defined(__x86__)
+#define __MINGW_USE_UNDERSCORE_PREFIX 1
 #else
-#define _CRTIMP_NOIA64 _CRTIMP
-#endif
-#endif
-
-#ifndef _CRTIMP2
-#define _CRTIMP2 _CRTIMP
+#define __MINGW_USE_UNDERSCORE_PREFIX 0
 #endif
 
-#ifndef _CRTIMP_ALTERNATIVE
-#define _CRTIMP_ALTERNATIVE _CRTIMP
-#define _CRT_ALTERNATIVE_IMPORTED
-#endif
-
-#ifndef _MRTIMP2
-#define _MRTIMP2  _CRTIMP
-#endif
-
-#ifndef _DLL
-#define _DLL
-#endif
-
-#ifndef _MT
-#define _MT
-#endif
-
-#ifndef _MCRTIMP
-#define _MCRTIMP _CRTIMP
-#endif
-
-#ifndef _CRTIMP_PURE
-#define _CRTIMP_PURE _CRTIMP
-#endif
-
-#ifndef _PGLOBAL
-#define _PGLOBAL
-#endif
-
-#ifndef _AGLOBAL
-#define _AGLOBAL
-#endif
-
-#define __STDC_SECURE_LIB__ 200411L
-#define __GOT_SECURE_LIB__ __STDC_SECURE_LIB__
-#define _SECURECRT_FILL_BUFFER_PATTERN 0xFD
-#define _CRT_DEPRECATE_TEXT(_Text) __declspec(deprecated)
-
-#ifndef _CRT_INSECURE_DEPRECATE_MEMORY
-#define _CRT_INSECURE_DEPRECATE_MEMORY(_Replacement)
-#endif
-#ifndef _CRT_INSECURE_DEPRECATE_GLOBALS
-#define _CRT_INSECURE_DEPRECATE_GLOBALS(_Replacement)
-#endif
-#ifndef _CRT_MANAGED_HEAP_DEPRECATE
-#define _CRT_MANAGED_HEAP_DEPRECATE
-#endif
-
-#ifndef _CRT_OBSOLETE
-#define _CRT_OBSOLETE(_NewItem)
-#endif
-
-#ifndef _SIZE_T_DEFINED
-#define _SIZE_T_DEFINED
-#undef size_t
-#ifdef _WIN64
-#if defined(__GNUC__) && defined(__STRICT_ANSI__)
-  typedef unsigned int size_t __attribute__ ((mode (DI)));
+#if __MINGW_USE_UNDERSCORE_PREFIX == 0
+#define __MINGW_IMP_SYMBOL(sym)	__imp_##sym
+#define __MINGW_USYMBOL(sym) sym
 #else
   typedef unsigned __int64 size_t;
 #endif
@@ -322,19 +261,21 @@ extern "C" {
 #endif
 #endif
 
-#ifndef _SSIZE_T_DEFINED
-#define _SSIZE_T_DEFINED
-#undef ssize_t
-#ifdef _WIN64
-#if defined(__GNUC__) && defined(__STRICT_ANSI__)
-  typedef int ssize_t __attribute__ ((mode (DI)));
+#if defined(__x86__)
+/* Hack, for bug in ld.  Will be removed soon.  */
+#define __ImageBase _image_base__
+/* This symbol is defined by the linker.  */
+extern char __ImageBase;
+#elif defined(__x86_64__)
+/* Hack, for bug in ld.  Will be removed soon.  */
+#define __ImageBase __image_base__
+/* This symbol is defined by the linker.  */
+extern char __ImageBase;
 #else
-  typedef __int64 ssize_t;
+#error FIXME: Unsupported __ImageBase implementation.
 #endif
-#else
-  typedef int ssize_t;
-#endif
-#endif
+
+#endif /* !_INC_MINGW */
 
 #ifndef _INTPTR_T_DEFINED
 #define _INTPTR_T_DEFINED
