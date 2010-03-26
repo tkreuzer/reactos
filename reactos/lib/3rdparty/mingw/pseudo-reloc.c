@@ -49,7 +49,6 @@
 
 extern char __RUNTIME_PSEUDO_RELOC_LIST__;
 extern char __RUNTIME_PSEUDO_RELOC_LIST_END__;
-extern char __MINGW_LSYMBOL(_image_base__);
 
 void _pei386_runtime_relocator (void);
 
@@ -365,6 +364,6 @@ _pei386_runtime_relocator (void)
   ++was_init;
   do_pseudo_reloc (&__RUNTIME_PSEUDO_RELOC_LIST__,
 		   &__RUNTIME_PSEUDO_RELOC_LIST_END__,
-		   &__MINGW_LSYMBOL(_image_base__));
+		   &__MINGW_LSYMBOL(__ImageBase));
 }
 #endif
