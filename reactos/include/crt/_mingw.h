@@ -244,11 +244,7 @@ extern "C" {
 #define _W64
 #endif
 
-#if defined(__x86__)
-#define __MINGW_USE_UNDERSCORE_PREFIX 1
-#else
-#define __MINGW_USE_UNDERSCORE_PREFIX 0
-#endif
+#include "_mingw_mac.h"
 
 #if __MINGW_USE_UNDERSCORE_PREFIX == 0
 #define __MINGW_IMP_SYMBOL(sym)	__imp_##sym
