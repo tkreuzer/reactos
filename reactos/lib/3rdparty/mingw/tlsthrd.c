@@ -47,7 +47,7 @@ ___w64_mingwthr_add_key_dtor (DWORD key, void (*dtor)(void *))
   new_key = (__mingwthr_key_t *) calloc (1, sizeof (__mingwthr_key_t));
   if (new_key == NULL)
     return -1;
-
+  
   new_key->key = key;
   new_key->dtor = dtor;
 
