@@ -28,6 +28,15 @@
 
 extern BOOL __mingw_TLScallback (HANDLE hDllHandle, DWORD reason, LPVOID reserved);
 
+#ifndef __INTERNAL_FUNC_DEFINED
+#define __INTERNAL_FUNC_DEFINED
+  typedef void (__cdecl *_PVFV)(void);
+  typedef int (__cdecl *_PIFV)(void);
+  typedef void (__cdecl *_PVFI)(int);
+#endif
+
+extern WINBOOL __mingw_TLScallback (HANDLE hDllHandle, DWORD reason, LPVOID reserved);
+
 #define FUNCS_PER_NODE 30
 
 typedef struct TlsDtorNode {

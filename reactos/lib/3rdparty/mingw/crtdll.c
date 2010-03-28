@@ -151,10 +151,10 @@ WINBOOL WINAPI _CRT_INIT (HANDLE hDllHandle, DWORD dwReason, LPVOID lpreserved)
 
 static WINBOOL __DllMainCRTStartup (HANDLE, DWORD, LPVOID);
 
-BOOL WINAPI DllMainCRTStartup (HANDLE, DWORD, LPVOID);
+WINBOOL WINAPI DllMainCRTStartup (HANDLE, DWORD, LPVOID);
 int __mingw_init_ehandler (void);
 
-BOOL WINAPI
+WINBOOL WINAPI
 DllMainCRTStartup (HANDLE hDllHandle, DWORD dwReason, LPVOID lpreserved)
 {
   mingw_app_type = 0;

@@ -15,8 +15,6 @@
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 */
 
-/* Only necesary on x86 and amd64 targets */
-#if defined(__i386__) || defined(__x86_64__)
 
 #include <windows.h>
 #include <stdio.h>
@@ -49,6 +47,7 @@
 
 extern char __RUNTIME_PSEUDO_RELOC_LIST__;
 extern char __RUNTIME_PSEUDO_RELOC_LIST_END__;
+extern char __MINGW_LSYMBOL(_image_base__);
 
 void _pei386_runtime_relocator (void);
 
@@ -260,7 +259,8 @@ do_pseudo_reloc (void * start, void * end, void * base)
 	{
 	  DWORD newval;
 	  reloc_target = (ptrdiff_t) base + o->target;
-	  *((DWORD*) reloc_target) += o->addend;
+	  newval = (*((DWORD*) reloc_target)) + o->addend;
+	  __write_memory ((void *) reloc_target, &newval, sizeof(DWORD));
 	}
       return;
     }
@@ -338,17 +338,17 @@ do_pseudo_reloc (void * start, void * end, void * base)
       switch ((r->flags & 0xff))
 	{
          case 8:
-	   *((unsigned char*)reloc_target)=(unsigned char) reldata;
+           __write_memory ((void *) reloc_target, &reldata, 1);
 	   break;
 	 case 16:
-	   *((unsigned short*)reloc_target)=(unsigned short) reldata;
+           __write_memory ((void *) reloc_target, &reldata, 2);
 	   break;
 	 case 32:
-	   *((unsigned int*)reloc_target)=(unsigned int) reldata;
+           __write_memory ((void *) reloc_target, &reldata, 4);
 	   break;
 #ifdef _WIN64
 	 case 64:
-	   *((unsigned long long*)reloc_target)=(unsigned long long) reldata;
+           __write_memory ((void *) reloc_target, &reldata, 8);
 	   break;
 #endif
 	}
@@ -364,6 +364,5 @@ _pei386_runtime_relocator (void)
   ++was_init;
   do_pseudo_reloc (&__RUNTIME_PSEUDO_RELOC_LIST__,
 		   &__RUNTIME_PSEUDO_RELOC_LIST_END__,
-		   &__MINGW_LSYMBOL(__ImageBase));
+		   &__MINGW_LSYMBOL(_image_base__));
 }
-#endif
