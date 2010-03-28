@@ -58,6 +58,7 @@ typedef union
 
 C_ASSERT(sizeof(PHYSICAL_PAGE) == sizeof(MMPFN));
 
+#define MiInsertInListTail(x, y) MiInsertInListTail(x, (PMMPFN)y)
 //#define MiGetPfnEntry(Pfn) ((PPHYSICAL_PAGE)MiGetPfnEntry(Pfn))
 #define MiGetPfnEntryIndex(x) MiGetPfnEntryIndex((struct _MMPFN*)x)
 #define LockCount            Flags.LockCount
@@ -544,7 +545,7 @@ MmReferencePage(PFN_NUMBER Pfn)
       return;
    }
 
-   Page = MiGetPfnEntry(Pfn);
+   Page = (PVOID)MiGetPfnEntry(Pfn);
    ASSERT(Page);
 
    Page->u3.e2.ReferenceCount++;
@@ -561,7 +562,7 @@ MmGetReferenceCountPage(PFN_NUMBER Pfn)
    DPRINT("MmGetReferenceCountPage(PhysicalAddress %x)\n", Pfn << PAGE_SHIFT);
 
    oldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
-   Page = MiGetPfnEntry(Pfn);
+   Page = (PVOID)MiGetPfnEntry(Pfn);
    ASSERT(Page);
 
    RCount = Page->u3.e2.ReferenceCount;
@@ -593,7 +594,7 @@ MmDereferencePage(PFN_NUMBER Pfn)
 
    DPRINT("MmDereferencePage(PhysicalAddress %x)\n", Pfn << PAGE_SHIFT);
 
-   Page = MiGetPfnEntry(Pfn);
+   Page = (PVOID)MiGetPfnEntry(Pfn);
    ASSERT(Page);
 
    Page->u3.e2.ReferenceCount--;
@@ -654,13 +655,13 @@ MmAllocPage(ULONG Type)
          DPRINT1("MmAllocPage(): Out of memory\n");
          return 0;
       }
-      PageDescriptor = MiRemoveHeadList(&MmFreePageListHead);
+      PageDescriptor = (PVOID)MiRemoveHeadList(&MmFreePageListHead);
 
       NeedClear = TRUE;
    }
    else
    {
-      PageDescriptor = MiRemoveHeadList(&MmZeroedPageListHead);
+      PageDescriptor = (PVOID)MiRemoveHeadList(&MmZeroedPageListHead);
    }
 
    PageDescriptor->u3.e2.ReferenceCount = 1;
@@ -730,7 +731,7 @@ MmZeroPageThreadMain(PVOID Ignored)
       oldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
       while (MmFreePageListHead.Total)
       {
-         PageDescriptor = MiRemoveHeadList(&MmFreePageListHead);
+         PageDescriptor = (PVOID)MiRemoveHeadList(&MmFreePageListHead);
          /* We set the page to used, because MmCreateVirtualMapping failed with unused pages */
          KeReleaseQueuedSpinLock(LockQueuePfnLock, oldIrql);
          Pfn = MiGetPfnEntryIndex(PageDescriptor);
