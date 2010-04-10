@@ -213,7 +213,7 @@ HalpFlushTLB(VOID)
     __writeeflags(Flags);
 }
 
-#ifdef _M_AMD64
+#ifdef _M_IX86
 VOID
 NTAPI
 HalpInitIdtEntry(PKIDTENTRY64 Idt, PVOID Address)

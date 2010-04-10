@@ -158,6 +158,7 @@ HalInitSystem(IN ULONG BootPhase,
         HalpInitBusHandlers();
 
 #ifndef _MINIHAL_
+#ifdef _M_IX86
         /* Enable IRQ 0 */
         HalpEnableInterruptHandler(IDT_DEVICE,
                                    0,
@@ -165,7 +166,7 @@ HalInitSystem(IN ULONG BootPhase,
                                    CLOCK2_LEVEL,
                                    HalpClockInterrupt,
                                    Latched);
-
+#endif
         /* Enable IRQ 8 */
         HalpEnableInterruptHandler(IDT_DEVICE,
                                    0,
