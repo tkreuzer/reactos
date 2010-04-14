@@ -191,8 +191,8 @@ BasepConvertObjectAttributes(OUT POBJECT_ATTRIBUTES ObjectAttributes,
 NTSTATUS
 WINAPI
 BasepCreateStack(HANDLE hProcess,
-                 ULONG StackReserve,
-                 ULONG StackCommit,
+                 SIZE_T StackReserve,
+                 SIZE_T StackCommit,
                  PINITIAL_TEB InitialTeb)
 {
     NTSTATUS Status;
@@ -292,7 +292,7 @@ BasepCreateStack(HANDLE hProcess,
     /* Create a guard page */
     if (UseGuard)
     {
-        ULONG GuardPageSize = SystemBasicInfo.PageSize;
+        SIZE_T GuardPageSize = SystemBasicInfo.PageSize;
         ULONG Dummy;
         
         /* Attempt maximum space possible */        
@@ -393,7 +393,7 @@ BasepInitializeContext(IN PCONTEXT Context,
     Context->SegDs = KGDT64_R3_DATA | RPL_MASK;
     Context->SegCs = KGDT64_R3_CODE | RPL_MASK;
     Context->SegSs = KGDT64_R3_DATA | RPL_MASK;
-    Context->SegFs = KGDT_32_R3_TEB;
+    Context->SegFs = KGDT64_R3_CMTEB;
 
     /* Set the EFLAGS */
     Context->EFlags = 0x3000; /* IOPL 3 */
