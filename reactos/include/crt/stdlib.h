@@ -286,7 +286,7 @@ extern "C" {
 #endif
 
 #if !defined(__GNUC__) && !defined(__clang)
-  /*unsigned short __cdecl _byteswap_ushort(unsigned short _Short); */
+  unsigned short __cdecl _byteswap_ushort(unsigned short _Short);
   unsigned long __cdecl _byteswap_ulong (unsigned long _Long);
 #if _INTEGRAL_MAX_BITS >= 64
   /*unsigned __int64 __cdecl _byteswap_uint64(unsigned __int64 _Int64);*/
@@ -422,7 +422,7 @@ extern "C" {
 #endif
   _CRTIMP int __cdecl _putenv(const char *_EnvString);
 #if !defined(__GNUC__) && !defined(__clang)
-  //_CRTIMP unsigned int __cdecl _rotl(unsigned int, int) __MINGW_ATTRIB_CONST;
+  unsigned int __cdecl _rotl(unsigned int _Val,int _Shift);
 #if _INTEGRAL_MAX_BITS >= 64
   //_CRTIMP unsigned __int64 __cdecl _rotl64(unsigned __int64, int) __MINGW_ATTRIB_CONST;
 #endif
