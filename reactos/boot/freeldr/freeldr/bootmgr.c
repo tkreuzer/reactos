@@ -118,7 +118,7 @@ VOID RunLoader(VOID)
 		UiMessageBoxCritical("Error when detecting hardware");
 		return;
 	}
-
+#ifdef _M_IX86 //BUG: function in x86 specific file
 #ifdef _M_IX86
 	// Load additional SCSI driver (if any)
 	if (LoadBootDeviceDriver() != ESUCCESS)
