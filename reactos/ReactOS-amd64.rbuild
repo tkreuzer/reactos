@@ -35,7 +35,6 @@
 		<!-- compilerflag compiler="cc,cxx">-gstabs+</compilerflag -->
 		<!-- compilerflag compiler="as">-gstabs+</compilerflag -->
 		<compilerflag>-U_X86_</compilerflag>
-		<compilerflag>-UWIN32</compilerflag>
 		<compilerflag>-Wno-format</compilerflag>
 	</group>
 

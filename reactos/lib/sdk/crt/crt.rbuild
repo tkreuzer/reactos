@@ -26,7 +26,6 @@
 	<define name="_MSVCRT_" />
 	<define name="_MT" />
 	<define name="_CRTBLD" />
-	<define name="__CRT__NO_INLINE" />
 	<directory name="conio">
 		<file>cgets.c</file>
 		<file>cprintf.c</file>
@@ -405,7 +404,6 @@
 		<file>ctype.c</file>
 		<file>itoa.c</file>
 		<file>itow.c</file>
-		<file>lasttok.c</file>
 		<file>scanf.c</file>
 		<file>splitp.c</file>
 		<file>strcoll.c</file>
@@ -426,6 +424,7 @@
 		<file>strtoi64.c</file>
 		<file>strtok.c</file>
 		<file>strtol.c</file>
+		<file>strtold.c</file>
 		<file>strtoul.c</file>
 		<file>strtoull.c</file>
 		<file>strupr.c</file>
