@@ -259,7 +259,7 @@ IntValidateWindowStationHandle(
 BOOL FASTCALL
 co_IntInitializeDesktopGraphics(VOID)
 {
-    TEXTMETRICW tmw;
+    //TEXTMETRICW tmw;
     UNICODE_STRING DriverName = RTL_CONSTANT_STRING(L"DISPLAY");
     PDESKTOP pdesk;
 
@@ -295,8 +295,11 @@ co_IntInitializeDesktopGraphics(VOID)
     else
         gpsi->PUSIFlags &= ~PUSIF_PALETTEDISPLAY;
     // Font is realized and this dc was previously set to internal DC_ATTR.
+    DPRINT1("HACK HACK HACK HACK HACK HACK HACK HACK HACK \n");
+#if 0
     gpsi->cxSysFontChar = IntGetCharDimensions(hSystemBM, &tmw, (DWORD*)&gpsi->cySysFontChar);
     gpsi->tmSysFont     = tmw;
+#endif
 
     /* Put the pointer in the center of the screen */
     gpsi->ptCursor.x = gpsi->aiSysMet[SM_CXSCREEN] / 2;
@@ -1118,6 +1121,7 @@ NtUserGetObjectInformation(
             pvData = &ObjectFlags;
             nDataSize = sizeof(ObjectFlags);
             Status = STATUS_SUCCESS;
+            ERR("UOI_FLAGS unimplemented!\n");
             break;
         }
 
