@@ -36,8 +36,8 @@ typedef struct _PFF
     struct _PFT *pPFT;
     ULONG ulCheckSum;
     ULONG cFonts;
-    PFONTFILEVIEW *ppfv;
     void *pPvtDataHead;
+    PFONTFILEVIEW apffv[FD_MAX_FILES];
 } PFF, *PPFF;
 
 typedef struct _PFE
@@ -211,7 +211,6 @@ LFONT_ShareUnlockFont(PLFONT plfnt)
 }
 
 
-
 HFONT
 NTAPI
 GreHfontCreate(
@@ -221,3 +220,15 @@ GreHfontCreate(
     IN FLONG  fl,
     IN PVOID pvCliData);
 
+PRFONT
+NTAPI
+DC_prfnt(PDC pdc);
+
+HFF
+NTAPI
+EngLoadFontFileFD(
+    ULONG cFiles,
+    PULONG_PTR piFiles,
+    DESIGNVECTOR *pdv,
+    ULONG ulCheckSum,
+    HDEV *phdev);
