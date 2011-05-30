@@ -1000,6 +1000,7 @@ DriverEntry(
     CreateStockObjects();
     CreateSysColorObjects();
 
+    NT_ROF(InitMappingImpl());
     NT_ROF(InitBrushImpl());
     NT_ROF(InitPDEVImpl());
     NT_ROF(InitLDEVImpl());
