@@ -428,7 +428,7 @@ FUNC KiPageFault
     /* Save page fault address */
     mov rdx, cr2
     mov [rbp  + KTRAP_FRAME_FaultAddress], rdx
-    
+
     /* If interrupts are off, treat this as an access violation */
     test dword ptr [rbp + KTRAP_FRAME_EFlags], EFLAGS_IF_MASK
     jz AccessViolation
@@ -635,24 +635,29 @@ EXTERN KiRetireDpcList:PROC
  */
 PUBLIC KiRetireDpcListInDpcStack
 .PROC KiRetireDpcListInDpcStack
+#if DBG
     push rbp
     .pushreg rbp
     mov rbp, rsp
     .setframe rbp, 0
+#else
+    mov [rdx -40 + 32], rsp
+#endif
     .endprolog
 
-    /* Switch to the DpcStack */
-    mov rsp, rdx
-
-    /* The stack is 16 byte aligned, allocate 32 bytes home space */
-    sub rsp, 32
+    /* Switch to the DpcStack. The stack is 16 byte aligned, allocate 32 bytes home space */
+    lea rsp, [rdx - 32]
 
     /* Call KiRetireDpcList on the given stack */
     call KiRetireDpcList
 
     /* Restore stack, cleanup and return */
+#if DBG
     mov rsp, rbp
     pop rbp
+#else
+    mov rsp, [rsp + 32]
+#endif
     ret
 .ENDP
 
@@ -723,7 +728,7 @@ FUNC KiInterruptDispatch
     /* Load the address of the dispatch code into rbx */
     mov rbx, [rbp + KTRAP_FRAME_ErrorCode]
 
-    /* Substract offset of the DispatchCode member plus 6 for the call instruction */
+    /* Subtract offset of the DispatchCode member plus 6 for the call instruction */
     sub rbx, KINTERRUPT_DispatchCode + 6
 
     /* Save the address of the InterruptListEntry in rsi */
@@ -976,6 +981,7 @@ KiSystemCallEntry32:
 
 PUBLIC KiZwSystemService
 FUNC KiZwSystemService
+
     push rbp
     .pushreg rbp
     sub rsp, KTRAP_FRAME_LENGTH
