@@ -117,35 +117,37 @@ ENDM
 #endif
 
 #ifdef _M_IX86
-MACRO(MAKE_LABEL, Name, StackBytes)
+MACRO(MAKE_LABEL, Name, ArgCount)
+    StackBytes = 4 * &ArgCount
     PUBLIC _&Name&@&StackBytes
     _&Name&@&StackBytes:
 ENDM
-MACRO(START_PROC, Name, StackBytes)
+MACRO(START_PROC, Name, ArgCount)
+    StackBytes = 4 * &ArgCount
     PUBLIC _&Name&@&StackBytes
     .PROC _&Name&@&StackBytes
 ENDM
 #else
-MACRO(MAKE_LABEL, Name, StackBytes)
+MACRO(MAKE_LABEL, Name, ArgCount)
     PUBLIC &Name
     &Name:
 ENDM
-MACRO(START_PROC, Name, StackBytes)
+MACRO(START_PROC, Name, ArgCount)
     PUBLIC &Name
     .PROC &Name
 ENDM
 #endif
 
 MACRO(STUB_U, Name, ArgCount)
-    MAKE_LABEL Zw&Name, %ArgCount * 4
-    START_PROC Nt&Name, %ArgCount * 4
+    MAKE_LABEL Zw&Name, %ArgCount
+    START_PROC Nt&Name, %ArgCount
     STUBCODE_U Name, SyscallId, %ArgCount
     .ENDP
     SyscallId = SyscallId + 1
 ENDM
 
 MACRO(STUB_K, Name, ArgCount)
-    START_PROC Zw&Name, %ArgCount * 4
+    START_PROC Zw&Name, %ArgCount
     STUBCODE_K Name, SyscallId, %ArgCount
     .ENDP
     SyscallId = SyscallId + 1

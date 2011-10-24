@@ -693,20 +693,27 @@ PUBLIC KiApcInterrupt
 EXTERN KiRetireDpcList:PROC
 PUBLIC KiRetireDpcListInDpcStack
 .PROC KiRetireDpcListInDpcStack
+#if DBG
     push rbp
     .pushreg rbp
     mov rbp, rsp
     .setframe rbp, 0
+#else
+    mov [rdx -40 + 32], rsp
+#endif
     .endprolog
 
     /* Switch stack and call the function */
-    mov rsp, rdx
-    sub rsp, 40
+    lea rsp, [rdx - 40]
     call KiRetireDpcList
 
     /* Restore stack, cleanup and return */
+#if DBG
     mov rsp, rbp
     pop rbp
+#else
+    mov rsp, [rsp + 32]
+#endif
     ret
 .ENDP
 
@@ -773,7 +780,7 @@ FUNC KiInterruptDispatch
     /* Load the address of the interrupt object into rcx */
     mov rcx, [rbp + KTRAP_FRAME_ErrorCode]
 
-    /* Substract offset of the DispatchCode member plus 6 for the call instruction */
+    /* Subtract offset of the DispatchCode member plus 6 for the call instruction */
     sub rcx, KINTERRUPT_DispatchCode + 6
 
     /* Raise IRQL to SynchronizeIrql */
@@ -907,6 +914,7 @@ KiSystemCallEntry32:
 
 PUBLIC KiZwSystemService
 FUNC KiZwSystemService
+
     push rbp
     .pushreg rbp
     sub rsp, KTRAP_FRAME_LENGTH
