@@ -453,6 +453,8 @@ SeCaptureSecurityDescriptor(
         DescriptorCopy.Group = SepGetGroupFromDescriptor(OriginalDescriptor);
         DescriptorCopy.Sacl = SepGetSaclFromDescriptor(OriginalDescriptor);
         DescriptorCopy.Dacl = SepGetDaclFromDescriptor(OriginalDescriptor);
+
+        /* Size of the new descriptor */
         DescriptorSize = sizeof(SECURITY_DESCRIPTOR_RELATIVE);
 
         /* Determine owner and group sizes */
@@ -896,6 +898,7 @@ SeSetSecurityDescriptorInfoEx(
     PAGED_CODE();
 
     ObjectSd = *ObjectsSecurityDescriptor;
+    ASSERT(ObjectSd->Control & SE_SELF_RELATIVE);
 
     /* The object does not have a security descriptor. */
     if (!ObjectSd)
@@ -1345,6 +1348,7 @@ SeAssignSecurityEx(
         DPRINT("Use explicit owner sid!\n");
         Owner = SepGetOwnerFromDescriptor(ExplicitDescriptor);
     }
+
     if (!Owner)
     {
         if (AutoInheritFlags & SEF_DEFAULT_OWNER_FROM_PARENT)
@@ -1377,6 +1381,7 @@ SeAssignSecurityEx(
     {
         Group = SepGetGroupFromDescriptor(ExplicitDescriptor);
     }
+
     if (!Group)
     {
         if (AutoInheritFlags & SEF_DEFAULT_GROUP_FROM_PARENT)
@@ -1400,6 +1405,8 @@ SeAssignSecurityEx(
             DPRINT("Use token group sid!\n");
             Group = Token->PrimaryGroup;
         }
+
+        Control |= SE_GROUP_DEFAULTED;
     }
     if (!Group)
     {
