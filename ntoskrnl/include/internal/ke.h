@@ -893,22 +893,6 @@ KiServiceExit2(
     IN PKTRAP_FRAME TrapFrame
 );
 
-#ifndef _M_AMD64
-VOID
-FASTCALL
-KiInterruptDispatch(
-    IN PKTRAP_FRAME TrapFrame,
-    IN PKINTERRUPT Interrupt
-);
-#endif
-
-VOID
-FASTCALL
-KiChainedDispatch(
-    IN PKTRAP_FRAME TrapFrame,
-    IN PKINTERRUPT Interrupt
-);
-
 CODE_SEG("INIT")
 VOID
 NTAPI

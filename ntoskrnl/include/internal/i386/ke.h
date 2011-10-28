@@ -621,6 +621,20 @@ KiDispatchExceptionFromTrapFrame(
     IN PKTRAP_FRAME TrapFrame
 );
 
+VOID
+FASTCALL
+KiInterruptDispatch(
+    IN PKTRAP_FRAME TrapFrame,
+    IN PKINTERRUPT Interrupt
+);
+
+VOID
+FASTCALL
+KiChainedDispatch(
+    IN PKTRAP_FRAME TrapFrame,
+    IN PKINTERRUPT Interrupt
+);
+
 NTSTATUS
 NTAPI
 KiConvertToGuiThread(
