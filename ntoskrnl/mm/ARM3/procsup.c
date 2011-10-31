@@ -936,7 +936,7 @@ MmInitializeProcessAddressSpace(IN PEPROCESS Process,
     PointerPde = MiAddressToPde(HYPER_SPACE);
 #endif
     PageFrameNumber = PFN_FROM_PTE(PointerPde);
-    //ASSERT(Process->Pcb.DirectoryTableBase[0] == PageFrameNumber * PAGE_SIZE); // we're not lucky
+    ASSERT(Process->Pcb.DirectoryTableBase[1] == PageFrameNumber * PAGE_SIZE);
     MiInitializePfn(PageFrameNumber, (PMMPTE)PointerPde, TRUE);
 
     /* Setup the PFN for the PTE for the working set */
