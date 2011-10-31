@@ -999,6 +999,7 @@ MmInitializeProcessAddressSpace(IN PEPROCESS Process,
     /* Do the same for hyperspace */
     PointerPde = MiAddressToPde(HYPER_SPACE);
     PageFrameNumber = PFN_FROM_PTE(PointerPde);
+    ASSERT(Process->Pcb.DirectoryTableBase[1] == PageFrameNumber * PAGE_SIZE);
     MiInitializePfn(PageFrameNumber, (PMMPTE)PointerPde, TRUE);
 #if (_MI_PAGING_LEVELS == 2)
     ASSERT(Process->Pcb.DirectoryTableBase[1] == PageFrameNumber * PAGE_SIZE);
