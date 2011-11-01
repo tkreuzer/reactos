@@ -1640,6 +1640,16 @@ MiDispatchFault(IN ULONG FaultCode,
     ASSERT(TempPte.u.Soft.PageFileHigh == 0);
     ASSERT(TempPte.u.Long != 0);
 
+    /* Check if the PTE is completely empty */
+    if (TempPte.u.Long == 0)
+    {
+        KeBugCheckEx(PAGE_FAULT_IN_NONPAGED_AREA,
+                     (ULONG_PTR)Address,
+                     StoreInstruction,
+                     (ULONG_PTR)TrapInformation,
+                     2);
+    }
+
     //
     // If we got this far, the PTE can only be a demand zero PTE, which is what
     // we want. Go handle it!
