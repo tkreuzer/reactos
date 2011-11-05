@@ -65,6 +65,8 @@ C_ASSERT(SYSTEM_PD_SIZE == PAGE_SIZE);
 #define MM_NOACCESS           (MM_ZERO_ACCESS | MM_WRITECOMBINE)
 #define MM_OUTSWAPPED_KSTACK  (MM_EXECUTE_WRITECOPY | MM_WRITECOMBINE)
 #define MM_INVALID_PROTECTION  0xFFFFFFFF
+#define MM_USER_ACCESS         0x20
+#define MM_USER_PAGE_TABLE     (MM_USER_ACCESS | MM_READWRITE)
 
 //
 // Specific PTE Definitions that map to the Memory Manager's Protection Mask Bits
@@ -821,6 +823,23 @@ MI_MAKE_HARDWARE_PTE(IN PMMPTE NewPte,
     /* Set the protection and page */
     NewPte->u.Long = MiDetermineUserGlobalPteMask(MappingPte);
     NewPte->u.Long |= MmProtectToPteMask[ProtectionMask];
+    NewPte->u.Hard.PageFrameNumber = PageFrameNumber;
+}
+
+//
+// Creates a valid PTE with the given protection
+//
+FORCEINLINE
+VOID
+MI_MAKE_HARDWARE_PTE2(IN PMMPTE NewPte,
+                     IN PMMPTE MappingPte,
+                     IN ULONG_PTR ProtectionMask,
+                     IN PFN_NUMBER PageFrameNumber)
+{
+    /* Set the protection and page */
+    NewPte->u.Long = 0;
+    if (ProtectionMask & MM_USER_ACCESS) NewPte->u.Hard.Owner = 1;
+    NewPte->u.Long |= MmProtectToPteMask[ProtectionMask & (MM_USER_ACCESS-1)];
     NewPte->u.Hard.PageFrameNumber = PageFrameNumber;
 }
 

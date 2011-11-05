@@ -718,22 +718,10 @@ MiResolveDemandZeroFault(IN PVOID Address,
     if (NeedZero) MiZeroPfn(PageFrameNumber);
 
     /* Fault on user PDE, or fault on user PTE? */
-    if (PointerPte <= MiHighestUserPte)
-    {
-        /* User fault, build a user PTE */
-        MI_MAKE_HARDWARE_PTE_USER(&TempPte,
-                                  PointerPte,
-                                  Protection,
-                                  PageFrameNumber);
-    }
-    else
-    {
-        /* This is a user-mode PDE, create a kernel PTE for it */
-        MI_MAKE_HARDWARE_PTE(&TempPte,
-                             PointerPte,
-                             Protection,
-                             PageFrameNumber);
-    }
+    MI_MAKE_HARDWARE_PTE(&TempPte,
+                         PointerPte,
+                         Protection,
+                         PageFrameNumber);
 
     /* Set it dirty if it's a writable page */
     if (MI_IS_PAGE_WRITEABLE(&TempPte)) MI_MAKE_DIRTY_PAGE(&TempPte);
