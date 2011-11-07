@@ -636,7 +636,7 @@ extern PVOID MiSessionImageEnd;
 extern PMMPTE MiHighestUserPte;
 extern PMMPDE MiHighestUserPde;
 extern PFN_NUMBER MmSystemPageDirectory[PPE_PER_PAGE];
-extern PMMPTE MmSharedUserDataPte;
+extern MMPTE MmSharedUserDataPte;
 extern LIST_ENTRY MmProcessList;
 extern KEVENT MmZeroingPageEvent;
 extern ULONG MmSystemPageColor;

@@ -23,7 +23,7 @@ ULONG MmReadClusterSize;
 // 0 | 1 is on/off paging, 2 is undocumented
 //
 UCHAR MmDisablePagingExecutive = 1; // Forced to off
-PMMPTE MmSharedUserDataPte;
+MMPTE MmSharedUserDataPte;
 PMMSUPPORT MmKernelAddressSpace;
 
 extern KEVENT MmWaitPageEvent;
@@ -239,17 +239,6 @@ MmInitSystem(IN ULONG Phase,
     MmInitPagingFile();
 
     //
-    // Create a PTE to double-map the shared data section. We allocate it
-    // from paged pool so that we can't fault when trying to touch the PTE
-    // itself (to map it), since paged pool addresses will already be mapped
-    // by the fault handler.
-    //
-    MmSharedUserDataPte = ExAllocatePoolWithTag(PagedPool,
-                          sizeof(MMPTE),
-                          TAG_MM);
-    if (!MmSharedUserDataPte) return FALSE;
-
-    //
     // Now get the PTE for shared data, and read the PFN that holds it
     //
     PointerPte = MiAddressToPte((PVOID)KI_USER_SHARED_DATA);
@@ -261,7 +250,7 @@ MmInitSystem(IN ULONG Phase,
                                 PointerPte,
                                 MM_READONLY,
                                 PageFrameNumber);
-    *MmSharedUserDataPte = TempPte;
+    MmSharedUserDataPte = TempPte;
 
     /* Initialize session working set support */
     MiInitializeSessionWsSupport();
