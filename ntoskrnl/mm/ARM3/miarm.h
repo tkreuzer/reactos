@@ -647,7 +647,7 @@ extern PVOID MiSessionImageEnd;
 extern PMMPTE MiHighestUserPte;
 extern PMMPDE MiHighestUserPde;
 extern PFN_NUMBER MmSystemPageDirectory[PD_COUNT];
-extern PMMPTE MmSharedUserDataPte;
+extern MMPTE MmSharedUserDataPte;
 extern LIST_ENTRY MmProcessList;
 extern BOOLEAN MmZeroingPageThreadActive;
 extern KEVENT MmZeroingPageEvent;
