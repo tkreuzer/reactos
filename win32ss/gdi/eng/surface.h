@@ -131,6 +131,11 @@ SURFACE_AllocSurface(
     _In_opt_ ULONG cjBits,
     _In_opt_ PVOID pvBits);
 
+ULONG
+NTAPI
+SURFACE_iCompression(
+    _In_ PSURFACE psurf);
+
 FORCEINLINE
 VOID
 SURFACE_vSetPalette(
