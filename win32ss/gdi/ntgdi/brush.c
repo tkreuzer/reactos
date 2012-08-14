@@ -528,7 +528,7 @@ NtGdiCreateDIBBrush(
     _SEH2_END;
 
     /* Calculate the size of the bitmap info */
-    cjInfoSize = GreGetBitmapInfoSize(pvSaveDIB, iUsage);
+    cjInfoSize = DibGetBitmapInfoSize(pvSaveDIB, iUsage);
 
     /* Check sanity of the sizes */
     if ((cjInfoSize < sizeof(BITMAPCOREHEADER)) || // info?

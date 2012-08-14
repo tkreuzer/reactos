@@ -1,5 +1,5 @@
 
-set(USE_DIBLIB FALSE)
+set(USE_DIBLIB TRUE)
 
 # Give WIN32 subsystem its own project.
 PROJECT(WIN32SS)

@@ -11,6 +11,46 @@
 #define NDEBUG
 #include <debug.h>
 
+#if 0
+
+int
+FASTCALL
+DIB_GetBitmapInfo( const BITMAPINFOHEADER *header, LONG *width,
+                   LONG *height, WORD *planes, WORD *bpp, DWORD *compr, DWORD *size );
+
+HBITMAP
+APIENTRY
+DIB_CreateDIBSection(
+    PDC dc,
+    CONST BITMAPINFO *bmi,
+    UINT usage,
+    LPVOID *bits,
+    HANDLE section,
+    DWORD offset,
+    DWORD ovr_pitch);
+
+HBITMAP
+NTAPI
+OldGreCreateDIBitmapInternal(
+    IN HDC hDc,
+    IN INT cx,
+    IN INT cy,
+    IN DWORD fInit,
+    IN OPTIONAL LPBYTE pjInit,
+    IN OPTIONAL PBITMAPINFO pbmi,
+    IN DWORD iUsage,
+    IN FLONG fl,
+    IN UINT cjMaxBits,
+    IN HANDLE hcmXform);
+
+PPALETTE
+NTAPI
+CreateDIBPalette(
+    _In_ const BITMAPINFO *pbmi,
+    _In_ PDC pdc,
+    _In_ ULONG iUsage);
+
+
 static const RGBQUAD DefLogPaletteQuads[20] =   /* Copy of Default Logical Palette */
 {
     /* rgbBlue, rgbGreen, rgbRed, rgbReserved */
@@ -38,7 +78,7 @@ static const RGBQUAD DefLogPaletteQuads[20] =   /* Copy of Default Logical Palet
 
 PPALETTE
 NTAPI
-CreateDIBPalette(
+OldCreateDIBPalette(
     _In_ const BITMAPINFO *pbmi,
     _In_ PDC pdc,
     _In_ ULONG iUsage)
@@ -462,7 +502,7 @@ done:
 W32KAPI
 INT
 APIENTRY
-NtGdiSetDIBitsToDeviceInternal(
+OldNtGdiSetDIBitsToDeviceInternal(
     IN HDC hDC,
     IN INT XDest,
     IN INT YDest,
@@ -1081,7 +1121,7 @@ _Success_(return!=0)
 __kernel_entry
 INT
 APIENTRY
-NtGdiGetDIBitsInternal(
+OldNtGdiGetDIBitsInternal(
     _In_ HDC hdc,
     _In_ HBITMAP hbm,
     _In_ UINT iStartScan,
@@ -1193,7 +1233,7 @@ cleanup:
 W32KAPI
 INT
 APIENTRY
-NtGdiStretchDIBitsInternal(
+OldNtGdiStretchDIBitsInternal(
     IN HDC hdc,
     IN INT xDst,
     IN INT yDst,
@@ -1609,7 +1649,7 @@ IntCreateDIBitmap(
 // The DDB that is created will be whatever bit depth your reference DC is
 HBITMAP
 APIENTRY
-NtGdiCreateDIBitmapInternal(
+OldNtGdiCreateDIBitmapInternal(
     IN HDC hDc,
     IN INT cx,
     IN INT cy,
@@ -1665,7 +1705,7 @@ NtGdiCreateDIBitmapInternal(
         goto cleanup;
     }
 
-    hbmResult =  GreCreateDIBitmapInternal(hDc,
+    hbmResult =  OldGreCreateDIBitmapInternal(hDc,
                                            cx,
                                            cy,
                                            fInit,
@@ -1683,7 +1723,7 @@ cleanup:
 
 HBITMAP
 NTAPI
-GreCreateDIBitmapInternal(
+OldGreCreateDIBitmapInternal(
     IN HDC hDc,
     IN INT cx,
     IN INT cy,
@@ -1810,7 +1850,7 @@ GreCreateDIBitmapFromPackedDIB(
 
 HBITMAP
 APIENTRY
-NtGdiCreateDIBSection(
+OldNtGdiCreateDIBSection(
     IN HDC hDC,
     IN OPTIONAL HANDLE hSection,
     IN DWORD dwOffset,
@@ -2119,7 +2159,7 @@ DIB_GetBitmapInfo( const BITMAPINFOHEADER *header, LONG *width,
  * 11/16/1999 (RJJ) lifted from wine
  */
 
-INT APIENTRY DIB_GetDIBImageBytes(INT  width, INT height, INT depth)
+INT APIENTRY OldDIB_GetDIBImageBytes(INT  width, INT height, INT depth)
 {
     return WIDTH_BYTES_ALIGN32(width, depth) * (height < 0 ? -height : height);
 }
@@ -2315,4 +2355,5 @@ DIB_FreeConvertedBitmapInfo(BITMAPINFO* converted, BITMAPINFO* orig, DWORD usage
     ExFreePoolWithTag(converted, TAG_DIB);
 }
 
+#endif
 /* EOF */

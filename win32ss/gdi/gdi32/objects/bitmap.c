@@ -351,48 +351,9 @@ CreateCompatibleBitmap(
     return NULL;
 }
 
-INT
-WINAPI
-GetDIBits(
-    HDC hDC,
-    HBITMAP hbmp,
-    UINT uStartScan,
-    UINT cScanLines,
-    LPVOID lpvBits,
-    LPBITMAPINFO lpbmi,
-    UINT uUsage)
-{
-    UINT cjBmpScanSize;
-    UINT cjInfoSize;
 
-    if (!hDC || !GdiValidateHandle((HGDIOBJ) hDC) || !lpbmi)
-    {
-        GdiSetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
-    }
 
-    cjBmpScanSize = DIB_BitmapMaxBitsSize(lpbmi, cScanLines);
-    /* Caller must provide maximum size possible */
-    cjInfoSize = DIB_BitmapInfoSize(lpbmi, uUsage, TRUE);
-
-    if (lpvBits)
-    {
-        if (lpbmi->bmiHeader.biSize >= sizeof(BITMAPINFOHEADER))
-        {
-            if (lpbmi->bmiHeader.biCompression == BI_JPEG
-                || lpbmi->bmiHeader.biCompression == BI_PNG)
-            {
-                SetLastError(ERROR_INVALID_PARAMETER);
-                return 0;
-            }
-        }
-    }
-
-    return NtGdiGetDIBitsInternal(hDC, hbmp, uStartScan, cScanLines, lpvBits, lpbmi, uUsage,
-        cjBmpScanSize, cjInfoSize);
-}
-
-/*
+#if 0/*
  * @implemented
  */
 HBITMAP
@@ -555,6 +516,7 @@ Exit:
 
     return hBitmap;
 }
+#endif
 
 /*
  * @implemented
@@ -653,9 +615,9 @@ SetDIBitsToDevice(
     DWORD Height,
     int XSrc,
     int YSrc,
-    UINT StartScan,
-    UINT ScanLines,
-    CONST VOID *Bits,
+    UINT uStartScan,
+    UINT cScanLines,
+    CONST VOID *pvBits,
     CONST BITMAPINFO *lpbmi,
     UINT ColorUse)
 {
@@ -665,9 +627,9 @@ SetDIBitsToDevice(
     INT LinesCopied = 0;
     UINT cjBmpScanSize = 0;
     BOOL Hit = FALSE;
-    PVOID pvSafeBits = (PVOID) Bits;
+    PVOID pvAlignedBits = (PVOID)pvBits;
 
-    if (!ScanLines || !lpbmi || !Bits)
+    if ( !cScanLines || !lpbmi || !pvBits )
         return 0;
 
     if (ColorUse && ColorUse != DIB_PAL_COLORS && ColorUse != DIB_PAL_COLORS + 1)
@@ -687,9 +649,9 @@ SetDIBitsToDevice(
                   Height,
                   XSrc,
                   YSrc,
-                  StartScan,
-                  ScanLines,
-                  Bits,
+                  uStartScan,
+                  cScanLines,
+                  pvBits,
                   lpbmi,
                   ColorUse);
 
@@ -729,53 +691,68 @@ SetDIBitsToDevice(
         ScanLines = pConvertedInfo->bmiHeader.biHeight;
     }
 
-    cjBmpScanSize = DIB_BitmapMaxBitsSize((LPBITMAPINFO) lpbmi, ScanLines);
+    cjBmpScanSize = DIB_BitmapMaxBitsSize((LPBITMAPINFO)lpbmi, cScanLines);
 
-    pvSafeBits = RtlAllocateHeap(GetProcessHeap(), 0, cjBmpScanSize);
-    if (pvSafeBits)
+    /* Check if the bits buffer is not DWORD aligned */
+    if ((ULONG_PTR)pvBits & (sizeof(DWORD) - 1))
     {
+        /* The given buffer is unaligned, allocate an aligned buffer */
+        pvAlignedBits = RtlAllocateHeap(GetProcessHeap(), 0, cjBmpScanSize);
+        if (!pvAlignedBits)
+        {
+            DPRINT1("Failed to allocate aligned buffer.\n");
+            goto cleanup;
+        }
+
+        /* Use SEH to copy the bitmap data */
         _SEH2_TRY
         {
-            RtlCopyMemory(pvSafeBits, Bits, cjBmpScanSize);
+            RtlCopyMemory(pvAlignedBits, pvBits, cjBmpScanSize);
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
-            Hit = TRUE;
+            DPRINT1("Failed to copy the bitmap to the aligned buffer.\n");
+            _SEH2_YIELD(goto cleanup;)
         }
         _SEH2_END
-
-        if (Hit)
-        {
-            // We don't die, we continue on with a allocated safe pointer to kernel
-            // space.....
-            DPRINT1("SetDIBitsToDevice fail to read BitMapInfo: %p or Bits: %p & Size: %u\n",
-                pConvertedInfo, Bits, cjBmpScanSize);
-        }
-        DPRINT("SetDIBitsToDevice Allocate Bits %u!!!\n", cjBmpScanSize);
     }
 
     if (!GdiGetHandleUserData(hdc, GDI_OBJECT_TYPE_DC, (PVOID) & pDc_Attr))
     {
         SetLastError(ERROR_INVALID_PARAMETER);
-        return 0;
+        goto cleanup;
     }
+
     /*
-     if ( !pDc_Attr || // DC is Public
-     ColorUse == DIB_PAL_COLORS ||
-     ((pConvertedInfo->bmiHeader.biSize >= sizeof(BITMAPINFOHEADER)) &&
-     (pConvertedInfo->bmiHeader.biCompression == BI_JPEG ||
-     pConvertedInfo->bmiHeader.biCompression  == BI_PNG )) )*/
+     if ((pDc_Attr == NULL) || // DC is Public
+         (ColorUse == DIB_PAL_COLORS) ||
+         ((pConvertedInfo->bmiHeader.biSize >= sizeof(BITMAPINFOHEADER)) &&
+          ( (pConvertedInfo->bmiHeader.biCompression == BI_JPEG) ||
+            (pConvertedInfo->bmiHeader.biCompression  == BI_PNG) )) )*/
     {
-        LinesCopied = NtGdiSetDIBitsToDeviceInternal(hdc, XDest, YDest, Width, Height, XSrc, YSrc,
-            StartScan, ScanLines, (LPBYTE) pvSafeBits, (LPBITMAPINFO) pConvertedInfo, ColorUse,
-            cjBmpScanSize, ConvertedInfoSize,
-            TRUE,
-            NULL);
+        LinesCopied = NtGdiSetDIBitsToDeviceInternal(hdc,
+                                                     XDest,
+                                                     YDest,
+                                                     Width,
+                                                     Height,
+                                                     XSrc,
+                                                     YSrc,
+                                                     uStartScan,
+                                                     cScanLines,
+                                                     pvAlignedBits,
+                                                     (LPBITMAPINFO)pConvertedInfo,
+                                                     ColorUse,
+                                                     cjBmpScanSize,
+                                                     ConvertedInfoSize,
+                                                     TRUE,
+                                                     NULL);
     }
-Exit:
-    if (Bits != pvSafeBits)
-        RtlFreeHeap(RtlGetProcessHeap(), 0, pvSafeBits);
-    if (lpbmi != pConvertedInfo)
+
+cleanup:
+    /* Cleanup */
+    if (pvAlignedBits != pvBits)
+        RtlFreeHeap(RtlGetProcessHeap(), 0, pvAlignedBits);
+    if (pConvertedInfo != lpbmi)
         RtlFreeHeap(RtlGetProcessHeap(), 0, pConvertedInfo);
 
     return LinesCopied;
@@ -945,3 +922,4 @@ ClearBitmapAttributes(HBITMAP hbm, DWORD dwFlags)
 }
 
 
+#include "dibitmap.c"

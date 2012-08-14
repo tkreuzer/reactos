@@ -167,22 +167,14 @@ IntSynthesizeDib(
     /* Get information about the bitmap format */
     memset(&bmiBuffer, 0, sizeof(bmiBuffer));
     pbmi->bmiHeader.biSize = sizeof(bmiBuffer.bmih);
-    iResult = GreGetDIBitsInternal(hdc,
-                                   hbm,
-                                   0,
-                                   0,
-                                   NULL,
-                                   pbmi,
-                                   DIB_RGB_COLORS,
-                                   0,
-                                   sizeof(bmiBuffer));
+    iResult = GreGetDIBitmapInfo(hbm, pbmi, DIB_RGB_COLORS, sizeof(bmiBuffer));
     if (iResult == 0)
     {
        goto cleanup;
     }
 
     /* Get the size for a full BITMAPINFO */
-    cjInfoSize = DIB_BitmapInfoSize(pbmi, DIB_RGB_COLORS);
+    cjInfoSize = DibGetBitmapInfoSize(pbmi, DIB_RGB_COLORS);
 
     /* Calculate the size of the clipboard data, which is a packed DIB */
     cjDataSize = cjInfoSize + pbmi->bmiHeader.biSizeImage;
@@ -206,15 +198,15 @@ IntSynthesizeDib(
     memcpy(pClipboardData->Data, pbmi, sizeof(BITMAPINFOHEADER));
 
     /* Get the bitmap bits and the color table */
-    iResult = GreGetDIBitsInternal(hdc,
-                                   hbm,
-                                   0,
-                                   abs(pbmi->bmiHeader.biHeight),
-                                   (LPBYTE)pClipboardData->Data + cjInfoSize,
-                                   (LPBITMAPINFO)pClipboardData->Data,
-                                   DIB_RGB_COLORS,
-                                   pbmi->bmiHeader.biSizeImage,
-                                   cjInfoSize);
+    iResult = GreGetDIBits(hdc,
+                           hbm,
+                           0,
+                           abs(pbmi->bmiHeader.biHeight),
+                           (LPBYTE)pClipboardData->Data + cjInfoSize,
+                           (LPBITMAPINFO)pClipboardData->Data,
+                           DIB_RGB_COLORS,
+                           pbmi->bmiHeader.biSizeImage,
+                           cjInfoSize);
 
     /* Add the clipboard data */
     IntAddFormatedData(pWinStaObj, CF_DIB, hMem, TRUE, TRUE);
@@ -230,7 +222,7 @@ static VOID WINAPI
 IntSynthesizeBitmap(PWINSTATION_OBJECT pWinStaObj, PCLIP pBmEl)
 {
     HDC hdc = NULL;
-    PBITMAPINFO pBmi, pConvertedBmi = NULL;
+    PBITMAPINFO pBmi;
     HBITMAP hBm = NULL;
     PCLIPBOARDDATA pMemObj;
     PCLIP pDibEl;
@@ -252,22 +244,18 @@ IntSynthesizeBitmap(PWINSTATION_OBJECT pWinStaObj, PCLIP pBmEl)
     if (pMemObj->cbData < sizeof(DWORD) && pMemObj->cbData < pBmi->bmiHeader.biSize)
         goto cleanup;
 
-    pConvertedBmi = DIB_ConvertBitmapInfo(pBmi, DIB_RGB_COLORS);
-    if (!pConvertedBmi)
-        goto cleanup;
-
-    Offset = DIB_BitmapInfoSize(pBmi, DIB_RGB_COLORS);
+    Offset = DibGetBitmapInfoSize(pBmi, DIB_RGB_COLORS);
 
     hdc = UserGetDCEx(NULL, NULL, DCX_USESTYLE);
     if (!hdc)
         goto cleanup;
 
     hBm = GreCreateDIBitmapInternal(hdc,
-                                    pConvertedBmi->bmiHeader.biWidth,
-                                    pConvertedBmi->bmiHeader.biHeight,
+                                    pBmi->bmiHeader.biWidth,
+                                    pBmi->bmiHeader.biHeight,
                                     CBM_INIT,
                                     pMemObj->Data + Offset,
-                                    pConvertedBmi,
+                                    pBmi,
                                     DIB_RGB_COLORS,
                                     0,
                                     pMemObj->cbData - Offset,
@@ -275,6 +263,7 @@ IntSynthesizeBitmap(PWINSTATION_OBJECT pWinStaObj, PCLIP pBmEl)
 
     if (hBm)
     {
+        // FIXME: this is broken!
         GreSetObjectOwner(hBm, GDI_OBJ_HMGR_PUBLIC);
         pBmEl->hData = hBm;
     }
@@ -282,9 +271,6 @@ IntSynthesizeBitmap(PWINSTATION_OBJECT pWinStaObj, PCLIP pBmEl)
 cleanup:
     if (hdc)
         UserReleaseDC(NULL, hdc, FALSE);
-
-    if (pConvertedBmi)
-        DIB_FreeConvertedBitmapInfo(pConvertedBmi, pBmi, -1);
 }
 
 static VOID NTAPI
