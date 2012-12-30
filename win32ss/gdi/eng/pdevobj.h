@@ -244,4 +244,11 @@ PDEVOBJ_lChangeDisplaySettings(
     _Out_ PMDEVOBJ *ppmdevNew,
     _In_ BOOL bSearchClosestMode);
 
+BOOL
+FORCEINLINE
+PDEVOBJ_bLockIsOwned(PPDEVOBJ ppdev)
+{
+    return ExIsResourceAcquiredExclusiveLite((PERESOURCE)ppdev->hsemDevLock);
+}
+
 #endif /* !__WIN32K_PDEVOBJ_H */
