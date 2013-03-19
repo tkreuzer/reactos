@@ -3439,7 +3439,7 @@ Exit:
  */
 NTSTATUS
 NTAPI
-NtCreateSection(OUT PHANDLE SectionHandle,
+_NtCreateSection(OUT PHANDLE SectionHandle,
                 IN ACCESS_MASK DesiredAccess,
                 IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
                 IN PLARGE_INTEGER MaximumSize OPTIONAL,
@@ -3620,7 +3620,7 @@ NtOpenSection(OUT PHANDLE SectionHandle,
 
 NTSTATUS
 NTAPI
-NtMapViewOfSection(IN HANDLE SectionHandle,
+_NtMapViewOfSection(IN HANDLE SectionHandle,
                    IN HANDLE ProcessHandle,
                    IN OUT PVOID* BaseAddress,
                    IN ULONG_PTR ZeroBits,

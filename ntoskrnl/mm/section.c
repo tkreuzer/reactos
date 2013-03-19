@@ -4507,7 +4507,7 @@ MiRosUnmapViewInSystemSpace(IN PVOID MappedBase)
  * @implemented
  */
 NTSTATUS NTAPI
-MmCreateSection (OUT PVOID  * Section,
+_MmCreateSection (OUT PVOID  * Section,
                  IN ACCESS_MASK  DesiredAccess,
                  IN POBJECT_ATTRIBUTES ObjectAttributes     OPTIONAL,
                  IN PLARGE_INTEGER  MaximumSize,
