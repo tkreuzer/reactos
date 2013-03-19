@@ -231,6 +231,10 @@ list(APPEND SOURCE
     mm/region.c
     mm/rmap.c
     mm/section.c
+#########################
+    Mm_new/SectionObject.cpp
+    Mm_new/VadTable.cpp
+#########################
     ob/obdir.c
     ob/obhandle.c
     ob/obinit.c
