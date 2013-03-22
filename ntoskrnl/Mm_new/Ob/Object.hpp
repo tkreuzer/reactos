@@ -108,12 +108,4 @@ public:
 
 }; // namespace Ob
 
-/* Not sure where else to put this */
-
-inline
-void*
-operator new(size_t, void* p)
-{
-    return p;
-}
 

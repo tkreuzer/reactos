@@ -1,7 +1,16 @@
 /*!
- * \file SectionObject.hpp
- * ...
- */
+
+    \file Mm/SectionObject.hpp
+
+    \brief Defines the SECTION_OBJECT class
+
+    \copyright Released under the terms of the GNU GPL v2
+
+    \author Timo Kreuzer (timo.kreuzer@reactos.org)
+
+    ...
+
+*/
 
 #pragma once
 
@@ -12,9 +21,11 @@ extern POBJECT_TYPE MmSectionObjectType;
 
 namespace Mm {
 
-class SECTION : public Ob::OBJECT
+class SECTION_OBJECT : public Ob::OBJECT
 {
 private:
+
+    class CONTROL_AREA* m_ControlArea;
 
     friend class MEMORY_MANAGER;
 
@@ -23,13 +34,29 @@ private:
     InitializeClass (
         VOID);
 
+    static
+    VOID
+    NTAPI
+    ObDeleteProcedure (
+        _In_ PVOID Object);
+
+    static
+    VOID
+    NTAPI
+    ObCloseProcedure (
+        _In_opt_ PEPROCESS Process,
+        _In_ PVOID Object,
+        _In_ ACCESS_MASK GrantedAccess,
+        _In_ ULONG ProcessHandleCount,
+        _In_ ULONG SystemHandleCount);
+
 public:
 
     _Must_inspect_result_
     static
     NTSTATUS
-    CreateObject (
-        _Out_ SECTION** OutSection,
+    CreateInstance (
+        _Out_ SECTION_OBJECT** OutSection,
         _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
         _In_ ULONG64 MaximumSize,
         _In_ ULONG SectionPageProtection,

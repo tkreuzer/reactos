@@ -5,45 +5,96 @@
 
 #include "SectionObject.hpp"
 #include <ndk/iotypes.h>
+#include <ndk/obfuncs.h>
 
 POBJECT_TYPE MmSectionObjectType;
 
 namespace Mm {
 
 VOID
-SECTION::InitializeClass (
+SECTION_OBJECT::InitializeClass (
     VOID)
 {
-#if 0
+    static const UNICODE_STRING ObjectName = RTL_CONSTANT_STRING(L"Section");
+    static const GENERIC_MAPPING GenericMapping =
+    {
+        STANDARD_RIGHTS_READ | SECTION_MAP_READ | SECTION_QUERY,
+        STANDARD_RIGHTS_WRITE | SECTION_MAP_WRITE,
+        STANDARD_RIGHTS_EXECUTE | SECTION_MAP_EXECUTE,
+        SECTION_ALL_ACCESS
+    };
+    OBJECT_TYPE_INITIALIZER ObjectTypeInitializer = { 0 };
     NTSTATUS Status;
 
+    /* Setup the object type initializer */
+    ObjectTypeInitializer.Length = sizeof(ObjectTypeInitializer);
+    ObjectTypeInitializer.UseDefaultObject = FALSE;
+    ObjectTypeInitializer.CaseInsensitive = FALSE;
+    ObjectTypeInitializer.InvalidAttributes = OBJ_OPENLINK;
+    ObjectTypeInitializer.GenericMapping = GenericMapping;
+    ObjectTypeInitializer.ValidAccessMask = SECTION_ALL_ACCESS;
+    ObjectTypeInitializer.SecurityRequired = FALSE;
+    ObjectTypeInitializer.MaintainHandleCount = FALSE;
+    ObjectTypeInitializer.MaintainTypeList = FALSE;
+    ObjectTypeInitializer.PoolType = PagedPool;
+    ObjectTypeInitializer.DefaultPagedPoolCharge = sizeof(SECTION_OBJECT);
+    ObjectTypeInitializer.DumpProcedure = NULL;
+    ObjectTypeInitializer.OpenProcedure = NULL;
+    ObjectTypeInitializer.CloseProcedure = &SECTION_OBJECT::ObCloseProcedure;
+    ObjectTypeInitializer.DeleteProcedure = &SECTION_OBJECT::ObDeleteProcedure;
+    ObjectTypeInitializer.ParseProcedure = NULL;
+    ObjectTypeInitializer.SecurityProcedure = NULL;
+    ObjectTypeInitializer.QueryNameProcedure = NULL;
+    ObjectTypeInitializer.OkayToCloseProcedure = NULL;
+
     /* Create the section object type */
-    Status = Ob::CreateObjectType(... &MmSectionObjectType);
+    Status = ObCreateObjectType(const_cast<PUNICODE_STRING>(&ObjectName),
+                                &ObjectTypeInitializer,
+                                NULL,
+                                &MmSectionObjectType);
     if (!NT_SUCCESS(Status))
     {
         /// \todo proper bugcheck params
         KeBugCheck(0);
     }
 
-#endif
+
 }
 
+VOID
+NTAPI
+SECTION_OBJECT::ObDeleteProcedure (
+    _In_ PVOID Object)
+{
+}
+
+VOID
+NTAPI
+SECTION_OBJECT::ObCloseProcedure (
+    _In_opt_ PEPROCESS Process,
+    _In_ PVOID Object,
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_ ULONG ProcessHandleCount,
+    _In_ ULONG SystemHandleCount)
+{
+}
 
 _Must_inspect_result_
 NTSTATUS
-SECTION::CreateObject (
-    _Out_ SECTION** OutSection,
+SECTION_OBJECT::CreateInstance (
+    _Out_ SECTION_OBJECT** OutSectionObject,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG64 MaximumSize,
     _In_ ULONG SectionPageProtection,
     _In_ ULONG AllocationAttributes,
     _In_opt_ PFILE_OBJECT FileObject)
 {
-    SECTION* Section;
+    PVOID SectionPointer;
+    SECTION_OBJECT* SectionObject;
     NTSTATUS Status;
 
     /* Allocate a section object with Ob */
-    Status = Ob::OBJECT::CreateObject(reinterpret_cast<PVOID*>(&Section),
+    Status = Ob::OBJECT::CreateObject(&SectionPointer,
                                       MmSectionObjectType,
                                       ObjectAttributes);
     if (!NT_SUCCESS(Status))
@@ -53,12 +104,12 @@ SECTION::CreateObject (
     }
 
     /* Initialize the object */
-    new(Section) SECTION;
+    SectionObject = new(SectionPointer) SECTION_OBJECT;
 
 
 
     /* Return the section */
-    *OutSection = Section;
+    *OutSectionObject = SectionObject;
 
     return STATUS_SUCCESS;
 }
@@ -82,14 +133,19 @@ MmCreateSection (
     _In_opt_ HANDLE FileHandle,
     _In_opt_ PFILE_OBJECT FileObject)
 {
-    SECTION* Section;
+    SECTION_OBJECT* SectionObject;
     NTSTATUS Status;
 
     /* This is not used here */
     UNREFERENCED_PARAMETER(DesiredAccess);
 
-    /* Check if we should use the file handle */
-    if ((FileHandle != NULL) && (FileObject == NULL))
+    /* Check if we should use the file object */
+    if (FileObject != NULL)
+    {
+        /* In this case, ignore the file handle */
+        FileHandle = NULL;
+    }
+    else if (FileHandle != NULL)
     {
         /* Reference the file handle */
 #if 0
@@ -111,16 +167,23 @@ MmCreateSection (
         }
     }
 
-    /* Create the section */
-    Status = SECTION::CreateObject(&Section,
-                                   ObjectAttributes,
-                                   MaximumSize->QuadPart,
-                                   SectionPageProtection,
-                                   AllocationAttributes,
-                                   FileObject);
+    /* Create the section object */
+    Status = SECTION_OBJECT::CreateInstance(&SectionObject,
+                                            ObjectAttributes,
+                                            MaximumSize->QuadPart,
+                                            SectionPageProtection,
+                                            AllocationAttributes,
+                                            FileObject);
 
 
-    *OutSectionObject = static_cast<PVOID>(Section);
+    *OutSectionObject = static_cast<PVOID>(SectionObject);
+
+    /* Did we take a reference on the file object? */
+    if (FileHandle != NULL)
+    {
+        /* Cleanup the reference */
+        ObDereferenceObject(FileObject);
+    }
 
     return Status;
 }

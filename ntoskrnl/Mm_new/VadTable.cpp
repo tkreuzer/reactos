@@ -28,23 +28,8 @@ VOID
 VAD_TABLE::Initialize (
     BOOLEAN KernelMode)
 {
-    PVOID LowestAddress, HighestAddress;
-
     InitializeListHead(&m_ListHead);
     KeInitializeGuardedMutex(&m_ListLock);
-    if (KernelMode)
-    {
-        LowestAddress = MmSystemRangeStart;
-        HighestAddress = (PVOID)(LONG_PTR)-1;
-    }
-    else
-    {
-        LowestAddress = MmLowestUserAddress;
-        HighestAddress = MmHighestUserAddress;
-    }
-
-    m_RangeStartingVpn = reinterpret_cast<ULONG_PTR>(LowestAddress) >> PAGE_SHIFT;
-    m_RangeEndingVpn = (reinterpret_cast<ULONG_PTR>(HighestAddress) >> PAGE_SHIFT) + 1;
 }
 
 inline
