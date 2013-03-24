@@ -250,6 +250,16 @@ list(APPEND SOURCE
     Mm_New/MmData.cpp
     Mm_New/PoolSupport.cpp
     Mm_New/Init.cpp
+    Mm_New/Mdl.cpp
+    Mm_New/ContiguousMemory.cpp
+    Mm_New/SectionView.cpp
+    Mm_New/VirtualMemory.cpp
+    Mm_New/PhysicalMemory.cpp
+    Mm_New/Mapping.cpp
+    Mm_New/KernelStack.cpp
+    Mm_New/Session.cpp
+    Mm_New/ProcessSupport.cpp
+    Mm_New/DriverSupport.cpp
     Mm_New/Stubs.cpp
     Mm_New/Cc/Stubs.cpp
 #########################
