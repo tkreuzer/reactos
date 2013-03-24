@@ -28,16 +28,19 @@ endif()
 
 add_asm_files(ntoskrnl_asm ${NTOSKRNL_ASM_SOURCE})
 
+set(NEWCC TRUE)
+
 if(NEWCC)
     add_definitions(-DNEWCC)
     list(APPEND SOURCE
-        cache/cachesub.c
-        cache/copysup.c
-        cache/fssup.c
-        cache/lazyrite.c
-        cache/logsup.c
-        cache/mdlsup.c
-        cache/pinsup.c)
+        #cache/cachesub.c
+        #cache/copysup.c
+        #cache/fssup.c
+        #cache/lazyrite.c
+        #cache/logsup.c
+        #cache/mdlsup.c
+        #cache/pinsup.c
+)
 else()
     list(APPEND SOURCE
         cc/cacheman.c
@@ -49,12 +52,12 @@ else()
 endif()
 
 list(APPEND SOURCE
-    cache/section/io.c
-    cache/section/data.c
-    cache/section/fault.c
-    cache/section/reqtools.c
-    cache/section/sptab.c
-    cache/section/swapout.c
+    #cache/section/io.c
+    #cache/section/data.c
+    #cache/section/fault.c
+    #cache/section/reqtools.c
+    #cache/section/sptab.c
+    #cache/section/swapout.c
     config/cmalloc.c
     config/cmapi.c
     config/cmboot.c
@@ -205,44 +208,50 @@ list(APPEND SOURCE
     lpc/port.c
     lpc/reply.c
     lpc/send.c
-    mm/ARM3/contmem.c
-    mm/ARM3/drvmgmt.c
-    mm/ARM3/dynamic.c
+#    mm/ARM3/contmem.c
+#    mm/ARM3/drvmgmt.c
+#    mm/ARM3/dynamic.c
     mm/ARM3/expool.c
-    mm/ARM3/hypermap.c
-    mm/ARM3/iosup.c
-    mm/ARM3/largepag.c
-    mm/ARM3/mdlsup.c
-    mm/ARM3/mmdbg.c
-    mm/ARM3/mminit.c
-    mm/ARM3/mmsup.c
-    mm/ARM3/ncache.c
-    mm/ARM3/pagfault.c
-    mm/ARM3/pfnlist.c
-    mm/ARM3/pool.c
-    mm/ARM3/procsup.c
-    mm/ARM3/section.c
-    mm/ARM3/session.c
-    mm/ARM3/special.c
-    mm/ARM3/sysldr.c
-    mm/ARM3/syspte.c
-    mm/ARM3/vadnode.c
-    mm/ARM3/virtual.c
-    mm/ARM3/zeropage.c
-    mm/balance.c
-    mm/freelist.c
-    mm/marea.c
-    mm/mmfault.c
-    mm/mminit.c
-    mm/pagefile.c
-    mm/region.c
-    mm/rmap.c
-    mm/section.c
+#    mm/ARM3/hypermap.c
+#    mm/ARM3/iosup.c
+#    mm/ARM3/largepag.c
+#    mm/ARM3/mdlsup.c
+#    mm/ARM3/mmdbg.c
+#    mm/ARM3/mminit.c
+#    mm/ARM3/mmsup.c
+#    mm/ARM3/ncache.c
+#    mm/ARM3/pagfault.c
+#    mm/ARM3/pfnlist.c
+#    mm/ARM3/pool.c
+#    mm/ARM3/procsup.c
+#    mm/ARM3/section.c
+#    mm/ARM3/session.c
+#    mm/ARM3/special.c
+#    mm/ARM3/sysldr.c
+#    mm/ARM3/syspte.c
+#    mm/ARM3/vadnode.c
+#    mm/ARM3/virtual.c
+#    mm/ARM3/zeropage.c
+#    mm/balance.c
+#    mm/freelist.c
+#    mm/marea.c
+#    mm/mmfault.c
+#    mm/mminit.c
+#    mm/pagefile.c
+#    mm/region.c
+#    mm/rmap.c
+#    mm/section.c
 #########################
     Mm_new/SectionObject.cpp
     Mm_new/VadTable.cpp
     Mm_new/ControlArea.cpp
     Mm_new/SegmentObject.cpp
+    Mm_New/PageFault.cpp
+    Mm_New/MmData.cpp
+    Mm_New/PoolSupport.cpp
+    Mm_New/Init.cpp
+    Mm_New/Stubs.cpp
+    Mm_New/Cc/Stubs.cpp
 #########################
     ob/obdir.c
     ob/obhandle.c
@@ -311,8 +320,8 @@ if(ARCH STREQUAL "i386")
         ke/i386/traphdlr.c
         ke/i386/usercall.c
         ke/i386/v86vdm.c
-        mm/i386/page.c
-        mm/ARM3/i386/init.c
+#        mm/i386/page.c
+#        mm/ARM3/i386/init.c
         ps/i386/psctx.c
         ps/i386/psldt.c
         vdm/vdmmain.c
@@ -334,8 +343,8 @@ elseif(ARCH STREQUAL "amd64")
         ke/amd64/spinlock.c
         ke/amd64/stubs.c
         ke/amd64/thrdini.c
-        mm/amd64/init.c
-        mm/amd64/page.c
+#        mm/amd64/init.c
+#        mm/amd64/page.c
         ps/amd64/psctx.c)
 elseif(ARCH STREQUAL "arm")
     list(APPEND ASM_SOURCE

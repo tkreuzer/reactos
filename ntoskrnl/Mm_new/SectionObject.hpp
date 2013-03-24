@@ -17,7 +17,7 @@
 #include "ntosbase.h"
 #include "Ob/Object.hpp"
 
-extern POBJECT_TYPE MmSectionObjectType;
+extern "C" POBJECT_TYPE MmSectionObjectType;
 
 namespace Mm {
 
@@ -25,6 +25,7 @@ class SECTION_OBJECT : public Ob::OBJECT
 {
 private:
 
+    PFILE_OBJECT m_FileObject;
     class CONTROL_AREA* m_ControlArea;
 
     friend class MEMORY_MANAGER;
@@ -51,6 +52,14 @@ private:
         _In_ ULONG SystemHandleCount);
 
 public:
+
+    inline
+    PFILE_OBJECT
+    GetFileObject (
+        VOID)
+    {
+        return m_FileObject;
+    }
 
     _Must_inspect_result_
     static
