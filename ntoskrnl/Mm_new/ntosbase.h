@@ -25,12 +25,15 @@
 #define IoFileObjectType _IoFileObjectType
 #define KeEnterCriticalRegion _KeEnterCriticalRegion
 #define KeLeaveCriticalRegion _KeLeaveCriticalRegion
+#define KeGetCurrentThread _KeGetCurrentThread
 
 #include <ntifs.h>
 
 #define ProbeForWriteHandle(x) ProbeForWrite(x, sizeof(HANDLE), sizeof(HANDLE))
 
 #define MmLowestUserAddress ((PVOID)0x10000)
+
+#define UNIMPLEMENTED __debugbreak()
 
 inline
 void*
@@ -52,3 +55,10 @@ void operator delete(void* P)
     ExFreePool(P);
 }
 
+template<typename _ResultType, typename _OrigType>
+_ResultType SCAST(_OrigType x)
+{
+    _ResultType Result = static_cast<_ResultType>(x);
+    NT_ASSERT(static_cast<_OrigType>(Result) == x);
+    return Result;
+}

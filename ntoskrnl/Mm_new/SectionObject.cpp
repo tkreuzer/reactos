@@ -115,9 +115,6 @@ SECTION_OBJECT::CreateInstance (
 }
 
 
-
-/** Exported API **************************************************************/
-
 extern "C" {
 
 /** Internal API **************************************************************/
@@ -130,6 +127,26 @@ MmGetFileObjectForSection (
     SECTION_OBJECT* SectionObject = static_cast<SECTION_OBJECT*>(Section);
 
     return SectionObject->GetFileObject();
+}
+
+NTSTATUS
+NTAPI
+MmGetFileNameForSection (
+    IN PVOID Section,
+    OUT POBJECT_NAME_INFORMATION *ModuleName)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+NTAPI
+MmGetFileNameForAddress (
+    IN PVOID Address,
+    OUT PUNICODE_STRING ModuleName)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
 }
 
 
@@ -306,46 +323,39 @@ NtCreateSection (
 
 NTSTATUS
 NTAPI
-NtMapViewOfSection(
-    _In_ HANDLE SectionHandle,
-    _In_ HANDLE ProcessHandle,
-    _Inout_ PVOID* BaseAddress,
-    _In_ ULONG_PTR ZeroBits,
-    _In_ SIZE_T CommitSize,
-    _Inout_opt_ PLARGE_INTEGER SectionOffset,
-    _Inout_ PSIZE_T ViewSize,
-    _In_ SECTION_INHERIT InheritDisposition,
-    _In_ ULONG AllocationType,
-    _In_ ULONG Win32Protect)
+NtOpenSection (
+    _Out_ PHANDLE SectionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes)
 {
-#if 0
-    PVOID SafeBaseAddress;
-    LARGE_INTEGER SafeSectionOffset;
-    SIZE_T SafeViewSize;
-
-    /* Check if this call comes from user mode */
-    if (ExGetPreviousMode() != KernelMode)
-    {
-        /* Use SEH to copy the buffers */
-        _SEH2_TRY
-        {
-            ProbeForRead(MaximumSize, sizeof(*MaximumSize), 1);
-            SafeMaximumSize = *MaximumSize;
-            MaximumSize = &SafeMaximumSize;
-            ProbeForRead(ObjectAttributes, sizeof(*ObjectAttributes), 1);
-            SafeObjectAttributes = *ObjectAttributes;
-            ObjectAttributes = &SafeObjectAttributes;
-        }
-        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-        {
-            //ERR("Could not
-            _SEH2_YIELD(return _SEH2_GetExceptionCode();)
-        }
-        _SEH2_END;
-    }
-#endif
-    return 0;
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
 }
+
+NTSTATUS
+NTAPI
+NtQuerySection (
+    _In_ HANDLE SectionHandle,
+    _In_ enum _SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_ PVOID SectionInformation,
+    _In_ SIZE_T Length,
+    _Out_ PSIZE_T ResultLength)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+
+NTSTATUS
+NTAPI
+NtExtendSection (
+    _In_ HANDLE SectionHandle,
+    _In_ PLARGE_INTEGER NewMaximumSize)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
 
 }; // extern "C"
 

@@ -1,8 +1,6 @@
 
 #include "ntosbase.h"
 
-#define UNIMPLEMENTED __debugbreak()
-
 extern "C" {
 
 NTSTATUS
