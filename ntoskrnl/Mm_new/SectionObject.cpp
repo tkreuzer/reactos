@@ -120,6 +120,21 @@ SECTION_OBJECT::CreateInstance (
 
 extern "C" {
 
+/** Internal API **************************************************************/
+
+PFILE_OBJECT
+NTAPI
+MmGetFileObjectForSection (
+    _In_ PVOID Section)
+{
+    SECTION_OBJECT* SectionObject = static_cast<SECTION_OBJECT*>(Section);
+
+    return SectionObject->GetFileObject();
+}
+
+
+/** Exported API **************************************************************/
+
 _Must_inspect_result_
 NTSTATUS
 NTAPI
