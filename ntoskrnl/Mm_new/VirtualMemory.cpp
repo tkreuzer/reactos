@@ -8,9 +8,9 @@ _IRQL_requires_max_(APC_LEVEL)
 HANDLE
 NTAPI
 MmSecureVirtualMemory (
-  __in_data_source(USER_MODE) _In_reads_bytes_ (Size) PVOID Address,
-  _In_ __in_data_source(USER_MODE) SIZE_T Size,
-  _In_ ULONG ProbeMode)
+    __in_data_source(USER_MODE) _In_reads_bytes_ (Size) PVOID Address,
+    _In_ __in_data_source(USER_MODE) SIZE_T Size,
+    _In_ ULONG ProbeMode)
 {
     UNIMPLEMENTED;
     return 0;
@@ -25,6 +25,12 @@ MmUnsecureVirtualMemory (
     UNIMPLEMENTED;
 }
 
+/*!
+    \param AllocationType -
+        The lowest 5 bits encode the NUMA node, if all 5 bits are 0, the ideal
+        processor's NUMA node is used, otherwise the node number is calculated
+        by masking the lowest 5 bits and subtracting 1.
+*/
 _Must_inspect_result_
 _At_(*BaseAddress, __drv_allocatesMem(Mem))
 __kernel_entry
@@ -38,6 +44,12 @@ NtAllocateVirtualMemory (
     _In_ ULONG AllocationType,
     _In_ ULONG Protect)
 {
+    // Check parameters
+    // Probe and copy pointer data
+    // reference the process (or NULL for NtCurrentProcess())
+    // call internal function
+    // dereference the process
+    // return pointer parameters
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -56,6 +68,8 @@ NtFreeVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtFlushVirtualMemory (
@@ -68,6 +82,8 @@ NtFlushVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtProtectVirtualMemory (
@@ -81,6 +97,8 @@ NtProtectVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtQueryVirtualMemory (
@@ -95,6 +113,8 @@ NtQueryVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtLockVirtualMemory (
@@ -107,6 +127,8 @@ NtLockVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtUnlockVirtualMemory (
@@ -119,6 +141,8 @@ NtUnlockVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtReadVirtualMemory (
@@ -132,6 +156,8 @@ NtReadVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+__kernel_entry
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
 NtWriteVirtualMemory (

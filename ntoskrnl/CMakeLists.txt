@@ -260,6 +260,8 @@ list(APPEND SOURCE
     Mm_New/Session.cpp
     Mm_New/ProcessSupport.cpp
     Mm_New/DriverSupport.cpp
+    Mm_New/PfnDatabase.cpp
+    Mm_New/DebugSupport.cpp
     Mm_New/Stubs.cpp
     Mm_New/Cc/Stubs.cpp
 #########################

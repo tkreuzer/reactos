@@ -118,29 +118,10 @@ MmGetVirtualForPhysical (
     return NULL;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-NTAPI
-MmIsAddressValid (
-  _In_ PVOID VirtualAddress)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
 BOOLEAN
 NTAPI
 MmIsNonPagedSystemAddressValid (
   _In_ PVOID VirtualAddress)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
-BOOLEAN
-NTAPI
-MmIsRecursiveIoFault (
-    VOID)
 {
     UNIMPLEMENTED;
     return FALSE;
@@ -395,18 +376,6 @@ MmIsFileObjectAPagingFile (
 {
     UNIMPLEMENTED;
     return 0;
-}
-
-NTSTATUS
-NTAPI
-MmDbgCopyMemory (
-    IN ULONG64 Address,
-    IN PVOID Buffer,
-    IN ULONG Size,
-    IN ULONG Flags)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
 }
 
 VOID

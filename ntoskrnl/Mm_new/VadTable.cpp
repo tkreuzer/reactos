@@ -1,6 +1,7 @@
 
 
 #include "VadTable.hpp"
+#include "VadObject.hpp"
 
 namespace Mm {
 

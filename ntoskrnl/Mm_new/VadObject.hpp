@@ -5,7 +5,7 @@
 
 namespace Mm {
 
-typedef struct _VAD_NODE
+typedef struct VAD_NODE
 {
     /* For now use a simple LIST_ENTRY */
     LIST_ENTRY ListEntry;

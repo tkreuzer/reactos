@@ -796,7 +796,7 @@
 @ stdcall MmMapLockedPagesWithReservedMapping(ptr long ptr long)
 @ stdcall MmMapMemoryDumpMdl(ptr)
 @ stdcall MmMapUserAddressesToPage(ptr long ptr)
-@ stdcall MmMapVideoDisplay(long long long long)
+@ stdcall MmMapVideoDisplay(long long long long) MmMapIoSpace
 @ stdcall MmMapViewInSessionSpace(ptr ptr ptr)
 @ stdcall MmMapViewInSystemSpace(ptr ptr ptr)
 @ stdcall MmMapViewOfSection(ptr ptr ptr long long ptr ptr long long long)
@@ -823,7 +823,7 @@
 @ stdcall MmUnmapIoSpace(ptr long)
 @ stdcall MmUnmapLockedPages(ptr ptr)
 @ stdcall MmUnmapReservedMapping(ptr long ptr)
-@ stdcall MmUnmapVideoDisplay(ptr long)
+@ stdcall MmUnmapVideoDisplay(ptr long) MmUnmapIoSpace
 @ stdcall MmUnmapViewInSessionSpace(ptr)
 @ stdcall MmUnmapViewInSystemSpace(ptr)
 @ stdcall MmUnmapViewOfSection(ptr ptr)
