@@ -1,16 +1,77 @@
 
 #include "ntosbase.h"
+#include "PfnDatabase.hpp"
 
+namespace Mm {
 extern "C" {
 
+ULONG KeNodeMask;
+
+/*!
+
+    \name  MmGetPhysicalMemoryRanges
+
+    \brief Returns an array of PHYSICAL_MEMORY_RANGE, describing the systems
+           physical memory.
+
+    \return Pointer to the newly allocated array of PHYSICAL_MEMORY_RANGE
+            structures. The pool-tag is 'hPmM'
+
+    The array is allocated from non-paged pool and consists or n+1 elements,
+    where n is the number of contiguous memory regions. The last element has
+    the value 0 for both the BaseAddress and NumberOfBytes fields.
+
+    Note that the function uses the PhysicalMemoryDescriptor from the PFN
+    database which is constant after it has been initialized. Therefore we
+    don't require any lock.
+
+    \ref http://www.jungo.com/st/support/tech_docs/td129.html
+
+*/
 _IRQL_requires_max_ (PASSIVE_LEVEL)
 PPHYSICAL_MEMORY_RANGE
 NTAPI
 MmGetPhysicalMemoryRanges (
     VOID)
 {
-    UNIMPLEMENTED;
-    return NULL;
+    const PHYSICAL_MEMORY_DESCRIPTOR* PhysicalMemoryDescriptor;
+    ULONG NumberOfRuns, ArraySize, i;
+    PPHYSICAL_MEMORY_RANGE MemoryRanges;
+
+    /* Get a pointer to the physical memory descriptor */
+    PhysicalMemoryDescriptor = g_PfnDatabase.GetPhysicalMemoryDescriptor();
+
+    /* Query the number of physical memory runs */
+    NumberOfRuns = PhysicalMemoryDescriptor->NumberOfRuns;
+
+    /* Calculate the array size (one additional terminating entry) */
+    ArraySize = (NumberOfRuns + 1) * sizeof(*MemoryRanges);
+
+    /* Allocate the array */
+    MemoryRanges = static_cast<PPHYSICAL_MEMORY_RANGE>(
+        ExAllocatePoolWithTag(NonPagedPool, ArraySize, TAG_MEMORY_RANGES));
+    if (MemoryRanges == NULL)
+    {
+        return NULL;
+    }
+
+    /* Loop all memory runs */
+    for (i = 0; i < NumberOfRuns; i++)
+    {
+        ULONG64 BasePage, PageCount;
+
+        /* Fill in the data */
+        BasePage = PhysicalMemoryDescriptor->Run[i].BasePage;
+        MemoryRanges[i].BaseAddress.QuadPart = BasePage << PAGE_SHIFT;
+        PageCount = PhysicalMemoryDescriptor->Run[i].PageCount;
+        MemoryRanges[i].NumberOfBytes.QuadPart = PageCount << PAGE_SHIFT;
+    }
+
+    /* Zero the terminating entry */
+    MemoryRanges[i].BaseAddress.QuadPart = 0;
+    MemoryRanges[i].NumberOfBytes.QuadPart = 0;
+
+    return MemoryRanges;
 }
 
 _IRQL_requires_max_ (PASSIVE_LEVEL)
@@ -21,7 +82,7 @@ MmAddPhysicalMemory (
   _Inout_ PLARGE_INTEGER NumberOfBytes)
 {
     UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_NOT_SUPPORTED;;
 }
 
 _IRQL_requires_max_ (PASSIVE_LEVEL)
@@ -32,7 +93,7 @@ MmRemovePhysicalMemory (
   _Inout_ PLARGE_INTEGER NumberOfBytes)
 {
     UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_NOT_SUPPORTED;
 }
 
 _Must_inspect_result_
@@ -63,6 +124,13 @@ MmMarkPhysicalMemoryAsBad (
     IN PPHYSICAL_ADDRESS StartAddress,
     IN OUT PLARGE_INTEGER NumberOfBytes)
 {
+#if 0
+    PFN_NUMBER StartingPfn, NumberOfPages;
+
+    StartingPfn = StartAddress->QuadPart >> PAGE_SHIFT;
+    NumberOfPages = NumberOfBytes->QuadPart >> PAGE_SHIFT;
+    return g_PfnDatabase.MarkPhysicalMemory(PfnBad, StartingPfn, NumberOfPages);
+#endif
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -73,8 +141,16 @@ MmMarkPhysicalMemoryAsGood (
     IN PPHYSICAL_ADDRESS StartAddress,
     IN OUT PLARGE_INTEGER NumberOfBytes)
 {
+#if 0
+    PFN_NUMBER StartingPfn, NumberOfPages;
+
+    StartingPfn = StartAddress->QuadPart >> PAGE_SHIFT;
+    NumberOfPages = NumberOfBytes->QuadPart >> PAGE_SHIFT;
+    return g_PfnDatabase.MarkPhysicalMemory(PfnFree, StartingPfn, NumberOfPages);
+#endif
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
 }; // extern "C"
+}; // namespace Mm

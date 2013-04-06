@@ -46,8 +46,8 @@ NTAPI
 MmIsSessionAddress (
     IN PVOID Address)
 {
-    UNIMPLEMENTED;
-    return 0;
+    //UNIMPLEMENTED;
+    return FALSE;
 }
 
 }; // extern "C"

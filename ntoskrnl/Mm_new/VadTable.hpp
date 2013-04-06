@@ -1,9 +1,13 @@
 
 #pragma once
 
-#include "VadObject.hpp"
+#include "ntosbase.h"
 
 namespace Mm {
+
+/* Forward declaration */
+struct VAD_NODE;
+class VAD_OBJECT;
 
 class VAD_TABLE
 {
@@ -24,31 +28,31 @@ private:
     ReleaseTableLock (
         VOID);
 
-    PVAD_NODE
+    VAD_NODE*
     GetLowestNodeWithEndingVpnNotBelow (
         ULONG_PTR MinimumEndingVpn);
 
-    PVAD_NODE
+    VAD_NODE*
     GetHighestNodeWithStartingVpnNotAbove (
         ULONG_PTR MaximumStartingVpn);
 
-    PVAD_NODE
+    VAD_NODE*
     GetNextHigherNode (
-        PVAD_NODE Node);
+        VAD_NODE* Node);
 
-    PVAD_NODE
+    VAD_NODE*
     GetNextLowerNode (
-        PVAD_NODE Node);
+        VAD_NODE* Node);
 
     VOID
     InsertBefore (
-        PVAD_NODE ReferenceNode,
-        PVAD_NODE NewNode);
+        VAD_NODE* ReferenceNode,
+        VAD_NODE* NewNode);
 
     VOID
     InsertAfter (
-        PVAD_NODE ReferenceNode,
-        PVAD_NODE NewNode);
+        VAD_NODE* ReferenceNode,
+        VAD_NODE* NewNode);
 
 public:
 
@@ -59,7 +63,7 @@ public:
     _Must_inspect_result_
     NTSTATUS
     InsertVadObject (
-        _Inout_ PVAD_OBJECT VadObject,
+        _Inout_ VAD_OBJECT* VadObject,
         _In_ ULONG PageCount,
         _In_ ULONG_PTR LowestStartingVpn,
         _In_ ULONG_PTR HighestEndingVpn,
@@ -68,20 +72,24 @@ public:
     _Must_inspect_result_
     NTSTATUS
     InsertVadObjectAtVpn (
-        _Inout_ PVAD_OBJECT VadObject,
+        _Inout_ VAD_OBJECT* VadObject,
         _In_ ULONG_PTR StartingVpn,
         _In_ ULONG PageCount);
 
     VOID
     RemoveVadObject (
-        _Inout_ PVAD_OBJECT VadObject);
+        _Inout_ VAD_OBJECT* VadObject);
 
     _Must_inspect_result_
-    PVAD_OBJECT
+    VAD_OBJECT*
     ReferenceVadObjectByAddress (
         PVOID Address);
 
 
 };
+
+//static_assert(sizeof(VAD_TABLE) <= sizeof(MM_AVL_TABLE));
+
+extern VAD_TABLE g_KernelVadTable;
 
 } // namespace Mm

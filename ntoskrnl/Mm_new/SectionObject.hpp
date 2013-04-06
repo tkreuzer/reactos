@@ -25,8 +25,9 @@ class SECTION_OBJECT : public Ob::OBJECT
 {
 private:
 
-    PFILE_OBJECT m_FileObject;
-    class CONTROL_AREA* m_ControlArea;
+    ULONG64 m_SectionSize;
+    ULONG m_SectionFlags;
+    ULONG m_PageProtection;
 
     friend class MEMORY_MANAGER;
 
@@ -58,7 +59,7 @@ public:
     GetFileObject (
         VOID)
     {
-        return m_FileObject;
+        return 0;//m_FileObject;
     }
 
     _Must_inspect_result_

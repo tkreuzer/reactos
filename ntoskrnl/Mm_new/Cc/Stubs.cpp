@@ -43,6 +43,8 @@ CcUninitializeCacheMap (
     _In_opt_ PLARGE_INTEGER TruncateSize,
     _In_opt_ PCACHE_UNINITIALIZE_EVENT UninitializeCompleteEvent)
 {
+    // call CcPurgeCacheSection to purge any cached data that is no longer part of the file.
+    // Enqueue the Event in the SharedCacheMap
     UNIMPLEMENTED;
     return FALSE;
 }
@@ -55,6 +57,10 @@ CcSetFileSizes (
     _In_ PFILE_OBJECT FileObject,
     _In_ PCC_FILE_SIZES FileSizes)
 {
+    //LARGE_INTEGER AllocationSize;
+    //LARGE_INTEGER FileSize;
+    //LARGE_INTEGER ValidDataLength;
+
     UNIMPLEMENTED;
 }
 
@@ -65,6 +71,28 @@ CcSetDirtyPageThreshold (
     _In_ PFILE_OBJECT FileObject,
     _In_ ULONG DirtyPageThreshold)
 {
+#if 0
+    PFSRTL_ADVANCED_FCB_HEADER FcbHeader;
+    PSECTION_OBJECT_POINTERS SectionObjectPointers;
+    PSHARED_CACHE_MAP SharedCacheMap;
+
+    /* Get the shared cache map */
+    SharedCacheMap = FileObject->SectionObjectPointer->SharedCacheMap;
+
+    /* If we have a shared cache map, set the value */
+    if (SharedCacheMap != NULL)
+    {
+        // SharedCacheMap->SetDirtyPageThreshold(DirtyPageThreshold);
+        SharedCacheMap->DirtyPageThreshold = DirtyPageThreshold;
+    }
+
+    /* Get the FCB header */
+    FcbHeader = FileObject->FsContext;
+    if ((FcbHeader->Flags & FSRTL_FLAG_LIMIT_MODIFIED_PAGES) == 0)
+    {
+        FcbHeader->Flags |= FSRTL_FLAG_LIMIT_MODIFIED_PAGES;
+    }
+#endif
     UNIMPLEMENTED;
 }
 
@@ -179,6 +207,13 @@ CcDeferWrite (
     _In_ ULONG BytesToWrite,
     _In_ BOOLEAN Retrying)
 {
+    // Create a "workitem"
+    // if that failed, call PostRoutine directly
+    // queue the workitem (Retrying to head)
+        // Workerthread waits for event that signals that writing is ok
+        // Workerthread walks the list
+            // if (CcCanIWrite(FileObject, BytesToWrite, TRUE, Retrying))
+            //     PostRoutine(Context1, Context2);
     UNIMPLEMENTED;
 }
 
@@ -193,6 +228,15 @@ CcCopyRead (
     _Out_writes_bytes_(Length) PVOID Buffer,
     _Out_ PIO_STATUS_BLOCK IoStatus)
 {
+    // Get shared cache map
+    // for each block in the file
+        // find VACB
+        // Create VACB if not existing
+    // prefetch the pages we need MmPrefetchPages
+    // for each block in the file
+        // find VACB
+        // Copy the block
+
     UNIMPLEMENTED;
     return FALSE;
 }
