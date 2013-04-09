@@ -96,8 +96,11 @@ typedef struct _VAD_PTE
     INT64 VadAddress : 48;
 } VAD_PTE, *PVAD_PTE;
 
-static const HARDWARE_PTE ValidKernelPde = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const HARDWARE_PTE ValidKernelPte = {1,1,0,0,0,0,0,0,1,0,0,0,0,0,0};
+//                                                         W C         W
+//                                                   V W O T D A D L G C
+static const HARDWARE_PTE ValidKernelPte          = {1,1,0,0,0,0,0,0,1,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidKernelPde          = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidLargePageKernelPde = {1,1,0,0,0,0,0,1,0,0,0,0,0,0,0};
 
 class PTE
 {
@@ -109,6 +112,62 @@ class PTE
     };
 
 public:
+
+#if 1 || DBG
+    /* Copy constructor, for debugging */
+    PTE (PTE& NewPte)
+    {
+        /* Check only real PTEs */
+        if (this->IsRealPte())
+        {
+            if (NewPte.Hard.Valid)
+            {
+                /* Never overwrite a valid PTE */
+                NT_ASSERT(this->Hard.Valid == FALSE);
+
+                /* PPEs and PXEs (which are also PPEs) must not be global */
+                NT_ASSERT(!IsRealPpe() || !NewPte.Hard.Global);
+            }
+        }
+
+        this->Hard = NewPte.Hard;
+    }
+
+    /* We also need a default constructor now */
+    inline PTE() {}
+#endif
+
+    inline
+    bool
+    IsRealPte ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PTE_BASE;
+        return Offset < (PTE_TOP + 1 - PTE_BASE);
+    }
+
+    inline
+    bool
+    IsRealPde ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PDE_BASE;
+        return Offset < (PDE_TOP + 1 - PDE_BASE);
+    }
+
+    inline
+    bool
+    IsRealPpe ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PPE_BASE;
+        return Offset < (PPE_TOP + 1 - PPE_BASE);
+    }
+
+    inline
+    bool
+    IsRealPxe ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PXE_BASE;
+        return Offset < (PXE_TOP + 1 - PXE_BASE);
+    }
 
     inline
     bool
@@ -153,9 +212,10 @@ public:
     CreateValidKernelPte (
         _In_ PFN_NUMBER PageFrameNumber)
     {
-        HARDWARE_PTE Pte = ValidKernelPte;
-        Pte.PageFrameNumber = PageFrameNumber;
-        return *(PTE*)(&Pte);
+        PTE Pte;
+        Pte.Hard = ValidKernelPte;
+        Pte.Hard.PageFrameNumber = PageFrameNumber;
+        return Pte;
     }
 
     static inline
@@ -163,9 +223,10 @@ public:
     CreateValidKernelPde (
         _In_ PFN_NUMBER PageFrameNumber)
     {
-        HARDWARE_PTE Pte = ValidKernelPde;
-        Pte.PageFrameNumber = PageFrameNumber;
-        return *(PTE*)(&Pte);
+        PTE Pte;
+        Pte.Hard = ValidKernelPde;
+        Pte.Hard.PageFrameNumber = PageFrameNumber;
+        return Pte;
     }
 
     static inline
@@ -182,6 +243,19 @@ public:
         _In_ PFN_NUMBER PageFrameNumber)
     {
         return CreateValidKernelPde(PageFrameNumber);
+    }
+
+    static inline
+    PTE
+    CreateValidLargePageKernelPde (
+        _In_ PFN_NUMBER PageFrameNumber)
+    {
+        PTE Pte;
+        NT_ASSERT((PageFrameNumber & 0x1ff) == 0);
+        // The lowest PFN bit (Bit 12) is in fact PAT, but we ignore it for now
+        Pte.Hard = ValidLargePageKernelPde;
+        Pte.Hard.PageFrameNumber = PageFrameNumber;
+        return Pte;
     }
 
     inline

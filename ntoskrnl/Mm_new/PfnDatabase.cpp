@@ -13,15 +13,15 @@ Concurrency between interlocked page removal and contiguous page allocation:
 
 */
 
+/// \todo Use RTL_BITMAP_EX
+
 #include "PfnDatabase.hpp"
 #include "VadTable.hpp"
 #include "VadObject.hpp"
-#include "amd64/PageTables.hpp"
 #include "amd64/MmConstants.hpp"
 #include <arc/arc.h>
 #include <ndk/ketypes.h>
 
-#define INIT_FUNCTION
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
@@ -35,14 +35,28 @@ ULONG PFN_DATABASE::m_CacheColorMask;
 PPFN_LIST PFN_DATABASE::m_FreeLists;
 PPFN_LIST PFN_DATABASE::m_ZeroedLists;
 PPHYSICAL_MEMORY_DESCRIPTOR PFN_DATABASE::m_PhysicalMemoryDescriptor;
-PRTL_BITMAP PFN_DATABASE::m_PhysicalMemoryBitmaps;
+PRTL_BITMAP PFN_DATABASE::m_PhysicalMemoryBitmap;
 PFN_ENTRY* PFN_DATABASE::m_PfnArray;
 PULONG PFN_DATABASE::m_PhysicalBitmapBuffer;
 KSPIN_LOCK PFN_DATABASE::m_ContiguousMemoryLock;
 
-static PFN_NUMBER EarlyAllocBasePage;
-static PFN_NUMBER EarlyAllocPageCount;
+extern PFN_NUMBER EarlyAllocPageBase;
+extern PFN_NUMBER EarlyAllocPageCount;
+extern PFN_NUMBER EarlyAllocLargePageBase;
 //static KERNEL_VAD g_PfnDatabaseVad;
+
+extern PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
+extern ULONG NumberOfPhysicalMemoryRuns;
+
+static const PFN_CACHE_ATTRIBUTE CachingTypeToCacheAttribute[] =
+{
+    PfnNonCached, PfnCached, PfnWriteCombined, PfnCached, PfnNonCached, PfnCached
+};
+
+VOID
+EarlyMapPages (
+    PVOID StartAddress,
+    PVOID EndAddress);
 
 inline
 BOOLEAN
@@ -55,31 +69,6 @@ IsFreeMemory (
             (MemoryType == LoaderOsloaderStack));
 }
 
-/*! \name EarlyAllocPage
- *
- *  \brief Allocates a single page of physical memory, before the PFN
- *      database is initialized.
- *
- *  \remarks This function can only used after EarlyAllocPageCount and
- *      EarlyAllocBasePage are set and can not be used after the PFN database
- *      was created.
- */
-static
-PFN_NUMBER
-INIT_FUNCTION
-EarlyAllocPage (
-    VOID)
-{
-    /* Sanity check, that there is a page available */
-    if (EarlyAllocPageCount < 1)
-    {
-        KeBugCheck(INSTALL_MORE_MEMORY);
-    }
-
-    /* Decrement number of pages and return next page */
-    EarlyAllocPageCount--;
-    return EarlyAllocBasePage++;
-}
 
 static
 VOID
@@ -147,64 +136,6 @@ GetNextPageColor (
     }
 
     return NextColor;
-}
-
-VOID
-INIT_FUNCTION
-EarlyMapPTEs (
-    PVOID StartAddress,
-    PVOID EndAddress)
-{
-#if MI_PAGING_LEVELS >= 4
-    for (PPXE PxePointer = AddressToPxe(StartAddress);
-         PxePointer <= AddressToPxe(EndAddress);
-         PxePointer++)
-    {
-        //PXE TempPxe;
-        if (!PxePointer->IsValid())
-        {
-            //TempPxe.InitializeKernelPxe(EarlyAllocPage());
-            //*PxePointer = TempPxe;
-            *PxePointer = PXE::CreateValidKernelPxe(EarlyAllocPage());
-            RtlZeroMemory(PteToAddress(PxePointer), PAGE_SIZE);
-        }
-    }
-#endif
-#if MI_PAGING_LEVELS >= 3
-    for (PPPE PpePointer = AddressToPpe(StartAddress);
-         PpePointer <= AddressToPpe(EndAddress);
-         PpePointer++)
-    {
-        if (!PpePointer->IsValid())
-        {
-            *PpePointer = PPE::CreateValidKernelPpe(EarlyAllocPage());
-            RtlZeroMemory(PteToAddress(PpePointer), PAGE_SIZE);
-        }
-    }
-#endif
-    for (PPDE PdePointer = AddressToPde(StartAddress);
-         PdePointer <= AddressToPde(EndAddress);
-         PdePointer++)
-    {
-        if (!PdePointer->IsValid())
-        {
-            DbgPrint("Writing Pde @ %p\n", PdePointer);
-            *PdePointer = PDE::CreateValidKernelPde(EarlyAllocPage());
-            DbgPrint("Zeroing page table @ %p\n", PteToAddress(PdePointer));
-            RtlZeroMemory(PteToAddress(PdePointer), PAGE_SIZE);
-        }
-    }
-
-    for (PPTE PtePointer = AddressToPte(StartAddress);
-         PtePointer <= AddressToPte(EndAddress);
-         PtePointer++)
-    {
-        if (!PtePointer->IsValid())
-        {
-            *PtePointer = PTE::CreateValidKernelPte(EarlyAllocPage());
-            RtlZeroMemory(PteToAddress(PtePointer), PAGE_SIZE);
-        }
-    }
 }
 
 
@@ -279,10 +210,10 @@ INIT_FUNCTION
 PFN_DATABASE::Initialize (
     _In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
-    ULONG NumberPageColors, NumberOfRuns, i;
-    PFN_NUMBER BasePage, PageCount, LastPage, LargestPageCount;
+    ULONG NumberPageColors, i;
+    PFN_NUMBER BasePage, PageCount, NextPage;
     PLIST_ENTRY ListEntry;
-    PMEMORY_ALLOCATION_DESCRIPTOR Descriptor, LargestFreeDescriptor;
+    PMEMORY_ALLOCATION_DESCRIPTOR Descriptor;
     PULONG Buffer, BufferEnd;
     ULONG_PTR StaringVpn, EndingVpn;
 
@@ -290,72 +221,34 @@ PFN_DATABASE::Initialize (
     CalculatePageColors();
     NumberPageColors = KeGetCurrentPrcb()->SecondaryColorMask + 1;
 
-    /* Start with 0 runs and set LastPage so that the first descriptor will
-       count as a new run */
-    NumberOfRuns = 0;
-    LastPage = -2;
-    LargestPageCount = 0;
-
-    MmLowestPhysicalPage = -1; // ULONG_PTR_MAX;
-    MmHighestPhysicalPage = 0;
-
-    /* The first loop to gather the required data */
-    for (ListEntry = LoaderBlock->MemoryDescriptorListHead.Flink;
-         ListEntry != &LoaderBlock->MemoryDescriptorListHead;
-         ListEntry = ListEntry->Flink)
-    {
-        /* Get the descriptor */
-        Descriptor = CONTAINING_RECORD(ListEntry,
-                                       MEMORY_ALLOCATION_DESCRIPTOR,
-                                       ListEntry);
-
-        /* Check if this is a new run */
-        if (Descriptor->BasePage != LastPage + 1)
-        {
-            NumberOfRuns++;
-        }
-
-        /* Get the range for this descriptor */
-        LastPage = Descriptor->BasePage + Descriptor->PageCount - 1;
-        MmHighestPhysicalPage = max(MmHighestPhysicalPage, LastPage);
-        MmLowestPhysicalPage = min(MmLowestPhysicalPage, Descriptor->BasePage);
-
-        /* Check if this is free memory */
-        if (IsFreeMemory(Descriptor->MemoryType))
-        {
-            /* Check if it's the larges free descriptor do far */
-            if (Descriptor->PageCount > LargestPageCount)
-            {
-                /* Remember this descriptor for early allocations */
-                LargestFreeDescriptor = Descriptor;
-            }
-        }
-    }
-
-    /* Save range of pages for early allocations */
-    EarlyAllocBasePage = LargestFreeDescriptor->BasePage;
-    EarlyAllocPageCount = LargestFreeDescriptor->PageCount;
-
     /* Calculate location of the page lists and physical memory descriptor */
     m_PfnArray = (PFN_ENTRY*)PFN_DATABASE_ADDRESS;
     m_FreeLists = reinterpret_cast<PPFN_LIST>(&m_PfnArray[MmHighestPhysicalPage + 1]);
     m_ZeroedLists = &m_FreeLists[NumberPageColors];
     m_PhysicalMemoryDescriptor = reinterpret_cast<PPHYSICAL_MEMORY_DESCRIPTOR>(
-                                                    &m_ZeroedLists[NumberPageColors]);
-    m_PhysicalMemoryBitmaps = reinterpret_cast<PRTL_BITMAP>(&m_PhysicalMemoryDescriptor->Run[NumberOfRuns]);
-    m_PhysicalBitmapBuffer = reinterpret_cast<PULONG>(&m_PhysicalMemoryBitmaps[NumberOfRuns]);
+            &m_ZeroedLists[NumberPageColors]);
+    m_PhysicalMemoryBitmap = reinterpret_cast<PRTL_BITMAP>(
+            &m_PhysicalMemoryDescriptor->Run[NumberOfPhysicalMemoryRuns]);
+    m_PhysicalBitmapBuffer = reinterpret_cast<PULONG>(
+            m_PhysicalMemoryBitmap + 1);
 
     /* Map page lists, physical memory descriptor and physical memory bitmaps */
-    EarlyMapPTEs(m_FreeLists, m_PhysicalBitmapBuffer);
+    EarlyMapPages(m_FreeLists, m_PhysicalBitmapBuffer);
 
     /* Initialize the physical memory descriptor */
-    m_PhysicalMemoryDescriptor->NumberOfRuns = NumberOfRuns;
+    m_PhysicalMemoryDescriptor->NumberOfRuns = NumberOfPhysicalMemoryRuns;
     m_PhysicalMemoryDescriptor->NumberOfPages = 0;
     m_PhysicalMemoryDescriptor->Run[0].BasePage = MmLowestPhysicalPage;
+    m_PhysicalMemoryDescriptor->Run[0].PageCount = 0;
 
-    /* This time initialize LastPage, so we skip the first descriptor(s)
-       when looking for physical memory runs */
-    LastPage = MmLowestPhysicalPage - 1;
+    /* Initialize the PFN bitmap with the maximum range */
+    RtlInitializeBitMap(m_PhysicalMemoryBitmap,
+                        m_PhysicalBitmapBuffer,
+                        static_cast<ULONG>(MmHighestPhysicalPage));
+
+    /* Initialize NextPage, so we skip the first descriptor(s)
+       when looking for new physical memory runs */
+    NextPage = MmLowestPhysicalPage;
     i = 0;
 
     /* The second loop to map the database and fill in the data */
@@ -369,65 +262,73 @@ PFN_DATABASE::Initialize (
                                        ListEntry);
 
         /* Check if this is a new run */
-        if (Descriptor->BasePage != LastPage + 1)
+        if (Descriptor->BasePage != NextPage)
         {
-            /* Calculate the page count for this run */
-            m_PhysicalMemoryDescriptor->Run[i].PageCount =
-                LastPage + 1 - m_PhysicalMemoryDescriptor->Run[i].BasePage;
-
             /* Start next run */
             i++;
 
-            /* Set base page for the new run */
+            /* Set base page for the new run and update the buffer */
             m_PhysicalMemoryDescriptor->Run[i].BasePage = Descriptor->BasePage;
+            m_PhysicalMemoryDescriptor->Run[i].PageCount = 0;
+            Buffer = BufferEnd;
         }
 
         /* Get the range for this descriptor */
         BasePage = Descriptor->BasePage;
         PageCount = Descriptor->PageCount;
-        LastPage = BasePage + PageCount - 1;
+        NextPage = BasePage + PageCount;
+
+        /* Add this descriptor's pages to the current run */
+        m_PhysicalMemoryDescriptor->Run[i].PageCount += PageCount;
 
         /* Map the pages for the database */
-        EarlyMapPTEs(&m_PfnArray[BasePage],
-                       (PUCHAR)(&m_PfnArray[BasePage + PageCount]) - 1);
+        EarlyMapPages(&m_PfnArray[BasePage],
+                      (PUCHAR)(&m_PfnArray[BasePage + PageCount]) - 1);
 
         /* Add this descriptor to the database */
         InitializePfnEntries(BasePage, PageCount, Descriptor->MemoryType);
+
+        /* Calculate the range of the PFN bitmap buffer for this run */
+        Buffer = &m_PhysicalBitmapBuffer[BasePage / 32];
+        BufferEnd = &m_PhysicalBitmapBuffer[(NextPage - 1 + 31) / 32];
+
+        /* Map the pages for the bitmap buffer */
+        EarlyMapPages(Buffer, reinterpret_cast<PCHAR>(BufferEnd) - 1);
+
+        /* Check if this is free memory */
+        if (IsFreeMemory(Descriptor->MemoryType))
+        {
+            /* Set the bits for this run */
+            RtlSetBits(m_PhysicalMemoryBitmap,
+                       static_cast<ULONG>(BasePage),
+                       static_cast<ULONG>(PageCount));
+        }
+
     }
 
     /* Make sure we counted correctly */
-    NT_ASSERT(i == NumberOfRuns - 1);
+    NT_ASSERT(i == NumberOfPhysicalMemoryRuns - 1);
 
-    /* Calculate the page count for the last run */
-    m_PhysicalMemoryDescriptor->Run[i].PageCount =
-        LastPage + 1 - m_PhysicalMemoryDescriptor->Run[i].BasePage;
 __debugbreak();
-    /* Loop all physical memory runs */
-    Buffer = m_PhysicalBitmapBuffer;
-    for (i = 0; i < NumberOfRuns; i++)
-    {
-        /* Get the page count for this run (must not overflow an ULONG!) */
-        PageCount = m_PhysicalMemoryDescriptor->Run[i].PageCount;
-        NT_ASSERT(PageCount < MAXULONG);
-
-        /* Calculate the end of the bitmap buffer (exclusive) */
-        BufferEnd = &Buffer[(PageCount + 31) / 32];
-
-        /* Map the pages for the bitmap buffer */
-        EarlyMapPTEs(Buffer, reinterpret_cast<PCHAR>(BufferEnd) - 1);
-
-        /* Initialize the bitmap and update the buffer */
-        RtlInitializeBitMap(&m_PhysicalMemoryBitmaps[i],
-                            Buffer,
-                            static_cast<ULONG>(PageCount));
-        RtlClearAllBits(&m_PhysicalMemoryBitmaps[i]);
-        Buffer = BufferEnd;
-    }
 
     /* Reinitialize the PFN entries for the early allocations */
     InitializePfnEntries(LargestFreeDescriptor->BasePage,
-                         LargestFreeDescriptor->PageCount - EarlyAllocPageCount,
+                         EarlyAllocPageBase - LargestFreeDescriptor->BasePage,
                          LoaderMemoryData);
+
+#ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
+    /* Calculate the "next" page (exclusive) for large page allocations */
+    NextPage = (LargestFreeDescriptor->BasePage +
+                LargestFreeDescriptor->PageCount) & LARGE_PAGE_MASK;
+
+    /* Reinitialize the PFN entries for the large page allocations */
+    InitializePfnEntries(EarlyAllocLargePageBase,
+                         NextPage - EarlyAllocLargePageBase,
+                         LoaderLargePageFiller);
+#endif
+
+    /* Early allocations are not allowed any longer */
+    EarlyAllocPageCount = 0;
 
     /* Calculate the starting and ending VPN of the database */
     StaringVpn = reinterpret_cast<ULONG_PTR>(m_PfnArray) >> PAGE_SHIFT;
@@ -483,7 +384,11 @@ PFN_DATABASE::AllocateContiguousPages (
         ULONG HintIndex = 0;
 
         // find free bits in the physical memory bitmap for this run
-        Index = RtlFindSetBitsAndClear(&m_PhysicalMemoryBitmaps[i],
+        /// \todo FIXME: currently we do sparse mapping of the bitmap.
+        /// We can either map it fully, possibly wasting some memory
+        /// or we use multiple bitmaps (one per run) and have each
+        /// point to a ULONG(64) aligned range in the buffer.
+        Index = RtlFindSetBitsAndClear(m_PhysicalMemoryBitmap,
                                        NumberOfPages,
                                        HintIndex);
         if (Index != 0xFFFFFFFF)
@@ -513,12 +418,26 @@ PFN_DATABASE::FreeContiguousPages (
     UNIMPLEMENTED;
 }
 
+
 VOID
-PFN_DATABASE::SetMappedPages (
+PFN_DATABASE::SetPageMapping (
     _In_ PFN_NUMBER BasePageFrameNumber,
     _In_ PFN_COUNT NumberOfPages,
     _In_ MEMORY_CACHING_TYPE CachingType)
 {
+    PFN_ENTRY* PfnEntry;
+
+    PfnEntry = &m_PfnArray[BasePageFrameNumber];
+    while (NumberOfPages--)
+    {
+        NT_ASSERT(PfnEntry->State == PfnFree);
+        NT_ASSERT(PfnEntry->CacheAttribute == PfnNotMapped);
+        //PfnEntry->State = 0;
+        PfnEntry->CacheAttribute = CachingTypeToCacheAttribute[CachingType];
+
+        PfnEntry++;
+    }
+
     // walk through the PFN entries
         // make sure caching type is ok (bugcheck otherwise)
         // set caching type, if not yet mapped

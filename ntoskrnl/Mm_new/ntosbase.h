@@ -34,6 +34,11 @@
 #define MmLowestUserAddress ((PVOID)0x10000)
 
 #define UNIMPLEMENTED __debugbreak()
+#define INIT_FUNCTION
+#define TRACE(...)
+#define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
+#define LARGE_PAGE_SIZE (2 * 1024 * 1024)
+#define LARGE_PAGE_MASK (~0x1FFULL)
 
 inline
 void*

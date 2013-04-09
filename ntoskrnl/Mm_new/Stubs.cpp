@@ -18,7 +18,18 @@ MmProbeAndLockPages (
     UNIMPLEMENTED;
 }
 
-_IRQL_requires_max_ (APC_LEVEL)
+VOID
+NTAPI
+MmProbeAndLockSelectedPages (
+    _Inout_ PMDL MemoryDescriptorList,
+    _In_ PFILE_SEGMENT_ELEMENT SegmentArray,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _In_ LOCK_OPERATION Operation)
+{
+    UNIMPLEMENTED;
+}
+
+_IRQL_requires_max_(APC_LEVEL)
 VOID
 NTAPI
 MmProbeAndLockProcessPages (
@@ -208,17 +219,6 @@ VOID
 NTAPI
 MmLockPageableSectionByHandle (
     IN PVOID ImageSectionHandle)
-{
-    UNIMPLEMENTED;
-}
-
-VOID
-NTAPI
-MmProbeAndLockSelectedPages (
-    IN OUT PMDL MemoryDescriptorList,
-    IN LARGE_INTEGER PageList[],
-    IN KPROCESSOR_MODE AccessMode,
-    IN LOCK_OPERATION Operation)
 {
     UNIMPLEMENTED;
 }
