@@ -157,7 +157,7 @@ class PFN_DATABASE
     static PPFN_LIST m_FreeLists;
     static PPFN_LIST m_ZeroedLists;
     static PPHYSICAL_MEMORY_DESCRIPTOR m_PhysicalMemoryDescriptor;
-    static PRTL_BITMAP m_PhysicalMemoryBitmaps;
+    static PRTL_BITMAP m_PhysicalMemoryBitmap;
     static PFN_ENTRY* m_PfnArray;
     static PULONG m_PhysicalBitmapBuffer;
     static KSPIN_LOCK m_ContiguousMemoryLock;
@@ -205,9 +205,9 @@ public:
     static
     NTSTATUS
     MarkPhysicalMemory (
-        _In_ PFN_STATE NewState,
-        _In_ PFN_NUMBER BasePfn,
-        _In_ PFN_COUNT NumberOfPages);
+        _In_ PFN_NUMBER BasePageFrameNumber,
+        _In_ PFN_COUNT NumberOfPages,
+        _In_ PFN_STATE NewState);
 
     _Must_inspect_result_
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -228,7 +228,7 @@ public:
 
     static
     VOID
-    SetMappedPages (
+    SetPageMapping (
         _In_ PFN_NUMBER BasePageFrameNumber,
         _In_ PFN_COUNT NumberOfPages,
         _In_ MEMORY_CACHING_TYPE CachingType);
