@@ -105,11 +105,8 @@ EarlyMapPages (
          PxePointer <= AddressToPxe(EndAddress);
          PxePointer++)
     {
-        //PXE TempPxe;
         if (!PxePointer->IsValid())
         {
-            //TempPxe.InitializeKernelPxe(EarlyAllocPage());
-            //*PxePointer = TempPxe;
             //PxePointer->WriteValidKernelPxe(EarlyAllocPage());
             *PxePointer = PXE::CreateValidKernelPxe(EarlyAllocPage());
             RtlFillMemoryUlonglong(PteToAddress(PxePointer), PAGE_SIZE, 0);

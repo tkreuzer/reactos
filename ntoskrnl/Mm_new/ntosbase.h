@@ -23,6 +23,7 @@
 
 /* Hacks! */
 #define IoFileObjectType _IoFileObjectType
+#define PsProcessType _PsProcessType
 #define KeEnterCriticalRegion _KeEnterCriticalRegion
 #define KeLeaveCriticalRegion _KeLeaveCriticalRegion
 #define KeGetCurrentThread _KeGetCurrentThread
@@ -39,6 +40,10 @@
 #define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 #define LARGE_PAGE_SIZE (2 * 1024 * 1024)
 #define LARGE_PAGE_MASK (~0x1FFULL)
+
+#define PAGE_ANY_READ (PAGE_READONLY|PAGE_READWRITE|PAGE_WRITECOPY|PAGE_EXECUTE_READWRITE)
+#define PAGE_ANY_WRITE (PAGE_READWRITE|PAGE_EXECUTE_READWRITE)
+#define PAGE_ANY_EXECUTE (PAGE_EXECUTE|PAGE_EXECUTE_READ|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY)
 
 inline
 void*
