@@ -23,8 +23,11 @@ private:
     /* The node in the VAD table */
     VAD_NODE m_Node;
 
-    /* Reference count tracing */
+    /* Reference count */
     LONG m_RefCount;
+
+    /* The type of VAD */
+    static const UCHAR m_Dummy;
 
     /* The VAD table needs to access the VAD_NODE */
     friend class VAD_TABLE;
@@ -57,11 +60,14 @@ protected:
 public:
 
     virtual
+    const char*
+    GetVadType() const = 0;
+
+    virtual
     NTSTATUS
     OnPageFault (
         PVOID FaultAddress,
         ULONG_PTR PteContext) = 0;
-
 
 };
 

@@ -61,6 +61,8 @@ SECTION_OBJECT::InitializeClass (
 
 }
 
+
+
 VOID
 NTAPI
 SECTION_OBJECT::ObDeleteProcedure (
@@ -132,22 +134,13 @@ MmGetFileObjectForSection (
 NTSTATUS
 NTAPI
 MmGetFileNameForSection (
-    IN PVOID Section,
-    OUT POBJECT_NAME_INFORMATION *ModuleName)
+    _In_ PVOID Section,
+    _Out_ POBJECT_NAME_INFORMATION *ModuleName)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
-NTSTATUS
-NTAPI
-MmGetFileNameForAddress (
-    IN PVOID Address,
-    OUT PUNICODE_STRING ModuleName)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
 
 
 /** Exported API **************************************************************/
