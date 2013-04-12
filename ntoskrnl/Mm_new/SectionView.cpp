@@ -10,7 +10,7 @@ namespace Mm {
 
 const char SectionVadType[] = "SectionView";
 
-enum SYSTEM_VA_TYPE
+enum VA_TYPE
 {
     VaUnused = 0,
     VaProcessSpace,
@@ -46,7 +46,7 @@ NTSTATUS
 NTAPI
 MiMapViewOfSection (
     _In_ PVOID SectionObject,
-    _In_ SYSTEM_VA_TYPE VaType,
+    _In_ VA_TYPE VaType,
     _Inout_ PVOID *BaseAddress,
     _In_ ULONG_PTR ZeroBits,
     _In_ SIZE_T CommitSize,
@@ -56,6 +56,11 @@ MiMapViewOfSection (
     _In_ ULONG AllocationType,
     _In_ ULONG Protect)
 {
+    // create a section VAD (locked)
+    // insert the VAD into the address space / VAD table
+    // get the "SEGMENT"
+    // Segment->GetSectionView(offset, size)
+    //
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -63,7 +68,7 @@ MiMapViewOfSection (
 NTSTATUS
 NTAPI
 MiUnmapViewOfSection (
-    _In_ SYSTEM_VA_TYPE VaType,
+    _In_ VA_TYPE VaType,
     _In_ PVOID BaseAddress)
 {
     UNIMPLEMENTED;

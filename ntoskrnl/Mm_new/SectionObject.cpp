@@ -116,6 +116,13 @@ SECTION_OBJECT::CreateInstance (
     return STATUS_SUCCESS;
 }
 
+inline
+PFILE_OBJECT
+SECTION_OBJECT::GetFileObject (
+    VOID)
+{
+    return 0;//m_FileObject;
+}
 
 extern "C" {
 

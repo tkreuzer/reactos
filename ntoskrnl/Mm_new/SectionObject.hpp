@@ -17,8 +17,6 @@
 #include "ntosbase.h"
 #include "Ob/Object.hpp"
 
-extern "C" POBJECT_TYPE MmSectionObjectType;
-
 namespace Mm {
 
 class SECTION_OBJECT : public Ob::OBJECT
@@ -54,14 +52,6 @@ private:
 
 public:
 
-    inline
-    PFILE_OBJECT
-    GetFileObject (
-        VOID)
-    {
-        return 0;//m_FileObject;
-    }
-
     _Must_inspect_result_
     static
     NTSTATUS
@@ -72,6 +62,10 @@ public:
         _In_ ULONG SectionPageProtection,
         _In_ ULONG AllocationAttributes,
         _In_opt_ PFILE_OBJECT FileObject);
+
+    PFILE_OBJECT
+    GetFileObject (
+        VOID);
 
 };
 

@@ -17,6 +17,8 @@ PFN_NUMBER MmBadPagesDetected;
 
 namespace Mm {
 
+ULONG RandomNumberSeed;
+
 PFN_NUMBER EarlyAllocPageBase;
 PFN_NUMBER EarlyAllocPageCount;
 PFN_NUMBER EarlyAllocLargePageBase;
@@ -267,6 +269,9 @@ INIT_FUNCTION
 MEMORY_MANAGER::Inititalize (
     _In_ struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
+    /* Initialize a random number seed from the TSC */
+    RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime());
+    RandomNumberSeed ^= static_cast<ULONG>(__rdtsc());
 
     /* Gather some basic information from the loader blocks memory descriptors */
     ScanMemoryDescriptors(LoaderBlock);
