@@ -262,6 +262,8 @@ list(APPEND SOURCE
     Mm_New/DriverSupport.cpp
     Mm_New/PfnDatabase.cpp
     Mm_New/DebugSupport.cpp
+    Mm_New/Section.cpp
+    Mm_New/ImageSection.cpp
     Mm_New/Stubs.cpp
     Mm_New/Cc/Stubs.cpp
 #########################
