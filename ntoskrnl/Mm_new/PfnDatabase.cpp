@@ -19,9 +19,9 @@ Concurrency between interlocked page removal and contiguous page allocation:
 #include "VadTable.hpp"
 #include "VadObject.hpp"
 #include "amd64/MmConstants.hpp"
+#include "amd64/PageTables.hpp"
 #include <arc/arc.h>
 #include <ndk/ketypes.h>
-
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
@@ -149,6 +149,7 @@ PFN_DATABASE::InitializePfnEntries (
     PFN_ENTRY* PfnEntry;
     ULONG Color;
 
+//DbgPrint("InitializePfnEntries(0x%lx, 0x%lx, 0x%lx)\n", BasePage, PageCount, MemoryType);
     /* Get the first PFN entry of this range. */
     PfnEntry = &m_PfnArray[BasePage];
 
@@ -187,6 +188,7 @@ PFN_DATABASE::InitializePfnEntries (
     }
     else
     {
+        DbgPrint("Marking %ld pages as kernel reserved @ %p\n", PageCount, PfnEntry);
         /* Loop all pages */
         for ( ; PageCount-- > 0; PfnEntry++)
         {
@@ -200,10 +202,164 @@ PFN_DATABASE::InitializePfnEntries (
 
 VOID
 INIT_FUNCTION
-InitializePfnEntriesFromPageTables (
+PFN_DATABASE::InitializePageTablePfn (
+    _In_ PFN_NUMBER PageFrameNumber,
+    _In_ PFN_NUMBER ParendDirectoryPfn,
+    _In_ PVOID MappedAddress,
+    _In_ ULONG PageTableLevel)
+{
+    PPFN_ENTRY PfnEntry;
+
+    /* Everything that is mapped at the moment should be in the database */
+    NT_ASSERT(PageFrameNumber <= MmHighestPhysicalPage);
+
+    /* Get the PFN entry for this page */
+    PfnEntry = &m_PfnArray[PageFrameNumber];
+
+    /* This must not be free memory! */
+    NT_ASSERT(PfnEntry->State != PfnFree);
+
+    /* Is this a page table? */
+    if (PageTableLevel > 0)
+    {
+        /// \todo Check if we can set this based on loader block descriptors
+        PfnEntry->State = PfnPageTable;
+        PfnEntry->PageTable.UsedPteCount = 0;
+        PfnEntry->PageTable.ValidPteCount = 0;
+    }
+
+    /* Setup the PFN entry */
+    PfnEntry->CacheAttribute = PfnCached;
+
+    PfnEntry->PteAddress = AddressToPte(MappedAddress);
+
+    /* Check if this is a child page table */
+    if (PageTableLevel < MI_PAGING_LEVELS)
+    {
+        /* Increment the count of used and valid entries in the parent directory */
+        NT_ASSERT(m_PfnArray[ParendDirectoryPfn].State == PfnPageTable);
+        m_PfnArray[ParendDirectoryPfn].PageTable.UsedPteCount++;
+        m_PfnArray[ParendDirectoryPfn].PageTable.ValidPteCount++;
+    }
+}
+
+
+VOID
+INIT_FUNCTION
+PFN_DATABASE::InitializePfnEntriesFromPageTables (
     VOID)
 {
+    PVOID Address = NULL;
+    PFN_NUMBER PfnForPpe, PfnForPde, PfnForPte;
+    PPDE PdePointer;
+    PPTE PtePointer;
+    ULONG k, l;
+#if (MI_PAGING_LEVELS >= 3)
+    PPPE PpePointer;
+    PFN_NUMBER PfnForPxe;
+    ULONG j;
+#endif
+#if (MI_PAGING_LEVELS == 4)
+    PPXE PxePointer;
+    PFN_NUMBER PfnForPml4;
+    ULONG i;
+#endif
+
+    /* Setup the top level page directory */
+#if (MI_PAGING_LEVELS == 4)
+    PtePointer = AddressToPte((PVOID)PXE_BASE);
+    PfnForPml4 = PtePointer->GetPageFrameNumber();
+    InitializePageTablePfn(PfnForPml4, 0, (PVOID)PXE_BASE, 4);
+#elif (MI_PAGING_LEVELS == 3)
+    PtePointer = MiAddressToPte(PPE_BASE);
+    PfnForPxe = PtePointer->GetPageFrameNumber();
+    InitializePageTablePfn(PfnForPxe, 0, (PVOID)PPE_BASE, 3);
+#else
+    PtePointer = MiAddressToPte(PDE_BASE);
+    PfnForPpe = PtePointer->GetPageFrameNumber();
+    InitializePageTablePfn(PfnForPpe, 0, (PVOID)PDE_BASE, 2);
+#endif
+
+#if (MI_PAGING_LEVELS == 4)
+    /* Loop all PXEs in the PML4 */
+    PxePointer = AddressToPxe(Address);
+    for (i = 0; i < PXE_PER_PAGE; ++i, ++PxePointer)
+    {
+        /* Skip invalid PXEs */
+        if (!PxePointer->IsValid()) continue;
+
+        /* Get starting VA for this PXE and the first PPE */
+        Address = PxeToAddress(PxePointer);
+        PpePointer = AddressToPpe(Address);
+
+        /* Initialize the PFN entry for the PDPT */
+        PfnForPxe = PxePointer->GetPageFrameNumber();
+        InitializePageTablePfn(PfnForPxe, PfnForPml4, PpePointer, 3);
+#endif
+#if (MI_PAGING_LEVELS >= 3)
+        /* Loop all PPEs in this PDPT */
+        for (j = 0; j < PPE_PER_PAGE; ++j, ++PpePointer)
+        {
+            /* Skip invalid PPEs */
+            if (!PpePointer->IsValid()) continue;
+
+            /* Get starting VA for this PPE and the first PDE */
+            Address = PpeToAddress(PpePointer);
+            PdePointer = AddressToPde(Address);
+
+            /* Initialize the PFN entry for the PD */
+            PfnForPpe = PpePointer->GetPageFrameNumber();
+            InitializePageTablePfn(PfnForPpe, PfnForPxe, PdePointer, 2);
+#endif
+            /* Loop all PDEs in this PD */
+            for (k = 0; k < PDE_PER_PAGE; ++k, ++PdePointer)
+            {
+                /* Skip invalid PDEs */
+                if (!PdePointer->IsValid()) continue;
+
+                /* Get starting VA for this PDE and the first PTE */
+                Address = PdeToAddress(PdePointer);
+                PtePointer = AddressToPte(Address);
+
+                /* Get the PFN for the PT or the large page */
+                PfnForPde = PdePointer->GetPageFrameNumber();
+
+                /* Check if this is a large page PDE */
+                if (PdePointer->IsLargePage())
+                {
+                    for (i = 0; i < PTE_PER_PAGE; i++)
+                    {
+                        InitializePageTablePfn(PfnForPde + i, PfnForPpe, Address, 0);
+                    }
+
+                    continue;
+                }
+
+                /* Initialize the PFN entry for the PT */
+                InitializePageTablePfn(PfnForPde, PfnForPpe, PtePointer, 1);
+
+                /* Loop all PTEs in this PT */
+                for (l = 0; l < PTE_PER_PAGE; ++l, ++PtePointer)
+                {
+                    /* Skip invalid PTEs */
+                    if (!PtePointer->IsValid()) continue;
+
+                    /* Get starting VA for this PTE */
+                    Address = PteToAddress(PtePointer);
+
+                    /* Handle the PFN */
+                    PfnForPte = PtePointer->GetPageFrameNumber();
+                    InitializePageTablePfn(PfnForPte, PfnForPde, Address, 0);
+                }
+            }
+#if (MI_PAGING_LEVELS >= 3)
+        }
+#endif
+#if (MI_PAGING_LEVELS == 4)
+    }
+#endif
 }
+
 
 VOID
 INIT_FUNCTION
@@ -309,7 +465,8 @@ PFN_DATABASE::Initialize (
     /* Make sure we counted correctly */
     NT_ASSERT(i == NumberOfPhysicalMemoryRuns - 1);
 
-__debugbreak();
+    /* Early allocations are not allowed any longer */
+    EarlyAllocPageCount = 0;
 
     /* Reinitialize the PFN entries for the early allocations */
     InitializePfnEntries(LargestFreeDescriptor->BasePage,
@@ -327,12 +484,14 @@ __debugbreak();
                          LoaderLargePageFiller);
 #endif
 
-    /* Early allocations are not allowed any longer */
-    EarlyAllocPageCount = 0;
+    /* Now parse the page tables */
+    InitializePfnEntriesFromPageTables();
 
     /* Calculate the starting and ending VPN of the database */
-    StaringVpn = reinterpret_cast<ULONG_PTR>(m_PfnArray) >> PAGE_SHIFT;
-    EndingVpn = (reinterpret_cast<ULONG_PTR>(BufferEnd) - 1) >> PAGE_SHIFT;
+    StaringVpn = AddressToVpn(m_PfnArray);
+    EndingVpn = AddressToVpn(AddToPointer(BufferEnd, -1));
+
+__debugbreak();
 
     /* Reserve the virtual address range for the PFN database */
 //    g_KernelVadTable.InsertVadObjectAtVpn(&g_PfnDatabaseVad,

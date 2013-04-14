@@ -38,9 +38,9 @@
 #define INIT_FUNCTION
 #define TRACE(...)
 #define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
-#define LARGE_PAGE_SIZE (2 * 1024 * 1024)
-#define LARGE_PAGE_MASK (~0x1FFULL)
 #define AddToPtr(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
+#define AddToPointer(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
+#define AddressToVpn(Address) (((ULONG_PTR)(Address)) >> PAGE_SHIFT)
 
 #define PAGE_ANY_READ (PAGE_READONLY|PAGE_READWRITE|PAGE_WRITECOPY|PAGE_EXECUTE_READWRITE)
 #define PAGE_ANY_WRITE (PAGE_READWRITE|PAGE_EXECUTE_READWRITE)

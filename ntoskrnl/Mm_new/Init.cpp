@@ -6,6 +6,7 @@
 #include "SectionObject.hpp"
 #include "VadTable.hpp"
 #include "amd64/PageTables.hpp"
+#include "amd64/MmConstants.hpp"
 #include <arc/arc.h>
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
@@ -135,7 +136,7 @@ EarlyMapPages (
         {
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
             *PdePointer = PDE::CreateValidLargePageKernelPde(EarlyAllocLargePage());
-            RtlFillMemoryUlonglong(PteToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
+            RtlFillMemoryUlonglong(PdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
 #else
             *PdePointer = PDE::CreateValidKernelPde(EarlyAllocPage());
             RtlFillMemoryUlonglong(PteToAddress(PdePointer), PAGE_SIZE, 0);
@@ -264,14 +265,38 @@ public:
 
 MEMORY_MANAGER g_MemoryManager;
 
+static
+VOID
+CleanupUserSpaceMappings (
+    VOID)
+{
+#if (MI_PAGING_LEVELS == 4)
+    PPXE PtePointer = AddressToPxe(NULL), PteEnd = AddressToPxe(MmSystemRangeStart);
+#elif (MI_PAGING_LEVELS == 3)
+    PPPE PtePointer = AddressToPpe(NULL), PteEnd = AddressToPpe(MmSystemRangeStart);
+#else
+    PPDE PtePointer = AddressToPde(NULL), PteEnd = AddressToPde(MmSystemRangeStart);
+#endif
+    /* Loop all user space P*Es */
+    while (PtePointer < PteEnd)
+    {
+        /// \todo make this better
+        *(ULONG_PTR*)PtePointer = 0;
+        ++PtePointer;
+    }
+}
+
 VOID
 INIT_FUNCTION
 MEMORY_MANAGER::Inititalize (
     _In_ struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
-    /* Initialize a random number seed from the TSC */
-    RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime());
+    /* Initialize a random number seed from the interrupt time and TSC */
+    RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime() << 8);
     RandomNumberSeed ^= static_cast<ULONG>(__rdtsc());
+
+    /* Cleanup user space mappings */
+    CleanupUserSpaceMappings();
 
     /* Gather some basic information from the loader blocks memory descriptors */
     ScanMemoryDescriptors(LoaderBlock);
