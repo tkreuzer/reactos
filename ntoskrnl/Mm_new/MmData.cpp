@@ -1,10 +1,11 @@
 
 #include "ntosbase.h"
+#include "amd64/MmConstants.hpp"
 
 extern "C" {
 
 BOOLEAN Mm64BitPhysicalAddress = FALSE;
-PVOID MmSystemRangeStart;
+PVOID MmSystemRangeStart = MI_DEFAULT_SYSTEM_RANGE_START;
 ULONG_PTR MmUserProbeAddress;
 PVOID MmHighestUserAddress;
 

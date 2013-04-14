@@ -28,7 +28,8 @@ MmIsAddressValid (
         AddressToPpe(VirtualAddress)->IsValid() &&
 #endif
         AddressToPde(VirtualAddress)->IsValid() &&
-        AddressToPte(VirtualAddress)->IsValid());
+        (AddressToPde(VirtualAddress)->IsLargePage() ||
+         AddressToPte(VirtualAddress)->IsValid()));
 }
 
 NTSTATUS

@@ -100,7 +100,7 @@ typedef struct _VAD_PTE
 //                                                   V W O T D A D L G C
 static const HARDWARE_PTE ValidKernelPte          = {1,1,0,0,0,0,0,0,1,0,0,0,0,0,0};
 static const HARDWARE_PTE ValidKernelPde          = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const HARDWARE_PTE ValidLargePageKernelPde = {1,1,0,0,0,0,0,1,0,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidLargePageKernelPde = {1,1,0,0,0,0,0,1,1,0,0,0,0,0,0};
 
 class PTE
 {
@@ -185,6 +185,13 @@ public:
 
     inline
     bool
+    IsLargePage ()
+    {
+        return Hard.LargePage;
+    }
+
+    inline
+    bool
     IsWritable ()
     {
         return Hard.Write;
@@ -196,6 +203,14 @@ public:
         bool Writable)
     {
         Hard.Write = Writable;
+    }
+
+    inline
+    PFN_NUMBER
+    GetPageFrameNumber (
+        VOID)
+    {
+        return Hard.PageFrameNumber;
     }
 
     inline

@@ -39,13 +39,13 @@ enum PFN_CACHE_ATTRIBUTE
 };
 
 
-struct PFN_ENTRY
+typedef struct PFN_ENTRY
 {
     struct
     {
         PFN_STATE State : 4;
         PFN_CACHE_ATTRIBUTE CacheAttribute : 2;
-        ULONG ReferenceCount : 27;
+        ULONG ReferenceCount : 26;
     };
 
     union
@@ -54,8 +54,14 @@ struct PFN_ENTRY
         {
             ULONG_PTR Next;
         } Free;
+        struct
+        {
+            ULONG UsedPteCount : 9;
+            ULONG ValidPteCount : 9;
+        } PageTable;
     };
 
+    PVOID PteAddress;
 
     union
     {
@@ -83,9 +89,7 @@ struct PFN_ENTRY
         ULONG_PTR Previous;
     } u3;
 
-    ULONG_PTR PteAddressAndLock;
-
-};
+} PFN_ENTRY, *PPFN_ENTRY;
 
 struct __PFN_LIST
 {
@@ -169,6 +173,18 @@ class PFN_DATABASE
         _In_ PFN_NUMBER PageCount,
         _In_ enum _TYPE_OF_MEMORY MemoryType);
 
+    static
+    VOID
+    InitializePageTablePfn (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ PFN_NUMBER ParendDirectoryPfn,
+        _In_ PVOID MappedAddress,
+        _In_ ULONG PageTableLevel);
+
+    static
+    VOID
+    InitializePfnEntriesFromPageTables (
+        VOID);
 
 public:
 
