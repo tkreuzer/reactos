@@ -28,7 +28,7 @@ SECTION_OBJECT::InitializeClass (
 
     /* Setup the object type initializer */
     ObjectTypeInitializer.Length = sizeof(ObjectTypeInitializer);
-    ObjectTypeInitializer.UseDefaultObject = FALSE;
+    ObjectTypeInitializer.UseDefaultObject = TRUE;
     ObjectTypeInitializer.CaseInsensitive = FALSE;
     ObjectTypeInitializer.InvalidAttributes = OBJ_OPENLINK;
     ObjectTypeInitializer.GenericMapping = GenericMapping;
