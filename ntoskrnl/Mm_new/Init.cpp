@@ -5,9 +5,14 @@
 #include "PfnDatabase.hpp"
 #include "SectionObject.hpp"
 #include "VadTable.hpp"
+#include "KernelVad.hpp"
+#include "CommitCharge.hpp"
 #include "amd64/PageTables.hpp"
 #include "amd64/MmConstants.hpp"
 #include <arc/arc.h>
+
+// This is to shut up linker warnings about .CRT sections
+#pragma comment(linker, "/merge:.CRT=.rdata")
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
@@ -18,15 +23,20 @@ PFN_NUMBER MmBadPagesDetected;
 
 namespace Mm {
 
+VOID
+InitializePoolSupport (
+    VOID);
+
 ULONG RandomNumberSeed;
 
 PFN_NUMBER EarlyAllocPageBase;
 PFN_NUMBER EarlyAllocPageCount;
 PFN_NUMBER EarlyAllocLargePageBase;
 
+KERNEL_VAD PageTableVad;
+
 /// \todo HACK!!!
 PADDRESS_SPACE g_KernelAddressSpace;
-VAD_TABLE g_KernelVadTable;
 
 ULONG NumberOfPhysicalMemoryRuns;
 ULONG NumberOfMemoryDescriptors;
@@ -291,6 +301,8 @@ INIT_FUNCTION
 MEMORY_MANAGER::Inititalize (
     _In_ struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
+    NTSTATUS Status;
+
     /* Initialize a random number seed from the interrupt time and TSC */
     RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime() << 8);
     RandomNumberSeed ^= static_cast<ULONG>(__rdtsc());
@@ -298,19 +310,34 @@ MEMORY_MANAGER::Inititalize (
     /* Cleanup user space mappings */
     CleanupUserSpaceMappings();
 
-    /* Gather some basic information from the loader blocks memory descriptors */
-    ScanMemoryDescriptors(LoaderBlock);
+    /* Set and initialize the kernel address space */
+    g_KernelAddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+    g_KernelAddressSpace->Initialize();
 
     /* Initialize the global kernel VAD table, so that we can reserve
        virtual memory. Required for the PFN database. */
     g_KernelVadTable.Initialize(TRUE);
 
+__debugbreak();
+
+    /* Reserve the address space for the whole non-paged pool */
+    PageTableVad.Initialize();
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(PageTableVad.GetVadObject(),
+                                                   AddressToVpn(PTE_BASE),
+                                                   AddressToVpn(PTE_TOP) - AddressToVpn(PTE_BASE));
+    NT_ASSERT(NT_SUCCESS(Status));
+
+    /* Gather some basic information from the loader block's memory descriptors */
+    ScanMemoryDescriptors(LoaderBlock);
+
     /* Initialize the PFN database */
     g_PfnDatabase.Initialize(LoaderBlock);
 
-    /* Set and initialize the kernel address space */
-    g_KernelAddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
-    g_KernelAddressSpace->Initialize();
+    /* Initialize the system commit limit */
+    InitializeSystemCommitLimit();
+
+    /* Initialize the pools */
+    InitializePoolSupport();
 
     /* Initialize the section object class */
     SECTION_OBJECT::InitializeClass();

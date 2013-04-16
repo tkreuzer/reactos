@@ -6,6 +6,8 @@
 
 namespace Mm {
 
+enum ADDRESS_SPACE_TYPE;
+
 class ADDRESS_SPACE
 {
 private:
@@ -13,7 +15,6 @@ private:
     /// alternatively we can add additional parts from EPROCESS here and address
     /// the vad table directly and include it into the system / session address space
 
-    enum ADDRESS_SPACE_TYPE;
 
     VOID
     Initialize (
@@ -27,7 +28,7 @@ private:
 
     inline
     class VAD_TABLE*
-    GetVadRoot ();
+    GetVadTable ();
 
     friend class MEMORY_MANAGER;
 
@@ -38,6 +39,7 @@ public:
 
 typedef ADDRESS_SPACE* PADDRESS_SPACE;
 
+extern VAD_TABLE g_KernelVadTable;
 extern PADDRESS_SPACE g_KernelAddressSpace;
 extern ADDRESS_SPACE g_GlobalSystemAddressSpace;
 
