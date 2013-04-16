@@ -11,8 +11,8 @@ typedef struct VAD_NODE
     LIST_ENTRY ListEntry;
 
     /* Starting and ending VPN - EndingVpn = StartingVpn + PageCount - 1 */
-    ULONG StartingVpn;
-    ULONG EndingVpn;
+    ULONG_PTR StartingVpn;
+    ULONG_PTR EndingVpn;
 } VAD_NODE, *PVAD_NODE;
 
 /* The abstract VAD_OBJECT base class */
@@ -41,6 +41,24 @@ protected:
         m_RefCount = 1;
     }
 
+public:
+
+    inline
+    ULONG_PTR
+    GetStartingVpn (
+        VOID)
+    {
+        return m_Node.StartingVpn;
+    }
+
+    inline
+    ULONG_PTR
+    GetEndingVpn (
+        VOID)
+    {
+        return m_Node.EndingVpn;
+    }
+
     inline
     PVOID
     GetBaseAddress (
@@ -57,11 +75,16 @@ protected:
         return InterlockedIncrement(&m_RefCount);
     }
 
-public:
+    inline
+    VAD_OBJECT*
+    GetVadObject ()
+    {
+        return this;
+    }
 
     virtual
     const char*
-    GetVadType() const = 0;
+    GetVadType () const = 0;
 
     virtual
     NTSTATUS

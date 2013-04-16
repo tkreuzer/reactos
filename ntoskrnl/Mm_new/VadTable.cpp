@@ -142,7 +142,7 @@ _Must_inspect_result_
 NTSTATUS
 VAD_TABLE::InsertVadObject (
     _Inout_ PVAD_OBJECT VadObject,
-    _In_ ULONG PageCount,
+    _In_ ULONG_PTR PageCount,
     _In_ ULONG_PTR LowestStartingVpn,
     _In_ ULONG_PTR HighestEndingVpn,
     _In_ BOOLEAN TopDown)
@@ -150,14 +150,6 @@ VAD_TABLE::InsertVadObject (
     ULONG_PTR GapStartingVpn, PostGapStartingVpn;
     PVAD_NODE CurrentNode;
     NTSTATUS Status;
-
-    /* Check if this is a kernel VAD table */
-    //if (m_Flags.KernelMode)
-    {
-        /* Switch to relative VPNs */
-        LowestStartingVpn -= g_LowestSystemVpn;
-        HighestEndingVpn -= g_LowestSystemVpn;
-    }
 
     /* Default to failure */
     Status = STATUS_INSUFFICIENT_RESOURCES;
@@ -256,18 +248,11 @@ NTSTATUS
 VAD_TABLE::InsertVadObjectAtVpn (
     _Inout_ PVAD_OBJECT VadObject,
     _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG PageCount)
+    _In_ ULONG_PTR PageCount)
 {
     PVAD_NODE VadNode;
     ULONG_PTR EndingVpn;
     NTSTATUS Status;
-
-    /* Check if this is a kernel VAD table */
-    //if (m_Flags.KernelMode)
-    {
-        /* Switch to relative VPNs */
-        StartingVpn -= g_LowestSystemVpn;
-    }
 
     /* Calculate ending VPN */
     EndingVpn = StartingVpn + PageCount + 1;
@@ -282,7 +267,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     VadNode = GetLowestNodeWithEndingVpnNotBelow(StartingVpn);
 
     /* Check if there is enough free space */
-    if (VadNode->StartingVpn > EndingVpn)
+    if ((VadNode == NULL) || (VadNode->StartingVpn > EndingVpn))
     {
         InsertBefore(VadNode, &VadObject->m_Node);
         Status = STATUS_SUCCESS;

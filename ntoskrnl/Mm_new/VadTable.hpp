@@ -64,7 +64,7 @@ public:
     NTSTATUS
     InsertVadObject (
         _Inout_ VAD_OBJECT* VadObject,
-        _In_ ULONG PageCount,
+        _In_ ULONG_PTR PageCount,
         _In_ ULONG_PTR LowestStartingVpn,
         _In_ ULONG_PTR HighestEndingVpn,
         _In_ BOOLEAN TopDown);
@@ -74,7 +74,7 @@ public:
     InsertVadObjectAtVpn (
         _Inout_ VAD_OBJECT* VadObject,
         _In_ ULONG_PTR StartingVpn,
-        _In_ ULONG PageCount);
+        _In_ ULONG_PTR PageCount);
 
     VOID
     RemoveVadObject (

@@ -5,6 +5,8 @@
 
 namespace Mm {
 
+#define PAGE_GLOBAL 0x800
+
 enum MM_PROTECT
 {
     MM_NOACCESS           = 0,
@@ -19,6 +21,13 @@ enum MM_PROTECT
     MM_NOCACHE            = 0x08,
     MM_DECOMMIT           = 0x10,
     MM_WRITECOMBINE       = 0x18,
+
+    MM_PROTECTION_MASK    = 0x1F,
+
+    MM_GLOBAL             = 0x20,
+    MM_MAPPED             = 0x40,
+    MM_NONPAGED           = 0x80,
+
     MM_INVALID_PROTECTION = 0xFFFFFFFF
 };
 

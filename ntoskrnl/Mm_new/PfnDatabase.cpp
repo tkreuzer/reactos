@@ -17,7 +17,7 @@ Concurrency between interlocked page removal and contiguous page allocation:
 
 #include "PfnDatabase.hpp"
 #include "VadTable.hpp"
-#include "VadObject.hpp"
+#include "KernelVad.hpp"
 #include "amd64/MmConstants.hpp"
 #include "amd64/PageTables.hpp"
 #include <arc/arc.h>
@@ -25,6 +25,8 @@ Concurrency between interlocked page removal and contiguous page allocation:
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
+extern "C" PVOID MmPfnDatabase;
+
 ULONG KeNumberNodes;
 ULONG KeNodeShift;
 
@@ -39,11 +41,13 @@ PRTL_BITMAP PFN_DATABASE::m_PhysicalMemoryBitmap;
 PFN_ENTRY* PFN_DATABASE::m_PfnArray;
 PULONG PFN_DATABASE::m_PhysicalBitmapBuffer;
 KSPIN_LOCK PFN_DATABASE::m_ContiguousMemoryLock;
+static KERNEL_VAD g_PfnDatabaseVad;
+
+SIZE_T MmSizeOfPfnDatabase;
 
 extern PFN_NUMBER EarlyAllocPageBase;
 extern PFN_NUMBER EarlyAllocPageCount;
 extern PFN_NUMBER EarlyAllocLargePageBase;
-//static KERNEL_VAD g_PfnDatabaseVad;
 
 extern PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
 extern ULONG NumberOfPhysicalMemoryRuns;
@@ -188,7 +192,6 @@ PFN_DATABASE::InitializePfnEntries (
     }
     else
     {
-        DbgPrint("Marking %ld pages as kernel reserved @ %p\n", PageCount, PfnEntry);
         /* Loop all pages */
         for ( ; PageCount-- > 0; PfnEntry++)
         {
@@ -371,7 +374,7 @@ PFN_DATABASE::Initialize (
     PLIST_ENTRY ListEntry;
     PMEMORY_ALLOCATION_DESCRIPTOR Descriptor;
     PULONG Buffer, BufferEnd;
-    ULONG_PTR StaringVpn, EndingVpn;
+    ULONG_PTR StartingVpn, EndingVpn;
 
     /* Initialize the page color mask */
     CalculatePageColors();
@@ -488,16 +491,17 @@ PFN_DATABASE::Initialize (
     InitializePfnEntriesFromPageTables();
 
     /* Calculate the starting and ending VPN of the database */
-    StaringVpn = AddressToVpn(m_PfnArray);
+    StartingVpn = AddressToVpn(m_PfnArray);
     EndingVpn = AddressToVpn(AddToPointer(BufferEnd, -1));
 
-__debugbreak();
-
     /* Reserve the virtual address range for the PFN database */
-//    g_KernelVadTable.InsertVadObjectAtVpn(&g_PfnDatabaseVad,
-//                                          StaringVpn,
-//                                          EndingVpn - StaringVpn + 1);
+    g_KernelVadTable.InsertVadObjectAtVpn(&g_PfnDatabaseVad,
+                                          StartingVpn,
+                                          EndingVpn - StartingVpn + 1);
 
+    /* Set global variables */
+    MmPfnDatabase = m_PfnArray;
+    MmSizeOfPfnDatabase = (EndingVpn + 1 - StartingVpn) * PAGE_SIZE;
 }
 
 
