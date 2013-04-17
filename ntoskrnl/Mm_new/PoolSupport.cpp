@@ -23,18 +23,26 @@ extern SIZE_T MmSizeOfPfnDatabase;
 #define POOL_SIZE_IN_PAGES_MAX  (2 * 1024 * 1024 * 1024 / PAGE_SIZE)
 #endif
 
-extern "C" ULONG_PTR MmNumberOfPhysicalPages;
-extern "C" ULONG_PTR MmSizeOfNonPagedPoolInBytes;
-extern "C" ULONG_PTR MmMaximumNonPagedPoolInBytes;
-extern "C" PVOID MmNonPagedPoolStart;
 extern "C" PVOID MmPfnDatabase;
+extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
+extern "C" PVOID MmNonPagedPoolStart;
+extern "C" SIZE_T MmSizeOfNonPagedPoolInBytes;
+extern "C" SIZE_T MmMaximumNonPagedPoolInBytes;
+extern "C" PVOID MmPagedPoolStart;
+extern "C" SIZE_T MmSizeOfPagedPoolInBytes;
 
-KERNEL_VAD NonPagedPoolVad;
-KERNEL_VAD PagedPoolVad;
-RTL_BITMAP NonPagedPoolBitmap;
-RTL_BITMAP PagedPoolBitmap;
-ULONG NonPagedPoolHintIndex;
-ULONG PagedPoolHintIndex;
+KERNEL_VAD PoolVad[2];
+RTL_BITMAP PoolBitmap[2];
+ULONG PoolHintIndex[2];
+KSPIN_LOCK PoolPageSpinlock[2];
+
+#ifndef _WIN64
+/* On 32 bit systems we track each large page sized VA block used for np pool */
+#define MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE (2 * 1024 * 1024 * 1024)
+ULONG NonPagedPoolVaBitmap[MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
+ULONG InitialPoolSizeInPages[2];
+PVOID* PoolExpansionArray[2];
+#endif
 
 /*!
  * MmSizeOfNonPagedPoolInBytes, MmMaximumNonPagedPoolInBytes,
@@ -42,6 +50,7 @@ ULONG PagedPoolHintIndex;
 */
 static
 VOID
+INIT_FUNCTION
 CalculatePoolDimensions (
     VOID)
 {
@@ -89,58 +98,104 @@ CalculatePoolDimensions (
 
     MmSizeOfNonPagedPoolInBytes = PointerDiff(EndAddress, MmNonPagedPoolStart);
 
+#ifndef _WIN64
+    InitialPoolSizeInPages[NonPagedPool] = SizeOfNonPagedPoolInPages;
+    InitialPoolSizeInPages[PagedPool] = 0; /// \todo
+#endif
 }
 
 VOID
-InitializePoolSupport (
-    VOID)
+INIT_FUNCTION
+InitializePoolSupportSingle (
+    _In_ POOL_TYPE PoolType,
+    _In_ PVOID PoolStart,
+    _In_ SIZE_T InitialSize,
+    _In_ SIZE_T MaximumSize)
 {
     ULONG Protect = 2; // MM_READ | MM_WRITE | MM_GLOBAL |
     NTSTATUS Status;
-    ULONG_PTR NumberOfPages;
-    ULONG_PTR BitmapSize, StartingVpn, EndingVpn;
+    ULONG_PTR NumberOfPages, MaximumNumberOfPages, ReserveSizeInPages;
+    ULONG_PTR AllocatedSize, StartingVpn, EndingVpn;
     PULONG BitmapBuffer;
+
+    NT_ASSERT((PoolType == NonPagedPool) || (PoolType == PagedPool));
 
 __debugbreak();
 
-    /* Calculate pool sizes */
-    CalculatePoolDimensions();
-
-    /* Initialize the static pool VAD objects */
-    NonPagedPoolVad.Initialize();
-    PagedPoolVad.Initialize();
+    /* Initialize the static pool VAD object */
+    PoolVad[PoolType].Initialize();
 
     /* Calculate the range of the non-paged pool */
-    StartingVpn = AddressToVpn(MmNonPagedPoolStart);
-    NumberOfPages = MmMaximumNonPagedPoolInBytes / PAGE_SIZE;
+    StartingVpn = AddressToVpn(PoolStart);
+    NumberOfPages = InitialSize / PAGE_SIZE;
+    MaximumNumberOfPages = MaximumSize / PAGE_SIZE;
 
-    /* Reserve the address space for the whole non-paged pool */
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(NonPagedPoolVad.GetVadObject(),
+#ifdef _WIN64
+    /* On 64 bit systems we reserve the maximum pool size */
+    ReserveSizeInPages = MaximumNumberOfPages;
+#else
+    /* On 32 bit systems we only reserve the actual pool size */
+    ReserveSizeInPages = NumberOfPages;
+#endif
+
+    /* Reserve the address space for the pool */
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(PoolVad[PoolType].GetVadObject(),
                                                    StartingVpn,
-                                                   NumberOfPages);
+                                                   ReserveSizeInPages);
     NT_ASSERT(NT_SUCCESS(Status));
 
-    /* Commit large pages for the initial non-paged pool */
+    /* Commit large pages for the initial pool */
     Protect = 2; // MM_READ | MM_WRITE | MM_GLOBAL | MM_NONPAGED | MM_LARGEPAGE
-    EndingVpn = StartingVpn + (MmSizeOfNonPagedPoolInBytes / PAGE_SIZE) - 1;
-    NonPagedPoolVad.CommitPages(StartingVpn, EndingVpn, Protect);
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+    PoolVad[PoolType].CommitPages(StartingVpn, EndingVpn, Protect);
 
-    /* Initialize the non-paged pool bitmap */
-    BitmapBuffer = static_cast<PULONG>(MmNonPagedPoolStart);
-    RtlInitializeBitMap(&NonPagedPoolBitmap, BitmapBuffer, (ULONG)NumberOfPages);
+    /* Initialize the pool bitmap */
+    BitmapBuffer = static_cast<PULONG>(PoolStart);
+    RtlInitializeBitMap(&PoolBitmap[PoolType], BitmapBuffer, (ULONG)MaximumNumberOfPages);
 
-    BitmapSize = ((NumberOfPages + 31) / 32) * sizeof(ULONG);
-    RtlSetBits(&NonPagedPoolBitmap, 0, (ULONG)BYTES_TO_PAGES(BitmapSize));
+    /* The bitmap is already allocated pool */
+    AllocatedSize = ((MaximumNumberOfPages + 31) / 32) * sizeof(ULONG);
 
-    // calculate pool addresses
-    // commit pages for pool bitmap
-    // initialize pool page bitmap
-    // initialize pool descriptors
+#ifndef _WIN64
+    /* On 32 bit systems, we add an array of expansion pointers */
+    PoolExpansionArray[NonPagedPool] = BitmapBuffer + AllocatedSize;
+    NonPagedPoolExpansionCount =
+        (MaximumNumberOfPages - NumberOfPages + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE;
 
-    /* Initialize the nonpaged pool */
+    /* Add the expansion array to the allocated size */
+    AllocatedSize += NonPagedPoolExpansionCount * sizeof(PVOID);
+#endif
+
+    RtlSetBits(&PoolBitmap[PoolType], 0, (ULONG)BYTES_TO_PAGES(AllocatedSize));
+
+    /* Initialize the rest of the pool */
     InitializePool(NonPagedPool, 0);
 }
 
+VOID
+INIT_FUNCTION
+InitializePoolSupport (
+    VOID)
+{
+    /* Calculate pool sizes */
+    CalculatePoolDimensions();
+
+    InitializePoolSupportSingle(NonPagedPool,
+                                MmNonPagedPoolStart,
+                                MmSizeOfNonPagedPoolInBytes,
+                                MmMaximumNonPagedPoolInBytes);
+
+
+}
+
+NTSTATUS
+ExpandPool (
+    _In_ ULONG BasePoolType,
+    _In_ ULONG Index)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
 
 extern "C" {
 
@@ -149,51 +204,133 @@ NTAPI
 MmDeterminePoolType (
     IN PVOID VirtualAddress)
 {
-    UNIMPLEMENTED;
-    return PagedPool;
-}
+#ifdef _WIN64
+    PVOID PoolEnd;
 
+    /* The whole non-paged pool is in a contiguous VA region */
+    PoolEnd = AddToPointer(MmNonPagedPoolStart, MmSizeOfNonPagedPoolInBytes);
+    if ((VirtualAddress >= MmNonPagedPoolStart) &&
+        (VirtualAddress < PoolEnd))
+    {
+        return NonPagedPool;
+    }
+
+    PoolEnd = AddToPointer(MmPagedPoolStart, MmSizeOfPagedPoolInBytes);
+    if ((VirtualAddress >= MmPagedPoolStart) &&
+        (VirtualAddress < PoolEnd))
+    {
+        return PagedPool;
+    }
+#else
+    /* Check the pool VA bitmap */
+    Index = PointerDiff(VirtualAddress, MmSystemRangeStart) / LARGE_PAGE_SIZE;
+    if ((NonPagedPoolVaBitmap[Index / 32] >> (Index & 31)) & 1)
+    {
+        return NonPagedPool;
+    }
+
+    /// \todo check paged pool bitmap
+    return PagedPool;
+#endif
+    KeBugCheck(0);
+}
 
 PVOID
 NTAPI
 MiAllocatePoolPages (
-    IN POOL_TYPE PoolType,
-    IN SIZE_T SizeInBytes)
+    _In_ POOL_TYPE PoolType,
+    _In_ SIZE_T SizeInBytes)
 {
     PRTL_BITMAP Bitmap;
-    ULONG PageCount, Index;
-    PULONG HintIndex;
+    ULONG BasePoolType, PageCount, Index;
+    KLOCK_QUEUE_HANDLE LockHandle;
+    PVOID BaseAddress;
+    SIZE_T PoolSizeInBytes;
+    NTSTATUS Status;
 
-    if (PoolType == NonPagedPool)
+    /* Get the base pool type */
+    BasePoolType = PoolType & 1;
+
+    if (BasePoolType == NonPagedPool)
     {
-        Bitmap = &NonPagedPoolBitmap;
-        HintIndex = &NonPagedPoolHintIndex;
+        BaseAddress = MmNonPagedPoolStart;
+        PoolSizeInBytes = MmSizeOfNonPagedPoolInBytes;
     }
     else
     {
-        Bitmap = &PagedPoolBitmap;
-        HintIndex = &PagedPoolHintIndex;
+        BaseAddress = MmPagedPoolStart;
+        PoolSizeInBytes = MmSizeOfPagedPoolInBytes;
     }
 
+    /* Calculate page count */
     PageCount = static_cast<ULONG>(BYTES_TO_PAGES(SizeInBytes));
 
-    Index = RtlFindClearBitsAndSet(Bitmap, PageCount, *HintIndex);
+    /* First try to find clear bits without holding the lock */
+    Bitmap = &PoolBitmap[BasePoolType];
+    Index = RtlFindClearBits(Bitmap, PageCount, PoolHintIndex[BasePoolType]);
     if (Index == -1)
     {
+        /* There is nothing free */
         return NULL;
     }
 
-    *HintIndex = Index + PageCount;
+    /* Acquire the lock */
+    KeAcquireInStackQueuedSpinLock(&PoolPageSpinlock[BasePoolType],
+                                   &LockHandle);
 
-    //FirstExpansionIndex = BYTES_TO_PAGES(MmSizeOfNonPagedPoolInBytes);
+    /* Set the bits */
+    Index = RtlFindClearBitsAndSet(Bitmap, PageCount, Index);
 
+    /* Release the lock */
+    KeReleaseInStackQueuedSpinLock(&LockHandle);
 
-    /* Check if the page is already mapped */
-    //if ((PoolType != NonPagedPool) || (Index >= FirstExpandionIndex))
+    /* Check for failure */
+    if (Index == -1)
     {
+        /* There is nothing free */
+        return NULL;
     }
 
-    return NULL;
+    /* Check if the index is larger than the current pool size */
+    if ((Index * PAGE_SIZE) > PoolSizeInBytes)
+    {
+        /* Expand the pool */
+        Status = ExpandPool(BasePoolType, Index);
+        if (!NT_SUCCESS(Status))
+        {
+            /* Acquire the lock */
+            KeAcquireInStackQueuedSpinLock(&PoolPageSpinlock[BasePoolType],
+                                           &LockHandle);
+
+            /* Clear the bits again */
+            RtlClearBits(Bitmap, Index, PageCount);
+
+            /* Release the lock */
+            KeReleaseInStackQueuedSpinLock(&LockHandle);
+
+            return NULL;
+        }
+    }
+
+    /* Update the hint index */
+    PoolHintIndex[BasePoolType] = Index + PageCount;
+
+#ifndef _WIN64
+    /* On 32 bit systems we need to find the expansion base address */
+    if (Index >= InitialPoolSizeInPages[BasePoolType])
+    {
+        /* Calculate the expansion index */
+        ULONG ExpansionIndex = (Index - InitialPoolSizeInPages[BasePoolType]) /
+            LARGE_PAGE_SIZE;
+
+        /* Get the base address of the pool expansion */
+        BaseAddress = PoolExpansionArray[BasePoolType][ExpansionIndex];
+        NT_ASSERT(BaseAddress != NULL);
+    }
+#endif
+
+    /* Return the address of the page */
+    return AddToPointer(BaseAddress, Index * PAGE_SIZE);
 }
 
 ULONG
