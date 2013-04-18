@@ -50,7 +50,7 @@ MmAllocateMappingAddress (
     _In_ ULONG Tag)
 {
     // allocate a VAD
-    // reserve PTEs (allocate page tables)
+    // reserve PTEs (allocate page tables, map MM_NOACCESS software PTEs)
     UNIMPLEMENTED;
     return NULL;
 }

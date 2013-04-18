@@ -33,10 +33,15 @@ enum PFN_STATE : ULONG
 enum PFN_CACHE_ATTRIBUTE
 {
     PfnNotMapped     = 0,
-    PfnNonCached     = 1,
+    PfnWriteCombined = 1,
     PfnCached        = 2,
-    PfnWriteCombined = 3,
+    PfnNonCached     = 3,
 };
+
+#define ProtectToCacheAttribute(Protect) ((PFN_CACHE_ATTRIBUTE)((((Protect) >> 3) - 2) & 3))
+static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
+static_assert(ProtectToCacheAttribute(MM_NOCACHE) == PfnNonCached, "");
+static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
 
 
 typedef struct PFN_ENTRY
@@ -56,8 +61,8 @@ typedef struct PFN_ENTRY
         } Free;
         struct
         {
-            ULONG UsedPteCount : 9;
-            ULONG ValidPteCount : 9;
+            ULONG UsedPteCount : 10;
+            ULONG ValidPteCount : 10;
         } PageTable;
     };
 
@@ -100,6 +105,7 @@ struct __PFN_LIST
 class PFN_LIST
 {
     PFN_NUMBER m_ListHead;
+    PFN_NUMBER m_ListTail;
     KSPIN_LOCK m_SpinLock;
 
     // for now
@@ -116,8 +122,16 @@ public:
         PFN_NUMBER PageFrameNumber);
 
     PFN_NUMBER
-    UnsafePopEntry (
+    RemovePage (
         VOID);
+
+    VOID
+    AddPage (
+        PFN_NUMBER PageFrameNumber);
+
+    VOID
+    PushPage (
+        _In_ PFN_NUMBER PageFrameNumber);
 
     VOID
     PushMultiplePfns (
@@ -186,6 +200,8 @@ class PFN_DATABASE
     InitializePfnEntriesFromPageTables (
         VOID);
 
+    friend class PFN_LIST;
+
 public:
 
     static
@@ -200,6 +216,44 @@ public:
     {
         return m_PhysicalMemoryDescriptor;
     }
+
+    static
+    NTSTATUS
+    AllocateMultiplePages (
+        _Out_ PFN_LIST* PageList,
+        _In_ ULONG_PTR NumberOfPages);
+
+    static
+    VOID
+    ReleaseMultiplePages (
+        _Inout_ PFN_LIST* PageList);
+
+    static
+    VOID
+    MakeActivePfn (
+        _Inout_ PFN_NUMBER PageFrameNumber,
+        _In_ PVOID PteAddress,
+        _In_ ULONG Protect);
+
+    static
+    VOID
+    MakePageLargePfn (
+        _Inout_ PFN_NUMBER PageFrameNumber,
+        _In_ PVOID PteAddress,
+        _In_ ULONG Protect);
+
+    static
+    VOID
+    MakePageTablePfn (
+        _Inout_ PFN_NUMBER PageFrameNumber,
+        _In_ PVOID PteAddress,
+        _In_ ULONG Protect);
+
+    static
+    VOID
+    IncrementEntryCount (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Addend);
 
 #if 0
     AllocatePageNuma (

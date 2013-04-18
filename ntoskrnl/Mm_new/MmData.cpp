@@ -78,8 +78,8 @@ PVOID MmSessionBase;
 SIZE_T MmSessionSize;
 struct _MMPFN* MmPfnDatabase;
 PFN_NUMBER MmNumberOfPhysicalPages;
-PFN_NUMBER MmLowestPhysicalPage = -1;
-PFN_NUMBER MmHighestPhysicalPage = -1;
+PFN_NUMBER MmLowestPhysicalPage;
+PFN_NUMBER MmHighestPhysicalPage;
 PFN_NUMBER MmAvailablePages;
 LIST_ENTRY MmLoadedUserImageList;
 

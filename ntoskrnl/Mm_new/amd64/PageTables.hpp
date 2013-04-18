@@ -22,6 +22,7 @@ enum PTE_TYPE
 
     PteCopyOnWrite,
     PteDemandAny,
+    PteEmpty,
 };
 
 typedef struct _HARDWARE_PTE
@@ -29,7 +30,7 @@ typedef struct _HARDWARE_PTE
     UINT64 Valid : 1;
     UINT64 Write : 1;
     UINT64 Owner : 1;
-    UINT64 WriteThrough : 1;
+    UINT64 WriteCombining : 1;
     UINT64 CacheDisable : 1;
     UINT64 Accessed : 1;
     UINT64 Dirty : 1;
@@ -96,77 +97,38 @@ typedef struct _VAD_PTE
     INT64 VadAddress : 48;
 } VAD_PTE, *PVAD_PTE;
 
-//                                                         W C         W
-//                                                   V W O T D A D L G C
-static const HARDWARE_PTE ValidKernelPte          = {1,1,0,0,0,0,0,0,1,0,0,0,0,0,0};
-static const HARDWARE_PTE ValidKernelPde          = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const HARDWARE_PTE ValidLargePageKernelPde = {1,1,0,0,0,0,0,1,1,0,0,0,0,0,0};
+//                                                         W C         C
+//                                                   V W O T D A D L G W
+static const HARDWARE_PTE ValidPte                = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidPde                = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidLargePagePde       = {1,0,0,0,0,0,0,1,0,0,0,0,0,0,0};
 
-class PTE
+extern const HARDWARE_PTE ProtectToPte[32] ;
+
+class PTE_COMMON
 {
+protected:
     union
     {
         HARDWARE_PTE Hard;
         SOFTWARE_PTE Soft;
         PROTOTYPE_PTE Proto;
+        ULONG64 Long;
     };
+
+#if 1 || DBG
+    /* Disable direct write */
+    PTE_COMMON (PTE_COMMON& NewPte);
+    inline PTE_COMMON () {}
+#endif
 
 public:
 
-#if 1 || DBG
-    /* Copy constructor, for debugging */
-    PTE (PTE& NewPte)
-    {
-        /* Check only real PTEs */
-        if (this->IsRealPte())
-        {
-            if (NewPte.Hard.Valid)
-            {
-                /* Never overwrite a valid PTE */
-                NT_ASSERT(this->Hard.Valid == FALSE);
-
-                /* PPEs and PXEs (which are also PPEs) must not be global */
-                NT_ASSERT(!IsRealPpe() || !NewPte.Hard.Global);
-            }
-        }
-
-        this->Hard = NewPte.Hard;
-    }
-
-    /* We also need a default constructor now */
-    inline PTE() {}
-#endif
-
     inline
     bool
-    IsRealPte ()
+    IsEmpty ()
     {
-        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PTE_BASE;
-        return Offset < (PTE_TOP + 1 - PTE_BASE);
-    }
-
-    inline
-    bool
-    IsRealPde ()
-    {
-        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PDE_BASE;
-        return Offset < (PDE_TOP + 1 - PDE_BASE);
-    }
-
-    inline
-    bool
-    IsRealPpe ()
-    {
-        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PPE_BASE;
-        return Offset < (PPE_TOP + 1 - PPE_BASE);
-    }
-
-    inline
-    bool
-    IsRealPxe ()
-    {
-        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PXE_BASE;
-        return Offset < (PXE_TOP + 1 - PXE_BASE);
+        return (Long == 0);
     }
 
     inline
@@ -174,35 +136,6 @@ public:
     IsValid ()
     {
         return Hard.Valid;
-    }
-
-    inline
-    bool
-    IsExecutable ()
-    {
-        return !Hard.NoExecute;
-    }
-
-    inline
-    bool
-    IsLargePage ()
-    {
-        return Hard.LargePage;
-    }
-
-    inline
-    bool
-    IsWritable ()
-    {
-        return Hard.Write;
-    }
-
-    inline
-    void
-    SetWritable (
-        bool Writable)
-    {
-        Hard.Write = Writable;
     }
 
     inline
@@ -222,55 +155,110 @@ public:
         Hard.PageFrameNumber = PageFrameNumber;
     }
 
-    static inline
-    PTE
-    CreateValidKernelPte (
-        _In_ PFN_NUMBER PageFrameNumber)
+    inline
+    ULONG
+    GetProtection ()
     {
-        PTE Pte;
-        Pte.Hard = ValidKernelPte;
-        Pte.Hard.PageFrameNumber = PageFrameNumber;
-        return Pte;
+        ULONG Protect = MM_NOACCESS;
+        if (Hard.Valid) Protect |= MM_READONLY;
+        if (Hard.Write) Protect |= MM_READWRITE;
+        if (!Hard.NoExecute) Protect |= MM_EXECUTE;
+        if (Hard.Global) Protect |= MM_GLOBAL;
+        if (Hard.LargePage) Protect |= MM_LARGEPAGE;
+        return Protect;
+    }
+};
+
+class PTE : public PTE_COMMON
+{
+public:
+
+    inline
+    bool
+    IsRealPte ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PTE_BASE;
+        return Offset < (PTE_TOP + 1 - PTE_BASE);
     }
 
-    static inline
-    PTE
-    CreateValidKernelPde (
-        _In_ PFN_NUMBER PageFrameNumber)
+    inline
+    bool
+    IsExecutable ()
     {
-        PTE Pte;
-        Pte.Hard = ValidKernelPde;
-        Pte.Hard.PageFrameNumber = PageFrameNumber;
-        return Pte;
+        return !Hard.NoExecute;
     }
 
-    static inline
-    PTE
-    CreateValidKernelPpe (
-        _In_ PFN_NUMBER PageFrameNumber)
+    inline
+    bool
+    IsWritable ()
     {
-        return CreateValidKernelPde(PageFrameNumber);
+        return Hard.Write;
     }
 
-    static inline
-    PTE
-    CreateValidKernelPxe (
-        _In_ PFN_NUMBER PageFrameNumber)
+    inline
+    void
+    SetWritable (
+        bool Writable)
     {
-        return CreateValidKernelPde(PageFrameNumber);
+        this->Hard.Write = Writable;
     }
 
-    static inline
-    PTE
-    CreateValidLargePageKernelPde (
-        _In_ PFN_NUMBER PageFrameNumber)
+    inline
+    VOID
+    MakeValidPte (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect)
     {
-        PTE Pte;
-        NT_ASSERT((PageFrameNumber & 0x1ff) == 0);
-        // The lowest PFN bit (Bit 12) is in fact PAT, but we ignore it for now
-        Pte.Hard = ValidLargePageKernelPde;
-        Pte.Hard.PageFrameNumber = PageFrameNumber;
-        return Pte;
+        HARDWARE_PTE HardPte = ValidPte;
+        NT_ASSERT(!(Protect & MM_LARGEPAGE));
+        if (Protect & MM_READWRITE) HardPte.Write = 1;
+        if (!(Protect & MM_EXECUTE)) HardPte.NoExecute = 1;
+        if (Protect & MM_GLOBAL) HardPte.Global = 1;
+        if (Protect & MM_USER) HardPte.Owner = 1;
+        HardPte.PageFrameNumber = PageFrameNumber;
+        this->Hard = HardPte;
+    }
+
+    inline
+    VOID
+    MakeDemandZeroPte (
+        _In_ ULONG Protect)
+    {
+        HARDWARE_PTE HardPte = ValidPte;
+        NT_ASSERT(Protect & MM_READWRITE);
+        NT_ASSERT(!(Protect & MM_MAPPED));
+        NT_ASSERT(!(Protect & MM_LARGEPAGE));
+        if (Protect & MM_READWRITE) HardPte.CopyOnWrite = 1;
+        if (!(Protect & MM_EXECUTE)) HardPte.NoExecute = 1;
+        if (Protect & MM_GLOBAL) HardPte.Global = 1;
+        if (Protect & MM_USER) HardPte.Owner = 1;
+        HardPte.PageFrameNumber = GlobalZeroPfn;
+        this->Hard = HardPte;
+    }
+
+    inline
+    VOID
+    MakeProtoPte (
+        _In_ PTE* PrototypePte)
+    {
+        /// \todo IMPLEMENT ME
+    }
+
+    inline
+    VOID
+    WriteValidPte (
+        _In_ PTE &NewPte)
+    {
+        NT_ASSERT(NewPte.Hard.Valid != 0);
+        this->Hard = NewPte.Hard;
+    }
+
+    inline
+    VOID
+    UpdateProtection (
+        _In_ ULONG Protect)
+    {
+        NT_ASSERT(FALSE);
     }
 
     inline
@@ -292,6 +280,8 @@ public:
         }
         else
         {
+            if (Long == 0)
+                return PteEmpty;
             if (Proto.Prototype)
                 return PtePrototype;
 
@@ -301,8 +291,99 @@ public:
 
 };
 
-typedef PTE PDE, PPE, PXE;
-typedef PTE *PPTE, *PPDE, *PPPE, *PPXE;
+class PDE : public PTE_COMMON
+{
+public:
+
+    inline
+    bool
+    IsLargePage ()
+    {
+        return Hard.LargePage;
+    }
+
+    inline
+    VOID
+    MakeValidPde (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect)
+    {
+        HARDWARE_PTE HardPde = ValidPde;
+        if (Protect & MM_GLOBAL) HardPde.Global = 1;
+        HardPde.PageFrameNumber = PageFrameNumber;
+        Hard = HardPde;
+    }
+
+    inline
+    VOID
+    MakeValidLargePagePde (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect)
+    {
+        HARDWARE_PTE HardPde = ValidLargePagePde;
+        NT_ASSERT((PageFrameNumber & 0x1FFULL) == 0);
+        if (Protect & MM_READWRITE) HardPde.Write = 1;
+        if (Protect & MM_GLOBAL) HardPde.Global = 1;
+        HardPde.PageFrameNumber = PageFrameNumber;
+        Hard = HardPde;
+    }
+
+};
+
+class PPE : public PTE_COMMON
+{
+public:
+
+    inline
+    bool
+    IsRealPpe ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PPE_BASE;
+        return Offset < (PPE_TOP + 1 - PPE_BASE);
+    }
+
+    inline
+    VOID
+    MakeValidPpe (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect)
+    {
+        HARDWARE_PTE HardPpe = ValidPde;
+        HardPpe.PageFrameNumber = PageFrameNumber;
+        Hard = HardPpe;
+    }
+
+};
+
+class PXE : public PTE_COMMON
+{
+public:
+
+    inline
+    bool
+    IsRealPxe ()
+    {
+        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PXE_BASE;
+        return Offset < (PXE_TOP + 1 - PXE_BASE);
+    }
+
+    inline
+    VOID
+    MakeValidPxe (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect)
+    {
+        HARDWARE_PTE HardPxe = ValidPde;
+        HardPxe.PageFrameNumber = PageFrameNumber;
+        Hard = HardPxe;
+    }
+
+};
+
+typedef PTE *PPTE;
+typedef PDE *PPDE;
+typedef PPE *PPPE;
+typedef PXE *PPXE;
 
 enum PAGE_FAULT_ERROR_CODE
 {
@@ -360,7 +441,7 @@ AddressToPte(PVOID Address)
     return (PPTE)(PTE_BASE + Offset);
 }
 
-PPTE
+PPDE
 FORCEINLINE
 AddressToPde(PVOID Address)
 {
@@ -369,7 +450,7 @@ AddressToPde(PVOID Address)
     return (PPDE)(PDE_BASE + Offset);
 }
 
-PPTE
+PPPE
 FORCEINLINE
 AddressToPpe(PVOID Address)
 {
@@ -378,7 +459,7 @@ AddressToPpe(PVOID Address)
     return (PPPE)(PPE_BASE + Offset);
 }
 
-PPTE
+PPXE
 FORCEINLINE
 AddressToPxe(PVOID Address)
 {
@@ -419,5 +500,21 @@ PxeToAddress(PPXE PxePointer)
     return (PVOID)(((LONG64)PxePointer << 52) >> 16);
 }
 
+/* Generic:
+#define PxeToPpe(PxePointer) AddressToPpe(PxeToAddress(PxePointer))
+#define PpeToPde(PpePointer) AddressToPde(PpeToAddress(PpePointer))
+#define PdeToPte(PdePointer) AddressToPte(PdeToAddress(PdePointer))
+*/
+
+/* For amd64: */
+#define PxeToPpe(Pxe) ((PPPE)PteToAddress((PPTE)Pxe))
+#define PpeToPde(Ppe) ((PPDE)PteToAddress((PPTE)Ppe))
+#define PdeToPte(Pde) ((PPTE)PteToAddress((PPTE)Pde))
+#define LargePagePdeToAddress(Pde) PdeToAddress(Pde)
+
+#define VpnToPxe(Vpn) AddressToPxe(VpnToAddress(Vpn))
+#define VpnToPpe(Vpn) AddressToPpe(VpnToAddress(Vpn))
+#define VpnToPde(Vpn) AddressToPde(VpnToAddress(Vpn))
+#define VpnToPte(Vpn) AddressToPte(VpnToAddress(Vpn))
 
 }; // namespace Mm

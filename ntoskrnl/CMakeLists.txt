@@ -267,6 +267,7 @@ list(APPEND SOURCE
     Mm_New/CommitCharge.cpp
     Mm_New/KernelVad.cpp
     Mm_New/AddressSpace.cpp
+    Mm_New/PageTables.cpp
     Mm_New/Stubs.cpp
     Mm_New/Cc/Stubs.cpp
 #########################
