@@ -7,29 +7,6 @@ namespace Mm {
 
 #define PAGE_GLOBAL 0x800
 
-enum MM_PROTECT
-{
-    MM_NOACCESS           = 0,
-    MM_READONLY           = 1,
-    MM_EXECUTE            = 2,
-    MM_EXECUTE_READ       = 3,
-    MM_READWRITE          = 4,
-    MM_WRITECOPY          = 5,
-    MM_EXECUTE_READWRITE  = 6,
-    MM_EXECUTE_WRITECOPY  = 7,
-
-    MM_NOCACHE            = 0x08,
-    MM_DECOMMIT           = 0x10,
-    MM_WRITECOMBINE       = 0x18,
-
-    MM_PROTECTION_MASK    = 0x1F,
-
-    MM_GLOBAL             = 0x20,
-    MM_MAPPED             = 0x40,
-    MM_NONPAGED           = 0x80,
-
-    MM_INVALID_PROTECTION = 0xFFFFFFFF
-};
 
 const ULONG MmProtectToWin32Protect[32] =
 {

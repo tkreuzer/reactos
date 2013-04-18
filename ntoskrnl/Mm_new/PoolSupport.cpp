@@ -56,6 +56,7 @@ CalculatePoolDimensions (
 {
     PFN_NUMBER SizeOfNonPagedPoolInPages, MaximumNonPagedPoolInPages;
     PVOID EndAddress;
+__debugbreak();
 
     /* Windows Internals: For non-paged pool, the initial size is 3 percent of
        system RAM. */
@@ -151,7 +152,7 @@ __debugbreak();
 
     /* Initialize the pool bitmap */
     BitmapBuffer = static_cast<PULONG>(PoolStart);
-    RtlInitializeBitMap(&PoolBitmap[PoolType], BitmapBuffer, (ULONG)MaximumNumberOfPages);
+    RtlInitializeBitMap(&PoolBitmap[PoolType], BitmapBuffer, (ULONG)NumberOfPages);
 
     /* The bitmap is already allocated pool */
     AllocatedSize = ((MaximumNumberOfPages + 31) / 32) * sizeof(ULONG);
@@ -164,6 +165,8 @@ __debugbreak();
 
     /* Add the expansion array to the allocated size */
     AllocatedSize += NonPagedPoolExpansionCount * sizeof(PVOID);
+
+    /// \todo set bits in NonPagedPoolVaBitmap
 #endif
 
     RtlSetBits(&PoolBitmap[PoolType], 0, (ULONG)BYTES_TO_PAGES(AllocatedSize));
@@ -193,6 +196,10 @@ ExpandPool (
     _In_ ULONG BasePoolType,
     _In_ ULONG Index)
 {
+
+    //BitmapBuffer = static_cast<PULONG>(PoolStart);
+    //RtlInitializeBitMap(&PoolBitmap[PoolType], BitmapBuffer, (ULONG)NumberOfPages);
+
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
@@ -267,50 +274,39 @@ MiAllocatePoolPages (
 
     /* First try to find clear bits without holding the lock */
     Bitmap = &PoolBitmap[BasePoolType];
-    Index = RtlFindClearBits(Bitmap, PageCount, PoolHintIndex[BasePoolType]);
-    if (Index == -1)
+
+    do
     {
-        /* There is nothing free */
-        return NULL;
-    }
-
-    /* Acquire the lock */
-    KeAcquireInStackQueuedSpinLock(&PoolPageSpinlock[BasePoolType],
-                                   &LockHandle);
-
-    /* Set the bits */
-    Index = RtlFindClearBitsAndSet(Bitmap, PageCount, Index);
-
-    /* Release the lock */
-    KeReleaseInStackQueuedSpinLock(&LockHandle);
-
-    /* Check for failure */
-    if (Index == -1)
-    {
-        /* There is nothing free */
-        return NULL;
-    }
-
-    /* Check if the index is larger than the current pool size */
-    if ((Index * PAGE_SIZE) > PoolSizeInBytes)
-    {
-        /* Expand the pool */
-        Status = ExpandPool(BasePoolType, Index);
-        if (!NT_SUCCESS(Status))
+        /* First try to find clear bits without holding the lock */
+        Index = RtlFindClearBits(Bitmap, PageCount, PoolHintIndex[BasePoolType]);
+        if (Index != -1)
         {
             /* Acquire the lock */
             KeAcquireInStackQueuedSpinLock(&PoolPageSpinlock[BasePoolType],
                                            &LockHandle);
 
-            /* Clear the bits again */
-            RtlClearBits(Bitmap, Index, PageCount);
+            /* Set the bits */
+            Index = RtlFindClearBitsAndSet(Bitmap, PageCount, Index);
 
             /* Release the lock */
             KeReleaseInStackQueuedSpinLock(&LockHandle);
+        }
 
-            return NULL;
+        /* Check for failure */
+        if (Index == -1)
+        {
+            /* Expand the pool */
+            Status = ExpandPool(BasePoolType, Index);
+            if (!NT_SUCCESS(Status))
+            {
+                return NULL;
+            }
+
+            /* Try again */
+            continue;
         }
     }
+    while (FALSE);
 
     /* Update the hint index */
     PoolHintIndex[BasePoolType] = Index + PageCount;

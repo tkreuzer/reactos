@@ -41,6 +41,7 @@
 #define AddToPtr(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
 #define AddToPointer(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
 #define AddressToVpn(Address) (((ULONG_PTR)(Address)) >> PAGE_SHIFT)
+#define VpnToAddress(Vpn)  ((PVOID)((Vpn) << PAGE_SHIFT))
 #define PointerDiff(Address1, Address2) ((PUCHAR)Address2 - (PUCHAR)Address1)
 
 
@@ -53,6 +54,8 @@
 #else
 #define InterlockedCompareExchangeSizeT(D, E, C) InterlockedCompareExchange((LONG*)D, E, C)
 #endif
+
+#define MinPtr(Ptr1, Ptr2) ((((ULONG_PTR)(Ptr1)) < ((ULONG_PTR)(Ptr1))) ? (Ptr1) : (Ptr2))
 
 inline
 void*
@@ -81,3 +84,34 @@ _ResultType SCAST(_OrigType x)
     NT_ASSERT(static_cast<_OrigType>(Result) == x);
     return Result;
 }
+
+namespace Mm {
+
+enum MM_PROTECT
+{
+    MM_DECOMMIT           = 0,
+    MM_READONLY           = 1,
+    MM_EXECUTE            = 2,
+    MM_EXECUTE_READ       = 3,
+    MM_READWRITE          = 4,
+    MM_WRITECOPY          = 5,
+    MM_EXECUTE_READWRITE  = 6,
+    MM_EXECUTE_WRITECOPY  = 7,
+
+    MM_NOCACHE            = 0x08,
+    MM_NOACCESS           = 0x10,
+    MM_WRITECOMBINE       = 0x18,
+
+    MM_PROTECTION_MASK    = 0x1F,
+
+    MM_GLOBAL             = 0x20,
+    MM_USER               = 0x40, /// FIXME
+    MM_MAPPED             = 0x80,
+    MM_NONPAGED           = 0x100,
+    MM_LARGEPAGE          = 0x200,
+
+    MM_INVALID_PROTECTION = 0xFFFFFFFF
+};
+
+
+}; // namespace Mm

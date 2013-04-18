@@ -32,6 +32,7 @@ ULONG KeNodeShift;
 
 namespace Mm {
 
+PFN_DATABASE g_PfnDatabase;
 ULONG PFN_DATABASE::m_CacheColorBits;
 ULONG PFN_DATABASE::m_CacheColorMask;
 PPFN_LIST PFN_DATABASE::m_FreeLists;
@@ -289,7 +290,11 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
     for (i = 0; i < PXE_PER_PAGE; ++i, ++PxePointer)
     {
         /* Skip invalid PXEs */
-        if (!PxePointer->IsValid()) continue;
+        if (!PxePointer->IsValid())
+        {
+            NT_ASSERT(PxePointer->IsEmpty());
+            continue;
+        }
 
         /* Get starting VA for this PXE and the first PPE */
         Address = PxeToAddress(PxePointer);
@@ -304,7 +309,11 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
         for (j = 0; j < PPE_PER_PAGE; ++j, ++PpePointer)
         {
             /* Skip invalid PPEs */
-            if (!PpePointer->IsValid()) continue;
+            if (!PpePointer->IsValid())
+            {
+                NT_ASSERT(PpePointer->IsEmpty());
+                continue;
+            }
 
             /* Get starting VA for this PPE and the first PDE */
             Address = PpeToAddress(PpePointer);
@@ -318,7 +327,11 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
             for (k = 0; k < PDE_PER_PAGE; ++k, ++PdePointer)
             {
                 /* Skip invalid PDEs */
-                if (!PdePointer->IsValid()) continue;
+                if (!PdePointer->IsValid())
+                {
+                    NT_ASSERT(PdePointer->IsEmpty());
+                    continue;
+                }
 
                 /* Get starting VA for this PDE and the first PTE */
                 Address = PdeToAddress(PdePointer);
@@ -345,7 +358,11 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 for (l = 0; l < PTE_PER_PAGE; ++l, ++PtePointer)
                 {
                     /* Skip invalid PTEs */
-                    if (!PtePointer->IsValid()) continue;
+                    if (!PtePointer->IsValid())
+                    {
+                        NT_ASSERT(PtePointer->IsEmpty());
+                        continue;
+                    }
 
                     /* Get starting VA for this PTE */
                     Address = PteToAddress(PtePointer);
@@ -504,6 +521,73 @@ PFN_DATABASE::Initialize (
     MmSizeOfPfnDatabase = (EndingVpn + 1 - StartingVpn) * PAGE_SIZE;
 }
 
+VOID
+PFN_DATABASE::MakeActivePfn (
+    _Inout_ PFN_NUMBER PageFrameNumber,
+    _In_ PVOID PteAddress,
+    _In_ ULONG Protect)
+{
+    PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnFree);
+
+    PfnEntry->State = PfnPrivate;
+    PfnEntry->CacheAttribute = ProtectToCacheAttribute(Protect);
+    PfnEntry->PteAddress = PteAddress;
+}
+
+
+VOID
+PFN_DATABASE::MakePageLargePfn (
+    _Inout_ PFN_NUMBER PageFrameNumber,
+    _In_ PVOID PteAddress,
+    _In_ ULONG Protect)
+{
+    UNIMPLEMENTED;
+}
+
+VOID
+PFN_DATABASE::MakePageTablePfn (
+    _Inout_ PFN_NUMBER PageFrameNumber,
+    _In_ PVOID PteAddress,
+    _In_ ULONG Protect)
+{
+    PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnFree);
+
+    PfnEntry->State = PfnPageTable;
+    PfnEntry->CacheAttribute = ProtectToCacheAttribute(Protect);
+    PfnEntry->PteAddress = PteAddress;
+    PfnEntry->PageTable.UsedPteCount = 0;
+    PfnEntry->PageTable.ValidPteCount = 0;
+}
+
+VOID
+PFN_DATABASE::IncrementEntryCount (
+    _In_ PFN_NUMBER PageFrameNumber,
+    _In_ ULONG Addend)
+{
+    PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnPageTable);
+
+    PfnEntry->PageTable.UsedPteCount += Addend;
+    PfnEntry->PageTable.ValidPteCount += Addend;
+}
+
+NTSTATUS
+PFN_DATABASE::AllocateMultiplePages (
+    _Out_ PFN_LIST* PageList,
+    _In_ ULONG_PTR NumberOfPages)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+VOID
+PFN_DATABASE::ReleaseMultiplePages (
+    _Inout_ PFN_LIST* PageList)
+{
+    UNIMPLEMENTED;
+}
 
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -606,6 +690,47 @@ PFN_DATABASE::SetPageMapping (
         // set caching type, if not yet mapped
         // increment mapping count
     UNIMPLEMENTED;
+}
+
+
+PFN_NUMBER
+PFN_LIST::RemovePage (
+    VOID)
+{
+    PFN_NUMBER PageFrameNumber;
+    PFN_ENTRY* PfnEntry;
+
+    /* Get the list head */
+    PageFrameNumber = m_ListHead;
+    if (PageFrameNumber != 0)
+    {
+        /* Get the PFN entry */
+        PfnEntry = &g_PfnDatabase.m_PfnArray[PageFrameNumber];
+        NT_ASSERT(PfnEntry->State == PfnFree);
+
+        /* Set head to the next entry */
+        m_ListHead = PfnEntry->Free.Next;
+    }
+
+    return PageFrameNumber;
+}
+
+VOID
+PFN_LIST::AddPage (
+    PFN_NUMBER PageFrameNumber)
+{
+    PFN_ENTRY* PfnEntry;
+
+    /* Get the PFN entry of the new page */
+    PfnEntry = &g_PfnDatabase.m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnFree);
+    PfnEntry->Free.Next = 0;
+
+    /* Get the PFN entry of the old list tail */
+    PfnEntry = &g_PfnDatabase.m_PfnArray[m_ListTail];
+    NT_ASSERT(PfnEntry->Free.Next == 0);
+    PfnEntry->Free.Next = PageFrameNumber;
+    m_ListTail = PageFrameNumber;
 }
 
 }; // namespace Mm

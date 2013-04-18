@@ -10,6 +10,7 @@
 #include "amd64/PageTables.hpp"
 #include "amd64/MmConstants.hpp"
 #include <arc/arc.h>
+#include <limits.h>
 
 // This is to shut up linker warnings about .CRT sections
 #pragma comment(linker, "/merge:.CRT=.rdata")
@@ -24,10 +25,15 @@ PFN_NUMBER MmBadPagesDetected;
 namespace Mm {
 
 VOID
+CleanupUserSpaceMappings (
+    VOID);
+
+VOID
 InitializePoolSupport (
     VOID);
 
 ULONG RandomNumberSeed;
+ULONG_PTR LowestSystemVpn;
 
 PFN_NUMBER EarlyAllocPageBase;
 PFN_NUMBER EarlyAllocPageCount;
@@ -113,6 +119,8 @@ EarlyMapPages (
     PVOID StartAddress,
     PVOID EndAddress)
 {
+    ULONG Protect = MM_READWRITE | MM_GLOBAL;
+
 #if MI_PAGING_LEVELS >= 4
     for (PPXE PxePointer = AddressToPxe(StartAddress);
          PxePointer <= AddressToPxe(EndAddress);
@@ -120,9 +128,9 @@ EarlyMapPages (
     {
         if (!PxePointer->IsValid())
         {
-            //PxePointer->WriteValidKernelPxe(EarlyAllocPage());
-            *PxePointer = PXE::CreateValidKernelPxe(EarlyAllocPage());
-            RtlFillMemoryUlonglong(PteToAddress(PxePointer), PAGE_SIZE, 0);
+            NT_ASSERT(PxePointer->IsEmpty());
+            PxePointer->MakeValidPxe(EarlyAllocPage(), Protect);
+            RtlFillMemoryUlonglong(PxeToPpe(PxePointer), PAGE_SIZE, 0);
         }
     }
 #endif
@@ -133,8 +141,9 @@ EarlyMapPages (
     {
         if (!PpePointer->IsValid())
         {
-            *PpePointer = PPE::CreateValidKernelPpe(EarlyAllocPage());
-            RtlFillMemoryUlonglong(PteToAddress(PpePointer), PAGE_SIZE, 0);
+            NT_ASSERT(PpePointer->IsEmpty());
+            PpePointer->MakeValidPpe(EarlyAllocPage(), Protect);
+            RtlFillMemoryUlonglong(PpeToPde(PpePointer), PAGE_SIZE, 0);
         }
     }
 #endif
@@ -144,11 +153,12 @@ EarlyMapPages (
     {
         if (!PdePointer->IsValid())
         {
+            NT_ASSERT(PdePointer->IsEmpty());
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
-            *PdePointer = PDE::CreateValidLargePageKernelPde(EarlyAllocLargePage());
-            RtlFillMemoryUlonglong(PdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
+            PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
+            RtlFillMemoryUlonglong(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
 #else
-            *PdePointer = PDE::CreateValidKernelPde(EarlyAllocPage());
+            PdePointer->MakeValidPde(EarlyAllocPage(), Protect);
             RtlFillMemoryUlonglong(PteToAddress(PdePointer), PAGE_SIZE, 0);
 #endif
         }
@@ -161,7 +171,7 @@ EarlyMapPages (
     {
         if (!PtePointer->IsValid())
         {
-            *PtePointer = PTE::CreateValidKernelPte(EarlyAllocPage());
+            PtePointer->MakeValidPte(EarlyAllocPage(), Protect);
             RtlZeroMemory(PteToAddress(PtePointer), PAGE_SIZE);
         }
     }
@@ -189,6 +199,10 @@ ScanMemoryDescriptors (
     PLIST_ENTRY ListEntry;
     PMEMORY_ALLOCATION_DESCRIPTOR Descriptor;
     PFN_NUMBER LastPage, FreePages;
+
+    /* Initialize the physical page range */
+    MmLowestPhysicalPage = SIZE_MAX;
+    MmHighestPhysicalPage = 0;
 
     /* Set LastPage so that the first descriptor will count as a new run */
     LastPage = -2;
@@ -275,27 +289,6 @@ public:
 
 MEMORY_MANAGER g_MemoryManager;
 
-static
-VOID
-CleanupUserSpaceMappings (
-    VOID)
-{
-#if (MI_PAGING_LEVELS == 4)
-    PPXE PtePointer = AddressToPxe(NULL), PteEnd = AddressToPxe(MmSystemRangeStart);
-#elif (MI_PAGING_LEVELS == 3)
-    PPPE PtePointer = AddressToPpe(NULL), PteEnd = AddressToPpe(MmSystemRangeStart);
-#else
-    PPDE PtePointer = AddressToPde(NULL), PteEnd = AddressToPde(MmSystemRangeStart);
-#endif
-    /* Loop all user space P*Es */
-    while (PtePointer < PteEnd)
-    {
-        /// \todo make this better
-        *(ULONG_PTR*)PtePointer = 0;
-        ++PtePointer;
-    }
-}
-
 VOID
 INIT_FUNCTION
 MEMORY_MANAGER::Inititalize (
@@ -306,6 +299,9 @@ MEMORY_MANAGER::Inititalize (
     /* Initialize a random number seed from the interrupt time and TSC */
     RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime() << 8);
     RandomNumberSeed ^= static_cast<ULONG>(__rdtsc());
+
+    /* Set lowest system VPN */
+    LowestSystemVpn = AddressToVpn(MmSystemRangeStart);
 
     /* Cleanup user space mappings */
     CleanupUserSpaceMappings();
@@ -318,7 +314,7 @@ MEMORY_MANAGER::Inititalize (
        virtual memory. Required for the PFN database. */
     g_KernelVadTable.Initialize(TRUE);
 
-__debugbreak();
+//__debugbreak();
 
     /* Reserve the address space for the whole non-paged pool */
     PageTableVad.Initialize();
