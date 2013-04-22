@@ -113,6 +113,10 @@ class PFN_LIST
 
 public:
 
+    VOID
+    Initialize (
+        VOID);
+
     PFN_NUMBER
     InterlockedPopEntry (
         VOID);
@@ -175,10 +179,9 @@ class PFN_DATABASE
     static PPFN_LIST m_FreeLists;
     static PPFN_LIST m_ZeroedLists;
     static PPHYSICAL_MEMORY_DESCRIPTOR m_PhysicalMemoryDescriptor;
-    static PRTL_BITMAP m_PhysicalMemoryBitmap;
+    static PRTL_BITMAP_EX m_PhysicalMemoryBitmap;
     static PFN_ENTRY* m_PfnArray;
-    static PULONG m_PhysicalBitmapBuffer;
-    static KSPIN_LOCK m_ContiguousMemoryLock;
+    static PULONG_PTR m_PhysicalBitmapBuffer;
 
     static
     VOID
@@ -200,6 +203,12 @@ class PFN_DATABASE
     InitializePfnEntriesFromPageTables (
         VOID);
 
+    static
+    PFN_NUMBER
+    AllocatePageLocked (
+        _In_ ULONG DesiredPageColor,
+        _Inout_ PBOOLEAN Zeroed);
+
     friend class PFN_LIST;
 
 public:
@@ -218,14 +227,37 @@ public:
     }
 
     static
+    PFN_NUMBER
+    AllocatePage (
+        _In_ BOOLEAN Zeroed);
+
+    static
+    VOID
+    ReleasePage (
+        _Inout_ PFN_NUMBER PageFrameNumber);
+
+    static
     NTSTATUS
     AllocateMultiplePages (
         _Out_ PFN_LIST* PageList,
-        _In_ ULONG_PTR NumberOfPages);
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ BOOLEAN Zeroed);
 
     static
     VOID
     ReleaseMultiplePages (
+        _Inout_ PFN_LIST* PageList);
+
+    static
+    NTSTATUS
+    AllocateLargePages (
+        _Out_ PFN_LIST* LargePageList,
+        _In_ ULONG_PTR NumberOfLargePages,
+        _In_ BOOLEAN Zeroed);
+
+    static
+    VOID
+    ReleaseLargePages (
         _Inout_ PFN_LIST* PageList);
 
     static
@@ -237,7 +269,7 @@ public:
 
     static
     VOID
-    MakePageLargePfn (
+    MakeLargePagePfn (
         _Inout_ PFN_NUMBER PageFrameNumber,
         _In_ PVOID PteAddress,
         _In_ ULONG Protect);

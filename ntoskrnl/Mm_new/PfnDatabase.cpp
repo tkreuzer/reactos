@@ -22,6 +22,8 @@ Concurrency between interlocked page removal and contiguous page allocation:
 #include "amd64/PageTables.hpp"
 #include <arc/arc.h>
 #include <ndk/ketypes.h>
+#include <ndk/pstypes.h>
+
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
@@ -38,10 +40,9 @@ ULONG PFN_DATABASE::m_CacheColorMask;
 PPFN_LIST PFN_DATABASE::m_FreeLists;
 PPFN_LIST PFN_DATABASE::m_ZeroedLists;
 PPHYSICAL_MEMORY_DESCRIPTOR PFN_DATABASE::m_PhysicalMemoryDescriptor;
-PRTL_BITMAP PFN_DATABASE::m_PhysicalMemoryBitmap;
+PRTL_BITMAP_EX PFN_DATABASE::m_PhysicalMemoryBitmap;
 PFN_ENTRY* PFN_DATABASE::m_PfnArray;
-PULONG PFN_DATABASE::m_PhysicalBitmapBuffer;
-KSPIN_LOCK PFN_DATABASE::m_ContiguousMemoryLock;
+PULONG_PTR PFN_DATABASE::m_PhysicalBitmapBuffer;
 static KERNEL_VAD g_PfnDatabaseVad;
 
 SIZE_T MmSizeOfPfnDatabase;
@@ -113,10 +114,21 @@ CalculatePageColors (
     KeNodeMask = (KeNumberNodes - 1) << KeNodeShift;
 }
 
-static
+inline
 ULONG
 GetNextPageColor (
-    _In_ ULONG PageColor,
+    _In_ ULONG PageColor)
+{
+    ULONG CacheColorMask = KeGetCurrentPrcb()->SecondaryColorMask;
+
+    /* Return the next cache color */
+    return ((PageColor + 1) & CacheColorMask) | (PageColor & KeNodeMask);
+}
+
+inline
+ULONG
+GetNextPageColorCycleNodes (
+    _Inout_ ULONG PageColor,
     _In_ ULONG OriginalColor)
 {
     ULONG CacheColorMask = KeGetCurrentPrcb()->SecondaryColorMask;
@@ -134,11 +146,6 @@ GetNextPageColor (
 
     /* Combine to full color */
     NextColor |= (PageColor & KeNodeMask);
-
-    if (NextColor == OriginalColor)
-    {
-        return 0;
-    }
 
     return NextColor;
 }
@@ -390,7 +397,7 @@ PFN_DATABASE::Initialize (
     PFN_NUMBER BasePage, PageCount, NextPage;
     PLIST_ENTRY ListEntry;
     PMEMORY_ALLOCATION_DESCRIPTOR Descriptor;
-    PULONG Buffer, BufferEnd;
+    PULONG_PTR Buffer, BufferEnd;
     ULONG_PTR StartingVpn, EndingVpn;
 
     /* Initialize the page color mask */
@@ -403,9 +410,9 @@ PFN_DATABASE::Initialize (
     m_ZeroedLists = &m_FreeLists[NumberPageColors];
     m_PhysicalMemoryDescriptor = reinterpret_cast<PPHYSICAL_MEMORY_DESCRIPTOR>(
             &m_ZeroedLists[NumberPageColors]);
-    m_PhysicalMemoryBitmap = reinterpret_cast<PRTL_BITMAP>(
+    m_PhysicalMemoryBitmap = reinterpret_cast<PRTL_BITMAP_EX>(
             &m_PhysicalMemoryDescriptor->Run[NumberOfPhysicalMemoryRuns]);
-    m_PhysicalBitmapBuffer = reinterpret_cast<PULONG>(
+    m_PhysicalBitmapBuffer = reinterpret_cast<PULONG_PTR>(
             m_PhysicalMemoryBitmap + 1);
 
     /* Map page lists, physical memory descriptor and physical memory bitmaps */
@@ -418,9 +425,9 @@ PFN_DATABASE::Initialize (
     m_PhysicalMemoryDescriptor->Run[0].PageCount = 0;
 
     /* Initialize the PFN bitmap with the maximum range */
-    RtlInitializeBitMap(m_PhysicalMemoryBitmap,
-                        m_PhysicalBitmapBuffer,
-                        static_cast<ULONG>(MmHighestPhysicalPage));
+    RtlInitializeBitMapEx(m_PhysicalMemoryBitmap,
+                          m_PhysicalBitmapBuffer,
+                          MmHighestPhysicalPage);
 
     /* Initialize NextPage, so we skip the first descriptor(s)
        when looking for new physical memory runs */
@@ -475,9 +482,7 @@ PFN_DATABASE::Initialize (
         if (IsFreeMemory(Descriptor->MemoryType))
         {
             /* Set the bits for this run */
-            RtlSetBits(m_PhysicalMemoryBitmap,
-                       static_cast<ULONG>(BasePage),
-                       static_cast<ULONG>(PageCount));
+            RtlSetBitsEx(m_PhysicalMemoryBitmap, BasePage, PageCount);
         }
 
     }
@@ -537,7 +542,7 @@ PFN_DATABASE::MakeActivePfn (
 
 
 VOID
-PFN_DATABASE::MakePageLargePfn (
+PFN_DATABASE::MakeLargePagePfn (
     _Inout_ PFN_NUMBER PageFrameNumber,
     _In_ PVOID PteAddress,
     _In_ ULONG Protect)
@@ -573,17 +578,219 @@ PFN_DATABASE::IncrementEntryCount (
     PfnEntry->PageTable.ValidPteCount += Addend;
 }
 
-NTSTATUS
-PFN_DATABASE::AllocateMultiplePages (
-    _Out_ PFN_LIST* PageList,
-    _In_ ULONG_PTR NumberOfPages)
+PFN_NUMBER
+PFN_DATABASE::AllocatePageLocked (
+    _In_ ULONG DesiredPageColor,
+    _Inout_ PBOOLEAN Zeroed)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    PFN_NUMBER PageFrameNumber;
+    ULONG PageColor;
+    PPFN_LIST List1, List2;
+
+    /* Safe the original page color */
+    PageColor = DesiredPageColor;
+
+    if (*Zeroed)
+    {
+        List1 = m_ZeroedLists;
+        List2 = m_FreeLists;
+    }
+    else
+    {
+        List1 = m_FreeLists;
+        List2 = m_ZeroedLists;
+    }
+
+    do
+    {
+        /* Remove a page from the preferred list */
+        PageFrameNumber = List1[PageColor].RemovePage();
+        if (PageFrameNumber != 0)
+        {
+            break;
+        }
+
+        /* Remove a page from the alternative list */
+        PageFrameNumber = List2[PageColor].RemovePage();
+        if (PageFrameNumber != 0)
+        {
+            *Zeroed = !*Zeroed;
+            break;
+        }
+
+        /* Try with the next page color */
+        PageColor = GetNextPageColorCycleNodes(PageColor, DesiredPageColor);
+    }
+    while (PageColor != DesiredPageColor);
+
+    if (PageFrameNumber != 0)
+    {
+        RtlClearBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
+    }
+
+    return PageFrameNumber;
+}
+
+PFN_NUMBER
+PFN_DATABASE::AllocatePage (
+    _In_ BOOLEAN Zeroed)
+{
+    PFN_NUMBER PageFrameNumber;
+    PEPROCESS Process;
+    ULONG PageColor;
+    BOOLEAN WasZeroed;
+    KIRQL OldIrql;
+
+    /* Get the current process and the next page color */
+    Process = PsGetCurrentProcess();
+    PageColor = Process->NextPageColor & KeGetCurrentPrcb()->SecondaryColorMask;
+    Process->NextPageColor++;
+
+    /* Acquire the PFN database lock */
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+    /* Allocate a page from the appropriate list */
+    WasZeroed = Zeroed;
+    PageFrameNumber = AllocatePageLocked(PageColor, &WasZeroed);
+
+    /* Release the PFN database lock */
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
+    /* Check if we have a page and we need to zero it */
+    if ((PageFrameNumber != 0) && Zeroed && !WasZeroed)
+    {
+        //ZeroPhysicalPage(PageFrameNumber);
+    }
+
+    /* Return the new page */
+    return PageFrameNumber;
 }
 
 VOID
+PFN_DATABASE::ReleasePage (
+    _Inout_ PFN_NUMBER PageFrameNumber)
+{
+    UNIMPLEMENTED;
+}
+
+NTSTATUS
+PFN_DATABASE::AllocateMultiplePages (
+    _Out_ PFN_LIST* PageList,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ BOOLEAN Zeroed)
+{
+    PEPROCESS Process;
+    PFN_NUMBER PageFrameNumber;
+    ULONG_PTR PagesRemaining;
+    ULONG PageColor;
+    BOOLEAN WasZeroed;
+    KIRQL OldIrql;
+    NT_ASSERT(NumberOfPages != 0);
+
+    /* Initialize the page list */
+    PageList->Initialize();
+
+    /* Get the current process and the next page color */
+    Process = PsGetCurrentProcess();
+    PageColor = Process->NextPageColor;
+
+    /* Acquire the PFN database lock */
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+    PagesRemaining = NumberOfPages;
+    do
+    {
+        /* Allocate a page from the appropriate list */
+        WasZeroed = Zeroed;
+        PageFrameNumber = AllocatePageLocked(PageColor, &WasZeroed);
+
+        /* Check for failure */
+        if (PageFrameNumber == 0)
+        {
+            /* Release the PFN database lock */
+            KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
+            /* Release everything we allocated so far */
+            ReleaseMultiplePages(PageList);
+
+            return STATUS_NO_MEMORY;
+        }
+
+        /* Add the page to the list */
+        PageList->AddPage(PageFrameNumber);
+
+        /* Get the next page color */
+        PageColor = GetNextPageColor(PageColor);
+    }
+    while (--PagesRemaining);
+
+    /* Adjust next page color */
+    Process->NextPageColor = (USHORT)PageColor;
+
+    /* Release the PFN database lock */
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
+    /* Check if zeroed pages were requested */
+    if (Zeroed)
+    {
+        /// \todo loop all pages and check if it's zeroed, zero it otherwise
+        __debugbreak();
+    }
+
+    return STATUS_SUCCESS;
+}
+
+
+VOID
 PFN_DATABASE::ReleaseMultiplePages (
+    _Inout_ PFN_LIST* PageList)
+{
+    PFN_NUMBER PageFrameNumber;
+
+    for (;;)
+    {
+        PageFrameNumber = PageList->RemovePage();
+        if (PageFrameNumber == 0)
+        {
+            break;
+        }
+
+        ReleasePage(PageFrameNumber);
+    }
+}
+
+NTSTATUS
+PFN_DATABASE::AllocateLargePages (
+    _Out_ PFN_LIST* LargePageList,
+    _In_ ULONG_PTR NumberOfLargePages,
+    _In_ BOOLEAN Zeroed)
+{
+    PFN_NUMBER LargePageNumber;
+    NTSTATUS Status;
+
+    while (NumberOfLargePages--)
+    {
+        /* Allocate one large page */
+        Status = AllocateContiguousPages(&LargePageNumber,
+                                         LARGE_PAGE_SIZE / PAGE_SIZE,
+                                         0,
+                                         MmHighestPhysicalPage,
+                                         LARGE_PAGE_SIZE / PAGE_SIZE,
+                                         0);
+        if (!NT_SUCCESS(Status))
+        {
+            ReleaseLargePages(LargePageList);
+            return Status;
+        }
+
+        LargePageList->AddPage(LargePageNumber);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+VOID
+PFN_DATABASE::ReleaseLargePages (
     _Inout_ PFN_LIST* PageList)
 {
     UNIMPLEMENTED;
@@ -600,62 +807,86 @@ PFN_DATABASE::AllocateContiguousPages (
     _In_opt_ PFN_NUMBER BoundaryPageMultiple,
     _In_ NODE_REQUIREMENT PreferredNode)
 {
-    KLOCK_QUEUE_HANDLE LockHandle, *LockHandles;
-    ULONG NumberPageColors, Index;
-    PFN_NUMBER BasePage;
+    PFN_NUMBER PageNumber, BasePage, EndPage, PageCount;
+    KIRQL OldIrql;
+    RTL_BITMAP_EX Bitmap;
+    PPHYSICAL_MEMORY_RUN Run;
+    ULONG_PTR Index, HintIndex;
+    PULONG_PTR Buffer;
+    NTSTATUS Status;
 
-    /// \todo FIXME NUMA nodes!
-    NumberPageColors = KeGetCurrentPrcb()->SecondaryColorMask + 1;
-
-    LockHandles = static_cast<PKLOCK_QUEUE_HANDLE>(
-                  ExAllocatePoolWithTag(NonPagedPool,
-                                        2 * NumberPageColors * sizeof(*LockHandles),
-                                        TAG_MM));
-    if (LockHandles == NULL)
-    {
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    // acquire the global lock
-    KeAcquireInStackQueuedSpinLock(&m_ContiguousMemoryLock, &LockHandle);
-
-    // lock the lists (free and zeroed for all page colors)
-    for (ULONG i = 0; i < NumberPageColors; i++)
-    {
-        m_FreeLists[i].AcquireSpinLock(&LockHandles[i * 2]);
-        m_ZeroedLists[i].AcquireSpinLock(&LockHandles[i * 2 + 1]);
-    }
+    /* Acquire the PFN database lock */
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
 
     for (ULONG i = 0; i < m_PhysicalMemoryDescriptor->NumberOfRuns; i++)
     {
-        ULONG HintIndex = 0;
-
-        // find free bits in the physical memory bitmap for this run
-        /// \todo FIXME: currently we do sparse mapping of the bitmap.
-        /// We can either map it fully, possibly wasting some memory
-        /// or we use multiple bitmaps (one per run) and have each
-        /// point to a ULONG(64) aligned range in the buffer.
-        Index = RtlFindSetBitsAndClear(m_PhysicalMemoryBitmap,
-                                       NumberOfPages,
-                                       HintIndex);
-        if (Index != 0xFFFFFFFF)
+        /* Check if this memory run is suitable */
+        Run = &m_PhysicalMemoryDescriptor->Run[i];
+        if ((Run->BasePage < LowestAcceptablePfn) ||
+            (Run->BasePage + NumberOfPages > HighestAcceptablePfn))
         {
-            BasePage = m_PhysicalMemoryDescriptor->Run[i].BasePage + Index;
-            break;
+            /* There are no suitable pages in this physical run */
+            continue;
+        }
+
+        /* Calculate the base and end page page */
+        BasePage = max(Run->BasePage, LowestAcceptablePfn);
+        EndPage = min(Run->BasePage + Run->PageCount, HighestAcceptablePfn + 1);
+
+        for (;;)
+        {
+            /* Align the base page and calculate the page count for the bitmap */
+            BasePage = ALIGN_DOWN_BY(BasePage, sizeof(ULONG_PTR) * 8);
+            PageCount = EndPage - BasePage;
+
+            /* Initialize the bitmap */
+            Buffer = &m_PhysicalBitmapBuffer[BasePage / (sizeof(ULONG_PTR) * 8)];
+            RtlInitializeBitMapEx(&Bitmap, Buffer, PageCount);
+
+            HintIndex = Run->BasePage & (sizeof(ULONG_PTR) * 8 - 1);
+
+            /* Try to find bits */
+            Index = RtlFindSetBitsEx(&Bitmap, NumberOfPages, HintIndex);
+            if (Index == MAXULONG_PTR)
+            {
+                break;
+            }
+
+            /* Calculate the page number, aligned as required */
+            PageNumber = ALIGN_UP_BY(BasePage + Index, BoundaryPageMultiple);
+
+            /* Check range */
+            if (((PageNumber + NumberOfPages) > EndPage) ||
+                ((PageNumber + NumberOfPages) <= BasePage))
+            {
+                break;
+            }
+
+            /* Check if the aligned bits are set */
+            Index = PageNumber - BasePage;
+            if (RtlAreBitsSetEx(&Bitmap, Index, NumberOfPages))
+            {
+                /* Clear the bits */
+                RtlClearBitsEx(&Bitmap, Index, NumberOfPages);
+                Status = STATUS_SUCCESS;
+                goto Done;
+            }
+
+            /* Update start index and try again */
+            BasePage += NumberOfPages - 1;
         }
     }
 
+    PageNumber = 0;
+    Status = STATUS_NO_MEMORY;
 
-    // unlock the lists
-    for (ULONG i = 0; i < NumberPageColors; i++)
-    {
-        m_FreeLists[i].ReleaseSpinLock(&LockHandles[i * 2]);
-        m_ZeroedLists[i].ReleaseSpinLock(&LockHandles[i * 2 + 1]);
-    }
+Done:
 
-    KeReleaseInStackQueuedSpinLock(&LockHandle);
+    /* Release the PFN database lock */
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 
-    return 0;
+    *BasePageFrameNumber = PageNumber;
+    return Status;
 }
 
 VOID
@@ -692,6 +923,13 @@ PFN_DATABASE::SetPageMapping (
     UNIMPLEMENTED;
 }
 
+VOID
+PFN_LIST::Initialize (
+    VOID)
+{
+    m_ListHead = 0;
+    m_ListTail = 0;
+}
 
 PFN_NUMBER
 PFN_LIST::RemovePage (
