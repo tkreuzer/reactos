@@ -2,11 +2,12 @@
 
 #include "ntosbase.h"
 #include "amd64/PageTables.hpp"
+#include "amd64/MmConstants.hpp"
 #include "PfnDatabase.hpp"
 #include "CommitCharge.hpp"
 
 #undef MI_PAGING_LEVELS
-#define MI_PAGING_LEVELS 2
+#define MI_PAGING_LEVELS 4
 
 namespace Mm {
 
@@ -41,19 +42,15 @@ CalculateMaximumNumberOfPageTables (
     _In_ ULONG_PTR EndingVpn)
 {
     ULONG_PTR PageCount;
-    PVOID StartingAddress, EndingAddress;
-
-    StartingAddress = VpnToAddress(StartingVpn);
-    EndingAddress = VpnToAddress(EndingVpn);
 
     PageCount = 0;
 #if MI_PAGING_LEVELS >= 4
-    PageCount += AddressToPxe(EndingAddress) - AddressToPxe(StartingAddress) + 1;
+    PageCount += VpnToPxe(EndingVpn) - VpnToPxe(StartingVpn) + 1;
 #endif
 #if MI_PAGING_LEVELS >= 3
-    PageCount += AddressToPpe(EndingAddress) - AddressToPpe(StartingAddress) + 1;
+    PageCount += VpnToPpe(EndingVpn) - VpnToPpe(StartingVpn) + 1;
 #endif
-    PageCount += AddressToPde(EndingAddress) - AddressToPde(StartingAddress) + 1;
+    PageCount += VpnToPde(EndingVpn) - VpnToPde(StartingVpn) + 1;
 
     return PageCount;
 }
@@ -76,9 +73,9 @@ MapLargePagePdes (
         /* Check if the PDE is empty */
         if (CurrentPde->IsEmpty())
         {
-            /* Map the PT */
+            /* Map the large page */
             PageFrameNumber = LargePageList->RemovePage();
-            g_PfnDatabase.MakePageLargePfn(PageFrameNumber, CurrentPde, Protect);
+            g_PfnDatabase.MakeLargePagePfn(PageFrameNumber, CurrentPde, Protect);
             CurrentPde->MakeValidLargePagePde(PageFrameNumber, Protect);
             NumberOfNewPdes++;
         }
@@ -112,7 +109,7 @@ MapPdesAndPtes (
     _In_ PFN_NUMBER PfnOfPd,
     _Inout_ PFN_LIST* PageList,
     _Inout_ PPFN_NUMBER* PfnArrayPointer,
-    _Inout_ PPTE* PrototypePtePointer)
+    _Inout_ PPROTOTYPE* PrototypePtePointer)
 {
     PFN_NUMBER PfnOfPt;
     ULONG_PTR NumberOfPages = 0;
@@ -251,16 +248,15 @@ MapPdesAndPtes (
 
 
 inline
-VOID
+ULONG_PTR
 PageMappingWorker (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR EndingVpn,
     _In_ ULONG Protect,
     _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPTE PrototypePtes,
+    _In_opt_ PPROTOTYPE Prototypes,
     _In_ PFN_LIST* PageList,
-    _In_ PFN_LIST* LargePageList,
-    _Out_ PULONG_PTR OutUsedPages)
+    _In_ PFN_LIST* LargePageList)
 {
     ULONG_PTR ActualCharge;
 #if (MI_PAGING_LEVELS >= 4)
@@ -363,7 +359,7 @@ PageMappingWorker (
                                                PfnOfPd,
                                                PageList,
                                                &PfnArray,
-                                               &PrototypePtes);
+                                               &Prototypes);
             }
 
             /* Continue with PDE at the next PPE boundary */
@@ -387,16 +383,18 @@ PageMappingWorker (
     /* Increment entry count in the parent page table */
     g_PfnDatabase.IncrementEntryCount(PfnOfPdpt, NumberOfNewPxes);
 #endif /* MI_PAGING_LEVELS >= 4 */
+
+    return ActualCharge;
 }
 
 
 NTSTATUS
-CreatePageMapping (
+CreateMapping (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPTE PrototypePtes)
+    _In_opt_ PPROTOTYPE Prototypes)
 {
     PFN_LIST PageList, LargePageList;
     ULONG_PTR EndingVpn;
@@ -410,8 +408,16 @@ CreatePageMapping (
     PageAllocation = CalculateMaximumNumberOfPageTables(StartingVpn, EndingVpn);
     MaximumCharge = PageAllocation + NumberOfPages;
 
-    /* Check if we need to allocate all mapped pages */
-    if ((Protect & MM_MAPPED) && (PfnArray == NULL) && (PrototypePtes == NULL))
+    /* Check if we have large pages */
+    if (Protect & MM_LARGEPAGE)
+    {
+        NT_ASSERT((NumberOfPages & (LARGE_PAGE_SIZE / PAGE_SIZE - 1)) == 0);
+
+
+    }
+
+    /* Otherwise check if we need to allocate the actual pages */
+    else if ((Protect & MM_MAPPED) && (PfnArray == NULL) && (Prototypes == NULL))
     {
         /* Add the number of pages as well */
         PageAllocation += NumberOfPages;
@@ -421,14 +427,6 @@ CreatePageMapping (
     Status = ChargeSystemCommit(MaximumCharge);
     if (!NT_SUCCESS(Status))
     {
-        return Status;
-    }
-
-    /* Preallocate pages */
-    Status = g_PfnDatabase.AllocateMultiplePages(&PageList, PageAllocation);
-    if (!NT_SUCCESS(Status))
-    {
-        UnchargeSystemCommit(MaximumCharge);
         return Status;
     }
 
@@ -446,18 +444,38 @@ CreatePageMapping (
         Protect |= MM_USER;
     }
 
+    /* Preallocate pages */
+    Status = g_PfnDatabase.AllocateMultiplePages(&PageList, PageAllocation, FALSE);
+    if (!NT_SUCCESS(Status))
+    {
+        UnchargeSystemCommit(MaximumCharge);
+        return Status;
+    }
+
+    /* Check if we have large pages */
+    if (Protect & MM_LARGEPAGE)
+    {
+        Status = g_PfnDatabase.AllocateLargePages(&LargePageList,
+                                                  NumberOfPages,
+                                                  FALSE);
+        if (!NT_SUCCESS(Status))
+        {
+            UnchargeSystemCommit(MaximumCharge);
+            return Status;
+        }
+    }
+
     /* Lock the address space */
     // AddressSpace->AcquireLock();
 
     /* Call the worker function */
-    PageMappingWorker(StartingVpn,
-                      EndingVpn,
-                      Protect,
-                      PfnArray,
-                      PrototypePtes,
-                      &PageList,
-                      &LargePageList,
-                      &ActualCharge);
+    ActualCharge = PageMappingWorker(StartingVpn,
+                                     EndingVpn,
+                                     Protect,
+                                     PfnArray,
+                                     Prototypes,
+                                     &PageList,
+                                     &LargePageList);
 
     /* Unlock the address space */
     // AddressSpace->ReleaseLock();

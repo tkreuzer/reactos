@@ -57,6 +57,78 @@
 
 #define MinPtr(Ptr1, Ptr2) ((((ULONG_PTR)(Ptr1)) < ((ULONG_PTR)(Ptr1))) ? (Ptr1) : (Ptr2))
 
+#ifdef _WIN64
+
+extern "C" {
+
+typedef struct _RTL_BITMAP64
+{
+    ULONG64 SizeOfBitMap;
+    PULONG64 Buffer;
+} RTL_BITMAP64, *PRTL_BITMAP64;
+
+VOID
+NTAPI
+RtlInitializeBitMap64 (
+    _Out_ PRTL_BITMAP64 BitMapHeader,
+    _In_ PULONG64 BitMapBuffer,
+    _In_ ULONG64 SizeOfBitMap);
+
+VOID
+NTAPI
+RtlClearBit64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 BitNumber);
+
+VOID
+NTAPI
+RtlClearBits64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 StartingIndex,
+    _In_ ULONG64 NumberToClear);
+
+VOID
+NTAPI
+RtlSetBits64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 StartingIndex,
+    _In_ ULONG64 NumberToClear);
+
+BOOLEAN
+NTAPI
+RtlAreBitsSet64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 StartingIndex,
+    _In_ ULONG64 Length);
+
+ULONG64
+NTAPI
+RtlFindSetBits64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 NumberToFind,
+    _In_ ULONG64 HintIndex);
+
+};
+
+#define RtlInitializeBitMapEx RtlInitializeBitMap64
+#define RtlClearBitEx RtlClearBit64
+#define RtlClearBitsEx RtlClearBits64
+#define RtlSetBitsEx RtlSetBits64
+#define RtlAreBitsSetEx RtlAreBitsSet64
+#define RtlFindSetBitsEx RtlFindSetBits64
+#define RTL_BITMAP_EX RTL_BITMAP64
+#define PRTL_BITMAP_EX PRTL_BITMAP64
+#else
+#define RtlInitializeBitMapEx RtlInitializeBitMap
+#define RtlClearBitEx RtlClearBit
+#define RtlClearBitsEx RtlClearBits
+#define RtlSetBitsEx RtlSetBits
+#define RtlAreBitsSetEx RtlAreBitsSet
+#define RtlFindSetBitsEx RtlFindSetBits
+#define RTL_BITMAP_EX RTL_BITMAP
+#define PRTL_BITMAP_EX PRTL_BITMAP
+#endif
+
 inline
 void*
 operator new(size_t, void *p)
@@ -89,7 +161,7 @@ namespace Mm {
 
 enum MM_PROTECT
 {
-    MM_DECOMMIT           = 0,
+    MM_NOACCESS           = 0,
     MM_READONLY           = 1,
     MM_EXECUTE            = 2,
     MM_EXECUTE_READ       = 3,
@@ -99,7 +171,7 @@ enum MM_PROTECT
     MM_EXECUTE_WRITECOPY  = 7,
 
     MM_NOCACHE            = 0x08,
-    MM_NOACCESS           = 0x10,
+    MM_DECOMMIT           = 0x10,
     MM_WRITECOMBINE       = 0x18,
 
     MM_PROTECTION_MASK    = 0x1F,
@@ -113,5 +185,10 @@ enum MM_PROTECT
     MM_INVALID_PROTECTION = 0xFFFFFFFF
 };
 
+typedef struct _PROTOTYPE
+{
+    ULONG64 PageFrameNumber : 36;
+    ULONG64 Protection : 6;
+} PROTOTYPE, *PPROTOTYPE;
 
 }; // namespace Mm

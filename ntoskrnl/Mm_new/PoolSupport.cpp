@@ -13,6 +13,14 @@ NTAPI
 InitializePool(IN POOL_TYPE PoolType,
                IN ULONG Threshold);
 
+NTSTATUS
+CreateMapping (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect,
+    _In_opt_ PPFN_NUMBER PfnArray,
+    _In_opt_ PPROTOTYPE Prototypes);
+
 extern SIZE_T MmSizeOfPfnDatabase;
 
 #define NP_POOL_SIZE_IN_PAGES_LOW (40 * 1024 * 1024 / PAGE_SIZE)
@@ -56,7 +64,6 @@ CalculatePoolDimensions (
 {
     PFN_NUMBER SizeOfNonPagedPoolInPages, MaximumNonPagedPoolInPages;
     PVOID EndAddress;
-__debugbreak();
 
     /* Windows Internals: For non-paged pool, the initial size is 3 percent of
        system RAM. */
@@ -97,7 +104,7 @@ __debugbreak();
     MmSizeOfNonPagedPoolInBytes = reinterpret_cast<PUCHAR>(EndAddress) -
                                   reinterpret_cast<PUCHAR>(MmNonPagedPoolStart);
 
-    MmSizeOfNonPagedPoolInBytes = PointerDiff(EndAddress, MmNonPagedPoolStart);
+    //MmSizeOfNonPagedPoolInBytes = PointerDiff(EndAddress, MmNonPagedPoolStart); // broken
 
 #ifndef _WIN64
     InitialPoolSizeInPages[NonPagedPool] = SizeOfNonPagedPoolInPages;
@@ -113,15 +120,13 @@ InitializePoolSupportSingle (
     _In_ SIZE_T InitialSize,
     _In_ SIZE_T MaximumSize)
 {
-    ULONG Protect = 2; // MM_READ | MM_WRITE | MM_GLOBAL |
+    ULONG Protect;
     NTSTATUS Status;
     ULONG_PTR NumberOfPages, MaximumNumberOfPages, ReserveSizeInPages;
-    ULONG_PTR AllocatedSize, StartingVpn, EndingVpn;
+    ULONG_PTR AllocatedSize, StartingVpn;
     PULONG BitmapBuffer;
 
     NT_ASSERT((PoolType == NonPagedPool) || (PoolType == PagedPool));
-
-__debugbreak();
 
     /* Initialize the static pool VAD object */
     PoolVad[PoolType].Initialize();
@@ -146,9 +151,21 @@ __debugbreak();
     NT_ASSERT(NT_SUCCESS(Status));
 
     /* Commit large pages for the initial pool */
-    Protect = 2; // MM_READ | MM_WRITE | MM_GLOBAL | MM_NONPAGED | MM_LARGEPAGE
-    EndingVpn = StartingVpn + NumberOfPages - 1;
-    PoolVad[PoolType].CommitPages(StartingVpn, EndingVpn, Protect);
+    Protect = MM_READWRITE | MM_GLOBAL | MM_MAPPED | MM_NONPAGED;
+
+__debugbreak();
+
+    if (PoolType == NonPagedPool)
+    {
+        /* Commit large pages for non-paged pool */
+        Protect |= MM_LARGEPAGE;
+        StartingVpn = ALIGN_UP_BY(StartingVpn, LARGE_PAGE_SIZE / PAGE_SIZE);
+        NumberOfPages = ALIGN_DOWN_BY(NumberOfPages, LARGE_PAGE_SIZE / PAGE_SIZE);
+    }
+
+
+    Status = CreateMapping(StartingVpn, NumberOfPages, Protect, NULL, NULL);
+    NT_ASSERT(NT_SUCCESS(Status));
 
     /* Initialize the pool bitmap */
     BitmapBuffer = static_cast<PULONG>(PoolStart);
@@ -275,7 +292,7 @@ MiAllocatePoolPages (
     /* First try to find clear bits without holding the lock */
     Bitmap = &PoolBitmap[BasePoolType];
 
-    do
+    for (;;)
     {
         /* First try to find clear bits without holding the lock */
         Index = RtlFindClearBits(Bitmap, PageCount, PoolHintIndex[BasePoolType]);
@@ -290,23 +307,24 @@ MiAllocatePoolPages (
 
             /* Release the lock */
             KeReleaseInStackQueuedSpinLock(&LockHandle);
-        }
 
-        /* Check for failure */
-        if (Index == -1)
-        {
-            /* Expand the pool */
-            Status = ExpandPool(BasePoolType, Index);
-            if (!NT_SUCCESS(Status))
+            /* Check if that succeeded */
+            if (Index != -1)
             {
-                return NULL;
+                /* Stop looping */
+                break;
             }
-
-            /* Try again */
-            continue;
         }
+
+        /* Expand the pool */
+        Status = ExpandPool(BasePoolType, Index);
+        if (!NT_SUCCESS(Status))
+        {
+            return NULL;
+        }
+
+        /* Start over */
     }
-    while (FALSE);
 
     /* Update the hint index */
     PoolHintIndex[BasePoolType] = Index + PageCount;

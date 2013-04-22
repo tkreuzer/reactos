@@ -239,7 +239,7 @@ public:
     inline
     VOID
     MakeProtoPte (
-        _In_ PTE* PrototypePte)
+        _In_ PPROTOTYPE Prototype)
     {
         /// \todo IMPLEMENT ME
     }
