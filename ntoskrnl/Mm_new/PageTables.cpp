@@ -65,7 +65,6 @@ MapLargePagePdes (
     _Inout_ PFN_LIST* LargePageList)
 {
     PFN_NUMBER PageFrameNumber;
-    ULONG_PTR NumberOfPages = 0;
     ULONG NumberOfNewPdes = 0;
 
     do
@@ -84,9 +83,6 @@ MapLargePagePdes (
             NT_ASSERT(CurrentPde->IsLargePage());
         }
 
-        /* Add the number of physical pages for each large page */
-        NumberOfPages += NumberOfNewPdes * PTE_PER_PAGE;
-
         /* Go to the next PDE */
         CurrentPde++;
     } while (CurrentPde < MarginPde);
@@ -95,7 +91,7 @@ MapLargePagePdes (
     g_PfnDatabase.IncrementEntryCount(PfnOfPd, NumberOfNewPdes);
 
     /* Return the number of pages we removed from the page list */
-    return NumberOfNewPdes + NumberOfPages;
+    return NumberOfNewPdes * (LARGE_PAGE_SIZE / PAGE_SIZE);
 }
 
 inline
@@ -455,8 +451,11 @@ CreateMapping (
     /* Check if we have large pages */
     if (Protect & MM_LARGEPAGE)
     {
+        /* Initialize the large page list and allocate large pages */
+        LargePageList.Initialize();
         Status = g_PfnDatabase.AllocateLargePages(&LargePageList,
-                                                  NumberOfPages,
+                                                  NumberOfPages /
+                                                    (LARGE_PAGE_SIZE / PAGE_SIZE),
                                                   FALSE);
         if (!NT_SUCCESS(Status))
         {
