@@ -161,7 +161,6 @@ PFN_DATABASE::InitializePfnEntries (
     PFN_ENTRY* PfnEntry;
     ULONG Color;
 
-//DbgPrint("InitializePfnEntries(0x%lx, 0x%lx, 0x%lx)\n", BasePage, PageCount, MemoryType);
     /* Get the first PFN entry of this range. */
     PfnEntry = &m_PfnArray[BasePage];
 
@@ -173,6 +172,7 @@ PFN_DATABASE::InitializePfnEntries (
         {
             /* Mark it as a free entry */
             PfnEntry->State = PfnFree;
+            PfnEntry->ReferenceCount = 0;
 
             /* Insert the page into the dirty list */
             Color = BasePage & KeGetCurrentPrcb()->SecondaryColorMask;
@@ -418,6 +418,13 @@ PFN_DATABASE::Initialize (
     /* Map page lists, physical memory descriptor and physical memory bitmaps */
     EarlyMapPages(m_FreeLists, m_PhysicalBitmapBuffer);
 
+    /* Initialize the free lists */
+    for (i = 0; i < NumberPageColors; i++)
+    {
+        m_FreeLists[i].Initialize();
+        m_ZeroedLists[i].Initialize();
+    }
+
     /* Initialize the physical memory descriptor */
     m_PhysicalMemoryDescriptor->NumberOfRuns = NumberOfPhysicalMemoryRuns;
     m_PhysicalMemoryDescriptor->NumberOfPages = 0;
@@ -498,6 +505,11 @@ PFN_DATABASE::Initialize (
                          EarlyAllocPageBase - LargestFreeDescriptor->BasePage,
                          LoaderMemoryData);
 
+    /* Clear the free bits */
+    RtlClearBitsEx(m_PhysicalMemoryBitmap,
+                   LargestFreeDescriptor->BasePage,
+                   EarlyAllocPageBase - LargestFreeDescriptor->BasePage);
+
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
     /* Calculate the "next" page (exclusive) for large page allocations */
     NextPage = (LargestFreeDescriptor->BasePage +
@@ -507,6 +519,11 @@ PFN_DATABASE::Initialize (
     InitializePfnEntries(EarlyAllocLargePageBase,
                          NextPage - EarlyAllocLargePageBase,
                          LoaderLargePageFiller);
+
+    /* Clear the free bits */
+    RtlClearBitsEx(m_PhysicalMemoryBitmap,
+                   EarlyAllocLargePageBase,
+                   NextPage - EarlyAllocLargePageBase);
 #endif
 
     /* Now parse the page tables */
@@ -547,7 +564,7 @@ PFN_DATABASE::MakeLargePagePfn (
     _In_ PVOID PteAddress,
     _In_ ULONG Protect)
 {
-    UNIMPLEMENTED;
+    //UNIMPLEMENTED;
 }
 
 VOID
@@ -559,6 +576,7 @@ PFN_DATABASE::MakePageTablePfn (
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnFree);
 
+    DbgPrint("MakePageTablePfn %Ix\n", PageFrameNumber);
     PfnEntry->State = PfnPageTable;
     PfnEntry->CacheAttribute = ProtectToCacheAttribute(Protect);
     PfnEntry->PteAddress = PteAddress;
@@ -605,28 +623,34 @@ PFN_DATABASE::AllocatePageLocked (
     {
         /* Remove a page from the preferred list */
         PageFrameNumber = List1[PageColor].RemovePage();
-        if (PageFrameNumber != 0)
+        if (PageFrameNumber == 0)
         {
-            break;
+            /* Remove a page from the alternative list */
+            PageFrameNumber = List2[PageColor].RemovePage();
+            if (PageFrameNumber != 0)
+            {
+                *Zeroed = !*Zeroed;
+            }
         }
 
-        /* Remove a page from the alternative list */
-        PageFrameNumber = List2[PageColor].RemovePage();
+        /* Did we get a page? */
         if (PageFrameNumber != 0)
         {
-            *Zeroed = !*Zeroed;
-            break;
+            /* Check if it was not allocated by contiguous allocations */
+            if (RtlTestBitEx(m_PhysicalMemoryBitmap, PageFrameNumber))
+            {
+                /* This one must be free now. Clear the free bit */
+                NT_ASSERT(m_PfnArray[PageFrameNumber].State == PfnFree);
+                m_PfnArray[PageFrameNumber].ReferenceCount = 1;
+                RtlClearBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
+                break;
+            }
         }
 
         /* Try with the next page color */
         PageColor = GetNextPageColorCycleNodes(PageColor, DesiredPageColor);
     }
     while (PageColor != DesiredPageColor);
-
-    if (PageFrameNumber != 0)
-    {
-        RtlClearBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
-    }
 
     return PageFrameNumber;
 }
@@ -660,6 +684,7 @@ PFN_DATABASE::AllocatePage (
     if ((PageFrameNumber != 0) && Zeroed && !WasZeroed)
     {
         //ZeroPhysicalPage(PageFrameNumber);
+        __debugbreak();
     }
 
     /* Return the new page */
@@ -667,10 +692,47 @@ PFN_DATABASE::AllocatePage (
 }
 
 VOID
+PFN_DATABASE::FreePageLocked (
+    _Inout_ PFN_NUMBER PageFrameNumber)
+{
+    PPFN_ENTRY PfnEntry;
+    ULONG Color;
+
+    Color = PageFrameNumber & KeGetCurrentPrcb()->SecondaryColorMask;
+
+    PfnEntry = &m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->ReferenceCount == 0);
+
+    /* Mark it as a free entry */
+    PfnEntry->State = PfnFree;
+
+    /* Insert the page into the free list */ /// \todo check for Dirty flag
+    PfnEntry->Free.Next = m_FreeLists[Color].m_ListHead;
+    m_FreeLists[Color].m_ListHead = PageFrameNumber;
+
+    /* Set the free bit */
+    RtlSetBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
+}
+
+VOID
 PFN_DATABASE::ReleasePage (
     _Inout_ PFN_NUMBER PageFrameNumber)
 {
-    UNIMPLEMENTED;
+    KIRQL OldIrql;
+
+    /* Acquire the PFN database lock */
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+    /* Dereference the page */
+    m_PfnArray[PageFrameNumber].ReferenceCount--;
+    if (m_PfnArray[PageFrameNumber].ReferenceCount == 0)
+    {
+        /* Free the page */
+        FreePageLocked(PageFrameNumber);
+    }
+
+    /* Release the PFN database lock */
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
 NTSTATUS
@@ -767,8 +829,12 @@ PFN_DATABASE::AllocateLargePages (
 {
     PFN_NUMBER LargePageNumber;
     NTSTATUS Status;
+    NT_ASSERT(NumberOfLargePages > 0);
 
-    while (NumberOfLargePages--)
+    /* Initialize the page list */
+    LargePageList->Initialize();
+
+    do
     {
         /* Allocate one large page */
         Status = AllocateContiguousPages(&LargePageNumber,
@@ -785,6 +851,7 @@ PFN_DATABASE::AllocateLargePages (
 
         LargePageList->AddPage(LargePageNumber);
     }
+    while (--NumberOfLargePages > 0);
 
     return STATUS_SUCCESS;
 }
@@ -793,7 +860,23 @@ VOID
 PFN_DATABASE::ReleaseLargePages (
     _Inout_ PFN_LIST* PageList)
 {
-    UNIMPLEMENTED;
+    PFN_NUMBER LargePagePfn;
+
+    for (;;)
+    {
+        /* Remove the next page from the list */
+        LargePagePfn = PageList->RemovePage();
+        if (LargePagePfn == 0)
+        {
+            break;
+        }
+
+        /* Must be large page aligned */
+        NT_ASSERT((LargePagePfn & ~LARGE_PAGE_MASK) == 0);
+
+        /* Free the large page allocation */
+        FreeContiguousPages(LargePagePfn);
+    }
 }
 
 _Must_inspect_result_
@@ -866,7 +949,12 @@ PFN_DATABASE::AllocateContiguousPages (
             Index = PageNumber - BasePage;
             if (RtlAreBitsSetEx(&Bitmap, Index, NumberOfPages))
             {
-                /* Clear the bits */
+                /* Mark it as a contiguous allocation */
+                m_PfnArray[PageNumber].State = PfnContiguous;
+                m_PfnArray[PageNumber].ReferenceCount = 1;
+                m_PfnArray[PageNumber].Contiguous.NumberOfPages = NumberOfPages;
+
+                /* Clear the free bits */
                 RtlClearBitsEx(&Bitmap, Index, NumberOfPages);
                 Status = STATUS_SUCCESS;
                 goto Done;
@@ -893,7 +981,27 @@ VOID
 PFN_DATABASE::FreeContiguousPages (
     _In_ PFN_NUMBER BasePageFrameNumber)
 {
-    UNIMPLEMENTED;
+    PPFN_ENTRY PfnEntry;
+    ULONG NumberOfPages;
+    KIRQL OldIrql;
+
+    PfnEntry = &m_PfnArray[BasePageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnContiguous);
+    NT_ASSERT(PfnEntry->ReferenceCount == 1);
+    NumberOfPages = PfnEntry->Contiguous.NumberOfPages;
+
+    /* Acquire the PFN database lock */
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+    do
+    {
+        PfnEntry->ReferenceCount = 0;
+        FreePageLocked(BasePageFrameNumber++);
+    }
+    while (--NumberOfPages > 0);
+
+    /* Release the PFN database lock */
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
 
@@ -944,7 +1052,7 @@ PFN_LIST::RemovePage (
     {
         /* Get the PFN entry */
         PfnEntry = &g_PfnDatabase.m_PfnArray[PageFrameNumber];
-        NT_ASSERT(PfnEntry->State == PfnFree);
+        NT_ASSERT((PfnEntry->State == PfnFree) || (PfnEntry->State == PfnContiguous));
 
         /* Set head to the next entry */
         m_ListHead = PfnEntry->Free.Next;
@@ -961,14 +1069,24 @@ PFN_LIST::AddPage (
 
     /* Get the PFN entry of the new page */
     PfnEntry = &g_PfnDatabase.m_PfnArray[PageFrameNumber];
-    NT_ASSERT(PfnEntry->State == PfnFree);
+    NT_ASSERT((PfnEntry->State == PfnFree) || (PfnEntry->State == PfnContiguous));
     PfnEntry->Free.Next = 0;
 
-    /* Get the PFN entry of the old list tail */
-    PfnEntry = &g_PfnDatabase.m_PfnArray[m_ListTail];
-    NT_ASSERT(PfnEntry->Free.Next == 0);
-    PfnEntry->Free.Next = PageFrameNumber;
-    m_ListTail = PageFrameNumber;
+    /* Check if the list is empty */
+    if (m_ListHead == 0)
+    {
+        NT_ASSERT(m_ListTail == 0);
+        m_ListHead = m_ListTail = PageFrameNumber;
+    }
+    else
+    {
+        /* Get the PFN entry of the old list tail */
+        NT_ASSERT(m_ListTail != 0);
+        PfnEntry = &g_PfnDatabase.m_PfnArray[m_ListTail];
+        NT_ASSERT(PfnEntry->Free.Next == 0);
+        PfnEntry->Free.Next = PageFrameNumber;
+        m_ListTail = PageFrameNumber;
+    }
 }
 
 }; // namespace Mm

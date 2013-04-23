@@ -64,43 +64,21 @@ typedef struct PFN_ENTRY
             ULONG UsedPteCount : 10;
             ULONG ValidPteCount : 10;
         } PageTable;
+        struct
+        {
+            ULONG ShareCount;
+            ULONG ProcessId;
+        } Active;
+        struct
+        {
+            ULONG_PTR Next;
+            ULONG NumberOfPages;
+        } Contiguous;
     };
 
     PVOID PteAddress;
 
-    union
-    {
-        ULONG ProcessId; // For private PFNs
-        struct /* For shared PFNs */
-        {
-            ULONG ShareCount;
-        };
-        struct /* For page-table PFNs */
-        {
-            ULONG UsedPteCount : 9;
-            ULONG ValidPteCount : 9;
-        };
-        ULONG NumberOfContiguousPages; // For contiguous allocations
-    } u1;
-
-    union
-    {
-        ULONG_PTR Next;
-        struct _KEVENT* Event;
-    } u2;
-
-    union
-    {
-        ULONG_PTR Previous;
-    } u3;
-
 } PFN_ENTRY, *PPFN_ENTRY;
-
-struct __PFN_LIST
-{
-    KSPIN_LOCK SpinLock;
-    ULONG_PTR FirstPfn;
-};
 
 class PFN_LIST
 {
@@ -208,6 +186,11 @@ class PFN_DATABASE
     AllocatePageLocked (
         _In_ ULONG DesiredPageColor,
         _Inout_ PBOOLEAN Zeroed);
+
+    static
+    VOID
+    FreePageLocked (
+        _Inout_ PFN_NUMBER PageFrameNumber);
 
     friend class PFN_LIST;
 

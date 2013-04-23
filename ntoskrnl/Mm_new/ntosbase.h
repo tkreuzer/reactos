@@ -74,6 +74,12 @@ RtlInitializeBitMap64 (
     _In_ PULONG64 BitMapBuffer,
     _In_ ULONG64 SizeOfBitMap);
 
+BOOLEAN
+NTAPI
+RtlTestBit64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 BitNumber);
+
 VOID
 NTAPI
 RtlClearBit64 (
@@ -86,6 +92,12 @@ RtlClearBits64 (
     _In_ PRTL_BITMAP64 BitMapHeader,
     _In_ ULONG64 StartingIndex,
     _In_ ULONG64 NumberToClear);
+
+VOID
+NTAPI
+RtlSetBit64 (
+    _In_ PRTL_BITMAP64 BitMapHeader,
+    _In_ ULONG64 BitNumber);
 
 VOID
 NTAPI
@@ -111,8 +123,10 @@ RtlFindSetBits64 (
 };
 
 #define RtlInitializeBitMapEx RtlInitializeBitMap64
+#define RtlTestBitEx RtlTestBit64
 #define RtlClearBitEx RtlClearBit64
 #define RtlClearBitsEx RtlClearBits64
+#define RtlSetBitEx RtlSetBit64
 #define RtlSetBitsEx RtlSetBits64
 #define RtlAreBitsSetEx RtlAreBitsSet64
 #define RtlFindSetBitsEx RtlFindSetBits64
@@ -120,8 +134,10 @@ RtlFindSetBits64 (
 #define PRTL_BITMAP_EX PRTL_BITMAP64
 #else
 #define RtlInitializeBitMapEx RtlInitializeBitMap
+#define RtlTestBitEx RtlTestBit
 #define RtlClearBitEx RtlClearBit
 #define RtlClearBitsEx RtlClearBits
+#define RtlSetBitEx RtlSetBit
 #define RtlSetBitsEx RtlSetBits
 #define RtlAreBitsSetEx RtlAreBitsSet
 #define RtlFindSetBitsEx RtlFindSetBits
