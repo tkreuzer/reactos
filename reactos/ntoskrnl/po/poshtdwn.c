@@ -9,9 +9,6 @@
 /* INCLUDES ******************************************************************/
 
 #include <ntoskrnl.h>
-#ifdef NEWCC
-#include "../cache/newcc.h"
-#endif
 #define NDEBUG
 #include <debug.h>
 
@@ -27,7 +24,7 @@ PopShutdownHandler(VOID)
 {
     PUCHAR Logo1, Logo2;
     ULONG i;
-    
+
     /* Stop all interrupts */
     KeRaiseIrqlToDpcLevel();
     _disable();
@@ -72,7 +69,7 @@ PopShutdownSystem(IN POWER_ACTION SystemAction)
     /* Unload symbols */
     DPRINT1("It's the final countdown...%lx\n", SystemAction);
     DbgUnLoadImageSymbols(NULL, (PVOID)-1, 0);
-    
+
     /* Run the thread on the boot processor */
     KeSetSystemAffinityThread(1);
 
@@ -101,7 +98,7 @@ PopShutdownSystem(IN POWER_ACTION SystemAction)
 
             /* Call shutdown handler */
             //PopInvokeSystemStateHandler(PowerStateShutdownOff, NULL);
-            
+
             /* ReactOS Hack */
             PopSetSystemPowerState(PowerSystemShutdown, SystemAction);
             PopShutdownHandler();
@@ -144,13 +141,13 @@ PopGracefulShutdown(IN PVOID Context)
     HalEndOfBoot();
 
     /* In this step, the I/O manager does first-chance shutdown notification */
-    DPRINT1("I/O manager shutting down in phase 0\n");    
+    DPRINT1("I/O manager shutting down in phase 0\n");
     IoShutdownSystem(0);
-    
+
     /* In this step, all workers are killed and hives are flushed */
     DPRINT1("Configuration Manager shutting down\n");
     CmShutdownSystem();
-    
+
     /* Note that modified pages should be written here (MiShutdownSystem) */
 #ifdef NEWCC
 	/* Flush all user files before we start shutting down IO */
@@ -159,7 +156,7 @@ PopGracefulShutdown(IN PVOID Context)
 #endif
 
     /* In this step, the I/O manager does last-chance shutdown notification */
-    DPRINT1("I/O manager shutting down in phase 1\n"); 
+    DPRINT1("I/O manager shutting down in phase 1\n");
     IoShutdownSystem(1);
     CcWaitForCurrentLazyWriterActivity();
 
@@ -168,7 +165,7 @@ PopGracefulShutdown(IN PVOID Context)
     /* In this step, the HAL disables any wake timers */
     DPRINT1("Disabling wake timers\n");
     HalSetWakeEnable(FALSE);
-    
+
     /* And finally the power request is sent */
     DPRINT1("Taking the system down\n");
     PopShutdownSystem(PopAction.Action);
@@ -185,7 +182,7 @@ PopReadShutdownPolicy(VOID)
     ULONG Length;
     UCHAR Buffer[sizeof(KEY_VALUE_PARTIAL_INFORMATION) + sizeof(ULONG)];
     PKEY_VALUE_PARTIAL_INFORMATION Info = (PVOID)Buffer;
-    
+
     /* Setup object attributes */
     RtlInitUnicodeString(&KeyString,
                          L"\\Registry\\Machine\\Software\\Policies\\Microsoft\\Windows NT");
