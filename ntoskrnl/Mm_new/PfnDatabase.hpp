@@ -19,7 +19,6 @@ enum PFN_STATE : ULONG
 {
     PfnNotPresent = 0,
     PfnKernelReserved,
-    PfnFree,
     PfnZeroed,
     PfnPrivate,
     PfnShared,
@@ -27,6 +26,7 @@ enum PFN_STATE : ULONG
     PfnPageTable,
     PfnTransition,
     PfnRom,
+    PfnFree,
     PfnBad,
 };
 
@@ -50,7 +50,8 @@ typedef struct PFN_ENTRY
     {
         PFN_STATE State : 4;
         PFN_CACHE_ATTRIBUTE CacheAttribute : 2;
-        ULONG ReferenceCount : 26;
+        ULONG Dirty : 1;
+        ULONG ReferenceCount : 25;
     };
 
     union
@@ -321,5 +322,9 @@ public:
 };
 
 extern PFN_DATABASE g_PfnDatabase;
+
+VOID
+ZeroPage (
+    _In_ PFN_NUMBER PageFrameNumber);
 
 }; // namespace Mm

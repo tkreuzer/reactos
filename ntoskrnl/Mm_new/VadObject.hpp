@@ -39,6 +39,7 @@ protected:
         VOID)
     {
         m_RefCount = 1;
+        InitializeListHead(&m_Node.ListEntry);
     }
 
 public:

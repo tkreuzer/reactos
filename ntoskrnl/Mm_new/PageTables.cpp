@@ -215,7 +215,7 @@ MapPdesAndPtes (
                 }
                 else
                 {
-                    /* Just update the protection */
+                    /* Only update the protection */
                     CurrentPte->UpdateProtection(Protect);
                     NT_ASSERT(FALSE);
                     /// \todo we need to invalidate TLB entries when the page was valid!
@@ -441,7 +441,7 @@ CreateMapping (
     }
 
     /* Preallocate pages */
-    Status = g_PfnDatabase.AllocateMultiplePages(&PageList, PageAllocation, FALSE);
+    Status = g_PfnDatabase.AllocateMultiplePages(&PageList, PageAllocation, TRUE);
     if (!NT_SUCCESS(Status))
     {
         UnchargeSystemCommit(MaximumCharge);
