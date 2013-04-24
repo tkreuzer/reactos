@@ -9,9 +9,6 @@
 /* INCLUDES ******************************************************************/
 
 #include <ntoskrnl.h>
-#ifdef NEWCC
-#include <cache/newcc.h>
-#endif
 
 #define NDEBUG
 #include <debug.h>
@@ -288,9 +285,9 @@ PopGracefulShutdown(IN PVOID Context)
     /* Note that modified pages should be written here (MiShutdownSystem) */
     MmShutdownSystem(0);
 
-    /* Flush all user files before we start shutting down IO */
-    /* This is where modified pages are written back by the IO manager */
-    CcShutdownSystem();
+	/* Flush all user files before we start shutting down IO */
+	/* This is where modified pages are written back by the IO manager */
+	CcShutdownSystem();
 
     /* In this step, the I/O manager does last-chance shutdown notification */
     DPRINT("I/O manager shutting down in phase 1\n");
