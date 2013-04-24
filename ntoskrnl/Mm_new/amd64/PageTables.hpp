@@ -1,9 +1,9 @@
 
 #pragma once
 
-namespace Mm {
-
 #define MI_PAGING_LEVELS 4
+
+namespace Mm {
 
 extern PFN_NUMBER GlobalZeroPfn;
 
@@ -97,6 +97,55 @@ typedef struct _VAD_PTE
     INT64 VadAddress : 48;
 } VAD_PTE, *PVAD_PTE;
 
+typedef union
+{
+    HARDWARE_PTE Hard;
+    SOFTWARE_PTE Soft;
+    PROTOTYPE_PTE Proto;
+    ULONG64 Long;
+} UNION_PTE, *PUNION_PTE;
+
+/// \todo Either make this declspec(selectany) or move to cpp file
+const HARDWARE_PTE ProtectToPteBase[8] =
+{
+//         W C         C         N
+//   V W O C D A D L G W         X
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_NOACCESS
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_READONLY
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE
+    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE_READ
+    {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_READWRITE
+    {1,0,0,0,0,0,0,0,0,1,0,0,0,0,1}, // MM_WRITECOPY
+    {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE_READWRITE
+    {1,0,0,0,0,0,0,0,0,1,0,0,0,0,0}, // MM_EXECUTE_WRITECOPY
+};
+
+const HARDWARE_PTE ProtectToPteFlags[32] =
+{
+//         W C         C         N
+//   V W O C D A D L G W         X
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // -
+    {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_NOCACHE
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_DECOMMIT
+    {0,0,0,1,0,0,0,0,0,0,0,0,0,0,0}, // MM_WRITECOMBINE
+    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL
+    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_NOCACHE
+    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_DECOMMIT
+    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_WRITECOMBINE
+
+    {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER
+    {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_NOCACHE
+    {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_DECOMMIT
+    {0,0,1,1,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_WRITECOMBINE
+    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL
+    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_NOCACHE
+    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_DECOMMIT
+    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_WRITECOMBINE
+};
+
+#define ProtectToPteMask(Protect) \
+    (*(PULONG64)&ProtectToPteBase[(Protect) & 0x7] | *(PULONG64)&ProtectToPteFlags[((Protect) & 0xF8) >> 3])
+
 //                                                         W C         C
 //                                                   V W O T D A D L G W
 static const HARDWARE_PTE ValidPte                = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -128,14 +177,14 @@ public:
     bool
     IsEmpty ()
     {
-        return (Long == 0);
+        return (this->Long == 0);
     }
 
     inline
     bool
     IsValid ()
     {
-        return Hard.Valid;
+        return this->Hard.Valid;
     }
 
     inline
@@ -143,7 +192,7 @@ public:
     GetPageFrameNumber (
         VOID)
     {
-        return Hard.PageFrameNumber;
+        return this->Hard.PageFrameNumber;
     }
 
     inline
@@ -152,7 +201,7 @@ public:
         _In_ PFN_NUMBER PageFrameNumber)
     {
         NT_ASSERT(!Proto.Prototype);
-        Hard.PageFrameNumber = PageFrameNumber;
+        this->Hard.PageFrameNumber = PageFrameNumber;
     }
 
     inline
@@ -160,11 +209,11 @@ public:
     GetProtection ()
     {
         ULONG Protect = MM_NOACCESS;
-        if (Hard.Valid) Protect |= MM_READONLY;
-        if (Hard.Write) Protect |= MM_READWRITE;
-        if (!Hard.NoExecute) Protect |= MM_EXECUTE;
-        if (Hard.Global) Protect |= MM_GLOBAL;
-        if (Hard.LargePage) Protect |= MM_LARGEPAGE;
+        if (this->Hard.Valid) Protect |= MM_READONLY;
+        if (this->Hard.Write) Protect |= MM_READWRITE;
+        if (!this->Hard.NoExecute) Protect |= MM_EXECUTE;
+        if (this->Hard.Global) Protect |= MM_GLOBAL;
+        if (this->Hard.LargePage) Protect |= MM_LARGEPAGE;
         return Protect;
     }
 };
@@ -185,14 +234,14 @@ public:
     bool
     IsExecutable ()
     {
-        return !Hard.NoExecute;
+        return !this->Hard.NoExecute;
     }
 
     inline
     bool
     IsWritable ()
     {
-        return Hard.Write;
+        return this->Hard.Write;
     }
 
     inline
@@ -209,14 +258,12 @@ public:
         _In_ PFN_NUMBER PageFrameNumber,
         _In_ ULONG Protect)
     {
-        HARDWARE_PTE HardPte = ValidPte;
+        UNION_PTE PteValue;
         NT_ASSERT(!(Protect & MM_LARGEPAGE));
-        if (Protect & MM_READWRITE) HardPte.Write = 1;
-        if (!(Protect & MM_EXECUTE)) HardPte.NoExecute = 1;
-        if (Protect & MM_GLOBAL) HardPte.Global = 1;
-        if (Protect & MM_USER) HardPte.Owner = 1;
-        HardPte.PageFrameNumber = PageFrameNumber;
-        this->Hard = HardPte;
+        PteValue.Long = ProtectToPteMask(Protect);
+        NT_ASSERT(PteValue.Hard.Valid);
+        PteValue.Hard.PageFrameNumber = PageFrameNumber;
+        this->Long = PteValue.Long;
     }
 
     inline
@@ -224,16 +271,27 @@ public:
     MakeDemandZeroPte (
         _In_ ULONG Protect)
     {
-        HARDWARE_PTE HardPte = ValidPte;
-        NT_ASSERT(Protect & MM_READWRITE);
-        NT_ASSERT(!(Protect & MM_MAPPED));
-        NT_ASSERT(!(Protect & MM_LARGEPAGE));
-        if (Protect & MM_READWRITE) HardPte.CopyOnWrite = 1;
-        if (!(Protect & MM_EXECUTE)) HardPte.NoExecute = 1;
-        if (Protect & MM_GLOBAL) HardPte.Global = 1;
-        if (Protect & MM_USER) HardPte.Owner = 1;
-        HardPte.PageFrameNumber = GlobalZeroPfn;
-        this->Hard = HardPte;
+        UNION_PTE PteValue;
+        NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE|MM_NOCACHE|MM_WRITECOMBINE)));
+        PteValue.Long = *(PULONG64)&ProtectToPteBase[(Protect) & 0x7];
+        PteValue.Hard.PageFrameNumber = GlobalZeroPfn;
+        if (PteValue.Hard.Write)
+        {
+            PteValue.Hard.CopyOnWrite = 1;
+            PteValue.Hard.Write = 0;
+        }
+        this->Long = PteValue.Long;
+    }
+
+    inline
+    VOID
+    MakeSoftwarePte (
+        _In_ ULONG Protect)
+    {
+        SOFTWARE_PTE SoftPte = { 0 };;
+        NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE)));
+        SoftPte.Protection = Protect & MM_PROTECTION_MASK;
+        this->Soft = SoftPte;
     }
 
     inline
@@ -242,6 +300,7 @@ public:
         _In_ PPROTOTYPE Prototype)
     {
         /// \todo IMPLEMENT ME
+        UNIMPLEMENTED;
     }
 
     inline
@@ -268,9 +327,9 @@ public:
     {
         if (Hard.Valid)
         {
-            if (Hard.CopyOnWrite)
+            if (this->Hard.CopyOnWrite)
             {
-                if (Hard.PageFrameNumber == GlobalZeroPfn)
+                if (this->Hard.PageFrameNumber == GlobalZeroPfn)
                     return PteDemandZero;
                 else
                     return PteCopyOnWrite;
@@ -280,9 +339,9 @@ public:
         }
         else
         {
-            if (Long == 0)
+            if (this->Long == 0)
                 return PteEmpty;
-            if (Proto.Prototype)
+            if (this->Proto.Prototype)
                 return PtePrototype;
 
         }
@@ -299,7 +358,7 @@ public:
     bool
     IsLargePage ()
     {
-        return Hard.LargePage;
+        return this->Hard.LargePage;
     }
 
     inline
@@ -311,7 +370,7 @@ public:
         HARDWARE_PTE HardPde = ValidPde;
         if (Protect & MM_GLOBAL) HardPde.Global = 1;
         HardPde.PageFrameNumber = PageFrameNumber;
-        Hard = HardPde;
+        this->Hard = HardPde;
     }
 
     inline
@@ -325,7 +384,7 @@ public:
         if (Protect & MM_READWRITE) HardPde.Write = 1;
         if (Protect & MM_GLOBAL) HardPde.Global = 1;
         HardPde.PageFrameNumber = PageFrameNumber;
-        Hard = HardPde;
+        this->Hard = HardPde;
     }
 
 };
@@ -350,7 +409,7 @@ public:
     {
         HARDWARE_PTE HardPpe = ValidPde;
         HardPpe.PageFrameNumber = PageFrameNumber;
-        Hard = HardPpe;
+        this->Hard = HardPpe;
     }
 
 };
@@ -375,7 +434,7 @@ public:
     {
         HARDWARE_PTE HardPxe = ValidPde;
         HardPxe.PageFrameNumber = PageFrameNumber;
-        Hard = HardPxe;
+        this->Hard = HardPxe;
     }
 
 };

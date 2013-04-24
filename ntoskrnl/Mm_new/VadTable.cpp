@@ -151,6 +151,9 @@ VAD_TABLE::InsertVadObject (
     PVAD_NODE CurrentNode;
     NTSTATUS Status;
 
+    /* Make sure the VAD was not already inserted */
+    NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
+
     /* Default to failure */
     Status = STATUS_INSUFFICIENT_RESOURCES;
 
@@ -254,8 +257,13 @@ VAD_TABLE::InsertVadObjectAtVpn (
     ULONG_PTR EndingVpn;
     NTSTATUS Status;
 
+    /* Make sure the VAD was not already inserted */
+    NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
+
     /* Calculate ending VPN */
-    EndingVpn = StartingVpn + PageCount + 1;
+    EndingVpn = StartingVpn + PageCount - 1;
+    VadObject->m_Node.StartingVpn = StartingVpn;
+    VadObject->m_Node.EndingVpn = EndingVpn;
 
     /* Default to failure */
     Status = STATUS_CONFLICTING_ADDRESSES;

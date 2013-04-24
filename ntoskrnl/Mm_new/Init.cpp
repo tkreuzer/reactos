@@ -40,6 +40,10 @@ PFN_NUMBER EarlyAllocPageCount;
 PFN_NUMBER EarlyAllocLargePageBase;
 
 KERNEL_VAD PageTableVad;
+KERNEL_VAD HyperSpaceVad;
+KERNEL_VAD LoaderMappingsVad;
+KERNEL_VAD HalVaVad;
+
 
 /// \todo HACK!!!
 PADDRESS_SPACE g_KernelAddressSpace;
@@ -116,11 +120,10 @@ EarlyAllocLargePage (
 VOID
 INIT_FUNCTION
 EarlyMapPages (
-    PVOID StartAddress,
-    PVOID EndAddress)
+    _In_ PVOID StartAddress,
+    _In_ PVOID EndAddress,
+    _In_ ULONG Protect)
 {
-    ULONG Protect = MM_READWRITE | MM_GLOBAL;
-
 #if MI_PAGING_LEVELS >= 4
     for (PPXE PxePointer = AddressToPxe(StartAddress);
          PxePointer <= AddressToPxe(EndAddress);
@@ -154,28 +157,32 @@ EarlyMapPages (
         if (!PdePointer->IsValid())
         {
             NT_ASSERT(PdePointer->IsEmpty());
-#ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
-            PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
-            RtlFillMemoryUlonglong(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
-#else
-            PdePointer->MakeValidPde(EarlyAllocPage(), Protect);
-            RtlFillMemoryUlonglong(PteToAddress(PdePointer), PAGE_SIZE, 0);
-#endif
+            if (Protect & MM_LARGEPAGE)
+            {
+                PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
+                RtlFillMemoryUlonglong(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
+            }
+            else
+            {
+                PdePointer->MakeValidPde(EarlyAllocPage(), Protect);
+                RtlFillMemoryUlonglong(PdeToPte(PdePointer), PAGE_SIZE, 0);
+            }
         }
     }
 
-#ifndef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
-    for (PPTE PtePointer = AddressToPte(StartAddress);
-         PtePointer <= AddressToPte(EndAddress);
-         PtePointer++)
+    if ((Protect & MM_MAPPED) && !(Protect & MM_LARGEPAGE))
     {
-        if (!PtePointer->IsValid())
+        for (PPTE PtePointer = AddressToPte(StartAddress);
+             PtePointer <= AddressToPte(EndAddress);
+             PtePointer++)
         {
-            PtePointer->MakeValidPte(EarlyAllocPage(), Protect);
-            RtlZeroMemory(PteToAddress(PtePointer), PAGE_SIZE);
+            if (!PtePointer->IsValid())
+            {
+                PtePointer->MakeValidPte(EarlyAllocPage(), Protect);
+                RtlZeroMemory(PteToAddress(PtePointer), PAGE_SIZE);
+            }
         }
     }
-#endif
 }
 
 /*! \name ScanMemoryDescriptors
@@ -295,6 +302,7 @@ MEMORY_MANAGER::Inititalize (
     _In_ struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
     NTSTATUS Status;
+    ULONG_PTR NumberOfPages;
 
     /* Initialize a random number seed from the interrupt time and TSC */
     RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime() << 8);
@@ -314,13 +322,35 @@ MEMORY_MANAGER::Inititalize (
        virtual memory. Required for the PFN database. */
     g_KernelVadTable.Initialize(TRUE);
 
-//__debugbreak();
-
-    /* Reserve the address space for the whole non-paged pool */
+    /* Reserve the address space for the page tables */
     PageTableVad.Initialize();
+    NumberOfPages = AddressToVpn(PTE_TOP) - AddressToVpn(PTE_BASE) + 1;
     Status = g_KernelVadTable.InsertVadObjectAtVpn(PageTableVad.GetVadObject(),
                                                    AddressToVpn(PTE_BASE),
-                                                   AddressToVpn(PTE_TOP) - AddressToVpn(PTE_BASE));
+                                                   NumberOfPages);
+    NT_ASSERT(NT_SUCCESS(Status));
+
+    /* Reserve the address space for hyper space (same size as page tables) */
+    HyperSpaceVad.Initialize();
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(HyperSpaceVad.GetVadObject(),
+                                                   AddressToVpn(PTE_TOP) + 1,
+                                                   NumberOfPages);
+    NT_ASSERT(NT_SUCCESS(Status));
+
+    /* Reserve the address space for the loader mappings */
+    LoaderMappingsVad.Initialize();
+    NumberOfPages = LoaderBlock->Extension->LoaderPagesSpanned;
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(LoaderMappingsVad.GetVadObject(),
+                                                   AddressToVpn(KSEG0_BASE),
+                                                   NumberOfPages);
+    NT_ASSERT(NT_SUCCESS(Status));
+
+    /* Reserve the address space for HAL */
+    HalVaVad.Initialize();
+    NumberOfPages = AddressToVpn(MM_HAL_VA_END) - AddressToVpn(MM_HAL_VA_START);
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(HalVaVad.GetVadObject(),
+                                                   AddressToVpn(MM_HAL_VA_START),
+                                                   NumberOfPages);
     NT_ASSERT(NT_SUCCESS(Status));
 
     /* Gather some basic information from the loader block's memory descriptors */
@@ -328,6 +358,9 @@ MEMORY_MANAGER::Inititalize (
 
     /* Initialize the PFN database */
     g_PfnDatabase.Initialize(LoaderBlock);
+
+    /* Allocate the global zero page */
+    GlobalZeroPfn = g_PfnDatabase.AllocatePage(TRUE);
 
     /* Initialize the system commit limit */
     InitializeSystemCommitLimit();
@@ -364,7 +397,7 @@ MmArmInitSystem(
 
     g_MemoryManager.Inititalize(LoaderBlock);
 
-    return FALSE;
+    return TRUE;
 }
 
 VOID

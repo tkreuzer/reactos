@@ -104,12 +104,17 @@ CalculatePoolDimensions (
     MmSizeOfNonPagedPoolInBytes = reinterpret_cast<PUCHAR>(EndAddress) -
                                   reinterpret_cast<PUCHAR>(MmNonPagedPoolStart);
 
-    //MmSizeOfNonPagedPoolInBytes = PointerDiff(EndAddress, MmNonPagedPoolStart); // broken
+    /// \todo improve this
+    MmSizeOfPagedPoolInBytes = 32 * 1024 * 1024;
+    MmPagedPoolStart = EndAddress;
 
 #ifndef _WIN64
     InitialPoolSizeInPages[NonPagedPool] = SizeOfNonPagedPoolInPages;
     InitialPoolSizeInPages[PagedPool] = 0; /// \todo
 #endif
+
+
+
 }
 
 VOID
@@ -118,54 +123,55 @@ InitializePoolSupportSingle (
     _In_ POOL_TYPE PoolType,
     _In_ PVOID PoolStart,
     _In_ SIZE_T InitialSize,
-    _In_ SIZE_T MaximumSize)
+    _In_ SIZE_T MaximumSize,
+    _In_ ULONG Protect)
 {
-    ULONG Protect;
     NTSTATUS Status;
-    ULONG_PTR NumberOfPages, MaximumNumberOfPages, ReserveSizeInPages;
+    ULONG_PTR NumberOfPages, MaximumNumberOfPages;
     ULONG_PTR AllocatedSize, StartingVpn;
     PULONG BitmapBuffer;
 
+    /* Only these 2 types are allowed */
     NT_ASSERT((PoolType == NonPagedPool) || (PoolType == PagedPool));
 
     /* Initialize the static pool VAD object */
     PoolVad[PoolType].Initialize();
 
-    /* Calculate the range of the non-paged pool */
+    /* Calculate the range of the pool */
     StartingVpn = AddressToVpn(PoolStart);
     NumberOfPages = InitialSize / PAGE_SIZE;
     MaximumNumberOfPages = MaximumSize / PAGE_SIZE;
 
 #ifdef _WIN64
     /* On 64 bit systems we reserve the maximum pool size */
-    ReserveSizeInPages = MaximumNumberOfPages;
-#else
-    /* On 32 bit systems we only reserve the actual pool size */
-    ReserveSizeInPages = NumberOfPages;
-#endif
-
-    /* Reserve the address space for the pool */
     Status = g_KernelVadTable.InsertVadObjectAtVpn(PoolVad[PoolType].GetVadObject(),
                                                    StartingVpn,
-                                                   ReserveSizeInPages);
+                                                   MaximumNumberOfPages);
+#else
+    /* On 32 bit systems we only reserve the actual pool size */
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(PoolVad[PoolType].GetVadObject(),
+                                                   StartingVpn,
+                                                   NumberOfPages);
+#endif
     NT_ASSERT(NT_SUCCESS(Status));
 
-    /* Commit large pages for the initial pool */
-    Protect = MM_READWRITE | MM_GLOBAL | MM_MAPPED | MM_NONPAGED;
-
-__debugbreak();
-
-    if (PoolType == NonPagedPool)
+    /* Check for large page mapping */ /// \todo Maybe we can get rid of this
+    if (Protect & MM_LARGEPAGE)
     {
-        /* Commit large pages for non-paged pool */
-        Protect |= MM_LARGEPAGE;
+        /* Align to large page boundary */
         StartingVpn = ALIGN_UP_BY(StartingVpn, LARGE_PAGE_SIZE / PAGE_SIZE);
         NumberOfPages = ALIGN_DOWN_BY(NumberOfPages, LARGE_PAGE_SIZE / PAGE_SIZE);
     }
 
+    /// \todo this if (...) is all pretty hacky, maybe we can improve this later
 
-    Status = CreateMapping(StartingVpn, NumberOfPages, Protect, NULL, NULL);
-    NT_ASSERT(NT_SUCCESS(Status));
+    /* Check if we shall map the pages */
+    if (Protect & MM_MAPPED)
+    {
+        /* Map the pages */
+        Status = CreateMapping(StartingVpn, NumberOfPages, Protect, NULL, NULL);
+        NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     /* Initialize the pool bitmap */
     BitmapBuffer = static_cast<PULONG>(PoolStart);
@@ -186,24 +192,52 @@ __debugbreak();
     /// \todo set bits in NonPagedPoolVaBitmap
 #endif
 
-    RtlSetBits(&PoolBitmap[PoolType], 0, (ULONG)BYTES_TO_PAGES(AllocatedSize));
+    /* Calculate how many pages we used up already */
+    NumberOfPages = BYTES_TO_PAGES(AllocatedSize);
+
+    /* Check if we did not map the pages */
+    if (!(Protect & MM_MAPPED))
+    {
+        /* We still need to map the pages */
+        Protect |= MM_MAPPED;
+        Status = CreateMapping(StartingVpn, NumberOfPages, Protect, NULL, NULL);
+        NT_ASSERT(NT_SUCCESS(Status));
+    }
+
+    /* Mark the pages we used */
+    RtlSetBits(&PoolBitmap[PoolType], 0, (ULONG)NumberOfPages);
 
     /* Initialize the rest of the pool */
-    InitializePool(NonPagedPool, 0);
+    InitializePool(PoolType, 0);
 }
+
+VOID
+ScanPageTables (
+    _In_ PFN_NUMBER PageFrameNumber);
 
 VOID
 INIT_FUNCTION
 InitializePoolSupport (
     VOID)
 {
+    ULONG Protect;
+
     /* Calculate pool sizes */
     CalculatePoolDimensions();
 
+    Protect = MM_READWRITE | MM_GLOBAL | MM_MAPPED | MM_NONPAGED | MM_LARGEPAGE;
     InitializePoolSupportSingle(NonPagedPool,
                                 MmNonPagedPoolStart,
                                 MmSizeOfNonPagedPoolInBytes,
-                                MmMaximumNonPagedPoolInBytes);
+                                MmMaximumNonPagedPoolInBytes,
+                                Protect);
+
+    Protect = MM_READWRITE | MM_GLOBAL;
+    InitializePoolSupportSingle(PagedPool,
+                                MmPagedPoolStart,
+                                MmSizeOfPagedPoolInBytes,
+                                POOL_SIZE_IN_PAGES_MAX,
+                                Protect);
 
 
 }
@@ -342,6 +376,21 @@ MiAllocatePoolPages (
         NT_ASSERT(BaseAddress != NULL);
     }
 #endif
+
+    if (PoolType == PagedPool)
+    {
+        /* We need to map the pages */
+        ULONG Protect = MM_READWRITE | MM_GLOBAL | MM_MAPPED;
+        ULONG_PTR StartingVpn;
+
+        StartingVpn = AddressToVpn(BaseAddress) + Index;
+        Status = CreateMapping(StartingVpn, PageCount, Protect, NULL, NULL);
+        if (!NT_SUCCESS(Status))
+        {
+            /// \todo handle failure
+            ASSERT(FALSE);
+        }
+    }
 
     /* Return the address of the page */
     return AddToPointer(BaseAddress, Index * PAGE_SIZE);

@@ -44,6 +44,10 @@ PRTL_BITMAP_EX PFN_DATABASE::m_PhysicalMemoryBitmap;
 PFN_ENTRY* PFN_DATABASE::m_PfnArray;
 PULONG_PTR PFN_DATABASE::m_PhysicalBitmapBuffer;
 static KERNEL_VAD g_PfnDatabaseVad;
+static KEVENT PagesAvailableEvent;
+#define NUMBER_OF_MAPPING_PTES 128
+PPTE ZeroingPtes;
+PPTE DebugPte;
 
 SIZE_T MmSizeOfPfnDatabase;
 
@@ -59,10 +63,12 @@ static const PFN_CACHE_ATTRIBUTE CachingTypeToCacheAttribute[] =
     PfnNonCached, PfnCached, PfnWriteCombined, PfnCached, PfnNonCached, PfnCached
 };
 
+
 VOID
 EarlyMapPages (
     PVOID StartAddress,
-    PVOID EndAddress);
+    PVOID EndAddress,
+    ULONG Protect);
 
 inline
 BOOLEAN
@@ -173,6 +179,7 @@ PFN_DATABASE::InitializePfnEntries (
             /* Mark it as a free entry */
             PfnEntry->State = PfnFree;
             PfnEntry->ReferenceCount = 0;
+            PfnEntry->Dirty = TRUE;
 
             /* Insert the page into the dirty list */
             Color = BasePage & KeGetCurrentPrcb()->SecondaryColorMask;
@@ -187,6 +194,7 @@ PFN_DATABASE::InitializePfnEntries (
         {
             /* Mark it as ROM */
             PfnEntry->State = PfnRom;
+            PfnEntry->Dirty = TRUE;
         }
     }
     else if (MemoryType == LoaderBad)
@@ -196,6 +204,7 @@ PFN_DATABASE::InitializePfnEntries (
         {
             /* Mark it as bad */
             PfnEntry->State = PfnBad;
+            PfnEntry->Dirty = TRUE;
         }
     }
     else
@@ -205,10 +214,9 @@ PFN_DATABASE::InitializePfnEntries (
         {
             /* Mark it as a reserved PFN */
             PfnEntry->State = PfnKernelReserved;
+            PfnEntry->Dirty = TRUE;
         }
     }
-
-
 }
 
 VOID
@@ -387,7 +395,6 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
 #endif
 }
 
-
 VOID
 INIT_FUNCTION
 PFN_DATABASE::Initialize (
@@ -399,10 +406,20 @@ PFN_DATABASE::Initialize (
     PMEMORY_ALLOCATION_DESCRIPTOR Descriptor;
     PULONG_PTR Buffer, BufferEnd;
     ULONG_PTR StartingVpn, EndingVpn;
+    ULONG Protect = MM_READWRITE | MM_GLOBAL | MM_LARGEPAGE | MM_MAPPED;
+    PVOID MappingBase;
 
     /* Initialize the page color mask */
     CalculatePageColors();
     NumberPageColors = KeGetCurrentPrcb()->SecondaryColorMask + 1;
+
+    /* Reserve the whole area of mapping PTEs and HAL VA space */
+    MappingBase = (PVOID)(MM_HAL_VA_START - (NUMBER_OF_MAPPING_PTES * PAGE_SIZE));
+    EarlyMapPages(MappingBase, (PVOID)MM_HAL_VA_END, MM_NOACCESS);
+
+    /* Get the debug PTE and zeroing PTEs (one per CPU) */
+    DebugPte = AddressToPte(MappingBase);
+    ZeroingPtes = DebugPte + 1;
 
     /* Calculate location of the page lists and physical memory descriptor */
     m_PfnArray = (PFN_ENTRY*)PFN_DATABASE_ADDRESS;
@@ -416,7 +433,7 @@ PFN_DATABASE::Initialize (
             m_PhysicalMemoryBitmap + 1);
 
     /* Map page lists, physical memory descriptor and physical memory bitmaps */
-    EarlyMapPages(m_FreeLists, m_PhysicalBitmapBuffer);
+    EarlyMapPages(m_FreeLists, m_PhysicalBitmapBuffer, Protect);
 
     /* Initialize the free lists */
     for (i = 0; i < NumberPageColors; i++)
@@ -473,7 +490,8 @@ PFN_DATABASE::Initialize (
 
         /* Map the pages for the database */
         EarlyMapPages(&m_PfnArray[BasePage],
-                      (PUCHAR)(&m_PfnArray[BasePage + PageCount]) - 1);
+                      (PUCHAR)(&m_PfnArray[BasePage + PageCount]) - 1,
+                      Protect);
 
         /* Add this descriptor to the database */
         InitializePfnEntries(BasePage, PageCount, Descriptor->MemoryType);
@@ -483,7 +501,7 @@ PFN_DATABASE::Initialize (
         BufferEnd = &m_PhysicalBitmapBuffer[(NextPage - 1 + 31) / 32];
 
         /* Map the pages for the bitmap buffer */
-        EarlyMapPages(Buffer, reinterpret_cast<PCHAR>(BufferEnd) - 1);
+        EarlyMapPages(Buffer, reinterpret_cast<PCHAR>(BufferEnd) - 1, Protect);
 
         /* Check if this is free memory */
         if (IsFreeMemory(Descriptor->MemoryType))
@@ -534,6 +552,7 @@ PFN_DATABASE::Initialize (
     EndingVpn = AddressToVpn(AddToPointer(BufferEnd, -1));
 
     /* Reserve the virtual address range for the PFN database */
+    g_PfnDatabaseVad.Initialize();
     g_KernelVadTable.InsertVadObjectAtVpn(&g_PfnDatabaseVad,
                                           StartingVpn,
                                           EndingVpn - StartingVpn + 1);
@@ -541,6 +560,42 @@ PFN_DATABASE::Initialize (
     /* Set global variables */
     MmPfnDatabase = m_PfnArray;
     MmSizeOfPfnDatabase = (EndingVpn + 1 - StartingVpn) * PAGE_SIZE;
+
+    /* Initialize the event for waiting on free pages */
+    KeInitializeEvent(&PagesAvailableEvent, NotificationEvent, TRUE);
+}
+
+
+/* FUNCTIONS ******************************************************************/
+
+VOID
+ZeroPage (
+    _In_ PFN_NUMBER PageFrameNumber)
+{
+    const ULONG Protect = MM_MAPPED | MM_GLOBAL | MM_EXECUTE_READWRITE;
+    PPTE MappingPte;
+    KIRQL OldIrql;
+
+    /* Raise to DISPATCH_LEVEL to be sure we stay on this CPU */
+    OldIrql = KfRaiseIrql(DISPATCH_LEVEL);
+
+    /* Get the PTE for zeroing */
+    MappingPte = ZeroingPtes + KeGetCurrentPrcb()->Number;
+    NT_ASSERT(MappingPte->IsValid() == FALSE);
+
+    /* Map the PFN */
+    MappingPte->MakeValidPte(PageFrameNumber, Protect);
+
+    /* zero the page */
+    RtlFillMemoryUlonglong(PteToAddress(MappingPte), PAGE_SIZE, 0);
+
+    /* Unmap the page */
+    //MappingPte->Erase();
+    *(ULONG64*)MappingPte = 0;
+    __invlpg(PteToAddress(MappingPte));
+
+    /* Restore IRQL */
+    KeLowerIrql(OldIrql);
 }
 
 VOID
@@ -683,8 +738,9 @@ PFN_DATABASE::AllocatePage (
     /* Check if we have a page and we need to zero it */
     if ((PageFrameNumber != 0) && Zeroed && !WasZeroed)
     {
-        //ZeroPhysicalPage(PageFrameNumber);
-        __debugbreak();
+        /* Zero this page */
+        ZeroPage(PageFrameNumber);
+        m_PfnArray[PageFrameNumber].Dirty = FALSE;
     }
 
     /* Return the new page */
@@ -795,8 +851,21 @@ PFN_DATABASE::AllocateMultiplePages (
     /* Check if zeroed pages were requested */
     if (Zeroed)
     {
-        /// \todo loop all pages and check if it's zeroed, zero it otherwise
-        __debugbreak();
+        /* Loop all pages from the list */
+        PageFrameNumber = PageList->m_ListHead;
+        while (PageFrameNumber != 0)
+        {
+            /* Check if page is dirty */
+            if (m_PfnArray[PageFrameNumber].Dirty)
+            {
+                /* Zero this page */
+                ZeroPage(PageFrameNumber);
+                m_PfnArray[PageFrameNumber].Dirty = FALSE;
+            }
+
+            /* Get next PFN */
+            PageFrameNumber = m_PfnArray[PageFrameNumber].Free.Next;
+        }
     }
 
     return STATUS_SUCCESS;
@@ -901,6 +970,7 @@ PFN_DATABASE::AllocateContiguousPages (
     /* Acquire the PFN database lock */
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
 
+    /* Loop all physical memory runs */
     for (ULONG i = 0; i < m_PhysicalMemoryDescriptor->NumberOfRuns; i++)
     {
         /* Check if this memory run is suitable */

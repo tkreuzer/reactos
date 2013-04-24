@@ -103,6 +103,8 @@ DbgPrint("Pagefault for Address %p, PdeAddress = %p (%d), PteAddress = %p\n",
          Address, AddressToPde(Address), AddressToPde(Address)->IsValid(),
          AddressToPte(Address));
 
+__debugbreak();
+
     /* Get current thread and increment active fault count */
     Thread = PsGetCurrentThread();
     Thread->ActiveFaultCount++;
