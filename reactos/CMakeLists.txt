@@ -220,17 +220,20 @@ else()
 
     #begin with boot so reactos_cab target is defined before all other modules
     add_subdirectory(boot)
-    add_subdirectory(base)
-    add_subdirectory(dll)
     add_subdirectory(drivers)
     add_subdirectory(hal)
     add_subdirectory(lib)
     add_subdirectory(media)
-    add_subdirectory(modules)
     add_subdirectory(ntoskrnl)
-    add_subdirectory(subsystems)
     add_subdirectory(tools/wpp)
-    add_subdirectory(win32ss)
+
+    if(NOT CORE_ONLY)
+        #add_subdirectory(base)
+        #add_subdirectory(dll)
+        #add_subdirectory(modules)
+        #add_subdirectory(subsystems)
+        #add_subdirectory(win32ss)
+    endif()
 
     # Create {bootcd, livecd, bootcdregtest}.lst
     create_iso_lists()
