@@ -75,15 +75,14 @@ MmUnlockPages (
     UNIMPLEMENTED;
 }
 
-MM_SYSTEMSIZE MmSystemSize;
-
 MM_SYSTEMSIZE
 NTAPI
 MmQuerySystemSize (
     VOID)
 {
-    UNIMPLEMENTED;
-    return MmSystemSize;
+    /* Seriously, nobody has less than 64 MB RAM these days.
+       That shouldn't even be legal! */
+    return MmLargeSystem;
 }
 
 
