@@ -1,5 +1,6 @@
 
 #include "ntosbase.h"
+#include <ndk/pstypes.h>
 
 extern "C" {
 
@@ -62,17 +63,31 @@ MmInitializeHandBuiltProcess (
     IN PEPROCESS Process,
     IN PULONG_PTR DirectoryTableBase)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
+    /* Share the directory base with the idle process */
+    DirectoryTableBase[0] = PsGetCurrentProcess()->Pcb.DirectoryTableBase[0];
+    DirectoryTableBase[1] = PsGetCurrentProcess()->Pcb.DirectoryTableBase[1];
+
+    /* Initialize the Addresss Space */
+    KeInitializeGuardedMutex(&Process->AddressCreationLock);
+    KeInitializeSpinLock(&Process->HyperSpaceLock);
+    Process->Vm.WorkingSetExpansionLinks.Flink = NULL;
+    ASSERT(Process->VadRoot.NumberGenericTableElements == 0);
+    Process->VadRoot.BalancedRoot.u1.Parent = &Process->VadRoot.BalancedRoot;
+
+    /* Use idle process Working set */
+    Process->Vm.VmWorkingSetList = PsGetCurrentProcess()->Vm.VmWorkingSetList;
+
+    /* Done */
+    Process->HasAddressSpace = TRUE;//??
+    return STATUS_SUCCESS;}
 
 NTSTATUS
 NTAPI
 MmInitializeHandBuiltProcess2 (
     IN PEPROCESS Process)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    /* Nothing to do */
+    return STATUS_SUCCESS;
 }
 
 BOOLEAN
@@ -116,14 +131,20 @@ MmDeleteProcessAddressSpace (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-NTSTATUS
+UCHAR
 NTAPI
 MmSetMemoryPriorityProcess (
     IN PEPROCESS Process,
     IN UCHAR MemoryPriority)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    UCHAR OldPriority;
+
+    /* Save the old priority and update it */
+    OldPriority = Process->Vm.Flags.MemoryPriority;
+    Process->Vm.Flags.MemoryPriority = MemoryPriority;
+
+    /* Return the old priority */
+    return OldPriority;
 }
 
 }; // extern "C"

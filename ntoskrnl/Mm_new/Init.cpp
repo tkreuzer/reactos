@@ -44,10 +44,6 @@ KERNEL_VAD HyperSpaceVad;
 KERNEL_VAD LoaderMappingsVad;
 KERNEL_VAD HalVaVad;
 
-
-/// \todo HACK!!!
-PADDRESS_SPACE g_KernelAddressSpace;
-
 ULONG NumberOfPhysicalMemoryRuns;
 ULONG NumberOfMemoryDescriptors;
 PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
@@ -315,8 +311,8 @@ MEMORY_MANAGER::Inititalize (
     CleanupUserSpaceMappings();
 
     /* Set and initialize the kernel address space */
-    g_KernelAddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
-    g_KernelAddressSpace->Initialize();
+    g_SystemProcessAddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+    g_SystemProcessAddressSpace->Initialize();
 
     /* Initialize the global kernel VAD table, so that we can reserve
        virtual memory. Required for the PFN database. */

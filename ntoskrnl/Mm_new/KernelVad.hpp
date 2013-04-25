@@ -24,6 +24,7 @@ public:
     Initialize (
         VOID);
 
+    static
     NTSTATUS
     CreateInstance (
         _Out_ KERNEL_VAD** OutKernelVad);

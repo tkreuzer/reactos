@@ -18,9 +18,7 @@ private:
 
     VOID
     Initialize (
-        VOID)
-    {
-    }
+        VOID);
 
     inline
     ADDRESS_SPACE_TYPE
@@ -39,9 +37,9 @@ public:
 
 typedef ADDRESS_SPACE* PADDRESS_SPACE;
 
+extern PADDRESS_SPACE g_SystemProcessAddressSpace;
+extern ADDRESS_SPACE g_KernelAddressSpace;
 extern VAD_TABLE g_KernelVadTable;
-extern PADDRESS_SPACE g_KernelAddressSpace;
-extern ADDRESS_SPACE g_GlobalSystemAddressSpace;
 
 inline
 PADDRESS_SPACE
