@@ -361,6 +361,7 @@ elseif(ARCH STREQUAL "amd64")
         ke/amd64/spinlock.c
         ke/amd64/stubs.c
         ke/amd64/thrdini.c
+        Mm_New/amd64/MachineDependent.cpp
 #        mm/amd64/init.c
 #        mm/amd64/page.c
         ps/amd64/psctx.c)

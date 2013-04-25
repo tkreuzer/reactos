@@ -278,7 +278,7 @@ ULONG
 NTAPI
 MmGetSessionLocaleId(VOID);
 
-NTSTATUS
+UCHAR
 NTAPI
 MmSetMemoryPriorityProcess(
     IN PEPROCESS Process,
