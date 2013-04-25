@@ -193,8 +193,8 @@ VAD_TABLE::InsertVadObject (
             (PostGapStartingVpn - GapStartingVpn) >= PageCount)
         {
             /* Set the starting and ending VPN in the node */
-            VadObject->m_Node.StartingVpn = SCAST<ULONG>(GapStartingVpn);
-            VadObject->m_Node.EndingVpn = SCAST<ULONG>(PostGapStartingVpn - 1);
+            VadObject->m_Node.StartingVpn = GapStartingVpn;
+            VadObject->m_Node.EndingVpn = PostGapStartingVpn - 1;
 
             /* Insert the VAD *after* the current node, or at the lowest end */
             InsertAfter(CurrentNode, &VadObject->m_Node);
@@ -231,8 +231,8 @@ VAD_TABLE::InsertVadObject (
             (PostGapStartingVpn - GapStartingVpn) >= PageCount)
         {
             /* Set the starting and ending VPN in the node */
-            VadObject->m_Node.StartingVpn = SCAST<ULONG>(GapStartingVpn);
-            VadObject->m_Node.EndingVpn = SCAST<ULONG>(PostGapStartingVpn - 1);
+            VadObject->m_Node.StartingVpn = GapStartingVpn;
+            VadObject->m_Node.EndingVpn = PostGapStartingVpn - 1;
 
             /* Insert the VAD *before* the current node, or at the lowest end */
             InsertBefore(CurrentNode, &VadObject->m_Node);

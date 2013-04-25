@@ -559,6 +559,14 @@ PxeToAddress(PPXE PxePointer)
     return (PVOID)(((LONG64)PxePointer << 52) >> 16);
 }
 
+bool
+FORCEINLINE
+IsPageTableAddress (
+    PVOID Address)
+{
+    return ((Address >= (PVOID)PTE_BASE) && (Address <= (PVOID)PTE_TOP));
+}
+
 /* Generic:
 #define PxeToPpe(PxePointer) AddressToPpe(PxeToAddress(PxePointer))
 #define PpeToPde(PpePointer) AddressToPde(PpeToAddress(PpePointer))

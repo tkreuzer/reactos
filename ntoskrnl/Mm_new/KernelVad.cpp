@@ -17,8 +17,21 @@ NTSTATUS
 KERNEL_VAD::CreateInstance (
     _Out_ KERNEL_VAD** OutKernelVad)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    KERNEL_VAD* NewVad;
+
+    /* Allocate a new VAD from non-paged pool */
+    NewVad = reinterpret_cast<KERNEL_VAD*>(
+                ExAllocatePoolWithTag(NonPagedPool, sizeof(KERNEL_VAD), 'daVM'));
+    if (NewVad == NULL)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    /* Initialize it */
+    NewVad->Initialize();
+
+    *OutKernelVad = NewVad;
+    return STATUS_SUCCESS;
 }
 
 

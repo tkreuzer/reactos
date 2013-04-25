@@ -230,7 +230,10 @@ PFN_DATABASE::InitializePageTablePfn (
     PPFN_ENTRY PfnEntry;
 
     /* Everything that is mapped at the moment should be in the database */
-    NT_ASSERT(PageFrameNumber <= MmHighestPhysicalPage);
+    if (PageFrameNumber > MmHighestPhysicalPage)
+    {
+        return;
+    }
 
     /* Get the PFN entry for this page */
     PfnEntry = &m_PfnArray[PageFrameNumber];
@@ -315,6 +318,12 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
         Address = PxeToAddress(PxePointer);
         PpePointer = AddressToPpe(Address);
 
+        /* Skip page-table PXE */
+        if (IsPageTableAddress(Address))
+        {
+            continue;
+        }
+
         /* Initialize the PFN entry for the PDPT */
         PfnForPxe = PxePointer->GetPageFrameNumber();
         InitializePageTablePfn(PfnForPxe, PfnForPml4, PpePointer, 3);
@@ -334,6 +343,12 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
             Address = PpeToAddress(PpePointer);
             PdePointer = AddressToPde(Address);
 
+            /* Skip page-table PPEs */
+            if (IsPageTableAddress(Address))
+            {
+                continue;
+            }
+
             /* Initialize the PFN entry for the PD */
             PfnForPpe = PpePointer->GetPageFrameNumber();
             InitializePageTablePfn(PfnForPpe, PfnForPxe, PdePointer, 2);
@@ -352,13 +367,19 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 Address = PdeToAddress(PdePointer);
                 PtePointer = AddressToPte(Address);
 
+                /* Skip page-table PDEs */
+                if (IsPageTableAddress(Address))
+                {
+                    continue;
+                }
+
                 /* Get the PFN for the PT or the large page */
                 PfnForPde = PdePointer->GetPageFrameNumber();
 
                 /* Check if this is a large page PDE */
                 if (PdePointer->IsLargePage())
                 {
-                    for (i = 0; i < PTE_PER_PAGE; i++)
+                    for (l = 0; l < PTE_PER_PAGE; l++)
                     {
                         InitializePageTablePfn(PfnForPde + i, PfnForPpe, Address, 0);
                     }
@@ -381,6 +402,12 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
 
                     /* Get starting VA for this PTE */
                     Address = PteToAddress(PtePointer);
+
+                    /* Skip page-table PTEs */
+                    if (IsPageTableAddress(Address))
+                    {
+                        continue;
+                    }
 
                     /* Handle the PFN */
                     PfnForPte = PtePointer->GetPageFrameNumber();

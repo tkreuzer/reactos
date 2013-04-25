@@ -5,8 +5,9 @@
 
 namespace Mm {
 
+PADDRESS_SPACE g_SystemProcessAddressSpace;
+ADDRESS_SPACE g_KernelAddressSpace;
 VAD_TABLE g_KernelVadTable;
-ADDRESS_SPACE g_GlobalSystemAddressSpace;
 
 enum ADDRESS_SPACE_TYPE
 {
@@ -21,7 +22,7 @@ ADDRESS_SPACE::GetAddressSpaceType ()
 {
     // This will need modification with newer Windows versions
     // (use Flags.WorkingsetType)
-    if (this == &g_GlobalSystemAddressSpace)
+    if (this == &g_KernelAddressSpace)
         return SystemAddressSpace;
     if (m_Support.Flags.SessionSpace)
         return SessionAddressSpace;
@@ -48,6 +49,34 @@ ADDRESS_SPACE::GetVadTable ()
     {
         return &g_KernelVadTable;
     }
+}
+
+VOID
+ADDRESS_SPACE::Initialize (
+    VOID)
+{
+#if 0
+    ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
+    if (AddressSpaceType == ProcessAddressSpace)
+    {
+        PEPROCESS Process = CONTAINING_RECORD(&m_Support, EPROCESS, Vm);
+        KeInitializeGuardedMutex(&Process->AddressCreationLock);
+        KeInitializeSpinLock(&Process->HyperSpaceLock);
+        Process->Vm.WorkingSetExpansionLinks.Flink = NULL;
+        Process->HasAddressSpace = TRUE;
+    }
+    else if (AddressSpaceType == SessionAddressSpace)
+    {
+        //PSESSION_SPACE SessionSpace = CONTAINING_RECORD(&m_Support, SESSION_SPACE, Vm);
+    }
+    else
+    {
+        //
+    }
+
+    /* Initialize the Addresss Space */
+    GetVadTable()->Initialize();
+#endif
 }
 
 }; // namespace Mm
