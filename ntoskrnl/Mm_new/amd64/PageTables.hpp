@@ -105,43 +105,8 @@ typedef union
     ULONG64 Long;
 } UNION_PTE, *PUNION_PTE;
 
-/// \todo Either make this declspec(selectany) or move to cpp file
-const HARDWARE_PTE ProtectToPteBase[8] =
-{
-//         W C         C         N
-//   V W O C D A D L G W         X
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_NOACCESS
-    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_READONLY
-    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE
-    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE_READ
-    {1,1,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_READWRITE
-    {1,0,0,0,0,0,0,0,0,1,0,0,0,0,1}, // MM_WRITECOPY
-    {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE_READWRITE
-    {1,0,0,0,0,0,0,0,0,1,0,0,0,0,0}, // MM_EXECUTE_WRITECOPY
-};
-
-const HARDWARE_PTE ProtectToPteFlags[32] =
-{
-//         W C         C         N
-//   V W O C D A D L G W         X
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // -
-    {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_NOCACHE
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_DECOMMIT
-    {0,0,0,1,0,0,0,0,0,0,0,0,0,0,0}, // MM_WRITECOMBINE
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_NOCACHE
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_DECOMMIT
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_WRITECOMBINE
-
-    {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER
-    {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_NOCACHE
-    {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_DECOMMIT
-    {0,0,1,1,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_WRITECOMBINE
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_NOCACHE
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_DECOMMIT
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_WRITECOMBINE
-};
+extern const HARDWARE_PTE ProtectToPteBase[8];
+extern const HARDWARE_PTE ProtectToPteFlags[32];
 
 #define ProtectToPteMask(Protect) \
     (*(PULONG64)&ProtectToPteBase[(Protect) & 0x7] | *(PULONG64)&ProtectToPteFlags[((Protect) & 0xF8) >> 3])
@@ -178,6 +143,13 @@ public:
     IsEmpty ()
     {
         return (this->Long == 0);
+    }
+
+    inline
+    void
+    Erase ()
+    {
+        this->Long = 0;
     }
 
     inline
