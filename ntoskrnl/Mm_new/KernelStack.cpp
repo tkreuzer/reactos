@@ -33,7 +33,8 @@ ReserveKernelMemory (
                                               BYTES_TO_PAGES(Size),
                                               AddressToVpn(MmSystemRangeStart),
                                               AddressToVpn(MmHighestSystemAddress),
-                                              1);
+                                              1,
+                                              FALSE);
     if (!NT_SUCCESS(Status))
     {
         return NULL;

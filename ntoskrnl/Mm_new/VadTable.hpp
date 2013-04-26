@@ -67,6 +67,7 @@ public:
         _In_ ULONG_PTR PageCount,
         _In_ ULONG_PTR LowestStartingVpn,
         _In_ ULONG_PTR HighestEndingVpn,
+        _In_opt_ ULONG_PTR BoundaryPageMultiple,
         _In_ BOOLEAN TopDown);
 
     _Must_inspect_result_
