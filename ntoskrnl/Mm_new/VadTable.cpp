@@ -145,6 +145,7 @@ VAD_TABLE::InsertVadObject (
     _In_ ULONG_PTR PageCount,
     _In_ ULONG_PTR LowestStartingVpn,
     _In_ ULONG_PTR HighestEndingVpn,
+    _In_opt_ ULONG_PTR BoundaryPageMultiple,
     _In_ BOOLEAN TopDown)
 {
     ULONG_PTR GapStartingVpn, PostGapStartingVpn;
@@ -154,10 +155,19 @@ VAD_TABLE::InsertVadObject (
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
 
+    /* Check parameter */
+    if (PageCount > MAXLONG_PTR)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    if (BoundaryPageMultiple == 0)
+        BoundaryPageMultiple = 1;
+
     /* Default to failure */
     Status = STATUS_INSUFFICIENT_RESOURCES;
 
-    GapStartingVpn = LowestStartingVpn;
+    GapStartingVpn = ALIGN_UP_BY(LowestStartingVpn, BoundaryPageMultiple);
     PostGapStartingVpn = HighestEndingVpn + 1;
 
     /* Lock the table */
@@ -172,14 +182,18 @@ VAD_TABLE::InsertVadObject (
         /* Walk the nodes, until we find one completely below our low limit */
         while (CurrentNode && (CurrentNode->EndingVpn >= LowestStartingVpn))
         {
-            /* Calculate the gap size (this might be negative) */
-            LONG_PTR GapSize = PostGapStartingVpn - CurrentNode->EndingVpn;
+            GapStartingVpn = ALIGN_UP_BY(CurrentNode->EndingVpn + 1,
+                                         BoundaryPageMultiple);
 
-            /* Check if this gap is large enough (>, since we are off by 1) */
-            if (GapSize > static_cast<LONG_PTR>(PageCount))
+            /* Calculate the gap size (this might be negative) */
+            LONG_PTR GapSize = PostGapStartingVpn - GapStartingVpn;
+
+            /* Check if this gap is large enough */
+            if (GapSize >= static_cast<LONG_PTR>(PageCount))
             {
                 /* Set the starting VPN and break out of the loop */
-                GapStartingVpn = PostGapStartingVpn - PageCount;
+                GapStartingVpn = ALIGN_DOWN_BY(PostGapStartingVpn - PageCount,
+                                               BoundaryPageMultiple);
                 break;
             }
 
@@ -210,8 +224,7 @@ VAD_TABLE::InsertVadObject (
         while (CurrentNode && (CurrentNode->StartingVpn <= HighestEndingVpn))
         {
             /* Calculate the gap size (this might be negative) */
-            LONG_PTR GapSize = static_cast<ULONG_PTR>(CurrentNode->StartingVpn)
-                               - GapStartingVpn;
+            LONG_PTR GapSize = CurrentNode->StartingVpn - GapStartingVpn;
 
             /* Check if this gap is large enough */
             if (GapSize >= static_cast<LONG_PTR>(PageCount))
@@ -222,7 +235,8 @@ VAD_TABLE::InsertVadObject (
             }
 
             /* Otherwise update the lower limit and go to the next node */
-            GapStartingVpn = (ULONG_PTR)CurrentNode->EndingVpn + 1;
+            GapStartingVpn = ALIGN_UP_BY(CurrentNode->EndingVpn + 1,
+                                         BoundaryPageMultiple);
             CurrentNode = GetNextHigherNode(CurrentNode);
         }
 
