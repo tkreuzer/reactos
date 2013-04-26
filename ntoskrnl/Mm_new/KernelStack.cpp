@@ -82,8 +82,6 @@ MmCreateKernelStack (
     ULONG_PTR StartingVpn;
     NTSTATUS Status;
 
-__debugbreak();
-
     if (GuiStack)
     {
         /* Reserve 64 KB stack, but only commit 12 KB */

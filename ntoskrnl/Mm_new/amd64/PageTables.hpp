@@ -204,6 +204,20 @@ public:
 
     inline
     bool
+    IsPdeBoundary ()
+    {
+        return (((ULONG64)this & (PAGE_SIZE - 1)) == 0);
+    }
+
+    inline
+    bool
+    IsNoAccess ()
+    {
+        return (this->Long == *(ULONG64*)&ProtectToPteBase[MM_NOACCESS]);
+    }
+
+    inline
+    bool
     IsExecutable ()
     {
         return !this->Hard.NoExecute;
@@ -243,15 +257,10 @@ public:
     MakeDemandZeroPte (
         _In_ ULONG Protect)
     {
-        UNION_PTE PteValue;
+        UNION_PTE PteValue = { 0 };
         NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE|MM_NOCACHE|MM_WRITECOMBINE)));
-        PteValue.Long = *(PULONG64)&ProtectToPteBase[(Protect) & 0x7];
-        PteValue.Hard.PageFrameNumber = GlobalZeroPfn;
-        if (PteValue.Hard.Write)
-        {
-            PteValue.Hard.CopyOnWrite = 1;
-            PteValue.Hard.Write = 0;
-        }
+        PteValue.Soft.Protection = Protect & MM_PROTECTION_MASK;
+        PteValue.Hard.NoExecute = 1; /// FIXME HACK!!!
         this->Long = PteValue.Long;
     }
 
@@ -282,6 +291,15 @@ public:
     {
         NT_ASSERT(NewPte.Hard.Valid != 0);
         this->Hard = NewPte.Hard;
+    }
+
+    inline
+    VOID
+    WriteSoftwarePte (
+        _In_ PTE &NewPte)
+    {
+        NT_ASSERT(NewPte.Hard.Valid == 0);
+        this->Soft = NewPte.Soft;
     }
 
     inline
@@ -537,6 +555,14 @@ IsPageTableAddress (
     PVOID Address)
 {
     return ((Address >= (PVOID)PTE_BASE) && (Address <= (PVOID)PTE_TOP));
+}
+
+VOID
+FORCEINLINE
+InvalidateTlbEntry (
+    _In_ PVOID Address)
+{
+    __invlpg(Address);
 }
 
 /* Generic:

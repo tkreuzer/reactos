@@ -1,6 +1,6 @@
 
 #include "ntosbase.h"
-#include "amd64/MmConstants.hpp"
+#include "amd64/MachineDependent.hpp"
 
 extern "C" {
 

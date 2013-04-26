@@ -271,6 +271,18 @@ public:
         _In_ PFN_NUMBER PageFrameNumber,
         _In_ ULONG Addend);
 
+    static
+    VOID
+    IncrementUsedCount (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Addend);
+
+    static
+    VOID
+    IncrementValidCount (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Addend);
+
 #if 0
     AllocatePageNuma (
         _In_ ULONG NodeNumber)

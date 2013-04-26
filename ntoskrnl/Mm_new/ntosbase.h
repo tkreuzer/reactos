@@ -145,6 +145,52 @@ RtlFindSetBits64 (
 #define PRTL_BITMAP_EX PRTL_BITMAP
 #endif
 
+#define PAGE_FLAGS_VALID_FROM_USER_MODE     \
+    (PAGE_READONLY | \
+    PAGE_READWRITE | \
+    PAGE_WRITECOPY | \
+    PAGE_EXECUTE | \
+    PAGE_EXECUTE_READ | \
+    PAGE_EXECUTE_READWRITE | \
+    PAGE_EXECUTE_WRITECOPY | \
+    PAGE_GUARD | \
+    PAGE_NOACCESS | \
+    PAGE_NOCACHE)
+
+#define PAGE_FLAGS_VALID_FOR_SECTION \
+    (PAGE_READONLY | \
+     PAGE_READWRITE | \
+     PAGE_WRITECOPY | \
+     PAGE_EXECUTE | \
+     PAGE_EXECUTE_READ | \
+     PAGE_EXECUTE_READWRITE | \
+     PAGE_EXECUTE_WRITECOPY | \
+     PAGE_NOACCESS)
+
+#define PAGE_IS_READABLE                    \
+    (PAGE_READONLY | \
+    PAGE_READWRITE | \
+    PAGE_WRITECOPY | \
+    PAGE_EXECUTE_READ | \
+    PAGE_EXECUTE_READWRITE | \
+    PAGE_EXECUTE_WRITECOPY)
+
+#define PAGE_IS_WRITABLE                    \
+    (PAGE_READWRITE | \
+    PAGE_WRITECOPY | \
+    PAGE_EXECUTE_READWRITE | \
+    PAGE_EXECUTE_WRITECOPY)
+
+#define PAGE_IS_EXECUTABLE                  \
+    (PAGE_EXECUTE | \
+    PAGE_EXECUTE_READ | \
+    PAGE_EXECUTE_READWRITE | \
+    PAGE_EXECUTE_WRITECOPY)
+
+#define PAGE_IS_WRITECOPY                   \
+    (PAGE_WRITECOPY | \
+    PAGE_EXECUTE_WRITECOPY)
+
 inline
 void*
 operator new(size_t, void *p)

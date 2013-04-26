@@ -3,7 +3,7 @@
 #include "KernelVad.hpp"
 #include "VadTable.hpp"
 #include "AddressSpace.hpp"
-#include "amd64/MmConstants.hpp"
+#include "amd64/MachineDependent.hpp"
 
 namespace Mm {
 
