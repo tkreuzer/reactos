@@ -18,7 +18,7 @@ Concurrency between interlocked page removal and contiguous page allocation:
 #include "PfnDatabase.hpp"
 #include "VadTable.hpp"
 #include "KernelVad.hpp"
-#include "amd64/MmConstants.hpp"
+#include "amd64/MachineDependent.hpp"
 #include "amd64/PageTables.hpp"
 #include <arc/arc.h>
 #include <ndk/ketypes.h>
@@ -658,7 +658,6 @@ PFN_DATABASE::MakePageTablePfn (
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnFree);
 
-    DbgPrint("MakePageTablePfn %Ix\n", PageFrameNumber);
     PfnEntry->State = PfnPageTable;
     PfnEntry->CacheAttribute = ProtectToCacheAttribute(Protect);
     PfnEntry->PteAddress = PteAddress;
@@ -675,6 +674,28 @@ PFN_DATABASE::IncrementEntryCount (
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
     PfnEntry->PageTable.UsedPteCount += Addend;
+    PfnEntry->PageTable.ValidPteCount += Addend;
+}
+
+VOID
+PFN_DATABASE::IncrementUsedCount (
+    _In_ PFN_NUMBER PageFrameNumber,
+    _In_ ULONG Addend)
+{
+    PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnPageTable);
+
+    PfnEntry->PageTable.UsedPteCount += Addend;
+}
+
+VOID
+PFN_DATABASE::IncrementValidCount (
+    _In_ PFN_NUMBER PageFrameNumber,
+    _In_ ULONG Addend)
+{
+    PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+    NT_ASSERT(PfnEntry->State == PfnPageTable);
+
     PfnEntry->PageTable.ValidPteCount += Addend;
 }
 
@@ -993,6 +1014,10 @@ PFN_DATABASE::AllocateContiguousPages (
     ULONG_PTR Index, HintIndex;
     PULONG_PTR Buffer;
     NTSTATUS Status;
+
+    /* Fix up boundary page multiple */
+    if (BoundaryPageMultiple == 0)
+        BoundaryPageMultiple = 1;
 
     /* Acquire the PFN database lock */
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);

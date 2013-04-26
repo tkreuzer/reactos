@@ -1,7 +1,7 @@
 
 #include "../ntosbase.h"
 #include "PageTables.hpp"
-#include "MmConstants.hpp"
+#include "MachineDependent.hpp"
 #include <ndk/pstypes.h>
 #include <ndk/ketypes.h>
 #include <ndk/kefuncs.h>
@@ -143,7 +143,7 @@ InitializeMachineDependent (
     _In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
 
-
+    InitializePageTable();
 
 }
 

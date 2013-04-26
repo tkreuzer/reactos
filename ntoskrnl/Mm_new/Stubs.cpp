@@ -254,15 +254,6 @@ MmUnlockPageableImageSection (
     UNIMPLEMENTED;
 }
 
-PHYSICAL_ADDRESS
-NTAPI
-MmGetPhysicalAddress(
-    _In_ PVOID BaseAddress)
-{
-    PHYSICAL_ADDRESS PhysicalAddress = {0};
-    UNIMPLEMENTED;
-    return PhysicalAddress;
-}
 
 NTSTATUS
 NTAPI

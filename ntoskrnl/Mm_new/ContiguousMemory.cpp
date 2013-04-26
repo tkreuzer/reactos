@@ -12,13 +12,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
 _When_ (return != NULL, _Post_writable_byte_size_ (NumberOfBytes))
 PVOID
-MiAllocateContiguousMemory (
+AllocateContiguousMemory (
     _In_ SIZE_T NumberOfBytes,
     _In_ PHYSICAL_ADDRESS LowestAcceptableAddress,
     _In_ PHYSICAL_ADDRESS HighestAcceptableAddress,
     _In_opt_ PHYSICAL_ADDRESS BoundaryAddressMultiple,
     _In_ ULONG Protect,
-    _In_ MEMORY_CACHING_TYPE CachingType,
     _In_ NODE_REQUIREMENT PreferredNode)
 {
     PFN_NUMBER LowestAcceptablePfn, HighestAcceptablePfn, BoundaryPageMultiple;
@@ -39,7 +38,7 @@ MiAllocateContiguousMemory (
     HighestAcceptablePfn = HighestAcceptableAddress.QuadPart >> PAGE_SHIFT;
     BoundaryPageMultiple = BoundaryAddressMultiple.QuadPart >> PAGE_SHIFT;
 
-    /* Check for overflow and if the ranges are ok */
+    /* Check for overflow and if the ranges are OK */
     if (((LowestAcceptablePfn + NumberOfPages - 1) > HighestAcceptablePfn) ||
         ((LowestAcceptablePfn + NumberOfPages - 1) < LowestAcceptablePfn))
     {
@@ -59,10 +58,9 @@ MiAllocateContiguousMemory (
     }
 
     /* Map the physical pages */
-    BaseAddress = MiMapPhysicalMemory(BasePageFrameNumber,
-                                      NumberOfPages,
-                                      Protect,
-                                      CachingType);
+    BaseAddress = MapPhysicalMemory(BasePageFrameNumber,
+                                    NumberOfPages,
+                                    Protect);
     if (BaseAddress == NULL)
     {
         g_PfnDatabase.FreeContiguousPages(BasePageFrameNumber);
@@ -82,13 +80,12 @@ MmAllocateContiguousMemory (
   _In_ SIZE_T NumberOfBytes,
   _In_ PHYSICAL_ADDRESS HighestAcceptableAddress)
 {
-    return MiAllocateContiguousMemory(NumberOfBytes,
-                                      c_PhysicalAddress0,
-                                      HighestAcceptableAddress,
-                                      c_PhysicalAddress0,
-                                      PAGE_EXECUTE_READWRITE,
-                                      MmCached,
-                                      MM_ANY_NODE_OK);
+    return AllocateContiguousMemory(NumberOfBytes,
+                                    c_PhysicalAddress0,
+                                    HighestAcceptableAddress,
+                                    c_PhysicalAddress0,
+                                    MM_EXECUTE_READWRITE,
+                                    MM_ANY_NODE_OK);
 }
 
 _Must_inspect_result_
@@ -103,13 +100,17 @@ MmAllocateContiguousMemorySpecifyCache (
   _In_opt_ PHYSICAL_ADDRESS BoundaryAddressMultiple,
   _In_ MEMORY_CACHING_TYPE CachingType)
 {
-    return MiAllocateContiguousMemory(NumberOfBytes,
-                                      LowestAcceptableAddress,
-                                      HighestAcceptableAddress,
-                                      BoundaryAddressMultiple,
-                                      PAGE_EXECUTE_READWRITE,
-                                      CachingType,
-                                      MM_ANY_NODE_OK);
+    ULONG Protect;
+
+    /* Convert protection */
+    Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CachingType);
+
+    return AllocateContiguousMemory(NumberOfBytes,
+                                    LowestAcceptableAddress,
+                                    HighestAcceptableAddress,
+                                    BoundaryAddressMultiple,
+                                    Protect,
+                                    MM_ANY_NODE_OK);
 }
 
 _Must_inspect_result_
@@ -123,25 +124,20 @@ MmAllocateContiguousNodeMemory (
     _In_ PHYSICAL_ADDRESS LowestAcceptableAddress,
     _In_ PHYSICAL_ADDRESS HighestAcceptableAddress,
     _In_opt_ PHYSICAL_ADDRESS BoundaryAddressMultiple,
-    _In_ ULONG Protect,
+    _In_ ULONG Win32Protect,
     _In_ NODE_REQUIREMENT PreferredNode)
 {
-    MEMORY_CACHING_TYPE CachingType;
+    ULONG Protect;
 
-    if (Protect & PAGE_WRITECOMBINE)
-        CachingType = MmWriteCombined;
-    else if (Protect & PAGE_NOCACHE)
-        CachingType = MmNonCached;
-    else
-        CachingType = MmCached;
+    /* Convert protection */
+    Protect = ConvertProtect(Win32Protect);
 
-    return MiAllocateContiguousMemory(NumberOfBytes,
-                                      LowestAcceptableAddress,
-                                      HighestAcceptableAddress,
-                                      BoundaryAddressMultiple,
-                                      Protect,
-                                      CachingType,
-                                      PreferredNode);
+    return AllocateContiguousMemory(NumberOfBytes,
+                                    LowestAcceptableAddress,
+                                    HighestAcceptableAddress,
+                                    BoundaryAddressMultiple,
+                                    Protect,
+                                    PreferredNode);
 }
 
 _Must_inspect_result_
@@ -157,13 +153,17 @@ MmAllocateContiguousMemorySpecifyCacheNode (
     _In_ MEMORY_CACHING_TYPE CachingType,
     _In_ NODE_REQUIREMENT PreferredNode)
 {
-    return MiAllocateContiguousMemory(NumberOfBytes,
-                                      LowestAcceptableAddress,
-                                      HighestAcceptableAddress,
-                                      BoundaryAddressMultiple,
-                                      PAGE_EXECUTE_READWRITE,
-                                      CachingType,
-                                      PreferredNode);
+    ULONG Protect;
+
+    /* Convert protection */
+    Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CachingType);
+
+    return AllocateContiguousMemory(NumberOfBytes,
+                                    LowestAcceptableAddress,
+                                    HighestAcceptableAddress,
+                                    BoundaryAddressMultiple,
+                                    Protect,
+                                    PreferredNode);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

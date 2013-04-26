@@ -8,7 +8,7 @@
 #include "KernelVad.hpp"
 #include "CommitCharge.hpp"
 #include "amd64/PageTables.hpp"
-#include "amd64/MmConstants.hpp"
+#include "amd64/MachineDependent.hpp"
 #include <arc/arc.h>
 #include <limits.h>
 
@@ -25,12 +25,12 @@ PFN_NUMBER MmBadPagesDetected;
 namespace Mm {
 
 VOID
-CleanupUserSpaceMappings (
+InitializePoolSupport (
     VOID);
 
 VOID
-InitializePoolSupport (
-    VOID);
+InitializeMachineDependent (
+    _In_ PLOADER_PARAMETER_BLOCK LoaderBlock);
 
 ULONG RandomNumberSeed;
 ULONG_PTR LowestSystemVpn;
@@ -307,9 +307,6 @@ MEMORY_MANAGER::Inititalize (
     /* Set lowest system VPN */
     LowestSystemVpn = AddressToVpn(MmSystemRangeStart);
 
-    /* Cleanup user space mappings */
-    CleanupUserSpaceMappings();
-
     /* Set and initialize the kernel address space */
     g_SystemProcessAddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
     g_SystemProcessAddressSpace->Initialize();
@@ -352,6 +349,9 @@ MEMORY_MANAGER::Inititalize (
     /* Gather some basic information from the loader block's memory descriptors */
     ScanMemoryDescriptors(LoaderBlock);
 
+    /* Initialize machine dependent parts */
+    InitializeMachineDependent(LoaderBlock);
+
     /* Initialize the PFN database */
     g_PfnDatabase.Initialize(LoaderBlock);
 
@@ -378,8 +378,7 @@ MmInitSystem(
     IN ULONG Phase,
     IN struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
-    UNIMPLEMENTED;
-    return FALSE;
+    return TRUE;
 }
 
 BOOLEAN
@@ -389,8 +388,6 @@ MmArmInitSystem(
     IN ULONG Phase,
     IN struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
-    DbgPrint("MmArmInitSystem()\n");
-
     g_MemoryManager.Inititalize(LoaderBlock);
 
     return TRUE;
