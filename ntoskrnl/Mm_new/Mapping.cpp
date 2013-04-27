@@ -809,5 +809,16 @@ MmGetPhysicalAddress(
     return PhysicalAddress;
 }
 
+_IRQL_requires_max_ (APC_LEVEL)
+BOOLEAN
+NTAPI
+MmSetAddressRangeModified (
+    _In_reads_bytes_ (Length) PVOID Address,
+    _In_ SIZE_T Length)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
+
 }; // extern "C"
 }; // namespace Mm

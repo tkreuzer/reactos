@@ -118,6 +118,15 @@ MmFreeNonCachedMemory (
     UNIMPLEMENTED;
 }
 
+PVOID
+NTAPI
+MmGetVirtualForPhysical (
+  _In_ PHYSICAL_ADDRESS PhysicalAddress)
+{
+    UNIMPLEMENTED;
+    return NULL;
+}
+
 NTSTATUS
 NTAPI
 MmMarkPhysicalMemoryAsBad (
@@ -148,6 +157,53 @@ MmMarkPhysicalMemoryAsGood (
     NumberOfPages = NumberOfBytes->QuadPart >> PAGE_SHIFT;
     return g_PfnDatabase.MarkPhysicalMemory(PfnFree, StartingPfn, NumberOfPages);
 #endif
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+
+/** Syscall API ***************************************************************/
+
+NTSTATUS
+NTAPI
+NtAllocateUserPhysicalPages (
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PULONG_PTR NumberOfPages,
+    _Inout_ PULONG_PTR UserPfnArray)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+NTAPI
+NtFreeUserPhysicalPages (
+    _In_ HANDLE ProcessHandle,
+    _Inout_ PULONG_PTR NumberOfPages,
+    _Inout_ PULONG_PTR UserPfnArray)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+NTAPI
+NtMapUserPhysicalPages (
+    _In_ PVOID VirtualAddresses,
+    _In_ ULONG_PTR NumberOfPages,
+    _Inout_ PULONG_PTR UserPfnArray)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+NTAPI
+NtMapUserPhysicalPagesScatter (
+    _In_ PVOID *VirtualAddresses,
+    _In_ ULONG_PTR NumberOfPages,
+    _Inout_ PULONG_PTR UserPfnArray)
+{
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }

@@ -85,18 +85,6 @@ MmQuerySystemSize (
     return MmLargeSystem;
 }
 
-
-_IRQL_requires_max_ (APC_LEVEL)
-BOOLEAN
-NTAPI
-MmCanFileBeTruncated (
-  _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
-  _In_opt_ PLARGE_INTEGER NewFileSize)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
 NTAPI
@@ -117,15 +105,6 @@ MmForceSectionClosed (
 {
     UNIMPLEMENTED;
     return FALSE;
-}
-
-PVOID
-NTAPI
-MmGetVirtualForPhysical (
-  _In_ PHYSICAL_ADDRESS PhysicalAddress)
-{
-    UNIMPLEMENTED;
-    return NULL;
 }
 
 BOOLEAN
@@ -170,16 +149,6 @@ MmPrefetchPages (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-_IRQL_requires_max_ (APC_LEVEL)
-BOOLEAN
-NTAPI
-MmSetAddressRangeModified (
-  _In_reads_bytes_ (Length) PVOID Address,
-  _In_ SIZE_T Length)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
 
 NTSTATUS
 NTAPI
@@ -236,16 +205,6 @@ MmSetBankedSection (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-
-ULONG
-NTAPI
-MmTrimAllSystemPageableMemory (
-    IN ULONG PurgeTransitionList)
-{
-    UNIMPLEMENTED;
-    return 0;
-}
-
 VOID
 NTAPI
 MmUnlockPageableImageSection (
@@ -257,50 +216,6 @@ MmUnlockPageableImageSection (
 
 NTSTATUS
 NTAPI
-NtAllocateUserPhysicalPages (
-    _In_ HANDLE ProcessHandle,
-    _Inout_ PULONG_PTR NumberOfPages,
-    _Inout_ PULONG_PTR UserPfnArray)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-NTAPI
-NtAreMappedFilesTheSame (
-    _In_ PVOID File1MappedAsAnImage,
-    _In_ PVOID File2MappedAsFile)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-NTAPI
-NtCreatePagingFile (
-    _In_ PUNICODE_STRING FileName,
-    _In_ PLARGE_INTEGER InitialSize,
-    _In_ PLARGE_INTEGER MaxiumSize,
-    _In_ ULONG Reserved)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-NTAPI
-NtFreeUserPhysicalPages (
-    _In_ HANDLE ProcessHandle,
-    _Inout_ PULONG_PTR NumberOfPages,
-    _Inout_ PULONG_PTR UserPfnArray)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-NTAPI
 NtGetWriteWatch (
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,
@@ -309,28 +224,6 @@ NtGetWriteWatch (
     _In_ PVOID *UserAddressArray,
     _Out_ PULONG_PTR EntriesInUserAddressArray,
     _Out_ PULONG Granularity)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-NTAPI
-NtMapUserPhysicalPages (
-    _In_ PVOID VirtualAddresses,
-    _In_ ULONG_PTR NumberOfPages,
-    _Inout_ PULONG_PTR UserPfnArray)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-NTSTATUS
-NTAPI
-NtMapUserPhysicalPagesScatter (
-    _In_ PVOID *VirtualAddresses,
-    _In_ ULONG_PTR NumberOfPages,
-    _Inout_ PULONG_PTR UserPfnArray)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
@@ -359,15 +252,6 @@ MmZeroPageThread(
     UNIMPLEMENTED;
 }
 
-BOOLEAN
-NTAPI
-MmIsFileObjectAPagingFile (
-    PFILE_OBJECT FileObject)
-{
-    UNIMPLEMENTED;
-    return 0;
-}
-
 VOID
 NTAPI
 MmDumpArmPfnDatabase(
@@ -376,11 +260,5 @@ MmDumpArmPfnDatabase(
     UNIMPLEMENTED;
 }
 
-#if 0
-sysinfo.c.obj : error LNK2001: unresolved external symbol MiMemoryConsumers
-kdapi.c.obj : error LNK2019: unresolved external symbol MmDumpArmPfnDatabase referenced in function KdSystemDebugControl
-
-
-#endif
 
 }; // extern "C"
