@@ -13,7 +13,7 @@ class VAD_TABLE
 {
 private:
     LIST_ENTRY m_ListHead;
-    KGUARDED_MUTEX m_ListLock;
+    KSPIN_LOCK m_ListLock;
 
     /* We can use ULONG + a bit that says, if this is kernel or user space,
        since the address space on win64 is only  */
@@ -22,11 +22,11 @@ private:
 
     VOID
     AcquireTableLock (
-        VOID);
+        PKLOCK_QUEUE_HANDLE LockHandle);
 
     VOID
     ReleaseTableLock (
-        VOID);
+        PKLOCK_QUEUE_HANDLE LockHandle);
 
     VAD_NODE*
     GetLowestNodeWithEndingVpnNotBelow (
@@ -89,7 +89,7 @@ public:
 
 };
 
-//static_assert(sizeof(VAD_TABLE) <= sizeof(MM_AVL_TABLE));
+//static_assert(sizeof(VAD_TABLE) <= sizeof(MM_AVL_TABLE), "");
 
 extern VAD_TABLE g_KernelVadTable;
 
