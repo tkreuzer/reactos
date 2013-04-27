@@ -10,19 +10,17 @@ ULONG_PTR g_LowestSystemVpn;
 inline
 VOID
 VAD_TABLE::AcquireTableLock (
-    VOID)
+    PKLOCK_QUEUE_HANDLE LockHandle)
 {
-    NT_ASSERT(KeGetCurrentIrql() < DISPATCH_LEVEL);
-    KeAcquireGuardedMutex(&m_ListLock);
+    KeAcquireInStackQueuedSpinLock(&m_ListLock, LockHandle);
 }
 
 inline
 VOID
 VAD_TABLE::ReleaseTableLock (
-    VOID)
+    PKLOCK_QUEUE_HANDLE LockHandle)
 {
-    NT_ASSERT(KeGetCurrentIrql() < DISPATCH_LEVEL);
-    KeReleaseGuardedMutex(&m_ListLock);
+    KeReleaseInStackQueuedSpinLock(LockHandle);
 }
 
 VOID
@@ -30,7 +28,7 @@ VAD_TABLE::Initialize (
     BOOLEAN KernelMode)
 {
     InitializeListHead(&m_ListHead);
-    KeInitializeGuardedMutex(&m_ListLock);
+    KeInitializeSpinLock(&m_ListLock);
 }
 
 inline
@@ -151,6 +149,7 @@ VAD_TABLE::InsertVadObject (
     ULONG_PTR GapStartingVpn, PostGapStartingVpn;
     PVAD_NODE CurrentNode;
     NTSTATUS Status;
+    KLOCK_QUEUE_HANDLE LockHandle;
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
@@ -171,7 +170,7 @@ VAD_TABLE::InsertVadObject (
     PostGapStartingVpn = HighestEndingVpn + 1;
 
     /* Lock the table */
-    AcquireTableLock();
+    AcquireTableLock(&LockHandle);
 
     /* Check direction */
     if (TopDown)
@@ -255,7 +254,7 @@ VAD_TABLE::InsertVadObject (
     }
 
     /* Unlock the table */
-    ReleaseTableLock();
+    ReleaseTableLock(&LockHandle);
 
     return Status;
 }
@@ -270,6 +269,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     PVAD_NODE VadNode;
     ULONG_PTR EndingVpn;
     NTSTATUS Status;
+    KLOCK_QUEUE_HANDLE LockHandle;
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
@@ -283,7 +283,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     Status = STATUS_CONFLICTING_ADDRESSES;
 
     /* Lock the table */
-    AcquireTableLock();
+    AcquireTableLock(&LockHandle);
 
     /* Get the lowest VAD that ends at or above the requested VPN */
     VadNode = GetLowestNodeWithEndingVpnNotBelow(StartingVpn);
@@ -296,7 +296,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     }
 
     /* Unlock the table */
-    ReleaseTableLock();
+    ReleaseTableLock(&LockHandle);
 
     return Status;
 }
@@ -305,14 +305,16 @@ VOID
 VAD_TABLE::RemoveVadObject (
     _Inout_ PVAD_OBJECT VadObject)
 {
+    KLOCK_QUEUE_HANDLE LockHandle;
+
     /* Lock the table */
-    AcquireTableLock();
+    AcquireTableLock(&LockHandle);
 
     /* Remove the list entry */
     RemoveEntryList(&VadObject->m_Node.ListEntry);
 
     /* Unlock the table */
-    ReleaseTableLock();
+    ReleaseTableLock(&LockHandle);
 }
 
 _Must_inspect_result_
@@ -323,6 +325,7 @@ VAD_TABLE::ReferenceVadObjectByAddress (
     ULONG_PTR RequestedVpn;
     PVAD_NODE VadNode;
     VAD_OBJECT* VadObject;
+    KLOCK_QUEUE_HANDLE LockHandle;
 
     /* Calculate the VPN for the address */
     RequestedVpn = reinterpret_cast<ULONG_PTR>(Address) >> PAGE_SHIFT;
@@ -331,7 +334,7 @@ VAD_TABLE::ReferenceVadObjectByAddress (
     VadObject = NULL;
 
     /* Lock the table */
-    AcquireTableLock();
+    AcquireTableLock(&LockHandle);
 
     /* Get the lowest VAD that ends at or above the requested address */
     VadNode = GetLowestNodeWithEndingVpnNotBelow(RequestedVpn);
@@ -345,7 +348,7 @@ VAD_TABLE::ReferenceVadObjectByAddress (
     }
 
     /* Unlock the table */
-    ReleaseTableLock();
+    ReleaseTableLock(&LockHandle);
 
     return VadObject;
 }
