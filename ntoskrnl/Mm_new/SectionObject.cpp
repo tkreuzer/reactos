@@ -356,6 +356,17 @@ NtExtendSection (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+NTSTATUS
+NTAPI
+NtAreMappedFilesTheSame (
+    _In_ PVOID File1MappedAsAnImage,
+    _In_ PVOID File2MappedAsFile)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+
 
 }; // extern "C"
 

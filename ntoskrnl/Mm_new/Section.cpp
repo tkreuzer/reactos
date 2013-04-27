@@ -63,4 +63,16 @@ SECTION::Release (
 }
 
 
+_IRQL_requires_max_ (APC_LEVEL)
+BOOLEAN
+NTAPI
+MmCanFileBeTruncated (
+  _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
+  _In_opt_ PLARGE_INTEGER NewFileSize)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
+
+
 }; // namespace Mm
