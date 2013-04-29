@@ -106,7 +106,8 @@ CalculatePoolDimensions (
 
     /// \todo improve this
     MmSizeOfPagedPoolInBytes = 32 * 1024 * 1024;
-    MmPagedPoolStart = EndAddress;
+    MmPagedPoolStart = AddToPointer(MmNonPagedPoolStart, MmMaximumNonPagedPoolInBytes);
+    MmPagedPoolStart = ALIGN_UP_POINTER_BY(MmPagedPoolStart, LARGE_PAGE_SIZE);
 
 #ifndef _WIN64
     InitialPoolSizeInPages[NonPagedPool] = SizeOfNonPagedPoolInPages;

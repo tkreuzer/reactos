@@ -318,14 +318,14 @@ MEMORY_MANAGER::Inititalize (
     /* Reserve the address space for the page tables */
     PageTableVad.Initialize();
     NumberOfPages = AddressToVpn(PTE_TOP) - AddressToVpn(PTE_BASE) + 1;
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(PageTableVad.GetVadObject(),
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&PageTableVad,
                                                    AddressToVpn(PTE_BASE),
                                                    NumberOfPages);
     NT_ASSERT(NT_SUCCESS(Status));
 
     /* Reserve the address space for hyper space (same size as page tables) */
     HyperSpaceVad.Initialize();
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(HyperSpaceVad.GetVadObject(),
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&HyperSpaceVad,
                                                    AddressToVpn(PTE_TOP) + 1,
                                                    NumberOfPages);
     NT_ASSERT(NT_SUCCESS(Status));
@@ -333,7 +333,7 @@ MEMORY_MANAGER::Inititalize (
     /* Reserve the address space for the loader mappings */
     LoaderMappingsVad.Initialize();
     NumberOfPages = LoaderBlock->Extension->LoaderPagesSpanned;
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(LoaderMappingsVad.GetVadObject(),
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&LoaderMappingsVad,
                                                    AddressToVpn(KSEG0_BASE),
                                                    NumberOfPages);
     NT_ASSERT(NT_SUCCESS(Status));
@@ -341,7 +341,7 @@ MEMORY_MANAGER::Inititalize (
     /* Reserve the address space for HAL */
     HalVaVad.Initialize();
     NumberOfPages = AddressToVpn(MM_HAL_VA_END) - AddressToVpn(MM_HAL_VA_START);
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(HalVaVad.GetVadObject(),
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&HalVaVad,
                                                    AddressToVpn(MM_HAL_VA_START),
                                                    NumberOfPages);
     NT_ASSERT(NT_SUCCESS(Status));

@@ -37,6 +37,8 @@ ReserveKernelMemory (
                                               FALSE);
     if (!NT_SUCCESS(Status))
     {
+        ERR("Failed to insert VAD object into VAD table: %x\n", Status);
+        delete VadObject;
         return NULL;
     }
 
@@ -100,6 +102,7 @@ MmCreateKernelStack (
     BaseAddress = ReserveKernelMemory(ReservedSize);
     if (BaseAddress == NULL)
     {
+        ERR("Failed to reserve kernel memory\n");
         return NULL;
     }
 
@@ -115,6 +118,7 @@ MmCreateKernelStack (
                            NULL);
     if (!NT_SUCCESS(Status))
     {
+        ERR("Failed to create a mapping: %lx\n", Status);
         ReleaseKernelMemory(BaseAddress);
         return NULL;
     }
