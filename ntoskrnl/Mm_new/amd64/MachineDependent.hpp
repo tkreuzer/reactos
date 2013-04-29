@@ -29,4 +29,7 @@ static const ULONG64 PFN_DATABASE_ADDRESS       = 0xFFFFFA8000000000ULL;
 static const ULONG64 SYSTEM_RANGE_END           = 0xFFFFFFFFFFFFFFFFULL;
 //static const ULONG64 HIGHEST_SYSTEM_ADDRESS     = 0xFFFFFFFFFFFFFFFFULL;
 
+// HACK, we probably need to use defines for all!
+#define SYSTEM_RANGE_START         0xFFFF800000000000ULL
+
 }; // namespace Mm

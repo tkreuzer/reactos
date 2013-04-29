@@ -43,7 +43,7 @@ VAD_TABLE::GetLowestNodeWithEndingVpnNotBelow (
          ListEntry != &m_ListHead;
          ListEntry = ListEntry->Flink)
     {
-        CurrentNode = CONTAINING_RECORD(m_ListHead.Blink, VAD_NODE, ListEntry);
+        CurrentNode = CONTAINING_RECORD(ListEntry, VAD_NODE, ListEntry);
 
         if (CurrentNode->EndingVpn >= MinimumEndingVpn)
         {
@@ -66,7 +66,7 @@ VAD_TABLE::GetHighestNodeWithStartingVpnNotAbove (
          ListEntry != &m_ListHead;
          ListEntry = ListEntry->Blink)
     {
-        CurrentNode = CONTAINING_RECORD(m_ListHead.Blink, VAD_NODE, ListEntry);
+        CurrentNode = CONTAINING_RECORD(ListEntry, VAD_NODE, ListEntry);
 
         if (CurrentNode->StartingVpn <= MaximumStartingVpn)
         {

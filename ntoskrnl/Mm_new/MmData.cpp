@@ -5,7 +5,7 @@
 extern "C" {
 
 BOOLEAN Mm64BitPhysicalAddress = FALSE;
-PVOID MmSystemRangeStart = (PVOID)Mm::SYSTEM_RANGE_START;
+PVOID MmSystemRangeStart = (PVOID)SYSTEM_RANGE_START;
 ULONG_PTR MmUserProbeAddress;
 PVOID MmHighestUserAddress;
 
