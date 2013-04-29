@@ -36,7 +36,8 @@
 
 #define UNIMPLEMENTED __debugbreak()
 #define INIT_FUNCTION
-#define TRACE(...)
+#define ERR DbgPrint
+#define TRACE DbgPrint
 #define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 #define AddToPtr(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
 #define AddToPointer(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))

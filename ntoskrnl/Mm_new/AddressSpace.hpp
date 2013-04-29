@@ -24,13 +24,13 @@ private:
     ADDRESS_SPACE_TYPE
     GetAddressSpaceType ();
 
-    inline
-    class VAD_TABLE*
-    GetVadTable ();
 
     friend class MEMORY_MANAGER;
 
 public:
+
+    class VAD_TABLE*
+    GetVadTable ();
 
 
 };

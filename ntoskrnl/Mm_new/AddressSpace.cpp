@@ -30,8 +30,7 @@ ADDRESS_SPACE::GetAddressSpaceType ()
         return ProcessAddressSpace;
 }
 
-inline
-class VAD_TABLE*
+PVAD_TABLE
 ADDRESS_SPACE::GetVadTable ()
 {
     ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
@@ -44,6 +43,8 @@ ADDRESS_SPACE::GetVadTable ()
     {
         //PSESSION_SPACE SessionSpace = CONTAINING_RECORD(&m_Support, SESSION_SPACE, Vm);
         //return reinterpret_cast<class VAD_TABLE*>(&SessionSpace->VadRoot);
+        UNIMPLEMENTED;
+        return NULL;
     }
     else
     {

@@ -89,6 +89,8 @@ public:
 
 };
 
+typedef VAD_TABLE* PVAD_TABLE;
+
 //static_assert(sizeof(VAD_TABLE) <= sizeof(MM_AVL_TABLE), "");
 
 extern VAD_TABLE g_KernelVadTable;

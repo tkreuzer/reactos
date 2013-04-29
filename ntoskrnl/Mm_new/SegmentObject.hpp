@@ -7,7 +7,7 @@ namespace Mm {
 
 typedef class SEGMENT_OBJECT* PSEGMENT_OBJECT;
 
-class SEGMENT_OBJECT : public REF_OBJECT<SEGMENT_OBJECT, 'OSmM'>
+class SEGMENT_OBJECT : public REF_OBJECT<SEGMENT_OBJECT, PagedPool, 'OSmM'>
 {
 
 public:

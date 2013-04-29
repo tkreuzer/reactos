@@ -5,9 +5,6 @@
 
 namespace Mm {
 
-static const ULONG TAG_TEMP = 'xxmM';
-static const ULONG TAG_SECTION = 'tSmM';
-
 VOID
 GetSectionImageInformation (
     _Out_ PSECTION_IMAGE_INFORMATION_EX ImageInfo,
