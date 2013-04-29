@@ -4,6 +4,7 @@
  */
 
 #include "SectionObject.hpp"
+#include "Section.hpp"
 #include <ndk/iotypes.h>
 #include <ndk/obfuncs.h>
 
@@ -61,8 +62,6 @@ SECTION_OBJECT::InitializeClass (
 
 }
 
-
-
 VOID
 NTAPI
 SECTION_OBJECT::ObDeleteProcedure (
@@ -91,29 +90,60 @@ SECTION_OBJECT::CreateInstance (
     _In_ ULONG AllocationAttributes,
     _In_opt_ PFILE_OBJECT FileObject)
 {
-    PVOID SectionPointer;
-    SECTION_OBJECT* SectionObject;
+    PVOID Object;
+    PSECTION_OBJECT SectionObject;
+    PSECTION Section;
     NTSTATUS Status;
 
+    /* Check if this is a file backed section */
+    if (FileObject != NULL)
+    {
+        UNIMPLEMENTED;
+    }
+    else
+    {
+        /* No backing file, so create a new page-file backed SECTION */
+        Status = SECTION::CreatePageFileSection(&Section,
+                                                MaximumSize,
+                                                SectionPageProtection,
+                                                AllocationAttributes);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("Failed to create SECTION: 0x%lx\n", Status);
+            return Status;
+        }
+    }
+
     /* Allocate a section object with Ob */
-    Status = Ob::OBJECT::CreateObject(&SectionPointer,
+    Status = Ob::OBJECT::CreateObject(&Object,
                                       MmSectionObjectType,
                                       ObjectAttributes);
     if (!NT_SUCCESS(Status))
     {
-        //ERR("Failed to create a section object: 0x%lx\n", Status);
+        ERR("Failed to create a section object: 0x%lx\n", Status);
+        Section->Release();
         return Status;
     }
 
     /* Initialize the object */
-    SectionObject = new(SectionPointer) SECTION_OBJECT;
-
-
+    SectionObject = new(Object) SECTION_OBJECT;
+    SectionObject->m_Section = Section;
+    SectionObject->m_SectionSize = MaximumSize;
+    SectionObject->m_SectionFlags = 0;
+    SectionObject->m_PageProtection = SectionPageProtection;
 
     /* Return the section */
     *OutSectionObject = SectionObject;
 
     return STATUS_SUCCESS;
+}
+
+class SECTION*
+SECTION_OBJECT::ReferenceSection (
+    VOID)
+{
+    m_Section->AddRef();
+    return m_Section;
 }
 
 inline
@@ -243,7 +273,7 @@ NtCreateSection (
 
 
     /// \todo check parameters
-
+__debugbreak();
 
     /* Check if this call comes from user mode */
     if (ExGetPreviousMode() != KernelMode)

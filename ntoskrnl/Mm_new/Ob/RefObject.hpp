@@ -41,7 +41,7 @@ protected:
     }
 };
 
-template<class _DerivedClass, ULONG _PoolTag>
+template<class _DerivedClass, POOL_TYPE _PoolType, ULONG _PoolTag>
 class REF_OBJECT : private REF_OBJECT_CORE
 {
 protected:
@@ -52,7 +52,7 @@ protected:
     void*
     operator new(size_t Size)
     {
-        return ExAllocatePoolWithTag(PagedPool, Size, _PoolTag);
+        return ExAllocatePoolWithTag(_PoolType, Size, _PoolTag);
     }
 
     inline

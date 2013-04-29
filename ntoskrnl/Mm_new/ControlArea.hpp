@@ -21,7 +21,7 @@ namespace Mm {
 
 typedef class CONTROL_AREA* PCONTROL_AREA;
 
-class CONTROL_AREA : public REF_OBJECT<CONTROL_AREA, 'ACmM'>
+class CONTROL_AREA : public REF_OBJECT<CONTROL_AREA, NonPagedPool, 'ACmM'>
 {
 private:
     EX_PUSH_LOCK m_Lock;

@@ -22,44 +22,82 @@ SECTION::InitializeClass (
 
 }
 
+SECTION::SECTION (
+    VOID)
+{
+    // nothing for now
+}
+
+SECTION::~SECTION (
+    VOID)
+{
+    // nothing for now
+}
+
 NTSTATUS
 SECTION::CreateInstance (
     _Out_ PSECTION* OutSection,
     _In_ ULONG NumberOfSubsections,
     _In_ ULONG NumberOfPtes)
 {
+    UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+SECTION::CreatePageFileSection (
+    _Out_ PSECTION* OutSection,
+    _In_ ULONG64 MaximumSize,
+    _In_ ULONG SectionPageProtection,
+    _In_ ULONG AllocationAttributes)
+{
+    UNIMPLEMENTED;
+    return 0;
 }
 
 VOID
 SECTION::SetPageContent (
-    _In_ ULONG RelativeStartingVpn,
-    _In_ ULONG NumberOfPages,
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
     _In_ PVOID Buffer)
 {
+    UNIMPLEMENTED;
 }
 
 NTSTATUS
 SECTION::PrefetchPages (
-    _In_ ULONG RelativeStartingVpn,
-    _In_ ULONG NumberOfPages)
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages)
 {
+    UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
+
+
+NTSTATUS
+SECTION::CreateMapping (
+    _In_ PVOID BaseAddress,
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
+{
+    // loop through all SUBSECTIONs
+        // skip subsections outside the range
+        // break when beyond the range
+        // Map the prototype PTEs of the section
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
 
 NTSTATUS
 SECTION::GetMapping (
     _Out_ PVOID* BaseAddress,
-    _In_ ULONG RelativeStartingVpn,
-    _In_ ULONG NumberOfPages)
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages)
 {
+    UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
-}
-
-VOID
-SECTION::Release (
-    VOID)
-{
 }
 
 

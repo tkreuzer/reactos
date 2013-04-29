@@ -3,10 +3,16 @@
 #pragma once
 
 #include "ntosbase.h"
+#include "Ob/RefObject.hpp"
 #include "ntimage.h"
 
 /// \todo HACK
 #define IMAGE_FILE_MACHINE_NATIVE IMAGE_FILE_MACHINE_AMD64
+
+static const ULONG TAG_TEMP = 'xxmM';
+static const ULONG TAG_SECTION = 'tSmM';
+
+//#define TAG_SECTION 'cSmM'
 
 namespace Mm {
 
@@ -93,7 +99,7 @@ typedef struct _SEGMENT
     PSECTION_IMAGE_INFORMATION_EX ImageInformation;
 } SEGMENT, *PSEGMENT;
 
-class SECTION
+class SECTION : public REF_OBJECT<SECTION, NonPagedPool, TAG_SECTION>
 {
 private:
     static UCHAR DllImageBias;
@@ -111,9 +117,17 @@ private:
     RelativeVpnToSubsectionIndex (
         _In_ ULONG RelativeVpn);
 
+    SECTION (
+        VOID);
+
+    ~SECTION (
+        VOID);
+
+    friend class super;
     friend class MEMORY_MANAGER;
 
 public:
+
 
     static
     NTSTATUS
@@ -124,33 +138,42 @@ public:
 
     static
     NTSTATUS
+    CreatePageFileSection (
+        _Out_ PSECTION* OutSection,
+        _In_ ULONG64 MaximumSize,
+        _In_ ULONG SectionPageProtection,
+        _In_ ULONG AllocationAttributes);
+
+    static
+    NTSTATUS
     CreateImageFileSection (
         _In_ PFILE_OBJECT FileObject);
 
     VOID
     SetPageContent (
-        _In_ ULONG RelativeStartingVpn,
-        _In_ ULONG NumberOfPages,
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages,
         _In_ PVOID Buffer);
 
     NTSTATUS
     PrefetchPages (
-        _In_ ULONG RelativeStartingVpn,
-        _In_ ULONG NumberOfPages);
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages);
+
+    NTSTATUS
+    CreateMapping (
+        _In_ PVOID BaseAddress,
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG Protect);
 
     NTSTATUS
     GetMapping (
         _Out_ PVOID* BaseAddress,
-        _In_ ULONG RelativeStartingVpn,
-        _In_ ULONG NumberOfPages);
-
-    VOID
-    Release (
-        VOID);
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages);
 
 };
-
-
 
 
 }; // namespace Mm

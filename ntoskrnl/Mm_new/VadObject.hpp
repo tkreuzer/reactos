@@ -87,12 +87,13 @@ public:
     const char*
     GetVadType () const = 0;
 
+#if 0
     virtual
     NTSTATUS
     OnPageFault (
         PVOID FaultAddress,
         ULONG_PTR PteContext) = 0;
-
+#endif
 };
 
 typedef class VAD_OBJECT* PVAD_OBJECT;

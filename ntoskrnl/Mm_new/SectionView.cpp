@@ -1,5 +1,10 @@
 
 #include "SectionView.hpp"
+#include "Section.hpp"
+#include "SectionObject.hpp"
+#include "AddressSpace.hpp"
+#include "VadTable.hpp"
+#include "amd64/MachineDependent.hpp"
 #include <ndk/ketypes.h>
 #include <ndk/pstypes.h>
 
@@ -8,7 +13,7 @@ extern "C" struct _OBJECT_TYPE *MmSectionObjectType;
 
 namespace Mm {
 
-const char SectionVadType[] = "SectionView";
+const char SectionViewVadType[] = "SectionView";
 
 enum VA_TYPE
 {
@@ -34,18 +39,67 @@ enum VA_TYPE
 bool
 IsSectionVad(VAD_OBJECT* VadObject)
 {
-    return VadObject->GetVadType() == SectionVadType;
+    return VadObject->GetVadType() == SectionViewVadType;
 }
 
+const char*
+SECTION_VIEW::GetVadType () const
+{
+    return SectionViewVadType;
+}
 
-extern "C" {
+NTSTATUS
+SECTION_VIEW::CreateInstance (
+    _Out_ SECTION_VIEW** OutSectionView,
+    _In_ PSECTION_OBJECT SectionObject)
+{
+    PSECTION_VIEW SectionView;
 
-/** Internal API **************************************************************/
+    /// \todo Evaluate if we can use paged pool for user VADs, when the VAD
+    ///       table doesn't use a spinlock
+    SectionView = static_cast<PSECTION_VIEW>(
+        ExAllocatePoolWithTag(NonPagedPool, sizeof(SECTION_VIEW), 'wVmM'));
+    if (SectionView == NULL)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    new(SectionView) SECTION_VIEW;
+
+    SectionView->m_Section = SectionObject->ReferenceSection();
+    NT_ASSERT(SectionView->m_Section != NULL);
+
+    *OutSectionView = SectionView;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+SECTION_VIEW::CommitPages (
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
+{
+    NTSTATUS Status;
+    PVOID BaseAddress;
+
+    /// \todo check the range
+
+    BaseAddress = AddToPointer(GetBaseAddress(), RelativeStartingVpn * PAGE_SIZE);
+
+    Status = m_Section->CreateMapping(BaseAddress,
+                                      RelativeStartingVpn,
+                                      NumberOfPages,
+                                      Protect);
+
+    // get the SECTION
+    UNIMPLEMENTED;
+    return 0;
+}
 
 NTSTATUS
 NTAPI
-MiMapViewOfSection (
-    _In_ PVOID SectionObject,
+MapViewOfSection (
+    _In_ PSECTION_OBJECT SectionObject,
     _In_ VA_TYPE VaType,
     _Inout_ PVOID *BaseAddress,
     _In_ ULONG_PTR ZeroBits,
@@ -56,24 +110,124 @@ MiMapViewOfSection (
     _In_ ULONG AllocationType,
     _In_ ULONG Protect)
 {
-    // create a section VAD (locked)
-    // insert the VAD into the address space / VAD table
-    // get the "SEGMENT"
-    // Segment->GetSectionView(offset, size)
-    //
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    PADDRESS_SPACE AddressSpace;
+    ULONG_PTR StartingVpn, LowestStartingVpn, HighestEndingVpn;
+    ULONG_PTR BoundaryPageMultiple, ViewSizeInPages;
+    SECTION_VIEW* SectionView;
+    NTSTATUS Status;
+    PVAD_TABLE VadTable;
+
+    ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
+    StartingVpn = AddressToVpn(*BaseAddress);
+
+    if (VaType == VaProcessSpace)
+    {
+        AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+        LowestStartingVpn = 0;
+        HighestEndingVpn = AddressToVpn(MmHighestUserAddress);
+        BoundaryPageMultiple = 16;
+        Protect |= MM_USER;
+
+        /* Check if the caller did not pass a base address */
+        if (StartingVpn == 0)
+        {
+            /* Get the starting VPN from the section object */
+            //StartingVpn = AddressToVpn(SectionObject->GetBaseAddress());
+            __debugbreak();
+        }
+    }
+    else if (VaType == VaSystemSpace)
+    {
+        AddressSpace = &g_KernelAddressSpace;
+        LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
+        HighestEndingVpn = AddressToVpn(SYSTEM_RANGE_END);
+        BoundaryPageMultiple = 1;
+    }
+    else if (VaType == VaSessionSpace)
+    {
+        AddressSpace = 0;
+        LowestStartingVpn = AddressToVpn(SESSION_SPACE_START);
+        HighestEndingVpn = AddressToVpn(SESSION_VIEW_END);
+        BoundaryPageMultiple = 1;
+        Protect |= MM_GLOBAL;
+    }
+
+#if 0
+    // maybe move it to NtMapViewOfSection / MmMapViewOfSection
+    if ((*BaseAddress != NULL) &&
+        (*BaseAddress != ALIGN_DOWN_POINTER_BY(AllocationGranularity)))
+    {
+        return STATUS_MAPPED_ALIGNMENT;
+    }
+#endif
+
+    VadTable = AddressSpace->GetVadTable();
+
+
+    // create a section view VAD (locked)
+    Status = SECTION_VIEW::CreateInstance(&SectionView, SectionObject);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+
+    if (StartingVpn != 0)
+    {
+
+        /* Check if the range is OK */
+        if ((StartingVpn < LowestStartingVpn) ||
+            ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
+            ((StartingVpn + ViewSizeInPages) < StartingVpn))
+        {
+            //SectionView->Release();
+            delete SectionView;
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        Status = VadTable->InsertVadObjectAtVpn(SectionView,
+                                                StartingVpn,
+                                                ViewSizeInPages);
+
+    }
+    else
+    {
+        // insert the VAD into the address space / VAD table
+        Status = VadTable->InsertVadObject(SectionView,
+                                           ViewSizeInPages,
+                                           LowestStartingVpn,
+                                           HighestEndingVpn,
+                                           BoundaryPageMultiple,
+                                           (AllocationType & MEM_TOP_DOWN) != 0);
+
+    }
+
+    if (!NT_SUCCESS(Status))
+    {
+        //SectionView->Release();
+        delete SectionView;
+        return Status;
+    }
+
+    /* Now commit the pages of the section view */
+    Status = SectionView->CommitPages(0, BYTES_TO_PAGES(CommitSize), Protect);
+    NT_ASSERT(NT_SUCCESS(Status));
+
+    return STATUS_SUCCESS;
 }
 
 NTSTATUS
 NTAPI
-MiUnmapViewOfSection (
+UnmapViewOfSection (
     _In_ VA_TYPE VaType,
     _In_ PVOID BaseAddress)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
+
+extern "C" {
+/** Internal API **************************************************************/
 
 NTSTATUS
 NTAPI
@@ -103,16 +257,16 @@ MmMapViewInSystemSpace (
     _Inout_ PSIZE_T ViewSize)
 {
     /* Call the internal function */
-    return MiMapViewOfSection(SectionObject,
-                              VaSystemSpace,
-                              BaseAddress,
-                              0,
-                              *ViewSize,
-                              NULL,
-                              ViewSize,
-                              ViewUnmap,
-                              0,
-                              PAGE_EXECUTE_READWRITE);
+    return MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
+                            VaSystemSpace,
+                            BaseAddress,
+                            0,
+                            *ViewSize,
+                            NULL,
+                            ViewSize,
+                            ViewUnmap,
+                            0,
+                            PAGE_EXECUTE_READWRITE);
 }
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -122,7 +276,7 @@ MmUnmapViewInSystemSpace (
     _In_ PVOID BaseAddress)
 {
     /* Call the internal function */
-    return MiUnmapViewOfSection(VaSystemSpace, BaseAddress);
+    return UnmapViewOfSection(VaSystemSpace, BaseAddress);
 }
 
 _Must_inspect_result_
@@ -135,16 +289,16 @@ MmMapViewInSessionSpace (
     _Inout_ PSIZE_T ViewSize)
 {
     /* Call the internal function */
-    return MiMapViewOfSection(SectionObject,
-                              VaSessionSpace,
-                              BaseAddress,
-                              0,
-                              *ViewSize,
-                              NULL,
-                              ViewSize,
-                              ViewUnmap,
-                              0,
-                              PAGE_EXECUTE_READWRITE);
+    return MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
+                            VaSessionSpace,
+                            BaseAddress,
+                            0,
+                            *ViewSize,
+                            NULL,
+                            ViewSize,
+                            ViewUnmap,
+                            0,
+                            PAGE_EXECUTE_READWRITE);
 }
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -154,7 +308,7 @@ MmUnmapViewInSessionSpace (
     _In_ PVOID BaseAddress)
 {
     /* Call the internal function */
-    return MiUnmapViewOfSection(VaSessionSpace, BaseAddress);
+    return UnmapViewOfSection(VaSessionSpace, BaseAddress);
 }
 
 NTSTATUS
@@ -184,16 +338,16 @@ MmMapViewOfSection (
     }
 
     /* Call the internal function */
-    Status = MiMapViewOfSection(SectionObject,
-                                VaProcessSpace,
-                                BaseAddress,
-                                ZeroBits,
-                                CommitSize,
-                                SectionOffset,
-                                ViewSize,
-                                InheritDisposition,
-                                AllocationType,
-                                Protect);
+    Status = MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
+                              VaProcessSpace,
+                              BaseAddress,
+                              ZeroBits,
+                              CommitSize,
+                              SectionOffset,
+                              ViewSize,
+                              InheritDisposition,
+                              AllocationType,
+                              Protect);
 
     /* Detach if required */
     if (Attached)
@@ -223,7 +377,7 @@ MmUnmapViewOfSection (
     }
 
     /* Call the internal function */
-    Status = MiUnmapViewOfSection(VaProcessSpace, BaseAddress);
+    Status = UnmapViewOfSection(VaProcessSpace, BaseAddress);
 
     /* Detach if required */
     if (Attached)
@@ -340,16 +494,16 @@ NtMapViewOfSection (
     }
 
     /* Call the exported function */
-    Status = MiMapViewOfSection(SectionObject,
-                                VaProcessSpace,
-                                BaseAddressPointer,
-                                ZeroBits,
-                                CommitSize,
-                                SectionOffsetPointer,
-                                ViewSizePointer,
-                                InheritDisposition,
-                                AllocationType,
-                                Win32Protect);
+    Status = MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
+                              VaProcessSpace,
+                              BaseAddressPointer,
+                              ZeroBits,
+                              CommitSize,
+                              SectionOffsetPointer,
+                              ViewSizePointer,
+                              InheritDisposition,
+                              AllocationType,
+                              Win32Protect);
 
     if (NT_SUCCESS(Status))
     {
@@ -416,7 +570,7 @@ NtUnmapViewOfSection (
     }
 
     /* Call the internal function */
-    Status = MiUnmapViewOfSection(VaProcessSpace, BaseAddress);
+    Status = UnmapViewOfSection(VaProcessSpace, BaseAddress);
 
     if (ProcessHandle != NtCurrentProcess())
     {
