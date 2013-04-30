@@ -449,8 +449,9 @@ SECTION::CreateImageFileSection (
     }
 
     /* Get the section image information */
-    GetSectionImageInformation(Section->m_ControlArea.Segment->ImageInformation,
-                               NtHeaders);
+//    GetSectionImageInformation(Section->m_ControlArea.Segment->ImageInformation,
+//                               NtHeaders);
+//    Section->m_ControlArea.Segment->GetSectionImageInformation(NtHeaders);
 
     /// \todo we should probably do this as well, when we reference an
     /// existing section
@@ -486,25 +487,6 @@ Cleanup:
     return Status;
 }
 
-/// \todo Use binary search
-ULONG
-SECTION::RelativeVpnToSubsectionIndex (
-    _In_ ULONG RelativeVpn)
-{
-    /* Loop all subsections */
-    for (ULONG i = 0; i < m_ControlArea.NumberOfSubsections; i++)
-    {
-        /* Check if the requested VPN is inside the subsection */
-        if ((m_Subsections[i].RelativeStartingVpn <= RelativeVpn) &&
-            ((m_Subsections[i].RelativeStartingVpn +
-                 m_Subsections[i].NumberOfPages) > RelativeVpn))
-        {
-            return i;
-        }
-    }
-
-    return ULONG_MAX;
-}
 
 #if 0
 NTSTATUS

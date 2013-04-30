@@ -52,10 +52,17 @@ typedef struct _SECTION_IMAGE_INFORMATION_EX : _SECTION_IMAGE_INFORMATION
     ULONG SizeOfImage;
 } SECTION_IMAGE_INFORMATION_EX, *PSECTION_IMAGE_INFORMATION_EX;
 
+typedef struct _SECTION_FLAGS
+{
+    ULONG Image : 1;
+} SECTION_FLAGS;
+
 typedef struct _CONTROL_AREA
 {
-    struct _SEGMENT* Segment;
-    LIST_ENTRY DereferenceList;
+    class SEGMENT* Segment;
+    PFILE_OBJECT FilePointer;
+    struct _IMAGE_SECTION_HEADER* SectionHeaders;
+    ULONG_PTR SizeInPages;
     ULONG_PTR NumberOfSectionReferences;
     ULONG_PTR NumberOfPfnReferences;
     ULONG_PTR NumberOfMappedViews;
@@ -65,16 +72,18 @@ typedef struct _CONTROL_AREA
     union
     {
         ULONG LongFlags;
-        //MMSECTION_FLAGS Flags;
+        SECTION_FLAGS Flags;
     };
-    PFILE_OBJECT FilePointer;
     struct _EVENT_COUNTER* WaitingForDeletion;
     USHORT ModifiedWriteCount;
     USHORT FlushInProgressCount;
     ULONG WritableUserReferences;
-    ULONG QuadwordPad;
-    PIMAGE_SECTION_HEADER SectionHeaders;
 } CONTROL_AREA, *PCONTROL_AREA;
+
+typedef struct _SUBSECTION_FLAGS
+{
+    ULONG FooBar : 1;
+} SUBSECTION_FLAGS;
 
 typedef struct _SUBSECTION
 {
@@ -82,22 +91,19 @@ typedef struct _SUBSECTION
     union
     {
         ULONG LongFlags;
-        //MMSUBSECTION_FLAGS Flags;
+        SUBSECTION_FLAGS Flags;
     };
     ULONG StartingSector;
     ULONG NumberOfFullSectors;
-    //struct PTE* SubsectionBase;
+    //struct PROTOTYPE* SubsectionBase;
+    ULONG BaseSegmentIndex;
     //ULONG UnusedPtes;
     ULONG RelativeStartingVpn;
     ULONG NumberOfPages;
     //struct _SUBSECTION* NextSubsection;
     struct _IMAGE_SECTION_HEADER* SectionHeader;
+    ULONG Protect;
 } SUBSECTION, *PSUBSECTION;
-
-typedef struct _SEGMENT
-{
-    PSECTION_IMAGE_INFORMATION_EX ImageInformation;
-} SEGMENT, *PSEGMENT;
 
 class SECTION : public REF_OBJECT<SECTION, NonPagedPool, TAG_SECTION>
 {
@@ -115,7 +121,7 @@ private:
 
     ULONG
     RelativeVpnToSubsectionIndex (
-        _In_ ULONG RelativeVpn);
+        _In_ ULONG_PTR RelativeVpn);
 
     SECTION (
         VOID);
@@ -134,7 +140,7 @@ public:
     CreateInstance (
         _Out_ PSECTION* OutSection,
         _In_ ULONG NumberOfSubsections,
-        _In_ ULONG NumberOfPtes);
+        _In_ ULONG_PTR NumberOfPtes);
 
     static
     NTSTATUS

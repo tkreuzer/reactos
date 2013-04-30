@@ -26,7 +26,7 @@ class CONTROL_AREA : public REF_OBJECT<CONTROL_AREA, NonPagedPool, 'ACmM'>
 private:
     EX_PUSH_LOCK m_Lock;
     PFILE_OBJECT m_FileObject;
-    class SEGMENT_OBJECT* m_Segment;
+    class SEGMENT* m_Segment;
 
     CONTROL_AREA (
         VOID);
