@@ -1,6 +1,6 @@
 
 
-#include "ntosbase.h"
+#include "Mapping.hpp"
 #include "PfnDatabase.hpp"
 #include "CommitCharge.hpp"
 #include "amd64/PageTables.hpp"
@@ -525,7 +525,59 @@ ReservePageTables (
                          NULL);
 }
 
+VOID
+MapPfnArray (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ PPFN_NUMBER PfnArray,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
+{
+    PFN_NUMBER PfnOfPt;
+    PTE TemplatePte;
+    PPTE CurrentPte;
+    ULONG NumberOfNewPtes;
 
+    /* Create a template PTE */
+    TemplatePte.MakeValidPte(0, Protect);
+
+    /* Get the PFN of the page table */
+    PfnOfPt = VpnToPde(StartingVpn)->GetPageFrameNumber();
+
+    /* Get the starting PTE */
+    CurrentPte = VpnToPte(StartingVpn);
+
+    NumberOfNewPtes = 0;
+
+    /* Lock the address space */
+    // AddressSpace->AcquireLock();
+
+    /* Now loop all reserved PTEs */
+    do
+    {
+        /* Make sure the PTE is a no-access PTE and map the next PFN */
+        NT_ASSERT(CurrentPte->IsNoAccess());
+        TemplatePte.SetPageFrameNumber(*PfnArray);
+        CurrentPte->WriteValidPte(TemplatePte);
+        NumberOfNewPtes++;
+
+        CurrentPte++;
+        PfnArray++;
+
+        /* Update the PFN of the PT, if we reached the next PT */
+        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+        {
+            /* Increment the active count in the PT */
+            g_PfnDatabase.IncrementValidCount(PfnOfPt, NumberOfNewPtes);
+
+            PfnOfPt = PdeToPte(CurrentPte)->GetPageFrameNumber();
+            NumberOfNewPtes = 0;
+        }
+    }
+    while (--NumberOfPages);
+
+    /* Unlock the address space */
+    // AddressSpace->ReleaseLock();
+}
 
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -586,7 +638,7 @@ MapPhysicalMemory (
         CurrentPte++;
         BasePageFrameNumber++;
 
-        /* Update the ÜFN of the PT, if we reached the next PT */
+        /* Update the PFN of the PT, if we reached the next PT */
         if (CurrentPte->IsPdeBoundary())
         {
             /* Increment the active count in the PT */

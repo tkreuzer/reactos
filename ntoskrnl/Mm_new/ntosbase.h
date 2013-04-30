@@ -207,6 +207,13 @@ operator new(size_t Size, enum _POOL_TYPE PoolType, ULONG Tag)
 }
 
 inline
+void*
+operator new(size_t Size, enum _POOL_TYPE PoolType, SIZE_T AllocSize, ULONG PoolTag)
+{
+    return ExAllocatePoolWithTag(PoolType, AllocSize, PoolTag);
+}
+
+inline
 void operator delete(void* P)
 {
     ExFreePool(P);

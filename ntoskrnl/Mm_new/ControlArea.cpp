@@ -1,6 +1,6 @@
 
 #include "ControlArea.hpp"
-#include "SegmentObject.hpp"
+#include "Segment.hpp"
 
 namespace Mm {
 
@@ -46,7 +46,7 @@ CONTROL_AREA::ReferenceOrCreateControlArea (
     PFSRTL_COMMON_FCB_HEADER FcbHeader;
     PVOID* ControlAreaPointer, *OtherControlAreaPointer;
     PCONTROL_AREA ControlArea, OtherControlArea;
-    PSEGMENT_OBJECT Segment;
+    PSEGMENT Segment;
     NTSTATUS Status;
 
     /* Assume success */
@@ -112,7 +112,7 @@ CONTROL_AREA::ReferenceOrCreateControlArea (
     if (Segment == NULL)
     {
         /* Yes, so create one */
-        Status = SEGMENT_OBJECT::CreateInstance(&Segment);
+        Status = SEGMENT::CreateInstance(&Segment, 1); /// FIXME
         if (!NT_SUCCESS(Status))
         {
             goto Done;

@@ -117,6 +117,8 @@ MapViewOfSection (
     NTSTATUS Status;
     PVAD_TABLE VadTable;
 
+__debugbreak();
+
     ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
     StartingVpn = AddressToVpn(*BaseAddress);
 

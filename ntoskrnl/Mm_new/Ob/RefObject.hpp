@@ -56,6 +56,13 @@ protected:
     }
 
     inline
+    void*
+    operator new(size_t Size, SIZE_T AllocSize)
+    {
+        return ExAllocatePoolWithTag(_PoolType, AllocSize, _PoolTag);
+    }
+
+    inline
     void
     operator delete(void* P)
     {

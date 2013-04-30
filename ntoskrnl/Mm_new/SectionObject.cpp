@@ -96,11 +96,7 @@ SECTION_OBJECT::CreateInstance (
     NTSTATUS Status;
 
     /* Check if this is a file backed section */
-    if (FileObject != NULL)
-    {
-        UNIMPLEMENTED;
-    }
-    else
+    if (FileObject == NULL)
     {
         /* No backing file, so create a new page-file backed SECTION */
         Status = SECTION::CreatePageFileSection(&Section,
@@ -111,6 +107,26 @@ SECTION_OBJECT::CreateInstance (
         {
             ERR("Failed to create SECTION: 0x%lx\n", Status);
             return Status;
+        }
+    }
+    else
+    {
+        PSECTION_OBJECT_POINTERS SectionObjectPointers = FileObject->SectionObjectPointer;
+
+        if (SectionObjectPointers == NULL)
+        {
+            return STATUS_INVALID_FILE_FOR_SECTION;
+        }
+
+        if (AllocationAttributes & SEC_IMAGE)
+        {
+            // reference existing section or create a new one
+            UNIMPLEMENTED;
+        }
+        else
+        {
+            // reference existing section or create a new one
+            UNIMPLEMENTED;
         }
     }
 
@@ -132,7 +148,7 @@ SECTION_OBJECT::CreateInstance (
     SectionObject->m_SectionFlags = 0;
     SectionObject->m_PageProtection = SectionPageProtection;
 
-    /* Return the section */
+    /* Return the section object */
     *OutSectionObject = SectionObject;
 
     return STATUS_SUCCESS;
@@ -161,17 +177,15 @@ extern "C" {
 PFILE_OBJECT
 NTAPI
 MmGetFileObjectForSection (
-    _In_ PVOID Section)
+    _In_ PVOID SectionObject)
 {
-    SECTION_OBJECT* SectionObject = static_cast<SECTION_OBJECT*>(Section);
-
-    return SectionObject->GetFileObject();
+    return static_cast<PSECTION_OBJECT>(SectionObject)->GetFileObject();
 }
 
 NTSTATUS
 NTAPI
 MmGetFileNameForSection (
-    _In_ PVOID Section,
+    _In_ PVOID SectionObject,
     _Out_ POBJECT_NAME_INFORMATION *ModuleName)
 {
     UNIMPLEMENTED;
@@ -196,6 +210,7 @@ MmCreateSection (
     _In_opt_ PFILE_OBJECT FileObject)
 {
     SECTION_OBJECT* SectionObject;
+    ACCESS_MASK FileAccess;
     NTSTATUS Status;
 
     /* This is not used here */
@@ -216,8 +231,11 @@ MmCreateSection (
                                                 ExGetPreviousMode(),
                                                 &FileObject);
 #endif
+        /// \todo properly calculate access
+        FileAccess = FILE_READ_DATA | FILE_WRITE_DATA | SYNCHRONIZE;
+
         Status = ObReferenceObjectByHandle(FileHandle,
-                                           DesiredAccess,
+                                           FileAccess,
                                            IoFileObjectType,
                                            ExGetPreviousMode(),
                                            reinterpret_cast<PVOID*>(&FileObject),
@@ -338,8 +356,8 @@ __debugbreak();
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
-            //ERR("Exception!\n");
-            //Status = _SEH2_GetExceptionCode();
+            ERR("Exception!\n");
+            Status = _SEH2_GetExceptionCode();
         }
         _SEH2_END;
     }
