@@ -137,6 +137,8 @@ SECTION::RelativeVpnToSubsectionIndex (
 }
 
 #if 0
+// This much simpler variant can be used, if the prototypes are created with
+// a protection according to the subsection protection
 NTSTATUS
 SECTION::CreateMapping (
     _In_ PVOID BaseAddress,
@@ -146,6 +148,10 @@ SECTION::CreateMapping (
 {
     /* Make sure everything we map is inside this section */
     NT_ASSERT((RelativeStartingVpn + NumberOfPages) <= m_ControlArea.SizeInPages);
+
+    /* If this is an image, use the protection from the prototype */
+    if (m_ControlArea.Flags.Image)
+        Protect = -1;
 
     return m_ControlArea.Segment->MapPages(AddressToVpn(BaseAddress),
                                            RelativeStartingVpn,
@@ -207,7 +213,7 @@ SECTION::CreateMapping (
         MaxPageCount = Subsection->NumberOfPages - StartingPageIndex;
         CurrentPageCount = min(NumberOfPages, MaxPageCount);
 
-        /* Map the pages of this subsection */
+        /* Map the prototype PTEs of this subsection */
         m_ControlArea.Segment->MapPages(MappingVpn,
                                         RelativeStartingVpn,
                                         CurrentPageCount,

@@ -23,6 +23,7 @@ enum PTE_TYPE
     PteCopyOnWrite,
     PteDemandAny,
     PteEmpty,
+    PteNoAccess,
 };
 
 typedef struct _HARDWARE_PTE
@@ -37,7 +38,7 @@ typedef struct _HARDWARE_PTE
     UINT64 LargePage : 1;
     UINT64 Global : 1;
     UINT64 CopyOnWrite : 1;
-    UINT64 ActiveType : 2;
+    UINT64 Reserved0 : 2;
     UINT64 PageFrameNumber : 36;
     UINT64 Reserved1 : 4;
     UINT64 SoftwareWsIndex : 11;
@@ -49,20 +50,33 @@ typedef struct _SOFTWARE_PTE
     UINT64 MustBeZero : 1;
     UINT64 HardwareState : 8;
     UINT64 CopyOnWrite : 1;
-    UINT64 SoftType : 2;
+    UINT64 Prototype : 1;
+    UINT64 Transition : 1;
     UINT64 Reserved : 46;
     UINT64 Protection : 5;
     UINT64 NoExecuteOverlay : 1;
 } SOFTWARE_PTE, *PSOFTWARE_PTE;
+
+typedef struct _TRANSITION_PTE
+{
+    UINT64 MustBeZero : 1;
+    UINT64 HardwareState : 8;
+    UINT64 CopyOnWrite : 1;
+    UINT64 Reserved0 : 1;
+    UINT64 Transition : 1;
+    UINT64 PageFrameNumber : 36;
+    UINT64 Reserved1 : 15;
+    UINT64 NoExecute : 1;
+} TRANSITION_PTE, *PTRANSITION_PTE;
 
 typedef struct _PAGEFILE_PTE
 {
     UINT64 MustBeZero : 1;
     UINT64 HardwareState : 8;
     UINT64 CopyOnWrite : 1;
-    UINT64 Prototype : 1;
-    UINT64 Transition : 1;
-    UINT64 PageFileIndex : 36;
+    UINT64 Reserved0 : 2;
+    UINT64 PageFileNumber : 4;
+    UINT64 PageFileIndex : 32;
     UINT64 PageFileReserved : 1;
     UINT64 PageFileAllocated : 1;
     UINT64 DbgCrc : 7;
@@ -83,6 +97,8 @@ typedef struct _PROTOTYPE_PTE
     UINT64 Protection : 5;
     INT64 ProtoAddress : 48;
 } PROTOTYPE_PTE, *PPROTOTYPE_PTE;
+
+static const PROTOTYPE_PTE PrototypePte = {0, 0, 0, 0, 0, 0, 1, 0, 0};
 
 typedef struct _VAD_PTE
 {
@@ -117,16 +133,15 @@ static const HARDWARE_PTE ValidPte                = {1,0,0,0,0,0,0,0,0,0,0,0,0,0
 static const HARDWARE_PTE ValidPde                = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static const HARDWARE_PTE ValidLargePagePde       = {1,0,0,0,0,0,0,1,0,0,0,0,0,0,0};
 
-extern const HARDWARE_PTE ProtectToPte[32] ;
-
 class PTE_COMMON
 {
 protected:
     union
     {
         HARDWARE_PTE Hard;
-        SOFTWARE_PTE Soft;
         PROTOTYPE_PTE Proto;
+        SOFTWARE_PTE Soft;
+        PAGEFILE_PTE PageFile;
         ULONG64 Long;
     };
 
@@ -188,6 +203,12 @@ public:
         if (this->Hard.LargePage) Protect |= MM_LARGEPAGE;
         return Protect;
     }
+
+    VOID
+    ReadValue (PTE_COMMON* TargetPte)
+    {
+        TargetPte->Long = this->Long;
+    }
 };
 
 class PTE : public PTE_COMMON
@@ -239,6 +260,13 @@ public:
     }
 
     inline
+    bool
+    IsCopyOnWrite ()
+    {
+        return this->Hard.CopyOnWrite;
+    }
+
+    inline
     VOID
     MakeValidPte (
         _In_ PFN_NUMBER PageFrameNumber,
@@ -277,11 +305,13 @@ public:
 
     inline
     VOID
-    MakeProtoPte (
+    MakePrototypePte (
         _In_ PPROTOTYPE Prototype)
     {
-        /// \todo IMPLEMENT ME
-        UNIMPLEMENTED;
+        PROTOTYPE_PTE ProtoPte = {0};
+        ProtoPte.Prototype = 1;
+        ProtoPte.ProtoAddress = reinterpret_cast<ULONG64>(Prototype) & 0x7FFFFFFFFFFFULL;
+        this->Proto = ProtoPte;
     }
 
     inline
@@ -315,28 +345,36 @@ public:
     GetPteType (
         VOID)
     {
-        if (Hard.Valid)
+        if (this->Hard.Valid)
         {
-            if (this->Hard.CopyOnWrite)
-            {
-                if (this->Hard.PageFrameNumber == GlobalZeroPfn)
-                    return PteDemandZero;
-                else
-                    return PteCopyOnWrite;
-            }
-            else
-                return PteValid;
+            return PteValid;
+        }
+        else if (this->Soft.Prototype)
+        {
+            return PtePrototype;
+        }
+        else if (this->Soft.Transition)
+        {
+            return PteTransition;
+        }
+        else if (this->PageFile.PageFileIndex != 0)
+        {
+            return PtePageFile;
+        }
+        else if (this->PageFile.CopyOnWrite)
+        {
+            return PteDemandZero;
+        }
+        else if (this->Long == 0)
+        {
+            return PteEmpty;
         }
         else
         {
-            if (this->Long == 0)
-                return PteEmpty;
-            if (this->Proto.Prototype)
-                return PtePrototype;
-
+            NT_ASSERT(this->Hard.NoExecute == 1);
+            return PteNoAccess;
         }
     }
-
 
 };
 
@@ -442,44 +480,6 @@ enum PAGE_FAULT_ERROR_CODE
     PFEC_RESERVED = 0x08,
     PFEC_INSTRUCTION_FETCH = 0x10
 };
-
-enum FAULT_REASON
-{
-    FaultReasonPrivilegeViolation,
-    FaultReasonNoExecute,
-    FaultReasonProtectionViolation,
-};
-
-inline
-FAULT_REASON
-GetFaultReason (
-    PVOID Address,
-    PAGE_FAULT_ERROR_CODE ErrorCode)
-{
-    /* First check for a privilege violation */
-    if ((ErrorCode & PFEC_USER) && (Address > MmHighestUserAddress))
-    {
-        return FaultReasonPrivilegeViolation;
-    }
-
-    if (ErrorCode & PFEC_PROTECT)
-    {
-        if (ErrorCode & PFEC_INSTRUCTION_FETCH)
-        {
-            return FaultReasonNoExecute;
-        }
-        else
-        {
-            /* This must be a write operation */
-            NT_ASSERT(ErrorCode & PFEC_WRITE);
-            return FaultReasonProtectionViolation;
-        }
-    }
-    else
-    {
-        //if (
-    }
-}
 
 PPTE
 FORCEINLINE
