@@ -12,7 +12,7 @@ class SEGMENT : public REF_OBJECT<SEGMENT, PagedPool, 'OSmM'>
 {
     struct _SECTION_IMAGE_INFORMATION_EX* ImageInformation;
     ULONG_PTR m_NumberOfPages;
-    PFN_NUMBER m_PfnArray[1];
+    PROTOTYPE m_ThePrototypes[1];
 
 public:
 

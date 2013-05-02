@@ -14,7 +14,7 @@ SEGMENT::CreateInstance (
     SIZE_T Size;
 
     /* Calculate the size of the segment including the PFN array */
-    Size = FIELD_OFFSET(SEGMENT, m_PfnArray[NumberOfPages]);
+    Size = FIELD_OFFSET(SEGMENT, m_ThePrototypes[NumberOfPages]);
 
     /* Allocate the segment */
     Segment = new(Size) SEGMENT;
@@ -38,11 +38,11 @@ SEGMENT::MapPages (
     ULONG_PTR NumberOfPages,
     ULONG Protect)
 {
-    NT_ASSERT(RelativeStartingVpn + NumberOfPages <= m_NumberOfPages);
-    MapPfnArray(StartingVpn,
-                &m_PfnArray[RelativeStartingVpn],
-                NumberOfPages,
-                Protect);
+    NT_ASSERT((RelativeStartingVpn + NumberOfPages) <= m_NumberOfPages);
+    MapPrototypePtes(StartingVpn,
+                     NumberOfPages,
+                     &m_ThePrototypes[RelativeStartingVpn],
+                     Protect);
 }
 
 

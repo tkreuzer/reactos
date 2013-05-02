@@ -44,13 +44,136 @@ const ULONG MmProtectToWin32Protect[32] =
     PAGE_WRITECOMBINE | PAGE_EXECUTE_WRITECOPY
 };
 
+inline
 NTSTATUS
-MiResolveFaultForPte (
-    PPTE PtePointer,
-    PVOID Address,
-    IN KPROCESSOR_MODE Mode,
-    BOOLEAN StoreInstruction)
+ResolveDemandZeroFault (
+    _In_ PPTE PtePointer,
+    _In_ PVOID Address,
+    _In_ IN KPROCESSOR_MODE Mode,
+    _In_ UCHAR AccessFlags)
 {
+    UNIMPLEMENTED;
+    return STATUS_ACCESS_VIOLATION;
+}
+
+inline
+NTSTATUS
+ResolveCopyOnWriteFault (
+    _In_ PPTE PtePointer,
+    _In_ PVOID Address,
+    _In_ IN KPROCESSOR_MODE Mode,
+    _In_ UCHAR AccessFlags)
+{
+    UNIMPLEMENTED;
+    return STATUS_ACCESS_VIOLATION;
+}
+
+inline
+NTSTATUS
+ResolveFaultForPte (
+    _In_ PPTE PtePointer,
+    _In_ PVOID Address,
+    _In_ IN KPROCESSOR_MODE Mode,
+    _In_ PVOID TrapInformation,
+    _In_ UCHAR AccessFlags)
+{
+    PTE PteValue;
+
+    /* Read the PTE value */
+    PtePointer->ReadValue(&PteValue);
+
+    switch (PteValue.GetPteType())
+    {
+    case PteValid:
+
+        /* Check if this was a write instruction */
+        if (AccessFlags & PFEC_WRITE)
+        {
+            if (PteValue.IsWritable())
+                return STATUS_SUCCESS;
+
+            if (PteValue.IsCopyOnWrite())
+            {
+                return ResolveCopyOnWriteFault(PtePointer,
+                                               Address,
+                                               Mode,
+                                               AccessFlags);
+            }
+
+            /* On non-debug versions, we bug-check for kernel mode access */
+            if (!DBG && (Mode == KernelMode))
+            {
+                KeBugCheckEx(ATTEMPTED_WRITE_TO_READONLY_MEMORY,
+                             (ULONG_PTR)Address,
+                             *(ULONG_PTR*)&PteValue,
+                             0,
+                             0);
+            }
+
+            /* User mode or debug build: dispatch the fault */
+            return STATUS_ACCESS_VIOLATION;
+        }
+
+        /* Check if this was due to instruction execution */
+        if (AccessFlags & PFEC_INSTRUCTION_FETCH)
+        {
+            if (PteValue.IsExecutable())
+                return STATUS_SUCCESS;
+
+            /* On non-debug versions, we bug-check for kernel mode access */
+            if (!DBG && (Mode == KernelMode))
+            {
+                KeBugCheckEx(ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
+                             (ULONG_PTR)Address,
+                             *(ULONG_PTR*)&PteValue,
+                             0,
+                             0);
+            }
+
+            /* User mode or debug build: dispatch the fault */
+            return STATUS_ACCESS_VIOLATION;
+        }
+
+        /* A read instruction accessed memory, which is now valid, so the fault
+           must have been resolved by a concurrent thread already. */
+        return STATUS_SUCCESS;
+
+    case PtePrototype:
+
+        __debugbreak();
+        break;
+
+    case PteDemandZero:
+
+        return ResolveDemandZeroFault(PtePointer,
+                                      Address,
+                                      Mode,
+                                      AccessFlags);
+
+    case PteTransition:
+    case PtePageFile:
+        __debugbreak();
+
+
+    case PteNoAccess:
+    case PteEmpty:
+
+        /* On non-debug versions, we bug-check for kernel mode access */
+        if (!DBG && (Mode == KernelMode))
+        {
+            KeBugCheckEx(PAGE_FAULT_IN_NONPAGED_AREA,
+                         (ULONG_PTR)Address,
+                         (AccessFlags & PFEC_WRITE) ? 1 : 0,
+                         (ULONG_PTR)TrapInformation,
+                         0);
+        }
+
+        /* Both of these are not accessible / resolvable */
+        return STATUS_ACCESS_VIOLATION;
+
+    DEFAULT_UNREACHABLE;
+    }
+
     UNIMPLEMENTED;
     return STATUS_ACCESS_VIOLATION;
 }
@@ -58,11 +181,11 @@ MiResolveFaultForPte (
 extern "C"
 NTSTATUS
 NTAPI
-MmAccessFault(
-    IN BOOLEAN StoreInstruction,
-    IN PVOID Address,
-    IN KPROCESSOR_MODE Mode,
-    IN PVOID TrapInformation)
+MmAccessFault (
+    _In_ UCHAR AccessFlags,
+    _In_ PVOID Address,
+    _In_ KPROCESSOR_MODE Mode,
+    _In_ PVOID TrapInformation)
 {
     PETHREAD Thread;
     NTSTATUS Status;
@@ -83,18 +206,17 @@ MmAccessFault(
 #endif
         (!AddressToPpe(Address)->IsValid()))
     {
-#if !DBG
         /* On non-debug versions, we bug-check, otherwise dispatch the fault */
-        if (Mode == KernelMode)
+        if ((Mode == KernelMode) && !DBG)
         {
             KeBugCheckEx(PAGE_FAULT_IN_NONPAGED_AREA,
                          (ULONG_PTR)Address,
-                         StoreInstruction,
+                         (AccessFlags & PFEC_WRITE) ? 1 : 0,
                          (ULONG_PTR)TrapInformation,
                          0);
         }
-#endif
-        /* Dispatch the fault */
+
+        /* User mode or debug build: dispatch the fault */
         return STATUS_ACCESS_VIOLATION;
     }
 #endif
@@ -102,8 +224,6 @@ MmAccessFault(
 DbgPrint("Pagefault for Address %p, PdeAddress = %p (%d), PteAddress = %p\n",
          Address, AddressToPde(Address), AddressToPde(Address)->IsValid(),
          AddressToPte(Address));
-
-__debugbreak();
 
     /* Get current thread and increment active fault count */
     Thread = PsGetCurrentThread();
@@ -114,10 +234,11 @@ __debugbreak();
        fault get's dispatched and we catch it here */
     _SEH2_TRY
     {
-        Status = MiResolveFaultForPte(AddressToPte(Address),
-                                      Address,
-                                      Mode,
-                                      StoreInstruction);
+        Status = ResolveFaultForPte(AddressToPte(Address),
+                                    Address,
+                                    Mode,
+                                    TrapInformation,
+                                    AccessFlags);
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {

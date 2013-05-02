@@ -180,7 +180,7 @@ MapPdesAndPtes (
             {
                 if (CurrentPte->IsEmpty())
                 {
-                    CurrentPte->MakeProtoPte(*PrototypePtePointer);
+                    CurrentPte->MakePrototypePte(*PrototypePtePointer);
                     NumberOfNewPtes++;
                 }
                 else
@@ -526,6 +526,56 @@ ReservePageTables (
 }
 
 VOID
+MapPrototypePtes (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ PPROTOTYPE Ptototypes,
+    _In_ ULONG Protect)
+{
+    PFN_NUMBER PfnOfPt;
+    PPTE CurrentPte;
+    ULONG NumberOfNewPtes;
+
+    /* Get the PFN of the page table */
+    PfnOfPt = VpnToPde(StartingVpn)->GetPageFrameNumber();
+
+    /* Get the starting PTE */
+    CurrentPte = VpnToPte(StartingVpn);
+
+    NumberOfNewPtes = 0;
+
+    /* Lock the address space */
+    // AddressSpace->AcquireLock();
+
+    /* Now loop all reserved PTEs */
+    do
+    {
+        /* Make sure the PTE is a no-access PTE and make it a prototype PTE */
+        NT_ASSERT(CurrentPte->IsNoAccess());
+        CurrentPte->MakePrototypePte(Ptototypes);
+        NumberOfNewPtes++;
+
+        CurrentPte++;
+        Ptototypes++;
+        NumberOfPages--;
+
+        /* Update the PFN of the PT, if we reached the next PT or the end */
+        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+        {
+            /* Increment the valid count in the PT */
+            g_PfnDatabase.IncrementValidCount(PfnOfPt, NumberOfNewPtes);
+
+            PfnOfPt = PdeToPte(CurrentPte)->GetPageFrameNumber();
+            NumberOfNewPtes = 0;
+        }
+    }
+    while (NumberOfPages);
+
+    /* Unlock the address space */
+    // AddressSpace->ReleaseLock();
+}
+
+VOID
 MapPfnArray (
     _In_ ULONG_PTR StartingVpn,
     _In_ PPFN_NUMBER PfnArray,
@@ -562,18 +612,19 @@ MapPfnArray (
 
         CurrentPte++;
         PfnArray++;
+        NumberOfPages--;
 
-        /* Update the PFN of the PT, if we reached the next PT */
+        /* Update the PFN of the PT, if we reached the next PT or the end */
         if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
         {
-            /* Increment the active count in the PT */
+            /* Increment the valid count in the PT */
             g_PfnDatabase.IncrementValidCount(PfnOfPt, NumberOfNewPtes);
 
             PfnOfPt = PdeToPte(CurrentPte)->GetPageFrameNumber();
             NumberOfNewPtes = 0;
         }
     }
-    while (--NumberOfPages);
+    while (NumberOfPages);
 
     /* Unlock the address space */
     // AddressSpace->ReleaseLock();

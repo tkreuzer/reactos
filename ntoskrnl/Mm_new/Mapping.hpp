@@ -30,6 +30,13 @@ ReservePageTables (
     _In_ ULONG Protect);
 
 VOID
+MapPrototypePtes (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ PPROTOTYPE Ptototypes,
+    _In_ ULONG Protect);
+
+VOID
 MapPfnArray (
     _In_ ULONG_PTR StartingVpn,
     _In_ PPFN_NUMBER PfnArray,
