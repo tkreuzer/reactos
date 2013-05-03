@@ -24,12 +24,25 @@ SEGMENT::CreateInstance (
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
+    /* Initialize the segment */
     RtlZeroMemory(Segment, Size);
     Segment->m_NumberOfPages = NumberOfPages;
 
     *OutSegment = Segment;
     return STATUS_SUCCESS;
 }
+
+NTSTATUS
+SEGMENT::CommitDemandZeroPages (
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages)
+{
+
+    // Charge system commit
+    UNIMPLEMENTED;
+    return 0;
+}
+
 
 VOID
 SEGMENT::MapPages (
