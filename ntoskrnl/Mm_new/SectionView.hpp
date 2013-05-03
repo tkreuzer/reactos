@@ -21,6 +21,13 @@ public:
         _Out_ SECTION_VIEW** OutSectionView,
         _In_ class SECTION_OBJECT* SectionObject);
 
+    NTSTATUS
+    CreateMapping (
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG_PTR CommitSizeInPages,
+        _In_ ULONG Protect);
+
     virtual
     NTSTATUS
     CommitPages (

@@ -72,6 +72,7 @@ SECTION::CreateInstance (
     RtlZeroMemory(Section, Size);
     Section->m_ControlArea.NumberOfSubsections = NumberOfSubsections;
     Section->m_ControlArea.Segment = Segment;
+    Section->m_ControlArea.SizeInPages = NumberOfPages;
 
     *OutSection = Section;
     return STATUS_SUCCESS;
@@ -99,21 +100,40 @@ SECTION::CreatePageFileSection (
         ERR("Failed to allocate a SECTION: 0x%lx\n", Status);
         return Status;
     }
-#if 0
-    Status = Segment->AllocateDemandZeroPages(0, NumberOfPages);
-    if (!NT_SUCESS(Status))
-    {
-        ERR("Failed to allocate pages for segment: 0x%lx\n", Status);
-    }
-#endif
 
     /* Initialize the subsection */
     Section->m_Subsections[0].RelativeStartingVpn = 0;
     Section->m_Subsections[0].NumberOfPages = NumberOfPages;
     Section->m_Subsections[0].BaseSegmentIndex = 0;
 
+    /* Check if committing is requested */
+    if (AllocationAttributes & SEC_COMMIT)
+    {
+        /* Remember this fact */
+        Section->m_ControlArea.Flags.Commit = TRUE;
+
+        /* Commit all pages in the segment */
+        Status = Section->m_ControlArea.Segment->CommitDemandZeroPages(0, NumberOfPages);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("Failed to commit pages for segment: 0x%lx\n", Status);
+            Section->Release();
+            return Status;
+        }
+    }
+
     *OutSection = Section;
     return STATUS_SUCCESS;
+}
+
+NTSTATUS
+SECTION::CommitPages (
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
+{
+    UNIMPLEMENTED;
+    return 0;
 }
 
 /// \todo Use binary search
@@ -170,10 +190,14 @@ SECTION::CreateMapping (
     PSUBSECTION Subsection;
     ULONG SubsectionIndex;
     NTSTATUS Status;
+    NT_ASSERT(NumberOfPages != 0);
 
     /* Make sure everything we map is inside this section */
-    NT_ASSERT((RelativeStartingVpn + NumberOfPages) <= m_ControlArea.SizeInPages);
-    NT_ASSERT(NumberOfPages != 0);
+    if ((RelativeStartingVpn + NumberOfPages) > m_ControlArea.SizeInPages)
+    {
+        ERR("Exceeding section size\n");
+        return STATUS_INVALID_PARAMETER;
+    }
 
     /* Calculate the starting VPN for the mapping */
     MappingVpn = AddressToVpn(BaseAddress);

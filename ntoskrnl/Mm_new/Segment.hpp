@@ -22,6 +22,11 @@ public:
         _Out_ PSEGMENT* OutSegmentObject,
         _In_ ULONG_PTR NumberOfPages);
 
+    NTSTATUS
+    CommitDemandZeroPages (
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages);
+
     VOID
     MapPages (
         ULONG_PTR MappingVpn,

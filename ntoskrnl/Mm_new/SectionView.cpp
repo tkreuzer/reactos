@@ -97,6 +97,42 @@ SECTION_VIEW::CommitPages (
 }
 
 NTSTATUS
+SECTION_VIEW::CreateMapping (
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG_PTR CommitSizeInPages,
+    _In_ ULONG Protect)
+{
+    NTSTATUS Status;
+
+    /* Forward the mapping request to the section */
+    Status = m_Section->CreateMapping(GetBaseAddress(),
+                                      RelativeStartingVpn,
+                                      NumberOfPages,
+                                      Protect);
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to create prototype PTE mapping: 0x%lx\n", Status);
+        return Status;
+    }
+
+    /* Check if we shall commit pages */
+    if (CommitSizeInPages != 0)
+    {
+        /* Commit the requested size of the backing section memory */
+        Status = m_Section->CommitPages(0, CommitSizeInPages, Protect);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("Failed to commit pages for section: 0x%lx\n", Status);
+            __debugbreak(); // we need to make sure that the memory gets unmapped!
+            return Status;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
 NTAPI
 MapViewOfSection (
     _In_ PSECTION_OBJECT SectionObject,
@@ -111,7 +147,7 @@ MapViewOfSection (
     _In_ ULONG Protect)
 {
     PADDRESS_SPACE AddressSpace;
-    ULONG_PTR StartingVpn, LowestStartingVpn, HighestEndingVpn;
+    ULONG_PTR StartingVpn, LowestStartingVpn, HighestEndingVpn, RelativeStartingVpn;
     ULONG_PTR BoundaryPageMultiple, ViewSizeInPages;
     SECTION_VIEW* SectionView;
     NTSTATUS Status;
@@ -119,8 +155,31 @@ MapViewOfSection (
 
 __debugbreak();
 
+    // Check ViewSize
+
+    if (CommitSize > *ViewSize)
+    {
+        return STATUS_INVALID_PARAMETER_5;
+    }
+
     ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
     StartingVpn = AddressToVpn(*BaseAddress);
+
+    /* Check if the caller specified a section offset */
+    if (SectionOffset != NULL)
+    {
+        /* Check if it's valid */
+        if (SectionOffset->QuadPart >= (ULONG64)MAXULONG * PAGE_SIZE)
+        {
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        RelativeStartingVpn = BYTES_TO_PAGES(SectionOffset->QuadPart);
+    }
+    else
+    {
+        RelativeStartingVpn = 0;
+    }
 
     if (VaType == VaProcessSpace)
     {
@@ -134,7 +193,7 @@ __debugbreak();
         if (StartingVpn == 0)
         {
             /* Get the starting VPN from the section object */
-            //StartingVpn = AddressToVpn(SectionObject->GetBaseAddress());
+            //StartingVpn = AddressToVpn(m_Section->GetBaseAddress());
             __debugbreak();
         }
     }
@@ -157,36 +216,34 @@ __debugbreak();
 #if 0
     // maybe move it to NtMapViewOfSection / MmMapViewOfSection
     if ((*BaseAddress != NULL) &&
-        (*BaseAddress != ALIGN_DOWN_POINTER_BY(AllocationGranularity)))
+        (*BaseAddress != ALIGN_DOWN_POINTER_BY(BoundaryPageMultiple * PAGE_SIZE)))
     {
         return STATUS_MAPPED_ALIGNMENT;
     }
 #endif
 
-    VadTable = AddressSpace->GetVadTable();
+    /* Check if the range is OK */
+    if (((StartingVpn != 0) && (StartingVpn < LowestStartingVpn)) ||
+        ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
+        ((StartingVpn + ViewSizeInPages) < StartingVpn))
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
 
-
-    // create a section view VAD (locked)
+    /* Create a section view VAD */
     Status = SECTION_VIEW::CreateInstance(&SectionView, SectionObject);
     if (!NT_SUCCESS(Status))
     {
+        ERR("Failed to create section view VAD: 0x%lx\n", Status);
         return Status;
     }
 
+    VadTable = AddressSpace->GetVadTable();
 
+    /* Check if a base address was specified */
     if (StartingVpn != 0)
     {
-
-        /* Check if the range is OK */
-        if ((StartingVpn < LowestStartingVpn) ||
-            ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
-            ((StartingVpn + ViewSizeInPages) < StartingVpn))
-        {
-            //SectionView->Release();
-            delete SectionView;
-            return STATUS_INVALID_PARAMETER;
-        }
-
+        /* Try to insert the VAD at the corresponding VPN */
         Status = VadTable->InsertVadObjectAtVpn(SectionView,
                                                 StartingVpn,
                                                 ViewSizeInPages);
@@ -194,14 +251,14 @@ __debugbreak();
     }
     else
     {
-        // insert the VAD into the address space / VAD table
+        /// \todo check if the section has a preferred address and then try to map there first
+        /* Insert the VAD into the VAD table */
         Status = VadTable->InsertVadObject(SectionView,
                                            ViewSizeInPages,
                                            LowestStartingVpn,
                                            HighestEndingVpn,
                                            BoundaryPageMultiple,
                                            (AllocationType & MEM_TOP_DOWN) != 0);
-
     }
 
     if (!NT_SUCCESS(Status))
@@ -211,10 +268,22 @@ __debugbreak();
         return Status;
     }
 
-    /* Now commit the pages of the section view */
-    Status = SectionView->CommitPages(0, BYTES_TO_PAGES(CommitSize), Protect);
-    NT_ASSERT(NT_SUCCESS(Status));
+    /* Now create the prototype PTE mapping */
+    Status = SectionView->CreateMapping(RelativeStartingVpn,
+                                        ViewSizeInPages,
+                                        BYTES_TO_PAGES(CommitSize),
+                                        Protect);
+    if (!NT_SUCCESS(Status))
+    {
+        __debugbreak();
+        /// \todo Remove the VAD from the VAD table
+        //SectionView->Release();
+        delete SectionView;
+        return Status;
+    }
 
+    /* Return the base address to the caller */
+    *BaseAddress = SectionView->GetBaseAddress();
     return STATUS_SUCCESS;
 }
 
@@ -408,14 +477,29 @@ NtMapViewOfSection (
     _In_ ULONG Win32Protect)
 {
     KPROCESSOR_MODE PreviousMode;
-    PVOID SafeBaseAddress, *BaseAddressPointer;
-    LARGE_INTEGER SafeSectionOffset, *SectionOffsetPointer;
-    SIZE_T SafeViewSize, *ViewSizePointer;
+    PVOID SafeBaseAddress;
+    LARGE_INTEGER SafeSectionOffset;
+    SIZE_T SafeViewSize;
     PVOID SectionObject;
     ACCESS_MASK DesiredAccess;
     KAPC_STATE SavedApcState;
     PEPROCESS Process;
     NTSTATUS Status;
+
+    /* Check ZeroBits parameter */
+    if (ZeroBits > 21)
+        return STATUS_INVALID_PARAMETER_4;
+
+    /* Check InheritDisposition parameter */
+    if ((InheritDisposition != ViewShare) && (InheritDisposition != ViewUnmap))
+        return STATUS_INVALID_PARAMETER_8;
+
+    /* Check Allocation type flags */
+    if (AllocationType & 0x9FAFDF80)
+        return STATUS_INVALID_PARAMETER_9;
+
+    // convert protection / return STATUS_INVALID_PAGE_PROTECTION;
+
 
     /* Check if this call comes from user mode */
     PreviousMode = ExGetPreviousMode();
@@ -427,31 +511,42 @@ NtMapViewOfSection (
             ProbeForWrite(BaseAddress, sizeof(*BaseAddress), 1);
             SafeBaseAddress = *BaseAddress;
 
-            ProbeForWrite(SectionOffset, sizeof(*SectionOffset), 1);
-            SafeSectionOffset = *SectionOffset;
-
             ProbeForWrite(ViewSize, sizeof(*ViewSize), 1);
             SafeViewSize = *ViewSize;
+
+            if (SectionOffset != NULL)
+            {
+                ProbeForWrite(SectionOffset, sizeof(*SectionOffset), 1);
+                SafeSectionOffset = *SectionOffset;
+            }
+            else
+            {
+                SafeSectionOffset.QuadPart = 0;
+            }
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
-            //ERR("Could not
+            ERR("Exception while copying parameters\n");
             _SEH2_YIELD(return _SEH2_GetExceptionCode();)
         }
         _SEH2_END;
-
-        /* Use the safe copies */
-        BaseAddressPointer = &SafeBaseAddress;
-        SectionOffsetPointer = &SafeSectionOffset;
-        ViewSizePointer = &SafeViewSize;
     }
     else
     {
-        /* Use the passed pointer directly */
-        BaseAddressPointer = BaseAddress;
-        SectionOffsetPointer = SectionOffset;
-        ViewSizePointer = ViewSize;
+        SafeBaseAddress = *BaseAddress;
+        SafeSectionOffset.QuadPart = SectionOffset ? SectionOffset->QuadPart : 0;
+        SafeViewSize = *ViewSize;
     }
+
+    /* Check the BaseAddress parameter */
+    if ((SafeBaseAddress > MmHighestUserAddress) ||
+        (AddToPointer(SafeBaseAddress, SafeViewSize) > MmHighestUserAddress) ||
+        (AddToPointer(SafeBaseAddress, SafeViewSize) < SafeBaseAddress))
+        return STATUS_INVALID_PARAMETER_3;
+
+    /* Check the ZeroBits parameter */
+    if (((ULONG_PTR)SafeBaseAddress + SafeViewSize) > (MAXULONG_PTR >> ZeroBits))
+        return STATUS_INVALID_PARAMETER_4;
 
     /* Check if the current process is specified */
     if (ProcessHandle != NtCurrentProcess())
@@ -488,21 +583,21 @@ NtMapViewOfSection (
                                        DesiredAccess,
                                        MmSectionObjectType,
                                        PreviousMode,
-                                       reinterpret_cast<PVOID*>(&SectionObject),
+                                       &SectionObject,
                                        NULL);
     if (!NT_SUCCESS(Status))
     {
         goto Cleanup;
     }
 
-    /* Call the exported function */
+    /* Call the internal function */
     Status = MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
                               VaProcessSpace,
-                              BaseAddressPointer,
+                              &SafeBaseAddress,
                               ZeroBits,
                               CommitSize,
-                              SectionOffsetPointer,
-                              ViewSizePointer,
+                              &SafeSectionOffset,
+                              &SafeViewSize,
                               InheritDisposition,
                               AllocationType,
                               Win32Protect);
@@ -515,8 +610,9 @@ NtMapViewOfSection (
             _SEH2_TRY
             {
                 *BaseAddress = SafeBaseAddress;
-                *SectionOffset = SafeSectionOffset;
                 *ViewSize = SafeViewSize;
+                if (SectionOffset != NULL)
+                    *SectionOffset = SafeSectionOffset;
             }
             _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
             {
@@ -524,6 +620,13 @@ NtMapViewOfSection (
                 _SEH2_YIELD(return _SEH2_GetExceptionCode();)
             }
             _SEH2_END;
+        }
+        else
+        {
+            *BaseAddress = SafeBaseAddress;
+            *ViewSize = SafeViewSize;
+            if (SectionOffset != NULL)
+                *SectionOffset = SafeSectionOffset;
         }
     }
 

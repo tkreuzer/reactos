@@ -55,6 +55,7 @@ typedef struct _SECTION_IMAGE_INFORMATION_EX : _SECTION_IMAGE_INFORMATION
 typedef struct _SECTION_FLAGS
 {
     ULONG Image : 1;
+    ULONG Commit : 1;
 } SECTION_FLAGS;
 
 typedef struct _CONTROL_AREA
@@ -154,6 +155,12 @@ public:
     NTSTATUS
     CreateImageFileSection (
         _In_ PFILE_OBJECT FileObject);
+
+    NTSTATUS
+    CommitPages (
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG Protect);
 
     VOID
     SetPageContent (

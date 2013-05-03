@@ -558,16 +558,15 @@ MapPrototypePtes (
         CurrentPte++;
         Ptototypes++;
         NumberOfPages--;
-
+#if 0 // This only makes sense, when we move page table referencing completely out
+// of the reserving function, but then we need to lock outside of both functions
         /* Update the PFN of the PT, if we reached the next PT or the end */
         if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
         {
-            /* Increment the valid count in the PT */
-            g_PfnDatabase.IncrementValidCount(PfnOfPt, NumberOfNewPtes);
-
             PfnOfPt = PdeToPte(CurrentPte)->GetPageFrameNumber();
             NumberOfNewPtes = 0;
         }
+#endif
     }
     while (NumberOfPages);
 
