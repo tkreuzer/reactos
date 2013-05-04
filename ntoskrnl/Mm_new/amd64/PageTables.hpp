@@ -142,10 +142,11 @@ protected:
         PROTOTYPE_PTE Proto;
         SOFTWARE_PTE Soft;
         PAGEFILE_PTE PageFile;
-        ULONG64 Long;
+        LONG64 Long;
     };
 
 #if 1 || DBG
+protected:
     /* Disable direct write */
     PTE_COMMON (PTE_COMMON& NewPte);
     inline PTE_COMMON () {}
@@ -338,6 +339,25 @@ public:
         _In_ ULONG Protect)
     {
         NT_ASSERT(FALSE);
+    }
+
+    inline
+    BOOLEAN
+    InterlockedCompareExchange (
+        _In_ PTE& ExchangePte,
+        _Inout_ PTE* CurrentPte)
+    {
+        PTE OldPteValue;
+
+        OldPteValue.Long = InterlockedCompareExchange64(&this->Long,
+                                                        ExchangePte.Long,
+                                                        CurrentPte->Long);
+        if (OldPteValue.Long != CurrentPte->Long)
+        {
+            CurrentPte->Long = OldPteValue.Long;
+            return FALSE;
+        }
+        return TRUE;
     }
 
     inline
