@@ -1,5 +1,6 @@
 
 #include "ntosbase.h"
+#include "PfnDatabase.hpp"
 #include "amd64/PageTables.hpp"
 #include "ndk/pstypes.h"
 
@@ -47,10 +48,32 @@ const ULONG MmProtectToWin32Protect[32] =
 inline
 NTSTATUS
 ResolveDemandZeroFault (
-    _In_ PPTE PtePointer,
-    _In_ PVOID Address,
-    _In_ IN KPROCESSOR_MODE Mode,
-    _In_ UCHAR AccessFlags)
+    _In_ PPTE CurrentPteValue,
+    _Out_ PPTE NewPteValue,
+    _Out_ volatile PFN_NUMBER* PageFrameNumber)
+{
+    ULONG Protect;
+
+    /// FIXME
+    Protect = MM_READWRITE | MM_GLOBAL;//CurrentPteValue->GetSoftProtection();
+
+    if (*PageFrameNumber == 0)
+    {
+        *PageFrameNumber = g_PfnDatabase.AllocatePage(TRUE); /// FIXME what about waiting?
+        NT_ASSERT(*PageFrameNumber != 0);
+    }
+
+    NewPteValue->MakeValidPte(*PageFrameNumber, Protect);
+
+    return STATUS_SUCCESS;
+}
+
+inline
+NTSTATUS
+ResolvePrototypePteFault (
+    _In_ PPTE CurrentPteValue,
+    _Out_ PPTE NewPteValue,
+    _Out_ volatile PFN_NUMBER* PageFrameNumber)
 {
     UNIMPLEMENTED;
     return STATUS_ACCESS_VIOLATION;
@@ -75,24 +98,26 @@ ResolveFaultForPte (
     _In_ PVOID Address,
     _In_ IN KPROCESSOR_MODE Mode,
     _In_ PVOID TrapInformation,
-    _In_ UCHAR AccessFlags)
+    _In_ UCHAR AccessFlags,
+    _Out_ volatile PFN_NUMBER* PageFrameNumber)
 {
-    PTE PteValue;
+    PTE CurrentPteValue, NewPteValue;
+    NTSTATUS Status;
 
     /* Read the PTE value */
-    PtePointer->ReadValue(&PteValue);
+    PtePointer->ReadValue(&CurrentPteValue);
 
-    switch (PteValue.GetPteType())
+    switch (CurrentPteValue.GetPteType())
     {
     case PteValid:
 
         /* Check if this was a write instruction */
         if (AccessFlags & PFEC_WRITE)
         {
-            if (PteValue.IsWritable())
+            if (CurrentPteValue.IsWritable())
                 return STATUS_SUCCESS;
 
-            if (PteValue.IsCopyOnWrite())
+            if (CurrentPteValue.IsCopyOnWrite())
             {
                 return ResolveCopyOnWriteFault(PtePointer,
                                                Address,
@@ -105,7 +130,7 @@ ResolveFaultForPte (
             {
                 KeBugCheckEx(ATTEMPTED_WRITE_TO_READONLY_MEMORY,
                              (ULONG_PTR)Address,
-                             *(ULONG_PTR*)&PteValue,
+                             *(ULONG_PTR*)&CurrentPteValue,
                              0,
                              0);
             }
@@ -117,7 +142,7 @@ ResolveFaultForPte (
         /* Check if this was due to instruction execution */
         if (AccessFlags & PFEC_INSTRUCTION_FETCH)
         {
-            if (PteValue.IsExecutable())
+            if (CurrentPteValue.IsExecutable())
                 return STATUS_SUCCESS;
 
             /* On non-debug versions, we bug-check for kernel mode access */
@@ -125,7 +150,7 @@ ResolveFaultForPte (
             {
                 KeBugCheckEx(ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
                              (ULONG_PTR)Address,
-                             *(ULONG_PTR*)&PteValue,
+                             *(ULONG_PTR*)&CurrentPteValue,
                              0,
                              0);
             }
@@ -138,17 +163,19 @@ ResolveFaultForPte (
            must have been resolved by a concurrent thread already. */
         return STATUS_SUCCESS;
 
-    case PtePrototype:
-
-        __debugbreak();
-        break;
-
     case PteDemandZero:
 
-        return ResolveDemandZeroFault(PtePointer,
-                                      Address,
-                                      Mode,
-                                      AccessFlags);
+        Status = ResolveDemandZeroFault(&CurrentPteValue,
+                                        &NewPteValue,
+                                        PageFrameNumber);
+        break;
+
+    case PtePrototype:
+
+        Status = ResolvePrototypePteFault(&CurrentPteValue,
+                                          &NewPteValue,
+                                          PageFrameNumber);
+        break;
 
     case PteTransition:
     case PtePageFile:
@@ -174,8 +201,22 @@ ResolveFaultForPte (
     DEFAULT_UNREACHABLE;
     }
 
-    UNIMPLEMENTED;
-    return STATUS_ACCESS_VIOLATION;
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    /* Try to exchange the PTE with the new PTE, if it did not change */
+    if (!PtePointer->InterlockedCompareExchange(NewPteValue, &CurrentPteValue))
+    {
+        /* Signal the caller that we need to retry */
+        return STATUS_RETRY;
+    }
+
+    /* The page frame number is in use now */
+    *PageFrameNumber = 0;
+
+    return STATUS_SUCCESS;
 }
 
 extern "C"
@@ -189,6 +230,7 @@ MmAccessFault (
 {
     PETHREAD Thread;
     NTSTATUS Status;
+    volatile PFN_NUMBER PageFrameNumber;
 
     /* Quick check for privilege violation */
     if ((Mode != KernelMode) && (Address > MmHighestUserAddress))
@@ -229,22 +271,35 @@ DbgPrint("Pagefault for Address %p, PdeAddress = %p (%d), PteAddress = %p\n",
     Thread = PsGetCurrentThread();
     Thread->ActiveFaultCount++;
 
-    /* Protect with SEH, since the internal function could cause a page fault
+    PageFrameNumber = 0;
+
+    /* Protect with SEH, since the internal function can cause a page fault
        while accessing a PTE, which might not be resolved. In that case the
        fault get's dispatched and we catch it here */
     _SEH2_TRY
     {
-        Status = ResolveFaultForPte(AddressToPte(Address),
-                                    Address,
-                                    Mode,
-                                    TrapInformation,
-                                    AccessFlags);
+        do
+        {
+            Status = ResolveFaultForPte(AddressToPte(Address),
+                                        Address,
+                                        Mode,
+                                        TrapInformation,
+                                        AccessFlags,
+                                        &PageFrameNumber);
+        }
+        while (Status == STATUS_RETRY);
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
         Status = _SEH2_GetExceptionCode();
     }
     _SEH2_END;
+
+    /* Check if a page needs to be freed */
+    if (PageFrameNumber != 0)
+    {
+        g_PfnDatabase.ReleasePage(PageFrameNumber);
+    }
 
     /* Reset active fault count back to what it was before */
     Thread->ActiveFaultCount--;
