@@ -19,7 +19,7 @@ public:
     NTSTATUS
     CreateInstance (
         _Out_ SECTION_VIEW** OutSectionView,
-        _In_ class SECTION_OBJECT* SectionObject);
+        _In_ class SECTION* Section);
 
     NTSTATUS
     CreateMapping (

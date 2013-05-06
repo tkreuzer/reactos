@@ -79,6 +79,7 @@ typedef struct _CONTROL_AREA
     USHORT ModifiedWriteCount;
     USHORT FlushInProgressCount;
     ULONG WritableUserReferences;
+    PVOID BaseAddress;
 } CONTROL_AREA, *PCONTROL_AREA;
 
 typedef struct _SUBSECTION_FLAGS
@@ -135,7 +136,6 @@ private:
 
 public:
 
-
     static
     NTSTATUS
     CreateInstance (
@@ -155,6 +155,22 @@ public:
     NTSTATUS
     CreateImageFileSection (
         _In_ PFILE_OBJECT FileObject);
+
+    inline
+    PVOID
+    GetBaseAddress (
+        VOID)
+    {
+        return m_ControlArea.BaseAddress;
+    }
+
+    inline
+    SIZE_T
+    GetSizeInPages (
+        VOID)
+    {
+        return m_ControlArea.SizeInPages;
+    }
 
     NTSTATUS
     CommitPages (
