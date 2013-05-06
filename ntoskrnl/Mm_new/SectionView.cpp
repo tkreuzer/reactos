@@ -51,9 +51,10 @@ SECTION_VIEW::GetVadType () const
 NTSTATUS
 SECTION_VIEW::CreateInstance (
     _Out_ SECTION_VIEW** OutSectionView,
-    _In_ PSECTION_OBJECT SectionObject)
+    _In_ PSECTION Section)
 {
     PSECTION_VIEW SectionView;
+    NT_ASSERT(Section != NULL);
 
     /// \todo Evaluate if we can use paged pool for user VADs, when the VAD
     ///       table doesn't use a spinlock
@@ -66,8 +67,7 @@ SECTION_VIEW::CreateInstance (
 
     new(SectionView) SECTION_VIEW;
 
-    SectionView->m_Section = SectionObject->ReferenceSection();
-    NT_ASSERT(SectionView->m_Section != NULL);
+    SectionView->m_Section = Section;
 
     *OutSectionView = SectionView;
     return STATUS_SUCCESS;
@@ -152,6 +152,7 @@ MapViewOfSection (
     SECTION_VIEW* SectionView;
     NTSTATUS Status;
     PVAD_TABLE VadTable;
+    PSECTION Section;
 
 __debugbreak();
 
@@ -161,9 +162,6 @@ __debugbreak();
     {
         return STATUS_INVALID_PARAMETER_5;
     }
-
-    ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
-    StartingVpn = AddressToVpn(*BaseAddress);
 
     /* Check if the caller specified a section offset */
     if (SectionOffset != NULL)
@@ -188,14 +186,6 @@ __debugbreak();
         HighestEndingVpn = AddressToVpn(MmHighestUserAddress);
         BoundaryPageMultiple = 16;
         Protect |= MM_USER;
-
-        /* Check if the caller did not pass a base address */
-        if (StartingVpn == 0)
-        {
-            /* Get the starting VPN from the section object */
-            //StartingVpn = AddressToVpn(m_Section->GetBaseAddress());
-            __debugbreak();
-        }
     }
     else if (VaType == VaSystemSpace)
     {
@@ -222,43 +212,84 @@ __debugbreak();
     }
 #endif
 
-    /* Check if the range is OK */
-    if (((StartingVpn != 0) && (StartingVpn < LowestStartingVpn)) ||
-        ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
-        ((StartingVpn + ViewSizeInPages) < StartingVpn))
-    {
-        return STATUS_INVALID_PARAMETER;
-    }
+    /* Reference the section */
+    Section = SectionObject->ReferenceSection();
+    NT_ASSERT(Section != NULL);
 
     /* Create a section view VAD */
-    Status = SECTION_VIEW::CreateInstance(&SectionView, SectionObject);
+    Status = SECTION_VIEW::CreateInstance(&SectionView, Section);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to create section view VAD: 0x%lx\n", Status);
+        Section->Release();
         return Status;
     }
 
+    /* Check if the caller did not specify the size */
+    ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
+    if (ViewSizeInPages == 0)
+    {
+        /* Use the full section size */
+        ViewSizeInPages = Section->GetSizeInPages();
+        NT_ASSERT(ViewSizeInPages != 0);
+    }
+
+    /* Get the VAD table */
     VadTable = AddressSpace->GetVadTable();
 
     /* Check if a base address was specified */
-    if (StartingVpn != 0)
+    if (*BaseAddress != NULL)
     {
+        /* Use the specified base address */
+        StartingVpn = AddressToVpn(*BaseAddress);
+
+        /* Check if the range is OK */
+        if (((StartingVpn < LowestStartingVpn)) ||
+            ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
+            ((StartingVpn + ViewSizeInPages) < StartingVpn))
+        {
+            ERR("Invalid parameters: StartingVpn\n");
+            delete SectionView;
+            return STATUS_INVALID_PARAMETER;
+        }
+
         /* Try to insert the VAD at the corresponding VPN */
         Status = VadTable->InsertVadObjectAtVpn(SectionView,
                                                 StartingVpn,
                                                 ViewSizeInPages);
-
     }
     else
     {
-        /// \todo check if the section has a preferred address and then try to map there first
-        /* Insert the VAD into the VAD table */
-        Status = VadTable->InsertVadObject(SectionView,
-                                           ViewSizeInPages,
-                                           LowestStartingVpn,
-                                           HighestEndingVpn,
-                                           BoundaryPageMultiple,
-                                           (AllocationType & MEM_TOP_DOWN) != 0);
+        /* Use the image base address */
+        StartingVpn = AddressToVpn(Section->GetBaseAddress());
+
+        /* Check if the range is OK */
+        if ((StartingVpn != 0) && ((StartingVpn >= LowestStartingVpn)) &&
+            ((StartingVpn + ViewSizeInPages) <= HighestEndingVpn) ||
+            ((StartingVpn + ViewSizeInPages) > StartingVpn))
+        {
+            /* Try to insert the VAD at the image base address */
+            Status = VadTable->InsertVadObjectAtVpn(SectionView,
+                                                    StartingVpn,
+                                                    ViewSizeInPages);
+        }
+        else
+        {
+            /* Range is invalid, no success yet */
+            Status = STATUS_UNSUCCESSFUL;
+        }
+
+        /* Check if we did not succeed yet */
+        if (!NT_SUCCESS(Status))
+        {
+            /* Insert the VAD into the VAD table */
+            Status = VadTable->InsertVadObject(SectionView,
+                                               ViewSizeInPages,
+                                               LowestStartingVpn,
+                                               HighestEndingVpn,
+                                               BoundaryPageMultiple,
+                                               (AllocationType & MEM_TOP_DOWN) != 0);
+        }
     }
 
     if (!NT_SUCCESS(Status))
@@ -275,8 +306,7 @@ __debugbreak();
                                         Protect);
     if (!NT_SUCCESS(Status))
     {
-        __debugbreak();
-        /// \todo Remove the VAD from the VAD table
+        VadTable->RemoveVadObject(SectionView);
         //SectionView->Release();
         delete SectionView;
         return Status;

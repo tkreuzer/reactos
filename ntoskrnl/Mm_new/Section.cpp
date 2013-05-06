@@ -126,6 +126,7 @@ SECTION::CreatePageFileSection (
     return STATUS_SUCCESS;
 }
 
+
 NTSTATUS
 SECTION::CommitPages (
     _In_ ULONG_PTR RelativeStartingVpn,
