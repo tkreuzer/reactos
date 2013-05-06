@@ -88,8 +88,6 @@ ResolvePrototypePteFault (
     PPTE PrototypeAddress;
     NTSTATUS Status;
 
-__debugbreak();
-
     /* Get the address space (Process/Session/System) */
     AddressSpace = GetAddressSpaceForAddress(Address);
 

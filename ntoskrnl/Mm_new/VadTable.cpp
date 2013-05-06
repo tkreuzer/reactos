@@ -150,6 +150,7 @@ VAD_TABLE::InsertVadObject (
     PVAD_NODE CurrentNode;
     NTSTATUS Status;
     KLOCK_QUEUE_HANDLE LockHandle;
+    NT_ASSERT(PageCount != 0);
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
@@ -270,6 +271,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     ULONG_PTR EndingVpn;
     NTSTATUS Status;
     KLOCK_QUEUE_HANDLE LockHandle;
+    NT_ASSERT(PageCount != 0);
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
