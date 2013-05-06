@@ -34,6 +34,7 @@ extern "C" SIZE_T MmSizeOfPagedPoolInBytes;
 
 KERNEL_VAD PoolVad[2];
 RTL_BITMAP PoolBitmap[2];
+RTL_BITMAP EndOfAllocationBitmap[2];
 ULONG PoolHintIndex[2];
 KSPIN_LOCK PoolPageSpinlock[2];
 
@@ -122,7 +123,7 @@ InitializePoolSupportSingle (
 {
     NTSTATUS Status;
     ULONG_PTR NumberOfPages, MaximumNumberOfPages;
-    ULONG_PTR AllocatedSize, StartingVpn;
+    ULONG_PTR BitmapSize, AllocatedSize, StartingVpn;
     PULONG BitmapBuffer;
 
     /* Only these 2 types are allowed */
@@ -167,16 +168,23 @@ InitializePoolSupportSingle (
         NT_ASSERT(NT_SUCCESS(Status));
     }
 
+    /* The bitmap is already allocated pool */
+    BitmapSize = ((MaximumNumberOfPages + 31) / 32) * sizeof(ULONG);
+
     /* Initialize the pool bitmap */
     BitmapBuffer = static_cast<PULONG>(PoolStart);
     RtlInitializeBitMap(&PoolBitmap[PoolType], BitmapBuffer, (ULONG)NumberOfPages);
 
-    /* The bitmap is already allocated pool */
-    AllocatedSize = ((MaximumNumberOfPages + 31) / 32) * sizeof(ULONG);
+    /* Initialize the end-of-allocation bitmap */
+    BitmapBuffer = static_cast<PULONG>(AddToPointer(BitmapBuffer, BitmapSize));
+    RtlInitializeBitMap(&EndOfAllocationBitmap[PoolType], BitmapBuffer, (ULONG)NumberOfPages);
+
+    /* The bitmaps are already allocated pool */
+    AllocatedSize = 2 * BitmapSize;
 
 #ifndef _WIN64
     /* On 32 bit systems, we add an array of expansion pointers */
-    PoolExpansionArray[NonPagedPool] = BitmapBuffer + AllocatedSize;
+    PoolExpansionArray[NonPagedPool] = AddToPointer(BitmapBuffer, AllocatedSize);
     NonPagedPoolExpansionCount =
         (MaximumNumberOfPages - NumberOfPages + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE;
 
@@ -354,6 +362,9 @@ MiAllocatePoolPages (
         /* Start over */
     }
 
+    /* Set the bit in the end-of-allocation bitmap */
+    RtlSetBit(&EndOfAllocationBitmap[PoolType], Index + PageCount - 1);
+
     /* Update the hint index */
     PoolHintIndex[BasePoolType] = Index + PageCount;
 
@@ -393,10 +404,46 @@ MiAllocatePoolPages (
 ULONG
 NTAPI
 MiFreePoolPages (
-    IN PVOID StartingAddress)
+    IN PVOID BaseAddress)
 {
-    UNIMPLEMENTED;
-    return 0;
+    ULONG_PTR StartingVpn;
+    ULONG StartIndex, EndIndex, NumberOfPages;
+    KLOCK_QUEUE_HANDLE LockHandle;
+    POOL_TYPE PoolType;
+
+    /* First determine the pool type */
+    PoolType = MmDeterminePoolType(BaseAddress);
+
+    if (PoolType == NonPagedPool)
+        StartingVpn = AddressToVpn(MmNonPagedPoolStart);
+    else
+        StartingVpn = AddressToVpn(MmPagedPoolStart);
+
+    /* Calculate the start index */
+    StartIndex = static_cast<ULONG>(AddressToVpn(BaseAddress) - StartingVpn);
+
+    /* Search for the next set bit in the end-of-allocation bitmap */
+    EndIndex = RtlFindSetBits(&EndOfAllocationBitmap[PoolType], 1, StartIndex);
+
+    /* Calculate the number of pages we have */
+    NumberOfPages = EndIndex - StartIndex + 1;
+
+    // if paged pool
+        // decommit the page
+
+    /* Acquire the lock */
+    KeAcquireInStackQueuedSpinLock(&PoolPageSpinlock[PoolType], &LockHandle);
+
+    /* Clear the end-of-allocation bit */
+    RtlClearBit(&EndOfAllocationBitmap[PoolType], EndIndex);
+
+    /* Clear the allocation bits */
+    RtlClearBits(&EndOfAllocationBitmap[PoolType], StartIndex, NumberOfPages);
+
+    /* Release the lock */
+    KeReleaseInStackQueuedSpinLock(&LockHandle);
+
+    return NumberOfPages;
 }
 
 BOOLEAN
