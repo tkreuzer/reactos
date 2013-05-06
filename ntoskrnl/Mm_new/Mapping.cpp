@@ -127,7 +127,7 @@ MapPdesAndPtes (
     _In_ PFN_NUMBER PfnOfPd,
     _Inout_ PFN_LIST* PageList,
     _Inout_ PPFN_NUMBER* PfnArrayPointer,
-    _Inout_ PPROTOTYPE* PrototypePtePointer)
+    _Inout_ PPTE* PrototypePtePointer)
 {
     PFN_NUMBER PfnOfPt;
     ULONG_PTR NumberOfPages = 0;
@@ -180,7 +180,7 @@ MapPdesAndPtes (
             {
                 if (CurrentPte->IsEmpty())
                 {
-                    CurrentPte->MakePrototypePte(*PrototypePtePointer);
+                    CurrentPte->MakePrototypePte(*PrototypePtePointer, Protect);
                     NumberOfNewPtes++;
                 }
                 else
@@ -272,7 +272,7 @@ PageMappingWorker (
     _In_ ULONG_PTR EndingVpn,
     _In_ ULONG Protect,
     _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPROTOTYPE Prototypes,
+    _In_opt_ PPTE Prototypes,
     _In_ PFN_LIST* PageList,
     _In_ PFN_LIST* LargePageList)
 {
@@ -412,7 +412,7 @@ CreateMapping (
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPROTOTYPE Prototypes)
+    _In_opt_ PPTE Prototypes)
 {
     PFN_LIST PageList, LargePageList;
     ULONG_PTR EndingVpn;
@@ -529,7 +529,7 @@ VOID
 MapPrototypePtes (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
-    _In_ PPROTOTYPE Ptototypes,
+    _In_ PPTE Ptototypes,
     _In_ ULONG Protect)
 {
     PFN_NUMBER PfnOfPt;
@@ -552,7 +552,7 @@ MapPrototypePtes (
     {
         /* Make sure the PTE is a no-access PTE and make it a prototype PTE */
         NT_ASSERT(CurrentPte->IsNoAccess());
-        CurrentPte->MakePrototypePte(Ptototypes);
+        CurrentPte->MakePrototypePte(Ptototypes, 0);
         NumberOfNewPtes++;
 
         CurrentPte++;

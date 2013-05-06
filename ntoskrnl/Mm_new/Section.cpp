@@ -132,7 +132,20 @@ SECTION::CommitPages (
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect)
 {
-    UNIMPLEMENTED;
+    // Charge system commit
+
+    /* Check if we have a file-backed section */
+    if (m_ControlArea.FilePointer != NULL)
+    {
+        UNIMPLEMENTED;
+    }
+    else
+    {
+        /* Commit demand zero pages */
+        m_ControlArea.Segment->CommitDemandZeroPages(RelativeStartingVpn,
+                                                     NumberOfPages);
+    }
+
     return 0;
 }
 

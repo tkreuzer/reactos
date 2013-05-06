@@ -6,6 +6,8 @@
 
 namespace Mm {
 
+class PTE;
+
 ULONG
 ConvertProtect (
     _In_ ULONG Win32Protect);
@@ -21,7 +23,7 @@ CreateMapping (
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPROTOTYPE Prototypes);
+    _In_opt_ class PTE* Prototypes);
 
 NTSTATUS
 ReservePageTables (
@@ -33,7 +35,7 @@ VOID
 MapPrototypePtes (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
-    _In_ PPROTOTYPE Ptototypes,
+    _In_ class PTE* Ptototypes,
     _In_ ULONG Protect);
 
 VOID

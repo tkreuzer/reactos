@@ -286,11 +286,18 @@ public:
     MakeDemandZeroPte (
         _In_ ULONG Protect)
     {
-        UNION_PTE PteValue = { 0 };
         NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE|MM_NOCACHE|MM_WRITECOMBINE)));
-        PteValue.Soft.Protection = Protect & MM_PROTECTION_MASK;
-        PteValue.Hard.NoExecute = 1; /// FIXME HACK!!!
-        this->Long = PteValue.Long;
+        if ((Protect & MM_PROTECTION_MASK) == MM_NOACCESS)
+        {
+            this->Long = *(ULONG64*)&ProtectToPteBase[MM_NOACCESS];
+        }
+        else
+        {
+            UNION_PTE PteValue = { 0 };
+            PteValue.Soft.Protection = Protect & MM_PROTECTION_MASK;
+            PteValue.Hard.CopyOnWrite = 1;
+            this->Long = PteValue.Long;
+        }
     }
 
     inline
@@ -307,12 +314,24 @@ public:
     inline
     VOID
     MakePrototypePte (
-        _In_ PPROTOTYPE Prototype)
+        _In_ PTE* Prototype,
+        _In_ ULONG Protect)
     {
         PROTOTYPE_PTE ProtoPte = {0};
         ProtoPte.Prototype = 1;
-        ProtoPte.ProtoAddress = reinterpret_cast<ULONG64>(Prototype) & 0x7FFFFFFFFFFFULL;
+        ProtoPte.Protection = Protect;
+        ProtoPte.ProtoAddress = reinterpret_cast<ULONG64>(Prototype) & 0xFFFFFFFFFFFFULL;
         this->Proto = ProtoPte;
+    }
+
+    inline
+    PTE*
+    GetPrototypeAddress ()
+    {
+        if (this->Soft.Prototype == 0)
+            return NULL;
+        ULONG64 Address = this->Proto.ProtoAddress | 0xFFFF800000000000ULL;
+        return reinterpret_cast<PTE*>(Address);
     }
 
     inline
@@ -331,6 +350,18 @@ public:
     {
         NT_ASSERT(NewPte.Hard.Valid == 0);
         this->Soft = NewPte.Soft;
+    }
+
+    inline
+    VOID
+    MakeValidPteFromPrototype (
+        VOID)
+    {
+        //UNION_PTE PteValue;
+        //PteValue.Long = ProtectToPteMask(this->Proto.Protection);
+        //NT_ASSERT(PteValue.Hard.Valid);
+        //PteValue.Hard.PageFrameNumber = PageFrameNumber;
+        //this->Long = PteValue.Long;
     }
 
     inline
