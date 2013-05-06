@@ -80,5 +80,22 @@ ADDRESS_SPACE::Initialize (
 #endif
 }
 
+VOID
+ADDRESS_SPACE::AcquireWorkingSetLock (
+    VOID)
+{
+    //KeEnterGuardedRegion();
+    //ExAcquirePushLockExclusive(&m_Support.WorkingSetMutex);
+}
+
+VOID
+ADDRESS_SPACE::ReleaseWorkingSetLock (
+    VOID)
+{
+    //ExReleasePushLock(&m_Support.WorkingSetMutex);
+    //KeLeaveGuardedRegion();
+}
+
+
 }; // namespace Mm
 

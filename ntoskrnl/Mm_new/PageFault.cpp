@@ -1,10 +1,21 @@
 
 #include "ntosbase.h"
 #include "PfnDatabase.hpp"
+#include "AddressSpace.hpp"
 #include "amd64/PageTables.hpp"
 #include "ndk/pstypes.h"
 
 namespace Mm {
+
+static
+NTSTATUS
+ResolveFaultForPte (
+    _In_ PPTE PtePointer,
+    _In_ PVOID Address,
+    _In_ IN KPROCESSOR_MODE Mode,
+    _In_ PVOID TrapInformation,
+    _In_ UCHAR AccessFlags,
+    _Out_ volatile PFN_NUMBER* PageFrameNumber);
 
 #define PAGE_GLOBAL 0x800
 
@@ -50,33 +61,92 @@ NTSTATUS
 ResolveDemandZeroFault (
     _In_ PPTE CurrentPteValue,
     _Out_ PPTE NewPteValue,
-    _Out_ volatile PFN_NUMBER* PageFrameNumber)
+    _Inout_ volatile PFN_NUMBER* PageFrameNumber)
 {
     ULONG Protect;
 
     /// FIXME
     Protect = MM_READWRITE | MM_GLOBAL;//CurrentPteValue->GetSoftProtection();
 
-    if (*PageFrameNumber == 0)
-    {
-        *PageFrameNumber = g_PfnDatabase.AllocatePage(TRUE); /// FIXME what about waiting?
-        NT_ASSERT(*PageFrameNumber != 0);
-    }
+    CurrentPteValue->MakeValidPte(*PageFrameNumber, Protect);
+    *PageFrameNumber = 0;
 
-    NewPteValue->MakeValidPte(*PageFrameNumber, Protect);
-
-    return STATUS_SUCCESS;
+    return STATUS_PAGE_FAULT_DEMAND_ZERO;
 }
 
 inline
 NTSTATUS
 ResolvePrototypePteFault (
-    _In_ PPTE CurrentPteValue,
-    _Out_ PPTE NewPteValue,
-    _Out_ volatile PFN_NUMBER* PageFrameNumber)
+    _Inout_ PPTE PtePointer,
+    _In_ PVOID Address,
+    _In_ IN KPROCESSOR_MODE Mode,
+    _In_ PVOID TrapInformation,
+    _In_ UCHAR AccessFlags,
+    _Inout_ volatile PFN_NUMBER* PageFrameNumber)
 {
-    UNIMPLEMENTED;
-    return STATUS_ACCESS_VIOLATION;
+    PADDRESS_SPACE AddressSpace;
+    PPTE PrototypeAddress;
+    NTSTATUS Status;
+
+__debugbreak();
+
+    /* Get the address space (Process/Session/System) */
+    AddressSpace = GetAddressSpaceForAddress(Address);
+
+    /* Acquire the corresponding working set lock */
+    AddressSpace->AcquireWorkingSetLock();
+
+    /* Get the address of the prototype */
+    PrototypeAddress = PtePointer->GetPrototypeAddress();
+    if (PrototypeAddress == NULL)
+    {
+        /* This is not a prototype PTE anymore, unlock and retry */
+        AddressSpace->ReleaseWorkingSetLock();
+        return STATUS_RETRY;
+    }
+
+    /* Check if the prototype is invalid */
+    while (!PrototypeAddress->IsValid())
+    {
+        // reference the VAD -> reference the section
+        // AddressSpace->ReferenceVadByAddress(Address)
+
+        /* Release the working set lock while resolving the prototype fault */
+        AddressSpace->ReleaseWorkingSetLock();
+
+        /* Recursively resolve the fault on the prototype */
+        Status = ResolveFaultForPte(PrototypeAddress,
+                                    Address,
+                                    Mode,
+                                    TrapInformation,
+                                    AccessFlags,
+                                    PageFrameNumber);
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
+
+        /* Acquire working set lock again */
+        AddressSpace->AcquireWorkingSetLock();
+
+        // dereference the VAD
+
+        /* Check if the original PTE has changed */
+        if (PtePointer->GetPrototypeAddress() != PrototypeAddress)
+        {
+            /* This is not the original PTE anymore, unlock and retry */
+            AddressSpace->ReleaseWorkingSetLock();
+            return STATUS_RETRY;
+        }
+    }
+
+    /* Now create a valid PTE from the prototype */
+    PtePointer->MakeValidPte(PrototypeAddress->GetPageFrameNumber(),
+                             MM_READWRITE | MM_GLOBAL); /// HACK!!!
+
+    AddressSpace->ReleaseWorkingSetLock();
+
+    return STATUS_SUCCESS;
 }
 
 inline
@@ -88,18 +158,18 @@ ResolveCopyOnWriteFault (
     _In_ UCHAR AccessFlags)
 {
     UNIMPLEMENTED;
-    return STATUS_ACCESS_VIOLATION;
+    return STATUS_PAGE_FAULT_COPY_ON_WRITE;
 }
 
-inline
+static
 NTSTATUS
 ResolveFaultForPte (
-    _In_ PPTE PtePointer,
+    _Inout_ PPTE PtePointer,
     _In_ PVOID Address,
     _In_ IN KPROCESSOR_MODE Mode,
     _In_ PVOID TrapInformation,
     _In_ UCHAR AccessFlags,
-    _Out_ volatile PFN_NUMBER* PageFrameNumber)
+    _Inout_ volatile PFN_NUMBER* PageFrameNumber)
 {
     PTE CurrentPteValue, NewPteValue;
     NTSTATUS Status;
@@ -107,17 +177,15 @@ ResolveFaultForPte (
     /* Read the PTE value */
     PtePointer->ReadValue(&CurrentPteValue);
 
-    switch (CurrentPteValue.GetPteType())
+    switch (PtePointer->GetPteType())
     {
     case PteValid:
 
         /* Check if this was a write instruction */
         if (AccessFlags & PFEC_WRITE)
         {
-            if (CurrentPteValue.IsWritable())
-                return STATUS_SUCCESS;
-
-            if (CurrentPteValue.IsCopyOnWrite())
+            /* Check if this is a Copy-On-Write page */
+            if (PtePointer->IsCopyOnWrite())
             {
                 return ResolveCopyOnWriteFault(PtePointer,
                                                Address,
@@ -125,12 +193,19 @@ ResolveFaultForPte (
                                                AccessFlags);
             }
 
+            /* Check if the PTE is already writable now */
+            if (PtePointer->IsWritable())
+            {
+                /* The PTE must have been made writable by another thread */
+                return STATUS_SUCCESS;
+            }
+
             /* On non-debug versions, we bug-check for kernel mode access */
             if (!DBG && (Mode == KernelMode))
             {
                 KeBugCheckEx(ATTEMPTED_WRITE_TO_READONLY_MEMORY,
                              (ULONG_PTR)Address,
-                             *(ULONG_PTR*)&CurrentPteValue,
+                             *(ULONG_PTR*)PtePointer,
                              0,
                              0);
             }
@@ -142,15 +217,19 @@ ResolveFaultForPte (
         /* Check if this was due to instruction execution */
         if (AccessFlags & PFEC_INSTRUCTION_FETCH)
         {
-            if (CurrentPteValue.IsExecutable())
+            /* Check if the PTE is executable */
+            if (PtePointer->IsExecutable())
+            {
+                /* The page fault has been resolved by another thread */
                 return STATUS_SUCCESS;
+            }
 
             /* On non-debug versions, we bug-check for kernel mode access */
             if (!DBG && (Mode == KernelMode))
             {
                 KeBugCheckEx(ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY,
                              (ULONG_PTR)Address,
-                             *(ULONG_PTR*)&CurrentPteValue,
+                             *(ULONG_PTR*)PtePointer,
                              0,
                              0);
             }
@@ -165,37 +244,32 @@ ResolveFaultForPte (
 
     case PteDemandZero:
 
-        Status = ResolveDemandZeroFault(&CurrentPteValue,
-                                        &NewPteValue,
-                                        PageFrameNumber);
+        return ResolveDemandZeroFault(PtePointer,
+                                      &NewPteValue,
+                                      PageFrameNumber);
         break;
 
     case PtePrototype:
 
-        Status = ResolvePrototypePteFault(&CurrentPteValue,
-                                          &NewPteValue,
-                                          PageFrameNumber);
-        break;
+        return ResolvePrototypePteFault(PtePointer,
+                                        Address,
+                                        Mode,
+                                        TrapInformation,
+                                        AccessFlags,
+                                        PageFrameNumber);
 
     case PteTransition:
+        Status = STATUS_PAGE_FAULT_TRANSITION;
     case PtePageFile:
+        Status = STATUS_PAGE_FAULT_PAGING_FILE;
+    // case PteGuardPage:
+        Status = STATUS_PAGE_FAULT_GUARD_PAGE;
         __debugbreak();
-
 
     case PteNoAccess:
     case PteEmpty:
 
-        /* On non-debug versions, we bug-check for kernel mode access */
-        if (!DBG && (Mode == KernelMode))
-        {
-            KeBugCheckEx(PAGE_FAULT_IN_NONPAGED_AREA,
-                         (ULONG_PTR)Address,
-                         (AccessFlags & PFEC_WRITE) ? 1 : 0,
-                         (ULONG_PTR)TrapInformation,
-                         0);
-        }
-
-        /* Both of these are not accessible / resolvable */
+        /* User mode or debug build: dispatch the fault */
         return STATUS_ACCESS_VIOLATION;
 
     DEFAULT_UNREACHABLE;
@@ -206,10 +280,13 @@ ResolveFaultForPte (
         return Status;
     }
 
+    /// FIXME: this is not safe, we need to lock something
+    /// possibly: use a shared lock on the WorkingSetLock + interlocked exchange
+
     /* Try to exchange the PTE with the new PTE, if it did not change */
     if (!PtePointer->InterlockedCompareExchange(NewPteValue, &CurrentPteValue))
     {
-        /* Signal the caller that we need to retry */
+        /* No success, signal the caller that we need to retry */
         return STATUS_RETRY;
     }
 
@@ -230,6 +307,7 @@ MmAccessFault (
 {
     PETHREAD Thread;
     NTSTATUS Status;
+    PTE CurrentPteValue, *PtePointer;
     volatile PFN_NUMBER PageFrameNumber;
 
     /* Quick check for privilege violation */
@@ -271,16 +349,23 @@ DbgPrint("Pagefault for Address %p, PdeAddress = %p (%d), PteAddress = %p\n",
     Thread = PsGetCurrentThread();
     Thread->ActiveFaultCount++;
 
-    PageFrameNumber = 0;
+    /* Allocate a zeroed page. In the majority of cases we will need it */
+    PageFrameNumber = g_PfnDatabase.AllocatePage(TRUE); /// FIXME what about waiting?
+    NT_ASSERT(PageFrameNumber != 0);
 
-    /* Protect with SEH, since the internal function can cause a page fault
-       while accessing a PTE, which might not be resolved. In that case the
-       fault get's dispatched and we catch it here */
+    PtePointer = AddressToPte(Address);
+
+    /* Protect with SEH, since accessing the PTE can cause a page fault, which
+       might not get resolved. In that case the fault get's dispatched and we
+       catch it here */
     _SEH2_TRY
     {
         do
         {
-            Status = ResolveFaultForPte(AddressToPte(Address),
+            /* Read the PTE value */
+            PtePointer->ReadValue(&CurrentPteValue);
+
+            Status = ResolveFaultForPte(PtePointer,
                                         Address,
                                         Mode,
                                         TrapInformation,
@@ -294,6 +379,16 @@ DbgPrint("Pagefault for Address %p, PdeAddress = %p (%d), PteAddress = %p\n",
         Status = _SEH2_GetExceptionCode();
     }
     _SEH2_END;
+
+    /* On non-debug versions, we bug-check for kernel mode access */
+    if (!DBG && !NT_SUCCESS(Status) && (Mode == KernelMode))
+    {
+        KeBugCheckEx(PAGE_FAULT_IN_NONPAGED_AREA,
+                     (ULONG_PTR)Address,
+                     (AccessFlags & PFEC_WRITE) ? 1 : 0,
+                     (ULONG_PTR)TrapInformation,
+                     0);
+    }
 
     /* Check if a page needs to be freed */
     if (PageFrameNumber != 0)

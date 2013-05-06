@@ -3,16 +3,9 @@
 
 #include "KernelVad.hpp"
 #include "VadTable.hpp"
+#include "Mapping.hpp"
 
 namespace Mm {
-
-NTSTATUS
-CreateMapping (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ ULONG Protect,
-    _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPROTOTYPE Prototypes);
 
 static const PVOID MmHighestSystemAddress = (PVOID)0xFFFFFFFFFFFFFFFFULL;
 

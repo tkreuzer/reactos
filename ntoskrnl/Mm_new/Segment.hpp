@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Ob/RefObject.hpp"
+#include "amd64/PageTables.hpp"
 
 namespace Mm {
 
@@ -13,6 +14,7 @@ class SEGMENT : public REF_OBJECT<SEGMENT, PagedPool, 'OSmM'>
     struct _SECTION_IMAGE_INFORMATION_EX* ImageInformation;
     ULONG_PTR m_NumberOfPages;
     PROTOTYPE m_ThePrototypes[1];
+    PTE m_ThePtes[1];
 
 public:
 

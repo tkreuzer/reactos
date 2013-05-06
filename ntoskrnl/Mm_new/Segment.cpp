@@ -14,7 +14,7 @@ SEGMENT::CreateInstance (
     SIZE_T Size;
 
     /* Calculate the size of the segment including the PFN array */
-    Size = FIELD_OFFSET(SEGMENT, m_ThePrototypes[NumberOfPages]);
+    Size = FIELD_OFFSET(SEGMENT, m_ThePtes[NumberOfPages]);
 
     /* Allocate the segment */
     Segment = new(Size) SEGMENT;
@@ -37,10 +37,16 @@ SEGMENT::CommitDemandZeroPages (
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages)
 {
+    PPTE PtePointer;
 
-    // Charge system commit
-    UNIMPLEMENTED;
-    return 0;
+    PtePointer = m_ThePtes + RelativeStartingVpn;
+    while (NumberOfPages--)
+    {
+        PtePointer->MakeDemandZeroPte(MM_READWRITE); /// \todo protection!
+        PtePointer++;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 
@@ -54,7 +60,7 @@ SEGMENT::MapPages (
     NT_ASSERT((RelativeStartingVpn + NumberOfPages) <= m_NumberOfPages);
     MapPrototypePtes(StartingVpn,
                      NumberOfPages,
-                     &m_ThePrototypes[RelativeStartingVpn],
+                     &m_ThePtes[RelativeStartingVpn],
                      Protect);
 }
 

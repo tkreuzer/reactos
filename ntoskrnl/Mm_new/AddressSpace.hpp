@@ -32,6 +32,13 @@ public:
     class VAD_TABLE*
     GetVadTable ();
 
+    VOID
+    AcquireWorkingSetLock (
+        VOID);
+
+    VOID
+    ReleaseWorkingSetLock (
+        VOID);
 
 };
 
@@ -57,6 +64,19 @@ GetProcessSessionAddressSpace (
     //PMM_SESSION_SPACE SessionSpace = Process->Session;
     //return reinterpret_cast<PADDRESS_SPACE>(&SessionSpace->Vm);
     return 0;
+}
+
+inline
+PADDRESS_SPACE
+GetAddressSpaceForAddress (
+    _In_ PVOID Address)
+{
+    if (Address <= MmHighestUserAddress)
+        return GetProcessAddressSpace(PsGetCurrentProcess());
+    //else if ((Address >= MmSessionSpaceStart) && (Address <= MmSessionSpaceStart))
+    //    return GetProcessSessionAddressSpace(PsGetCurrentProcess());
+    else
+        return &g_KernelAddressSpace;
 }
 
 }; // namespace Mm

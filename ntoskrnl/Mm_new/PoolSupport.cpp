@@ -1,6 +1,7 @@
 
 #include "ntosbase.h"
 #include "KernelVad.hpp"
+#include "Mapping.hpp"
 #include "VadTable.hpp"
 #include "AddressSpace.hpp"
 #include "amd64/MachineDependent.hpp"
@@ -12,14 +13,6 @@ VOID
 NTAPI
 InitializePool(IN POOL_TYPE PoolType,
                IN ULONG Threshold);
-
-NTSTATUS
-CreateMapping (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ ULONG Protect,
-    _In_opt_ PPFN_NUMBER PfnArray,
-    _In_opt_ PPROTOTYPE Prototypes);
 
 extern SIZE_T MmSizeOfPfnDatabase;
 
