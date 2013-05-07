@@ -207,6 +207,17 @@ PFN_DATABASE::InitializePfnEntries (
             PfnEntry->Dirty = TRUE;
         }
     }
+    else if (MemoryType == LoaderLargePageFiller)
+    {
+        /* Loop all pages */
+        for ( ; PageCount-- > 0; PfnEntry++)
+        {
+            /// \todo Maybe we need to use a special type
+            /* Mark it as contiguous memory (large page) */
+            PfnEntry->State = PfnContiguous;
+            PfnEntry->Dirty = TRUE;
+        }
+    }
     else
     {
         /* Loop all pages */

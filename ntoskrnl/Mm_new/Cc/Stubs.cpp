@@ -606,7 +606,8 @@ NTAPI
 CcPfInitializePrefetcher (
     VOID)
 {
-    UNIMPLEMENTED;
+    //UNIMPLEMENTED;
+    DbgPrint("CcPfInitializePrefetcher stub\n");
 }
 
 VOID
