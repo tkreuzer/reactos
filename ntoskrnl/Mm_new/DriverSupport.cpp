@@ -127,7 +127,11 @@ NTAPI
 MmFreeDriverInitialization (
     IN struct _LDR_DATA_TABLE_ENTRY* LdrEntry)
 {
-    UNIMPLEMENTED;
+    // find NtHeader
+    // loop all sections
+        // is section discardable?
+            // decommit all pages of that section
+    DbgPrint("MmFreeDriverInitialization stub\n");
 }
 
 }; // extern "C"

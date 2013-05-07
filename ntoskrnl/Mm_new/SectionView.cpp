@@ -154,7 +154,7 @@ MapViewOfSection (
     PVAD_TABLE VadTable;
     PSECTION Section;
 
-__debugbreak();
+//__debugbreak();
 
     // Check ViewSize
 

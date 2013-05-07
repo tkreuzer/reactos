@@ -291,7 +291,6 @@ NtCreateSection (
 
 
     /// \todo check parameters
-__debugbreak();
 
     /* Check if this call comes from user mode */
     if (ExGetPreviousMode() != KernelMode)
