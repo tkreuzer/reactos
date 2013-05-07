@@ -3,6 +3,7 @@
 
 #define UNIMPLEMENTED __debugbreak()
 
+namespace Cc {
 extern "C" {
 
 ULONG CcFastMdlReadWait;
@@ -595,8 +596,9 @@ NTAPI
 CcInitializeCacheManager (
     VOID)
 {
-    UNIMPLEMENTED;
-    return FALSE;
+    //UNIMPLEMENTED;
+    DbgPrint("CcInitializeCacheManager stub\n");
+    return TRUE;
 }
 
 VOID
@@ -635,3 +637,4 @@ CcShutdownSystem (
 }
 
 }; // extern "C"
+}; // namespace Cc

@@ -31,5 +31,7 @@ static const ULONG64 SYSTEM_RANGE_END           = 0xFFFFFFFFFFFFFFFFULL;
 
 // HACK, we probably need to use defines for all!
 #define SYSTEM_RANGE_START         0xFFFF800000000000ULL
+#define HIGHEST_USER_ADDRESS       0x000007FFFFFEFFFFULL
+#define USER_PROBE_ADDRESS         0x000007FFFFFF0000ULL
 
 }; // namespace Mm

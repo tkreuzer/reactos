@@ -770,8 +770,8 @@ PFN_DATABASE::AllocatePage (
 
     /* Get the current process and the next page color */
     Process = PsGetCurrentProcess();
-    PageColor = Process->NextPageColor & KeGetCurrentPrcb()->SecondaryColorMask;
-    Process->NextPageColor++;
+    PageColor = Process->NextPageColor;
+    Process->NextPageColor = static_cast<USHORT>(GetNextPageColor(PageColor));
 
     /* Acquire the PFN database lock */
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);

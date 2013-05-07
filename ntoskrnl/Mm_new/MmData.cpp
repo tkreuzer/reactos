@@ -4,10 +4,10 @@
 
 extern "C" {
 
-BOOLEAN Mm64BitPhysicalAddress = FALSE;
+BOOLEAN Mm64BitPhysicalAddress = TRUE;
 PVOID MmSystemRangeStart = (PVOID)SYSTEM_RANGE_START;
-ULONG_PTR MmUserProbeAddress;
-PVOID MmHighestUserAddress;
+ULONG_PTR MmUserProbeAddress = USER_PROBE_ADDRESS;
+PVOID MmHighestUserAddress = (PVOID)HIGHEST_USER_ADDRESS;
 
 /* For cmdata.c */
 BOOLEAN MmLargeSystemCache;
