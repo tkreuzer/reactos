@@ -271,6 +271,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     ULONG_PTR EndingVpn;
     NTSTATUS Status;
     KLOCK_QUEUE_HANDLE LockHandle;
+    NT_ASSERT(StartingVpn != 0);
     NT_ASSERT(PageCount != 0);
 
     /* Make sure the VAD was not already inserted */

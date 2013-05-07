@@ -182,7 +182,7 @@ __debugbreak();
     if (VaType == VaProcessSpace)
     {
         AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
-        LowestStartingVpn = 0;
+        LowestStartingVpn = 1;
         HighestEndingVpn = AddressToVpn(MmHighestUserAddress);
         BoundaryPageMultiple = 16;
         Protect |= MM_USER;
@@ -265,7 +265,7 @@ __debugbreak();
 
         /* Check if the range is OK */
         if ((StartingVpn != 0) && ((StartingVpn >= LowestStartingVpn)) &&
-            ((StartingVpn + ViewSizeInPages) <= HighestEndingVpn) ||
+            ((StartingVpn + ViewSizeInPages) <= HighestEndingVpn) &&
             ((StartingVpn + ViewSizeInPages) > StartingVpn))
         {
             /* Try to insert the VAD at the image base address */

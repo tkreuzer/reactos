@@ -1,7 +1,10 @@
 
 #include "ntosbase.h"
 #include <ndk/pstypes.h>
+#include "AddressSpace.hpp"
+#include "VadTable.hpp"
 
+namespace Mm {
 extern "C" {
 
 // private
@@ -77,6 +80,8 @@ MmInitializeHandBuiltProcess (
     /* Use idle process Working set */
     Process->Vm.VmWorkingSetList = PsGetCurrentProcess()->Vm.VmWorkingSetList;
 
+    GetProcessAddressSpace(Process)->GetVadTable()->Initialize(FALSE);
+
     /* Done */
     Process->HasAddressSpace = TRUE;//??
     return STATUS_SUCCESS;}
@@ -148,3 +153,4 @@ MmSetMemoryPriorityProcess (
 }
 
 }; // extern "C"
+}; // namespace Mm
