@@ -376,8 +376,54 @@ NtOpenSection (
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    KPROCESSOR_MODE PreviousMode;
+    NTSTATUS Status;
+    HANDLE Handle;
+
+    /* Get the previous mode and check if it's user mode */
+    PreviousMode = ExGetPreviousMode();
+    if (PreviousMode != KernelMode)
+    {
+        /* Use SEH to probe the output argument */
+        _SEH2_TRY
+        {
+            /* Probe the output parameter */
+            ProbeForWriteHandle(SectionHandle);
+        }
+        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+            /* Return the exception code */
+            _SEH2_YIELD(return _SEH2_GetExceptionCode());
+        }
+        _SEH2_END;
+    }
+
+    /* Initialize the handle */
+    Handle = NULL;
+
+    /* Open the section object */
+    Status = ObOpenObjectByName(ObjectAttributes,
+                                MmSectionObjectType,
+                                PreviousMode,
+                                NULL,
+                                DesiredAccess,
+                                NULL,
+                                &Handle);
+
+    /* Use SEH for pointer access */
+    _SEH2_TRY
+    {
+        /* Return the handle to the caller */
+        *SectionHandle = Handle;
+    }
+    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+    {
+        /* Ignore any exception we might get! */
+    }
+    _SEH2_END;
+
+    /* Return the status */
+    return Status;
 }
 
 NTSTATUS
