@@ -38,21 +38,30 @@ MapPrototypePtes (
     _In_ class PTE* Ptototypes,
     _In_ ULONG Protect);
 
-VOID
-MapPfnArray (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ PPFN_NUMBER PfnArray,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ ULONG Protect);
-
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
-PVOID
-NTAPI
+NTSTATUS
 MapPhysicalMemory (
-    _In_ PFN_NUMBER BasePageFrameNumber,
-    _In_ PFN_COUNT NumberOfPages,
-    _In_ ULONG Protect);
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect,
+    _In_ PFN_NUMBER BasePageFrameNumber);
 
+NTSTATUS
+MapPfnArray (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect,
+    _In_ PPFN_NUMBER PfnArray);
+
+
+/// FIXME: should go somewhere else
+PVOID
+ReserveKernelMemory (
+    SIZE_T Size);
+
+VOID
+ReleaseKernelMemory (
+    _In_ PVOID BaseAddress);
 
 }; // namespace Mm

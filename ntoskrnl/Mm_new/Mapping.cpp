@@ -293,21 +293,23 @@ ReserveMappingPtes (
 NTSTATUS
 MapVirtualMemory (
     _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR EndingVpn,
+    _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect)
 {
     UNIMPLEMENTED;
     return 0;
 }
 
+_Must_inspect_result_
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
 MapPhysicalMemory (
     _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR EndingVpn,
+    _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PFN_NUMBER BasePageFrameNumber)
 {
-    ULONG_PTR PagesCharged, PagesUsed, NumberOfPages;
+    ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
     PFN_NUMBER PageFrameNumber, PfnOfPt;
     ULONG NumberOfNewPtes;
     PFN_LIST PageList;
@@ -323,6 +325,7 @@ MapPhysicalMemory (
     NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
 
     /* Allocate pages for the page tables */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
     Status = AllocatePagesForMapping(StartingVpn,
                                      EndingVpn,
                                      &PageList,
@@ -350,12 +353,11 @@ MapPhysicalMemory (
     /* Loop all reserved PTEs */
     CurrentPte = VpnToPte(StartingVpn);
     CurrentPde = VpnToPde(StartingVpn);
-    NumberOfPages = EndingVpn - StartingVpn + 1;
     NumberOfNewPtes = 0;
     do
     {
         /* Make sure the PTE is empty */
-        /// NT_ASSERT(CurrentPte->IsEmpty()); /// enable once the reserving is fixed!
+        NT_ASSERT(CurrentPte->IsEmpty());
         TemplatePte.SetPageFrameNumber(PageFrameNumber);
         CurrentPte->WriteValidPte(TemplatePte);
         NumberOfNewPtes++;
@@ -388,18 +390,90 @@ MapPhysicalMemory (
 NTSTATUS
 MapPfnArray (
     _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR EndingVpn,
+    _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PPFN_NUMBER PfnArray)
 {
-    UNIMPLEMENTED;
-    return 0;
+    ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
+    PFN_NUMBER PfnOfPt;
+    ULONG NumberOfNewPtes;
+    PFN_LIST PageList;
+    PTE TemplatePte;
+    PPTE CurrentPte;
+    PPDE CurrentPde;
+    NTSTATUS Status;
+
+    /* For now only kernel mode addresses! */ /// might need usermode as well
+    NT_ASSERT(VpnToAddress(StartingVpn) >= MmSystemRangeStart);
+
+    NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
+    NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
+
+    /* Allocate pages for the page tables */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+    Status = AllocatePagesForMapping(StartingVpn,
+                                     EndingVpn,
+                                     &PageList,
+                                     NULL,
+                                     FALSE,
+                                     Protect,
+                                     &PagesCharged);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    /* Acquire the kernel working set lock */ /// see above
+    g_KernelAddressSpace.AcquireWorkingSetLock();
+
+    /* Reserve the PTEs for the mapping */
+    PagesUsed = ReserveMappingPtes(StartingVpn, EndingVpn, &PageList, Protect);
+
+    /* Prepare a template PTE */
+    TemplatePte.MakeValidPte(0, Protect);
+
+    /* Loop all reserved PTEs */
+    CurrentPte = VpnToPte(StartingVpn);
+    CurrentPde = VpnToPde(StartingVpn);
+    NumberOfNewPtes = 0;
+    do
+    {
+        /* Make sure the PTE is empty */
+        NT_ASSERT(CurrentPte->IsEmpty());
+        TemplatePte.SetPageFrameNumber(*PfnArray);
+        CurrentPte->WriteValidPte(TemplatePte);
+        NumberOfNewPtes++;
+
+        CurrentPte++;
+        PfnArray++;
+        NumberOfPages--;
+
+        /* Update the PFN of the PT, if we reached the next PT or the end */
+        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+        {
+            PfnOfPt = CurrentPde->GetPageFrameNumber();
+            g_PfnDatabase.IncrementEntryCount(PfnOfPt, NumberOfNewPtes);
+            NumberOfNewPtes = 0;
+            CurrentPde++;
+        }
+    }
+    while (NumberOfPages);
+
+    /* Release the kernel working set lock */
+    g_KernelAddressSpace.ReleaseWorkingSetLock();
+
+    /* Return the pages, we did not use */
+    g_PfnDatabase.ReleaseMultiplePages(&PageList);
+    UnchargeSystemCommit(PagesCharged - PagesUsed);
+
+    return STATUS_SUCCESS;
+
 }
 
 NTSTATUS
 MapPrototypePtes (
     _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR EndingVpn,
+    _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PPTE Ptototypes)
 {
@@ -431,10 +505,12 @@ MmAllocateMappingAddress (
         return NULL;
     }
 
-    /* Reserve page tables */
-    Status = ReservePageTables(AddressToVpn(BaseAddress),
-                               BYTES_TO_PAGES(NumberOfBytes),
-                               MM_GLOBAL | MM_MAPPED | MM_NONPAGED);
+    /* Map no-access PTEs */
+    Status = CreateMapping(AddressToVpn(BaseAddress),
+                           BYTES_TO_PAGES(NumberOfBytes),
+                           MM_NOACCESS | MM_GLOBAL | MM_NONPAGED,
+                           NULL,
+                           NULL);
     if (!NT_SUCCESS(Status))
     {
         ReleaseKernelMemory(BaseAddress);
@@ -467,21 +543,36 @@ MmMapIoSpace (
     _In_ MEMORY_CACHING_TYPE CachingType)
 {
     PFN_NUMBER BasePageFrameNumber;
+    ULONG_PTR NumberOfPages;
     PVOID BaseAddress;
     ULONG Protect;
+    NTSTATUS Status;
+
+    /* Reserve virtual memory range */
+    NumberOfPages = (ULONG_PTR)BYTES_TO_PAGES(NumberOfBytes);
+    BaseAddress = ReserveKernelMemory(NumberOfPages * PAGE_SIZE);
+    if (BaseAddress == NULL)
+    {
+        return NULL;
+    }
 
     /* Convert protection */
     Protect = ConvertProtectAndCaching(PAGE_READWRITE, CachingType);
 
     /* Map the physical pages */
     BasePageFrameNumber = PhysicalAddress.QuadPart >> PAGE_SHIFT;
-    BaseAddress = MapPhysicalMemory(BasePageFrameNumber,
-                                    (PFN_COUNT)BYTES_TO_PAGES(NumberOfBytes),
-                                    Protect);
+    Status = MapPhysicalMemory(AddressToVpn(BaseAddress),
+                               NumberOfPages,
+                               Protect,
+                               BasePageFrameNumber);
+    if (!NT_SUCCESS(Status))
+    {
+        ReleaseKernelMemory(BaseAddress);
+        return NULL;
+    }
 
     /* Return the pointer to the real start address */
     return AddToPointer(BaseAddress, PhysicalAddress.LowPart & (PAGE_SIZE - 1));
-
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

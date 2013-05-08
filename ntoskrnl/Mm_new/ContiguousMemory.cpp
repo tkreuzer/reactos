@@ -10,7 +10,7 @@ static const PHYSICAL_ADDRESS c_PhysicalAddress0 = {0,0};
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
-_When_ (return != NULL, _Post_writable_byte_size_ (NumberOfBytes))
+_When_(return != NULL, _Post_writable_byte_size_(NumberOfBytes))
 PVOID
 AllocateContiguousMemory (
     _In_ SIZE_T NumberOfBytes,
@@ -45,6 +45,13 @@ AllocateContiguousMemory (
         return NULL;
     }
 
+    /* Reserve virtual memory range */
+    BaseAddress = ReserveKernelMemory(NumberOfPages * PAGE_SIZE);
+    if (BaseAddress == NULL)
+    {
+        return NULL;
+    }
+
     /* Allocate a range of contiguous physical pages */
     Status = g_PfnDatabase.AllocateContiguousPages(&BasePageFrameNumber,
                                                    NumberOfPages,
@@ -54,16 +61,20 @@ AllocateContiguousMemory (
                                                    PreferredNode);
     if (!NT_SUCCESS(Status))
     {
+        ReleaseKernelMemory(BaseAddress);
         return NULL;
     }
 
     /* Map the physical pages */
-    BaseAddress = MapPhysicalMemory(BasePageFrameNumber,
-                                    NumberOfPages,
-                                    Protect);
-    if (BaseAddress == NULL)
+    Status = MapPhysicalMemory(AddressToVpn(BaseAddress),
+                               NumberOfPages,
+                               Protect,
+                               BasePageFrameNumber);
+    if (!NT_SUCCESS(Status))
     {
         g_PfnDatabase.FreeContiguousPages(BasePageFrameNumber);
+        ReleaseKernelMemory(BaseAddress);
+        return NULL;
     }
 
     return BaseAddress;
