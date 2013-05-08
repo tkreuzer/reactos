@@ -226,6 +226,7 @@ __debugbreak();
         CurrentPde = AddressToPde(CurrentVa);
 
         /* Check if this is a large page PDE */
+        /// FIXME: not safe
         if (CurrentPde->IsValid() && CurrentPde->IsLargePage())
         {
 
