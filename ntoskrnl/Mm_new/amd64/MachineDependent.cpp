@@ -23,7 +23,7 @@ const HARDWARE_PTE ProtectToPteBase[8] =
 {
 //         W C         C         N
 //   V W O C D A D L G W         X
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_NOACCESS
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_INVALID
     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,1}, // MM_READONLY
     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE
     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_EXECUTE_READ
@@ -38,23 +38,49 @@ const HARDWARE_PTE ProtectToPteFlags[32] =
 //         W C         C         N
 //   V W O C D A D L G W         X
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // -
-    {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_NOCACHE
-    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_DECOMMIT
+    {0,0,0,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_UNCACHED
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_GUARDPAGE
     {0,0,0,1,0,0,0,0,0,0,0,0,0,0,0}, // MM_WRITECOMBINE
     {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_NOCACHE
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_DECOMMIT
-    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_WRITECOMBINE
+    {0,0,0,0,1,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_UNCACHED
+    {0,0,0,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_GUARDPAGE
+    {0,0,0,1,0,0,0,0,1,0,0,0,0,0,0}, // MM_GLOBAL|MM_WRITECOMBINE
 
     {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER
-    {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_NOCACHE
-    {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_DECOMMIT
+    {0,0,1,0,1,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_UNCACHED
+    {0,0,1,0,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_GUARDPAGE
     {0,0,1,1,0,0,0,0,0,0,0,0,0,0,0}, // MM_USER|MM_WRITECOMBINE
     {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_NOCACHE
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_DECOMMIT
-    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_WRITECOMBINE
+    {0,0,1,0,1,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_UNCACHED
+    {0,0,1,0,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_GUARDPAGE
+    {0,0,1,1,0,0,0,0,1,0,0,0,0,0,0}, // MM_USER|MM_GLOBAL|MM_WRITECOMBINE
 };
+
+#if 0
+const ULONG64 ProtectToPteMask[8] =
+{
+    /* Base values */
+    0,                                         // MM_INVALID
+    PTE_VALID | PTE_NOEXECUTE,                 // MM_READONLY
+    PTE_VALID,                                 // MM_EXECUTE
+    PTE_VALID,                                 // MM_EXECUTE_READ
+    PTE_VALID | PTE_WRITE | PTE_NOEXECUTE,     // MM_READWRITE
+    PTE_VALID | PTE_WRITECOPY | PTE_NOEXECUTE, // MM_WRITECOPY
+    PTE_VALID | PTE_WRITE,                     // MM_EXECUTE_READWRITE
+    PTE_VALID | PTE_WRITECOPY,                 // MM_EXECUTE_WRITECOPY
+
+    /* | MM_UNCACHED */
+    0,                                         // MM_INVALID
+    PTE_VALID | PTE_NOEXECUTE,                 // MM_UNCACHED | MM_READONLY
+    PTE_VALID,                                 // MM_UNCACHED | MM_EXECUTE
+    PTE_VALID,                                 // MM_UNCACHED | MM_EXECUTE_READ
+    PTE_VALID | PTE_WRITE | PTE_NOEXECUTE,     // MM_READWRITE
+    PTE_VALID | PTE_WRITECOPY | PTE_NOEXECUTE, // MM_WRITECOPY
+    PTE_VALID | PTE_WRITE,                     // MM_EXECUTE_READWRITE
+    PTE_VALID | PTE_WRITECOPY,                 // MM_EXECUTE_WRITECOPY
+
+};
+#endif
 
 VOID
 INIT_FUNCTION

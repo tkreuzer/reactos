@@ -24,6 +24,7 @@ enum PTE_TYPE
     PteDemandAny,
     PteEmpty,
     PteNoAccess,
+    PteGuardPage,
 };
 
 typedef struct _HARDWARE_PTE
@@ -132,6 +133,7 @@ extern const HARDWARE_PTE ProtectToPteFlags[32];
 static const HARDWARE_PTE ValidPte                = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static const HARDWARE_PTE ValidPde                = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static const HARDWARE_PTE ValidLargePagePde       = {1,0,0,0,0,0,0,1,0,0,0,0,0,0,0};
+static const SOFTWARE_PTE NoAccessPte             = {0,0,0,0,0,0,MM_NOACCESS,0};
 
 class PTE_COMMON
 {
@@ -196,7 +198,7 @@ public:
     ULONG
     GetProtection ()
     {
-        ULONG Protect = MM_NOACCESS;
+        ULONG Protect = 0;
         if (this->Hard.Valid) Protect |= MM_READONLY;
         if (this->Hard.Write) Protect |= MM_READWRITE;
         if (!this->Hard.NoExecute) Protect |= MM_EXECUTE;
@@ -235,7 +237,7 @@ public:
     bool
     IsNoAccess ()
     {
-        return (this->Long == *(ULONG64*)&ProtectToPteBase[MM_NOACCESS]);
+        return (this->Long == *(ULONG64*)&NoAccessPte);
     }
 
     inline
@@ -286,18 +288,11 @@ public:
     MakeDemandZeroPte (
         _In_ ULONG Protect)
     {
-        NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE|MM_NOCACHE|MM_WRITECOMBINE)));
-        if ((Protect & MM_PROTECTION_MASK) == MM_NOACCESS)
-        {
-            this->Long = *(ULONG64*)&ProtectToPteBase[MM_NOACCESS];
-        }
-        else
-        {
-            UNION_PTE PteValue = { 0 };
-            PteValue.Soft.Protection = Protect & MM_PROTECTION_MASK;
-            PteValue.Hard.CopyOnWrite = 1;
-            this->Long = PteValue.Long;
-        }
+        NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE)));
+        NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_INVALID);
+        UNION_PTE PteValue = { 0 };
+        PteValue.Soft.Protection = Protect & MM_PROTECTION_MASK;
+        this->Long = PteValue.Long;
     }
 
     inline
@@ -412,19 +407,24 @@ public:
         {
             return PtePageFile;
         }
-        else if (this->PageFile.CopyOnWrite)
+        else if (this->Soft.Protection == MM_NOACCESS)
+        {
+             return PteNoAccess;
+        }
+        else if (this->Soft.Protection & MM_GUARDPAGE)
+        {
+             // FIXME: yould also be MM_DECOMMIT, but we ignore this for now
+             return PteGuardPage;
+        }
+        else if (this->Soft.Protection != MM_INVALID)
         {
             return PteDemandZero;
         }
-        else if (this->Long == 0)
+        else //if (this->Long == 0)
         {
             return PteEmpty;
         }
-        else
-        {
-            NT_ASSERT(this->Hard.NoExecute == 1);
-            return PteNoAccess;
-        }
+
     }
 
 };

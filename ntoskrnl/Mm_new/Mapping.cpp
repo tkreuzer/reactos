@@ -39,7 +39,7 @@ ConvertProtect (
     if (Win32Protect & PAGE_WRITECOMBINE)
         Protect |= MM_WRITECOMBINE;
     else if (Win32Protect & PAGE_NOCACHE)
-        Protect |= MM_NOCACHE;
+        Protect |= MM_UNCACHED;
 
     return Protect;
 }
