@@ -231,7 +231,8 @@ namespace Mm {
 
 enum MM_PROTECT
 {
-    MM_NOACCESS           = 0,
+    /* Base values */
+    MM_INVALID            = 0,
     MM_READONLY           = 1,
     MM_EXECUTE            = 2,
     MM_EXECUTE_READ       = 3,
@@ -240,14 +241,21 @@ enum MM_PROTECT
     MM_EXECUTE_READWRITE  = 6,
     MM_EXECUTE_WRITECOPY  = 7,
 
-    MM_NOCACHE            = 0x08,
-    MM_DECOMMIT           = 0x10,
+    /* Flags */
+    MM_UNCACHED           = 0x08,
+    MM_GUARDPAGE          = 0x10,
     MM_WRITECOMBINE       = 0x18,
+
+    /* Special cases */
+    MM_DECOMMIT           = MM_GUARDPAGE | MM_INVALID,
+    MM_NOACCESS           = MM_WRITECOMBINE | MM_INVALID,
+    MM_OUTSWAPPED_KSTACK  = MM_WRITECOMBINE | MM_EXECUTE_WRITECOPY,
 
     MM_PROTECTION_MASK    = 0x1F,
 
+    /* Additional flags */
     MM_GLOBAL             = 0x20,
-    MM_USER               = 0x40, /// FIXME
+    MM_USER               = 0x40,
     MM_MAPPED             = 0x80,
     MM_NONPAGED           = 0x100,
     MM_LARGEPAGE          = 0x200,

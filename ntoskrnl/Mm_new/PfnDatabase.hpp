@@ -40,7 +40,7 @@ enum PFN_CACHE_ATTRIBUTE
 
 #define ProtectToCacheAttribute(Protect) ((PFN_CACHE_ATTRIBUTE)((((Protect) >> 3) - 2) & 3))
 static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
-static_assert(ProtectToCacheAttribute(MM_NOCACHE) == PfnNonCached, "");
+static_assert(ProtectToCacheAttribute(MM_UNCACHED) == PfnNonCached, "");
 static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
 
 
