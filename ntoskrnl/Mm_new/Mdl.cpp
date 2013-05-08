@@ -76,6 +76,11 @@ NTAPI
 MmFreePagesFromMdl (
   _Inout_ PMDLX MemoryDescriptorList)
 {
+    if (MemoryDescriptorList->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA)
+    {
+        MmUnmapLockedPages(MemoryDescriptorList->MappedSystemVa,
+                           MemoryDescriptorList);
+    }
     UNIMPLEMENTED;
 }
 
