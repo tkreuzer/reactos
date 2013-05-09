@@ -362,6 +362,7 @@ MapPhysicalMemory (
         CurrentPte->WriteValidPte(TemplatePte);
         NumberOfNewPtes++;
 
+        /* Next PTE and next PFN */
         CurrentPte++;
         PageFrameNumber++;
         NumberOfPages--;
@@ -444,6 +445,7 @@ MapPfnArray (
         CurrentPte->WriteValidPte(TemplatePte);
         NumberOfNewPtes++;
 
+        /* Next PTE and next PFN array element */
         CurrentPte++;
         PfnArray++;
         NumberOfPages--;
@@ -467,9 +469,10 @@ MapPfnArray (
     UnchargeSystemCommit(PagesCharged - PagesUsed);
 
     return STATUS_SUCCESS;
-
 }
 
+_Must_inspect_result_
+_IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
 MapPrototypePtes (
     _In_ ULONG_PTR StartingVpn,
@@ -477,8 +480,81 @@ MapPrototypePtes (
     _In_ ULONG Protect,
     _In_ PPTE Ptototypes)
 {
-    UNIMPLEMENTED;
-    return 0;
+    ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
+    PADDRESS_SPACE AddressSpace;
+    PFN_NUMBER PfnOfPt;
+    ULONG NumberOfNewPtes;
+    PFN_LIST PageList;
+    //PTE TemplatePte;
+    PPTE CurrentPte;
+    PPDE CurrentPde;
+    NTSTATUS Status;
+
+    NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
+    NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
+
+    if (Protect == -1) __debugbreak(); /// not yet handled
+
+    /* Allocate pages for the page tables */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+    Status = AllocatePagesForMapping(StartingVpn,
+                                     EndingVpn,
+                                     &PageList,
+                                     NULL,
+                                     FALSE,
+                                     Protect,
+                                     &PagesCharged);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    /* Acquire the working set lock */
+    AddressSpace = GetAddressSpaceForAddress(VpnToAddress(StartingVpn));
+    AddressSpace->AcquireWorkingSetLock();
+
+    /* Reserve the PTEs for the mapping */
+    PagesUsed = ReserveMappingPtes(StartingVpn, EndingVpn, &PageList, Protect);
+
+    /* Prepare a template PTE */
+    //TemplatePte.MakePrototypePte(Ptototypes, Protect);
+
+    /* Loop all reserved PTEs */
+    CurrentPte = VpnToPte(StartingVpn);
+    CurrentPde = VpnToPde(StartingVpn);
+    NumberOfNewPtes = 0;
+    do
+    {
+        /* Make sure the PTE is empty */
+        NT_ASSERT(CurrentPte->IsEmpty());
+        //TemplatePte.SetPageFrameNumber(*PfnArray);
+        CurrentPte->MakePrototypePte(Ptototypes, Protect);
+        NumberOfNewPtes++;
+
+        /* Next PTE and next prototype */
+        CurrentPte++;
+        Ptototypes++;
+        NumberOfPages--;
+
+        /* Update the PFN of the PT, if we reached the next PT or the end */
+        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+        {
+            PfnOfPt = CurrentPde->GetPageFrameNumber();
+            g_PfnDatabase.IncrementEntryCount(PfnOfPt, NumberOfNewPtes);
+            NumberOfNewPtes = 0;
+            CurrentPde++;
+        }
+    }
+    while (NumberOfPages);
+
+    /* Release the working set lock */
+    AddressSpace->ReleaseWorkingSetLock();
+
+    /* Return the pages, we did not use */
+    g_PfnDatabase.ReleaseMultiplePages(&PageList);
+    UnchargeSystemCommit(PagesCharged - PagesUsed);
+
+    return STATUS_SUCCESS;
 }
 
 /// ****************************************************************************

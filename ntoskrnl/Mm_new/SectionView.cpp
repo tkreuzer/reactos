@@ -2,6 +2,7 @@
 #include "SectionView.hpp"
 #include "Section.hpp"
 #include "SectionObject.hpp"
+#include "Mapping.hpp"
 #include "AddressSpace.hpp"
 #include "VadTable.hpp"
 #include "amd64/MachineDependent.hpp"
@@ -144,7 +145,7 @@ MapViewOfSection (
     _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect)
+    _In_ ULONG Win32Protect)
 {
     PADDRESS_SPACE AddressSpace;
     ULONG_PTR StartingVpn, LowestStartingVpn, HighestEndingVpn, RelativeStartingVpn;
@@ -153,6 +154,7 @@ MapViewOfSection (
     NTSTATUS Status;
     PVAD_TABLE VadTable;
     PSECTION Section;
+    ULONG Protect;
 
 //__debugbreak();
 
@@ -178,6 +180,9 @@ MapViewOfSection (
     {
         RelativeStartingVpn = 0;
     }
+
+    /* Convert protection mask */
+    Protect = ConvertProtect(Win32Protect);
 
     if (VaType == VaProcessSpace)
     {
@@ -424,7 +429,7 @@ MmMapViewOfSection (
     _Inout_ PSIZE_T ViewSize,
     _In_ SECTION_INHERIT InheritDisposition,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect)
+    _In_ ULONG Win32Protect)
 {
     KAPC_STATE SavedApcState;
     BOOLEAN Attached = FALSE;
@@ -448,7 +453,7 @@ MmMapViewOfSection (
                               ViewSize,
                               InheritDisposition,
                               AllocationType,
-                              Protect);
+                              Win32Protect);
 
     /* Detach if required */
     if (Attached)

@@ -113,7 +113,9 @@ SECTION::CreatePageFileSection (
         Section->m_ControlArea.Flags.Commit = TRUE;
 
         /* Commit all pages in the segment */
-        Status = Section->m_ControlArea.Segment->CommitDemandZeroPages(0, NumberOfPages);
+        Status = Section->m_ControlArea.Segment->CommitDemandZeroPages(0,
+                                                                       NumberOfPages,
+                                                                       SectionPageProtection);
         if (!NT_SUCCESS(Status))
         {
             ERR("Failed to commit pages for segment: 0x%lx\n", Status);
@@ -144,7 +146,8 @@ SECTION::CommitPages (
     {
         /* Commit demand zero pages */
         m_ControlArea.Segment->CommitDemandZeroPages(RelativeStartingVpn,
-                                                     NumberOfPages);
+                                                     NumberOfPages,
+                                                     Protect);
     }
 
     return 0;
@@ -170,7 +173,7 @@ SECTION::RelativeVpnToSubsectionIndex (
     return MAXULONG;
 }
 
-#if 0
+#if 1
 // This much simpler variant can be used, if the prototypes are created with
 // a protection according to the subsection protection
 NTSTATUS
@@ -187,7 +190,7 @@ SECTION::CreateMapping (
     if (m_ControlArea.Flags.Image)
         Protect = -1;
 
-    return m_ControlArea.Segment->MapPages(AddressToVpn(BaseAddress),
+    return m_ControlArea.Segment->MapPages(BaseAddress,
                                            RelativeStartingVpn,
                                            NumberOfPages,
                                            Protect);

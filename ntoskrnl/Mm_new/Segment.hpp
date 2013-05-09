@@ -27,7 +27,15 @@ public:
     NTSTATUS
     CommitDemandZeroPages (
         _In_ ULONG_PTR RelativeStartingVpn,
-        _In_ ULONG_PTR NumberOfPages);
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG Protect);
+
+    NTSTATUS
+    MapPages (
+        _In_ PVOID BaseAddress,
+        _In_ ULONG_PTR RelativeStartingVpn,
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG Protect);
 
     VOID
     MapPages (
