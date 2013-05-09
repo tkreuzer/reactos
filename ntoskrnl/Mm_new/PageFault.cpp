@@ -267,7 +267,7 @@ ResolveFaultForPte (
     case PteNoAccess:
     case PteEmpty:
 
-        /* User mode or debug build: dispatch the fault */
+        /* Both of these are invalid */
         return STATUS_ACCESS_VIOLATION;
 
     DEFAULT_UNREACHABLE;

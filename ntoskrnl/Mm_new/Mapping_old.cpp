@@ -82,39 +82,12 @@ MapPdesAndPtes (
         /* Check if we have a PFN array */
         if (*PfnArrayPointer != NULL)
         {
-            TemplatePte.MakeValidPte(0, Protect);
-            do
-            {
-                NT_ASSERT(CurrentPte->IsEmpty());
-                TemplatePte.SetPageFrameNumber(*(*PfnArrayPointer));
-                CurrentPte->WriteValidPte(TemplatePte);
-                NumberOfNewPtes++;
-                CurrentPte++;
-                (*PfnArrayPointer)++;
-            }
-            while (CurrentPte < MarginPte);
+            NT_ASSERT(FALSE);
         }
         /* Check if we have a prototype PTE array */
         else if (*PrototypePtePointer != NULL)
         {
-            do
-            {
-                if (CurrentPte->IsEmpty())
-                {
-                    CurrentPte->MakePrototypePte(*PrototypePtePointer, Protect);
-                    NumberOfNewPtes++;
-                }
-                else
-                {
-                    /* Just update the protection */
-                    CurrentPte->UpdateProtection(Protect);
-                    NT_ASSERT(FALSE);
-                    /// \todo we need to invalidate TLB entries when the page was valid!
-                }
-                CurrentPte++;
-                (*PrototypePtePointer)++;
-            }
-            while (CurrentPte < MarginPte);
+            NT_ASSERT(FALSE);
         }
         /* Check if the pages should be mapped */
         else if (Protect & MM_MAPPED)
@@ -430,68 +403,6 @@ CreateMapping (
     UnchargeSystemCommit(MaximumCharge - ActualCharge);
 
     return STATUS_SUCCESS;
-}
-
-NTSTATUS
-ReservePageTables (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ ULONG Protect)
-{
-    return CreateMapping(StartingVpn,
-                         NumberOfPages,
-                         MM_NOACCESS | MM_GLOBAL,
-                         NULL,
-                         NULL);
-}
-
-VOID
-MapPrototypePtes (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ PPTE Ptototypes,
-    _In_ ULONG Protect)
-{
-    PFN_NUMBER PfnOfPt;
-    PPTE CurrentPte;
-    ULONG NumberOfNewPtes;
-
-    /* Get the PFN of the page table */
-    PfnOfPt = VpnToPde(StartingVpn)->GetPageFrameNumber();
-
-    /* Get the starting PTE */
-    CurrentPte = VpnToPte(StartingVpn);
-
-    NumberOfNewPtes = 0;
-
-    /* Lock the address space */
-    // AddressSpace->AcquireLock();
-
-    /* Now loop all reserved PTEs */
-    do
-    {
-        /* Make sure the PTE is a no-access PTE and make it a prototype PTE */
-        NT_ASSERT(CurrentPte->IsNoAccess());
-        CurrentPte->MakePrototypePte(Ptototypes, 0);
-        NumberOfNewPtes++;
-
-        CurrentPte++;
-        Ptototypes++;
-        NumberOfPages--;
-#if 0 // This only makes sense, when we move page table referencing completely out
-// of the reserving function, but then we need to lock outside of both functions
-        /* Update the PFN of the PT, if we reached the next PT or the end */
-        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
-        {
-            PfnOfPt = PdeToPte(CurrentPte)->GetPageFrameNumber();
-            NumberOfNewPtes = 0;
-        }
-#endif
-    }
-    while (NumberOfPages);
-
-    /* Unlock the address space */
-    // AddressSpace->ReleaseLock();
 }
 
 

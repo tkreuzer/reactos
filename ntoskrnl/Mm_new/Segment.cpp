@@ -35,21 +35,22 @@ SEGMENT::CreateInstance (
 NTSTATUS
 SEGMENT::CommitDemandZeroPages (
     _In_ ULONG_PTR RelativeStartingVpn,
-    _In_ ULONG_PTR NumberOfPages)
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
 {
     PPTE PtePointer;
 
     PtePointer = m_ThePtes + RelativeStartingVpn;
     while (NumberOfPages--)
     {
-        PtePointer->MakeDemandZeroPte(MM_READWRITE); /// \todo protection!
+        PtePointer->MakeDemandZeroPte(Protect);
         PtePointer++;
     }
 
     return STATUS_SUCCESS;
 }
 
-
+#if 0
 VOID
 SEGMENT::MapPages (
     ULONG_PTR StartingVpn,
@@ -62,6 +63,21 @@ SEGMENT::MapPages (
                      NumberOfPages,
                      &m_ThePtes[RelativeStartingVpn],
                      Protect);
+}
+#endif
+
+NTSTATUS
+SEGMENT::MapPages (
+    _In_ PVOID BaseAddress,
+    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
+{
+    NT_ASSERT((RelativeStartingVpn + NumberOfPages) <= m_NumberOfPages);
+    return MapPrototypePtes(AddressToVpn(BaseAddress),
+                            NumberOfPages,
+                            Protect,
+                            &m_ThePtes[RelativeStartingVpn]);
 }
 
 
