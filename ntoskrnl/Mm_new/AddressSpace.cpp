@@ -1,7 +1,10 @@
 
 
 #include "AddressSpace.hpp"
+#include "VadObject.hpp"
 #include "VadTable.hpp"
+#include "KernelVad.hpp"
+#include "amd64/MachineDependent.hpp"
 
 namespace Mm {
 
@@ -96,6 +99,71 @@ ADDRESS_SPACE::ReleaseWorkingSetLock (
     //KeLeaveGuardedRegion();
 }
 
+NTSTATUS
+ADDRESS_SPACE::ReserveVirtualMemory (
+    _Inout_ PVOID* BaseAddress,
+    _In_ ULONG_PTR NumberOfPages)
+{
+    ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
+    ULONG_PTR LowestStartingVpn, HighestEndingVpn;
+    PVAD_TABLE VadTable;
+    PVAD_OBJECT VadObject;
+    NTSTATUS Status;
+
+    if (AddressSpaceType == ProcessAddressSpace)
+    {
+        PEPROCESS Process = CONTAINING_RECORD(&m_Support, EPROCESS, Vm);
+        VadTable = reinterpret_cast<class VAD_TABLE*>(&Process->VadRoot);
+        LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
+        HighestEndingVpn = AddressToVpn(MmHighestSystemAddress);
+        UNIMPLEMENTED;
+    }
+    else if (AddressSpaceType == SessionAddressSpace)
+    {
+        //PSESSION_SPACE SessionSpace = CONTAINING_RECORD(&m_Support, SESSION_SPACE, Vm);
+        //return reinterpret_cast<class VAD_TABLE*>(&SessionSpace->VadRoot);
+        //LowestStartingVpn = AddressToVpn(MmSessionSpaceStart);
+        //HighestEndingVpn = AddressToVpn(MmSessionSpaceEnd);
+        UNIMPLEMENTED;
+    }
+    else
+    {
+        VadTable = &g_KernelVadTable;
+        LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
+        HighestEndingVpn = AddressToVpn(MmHighestSystemAddress);
+
+        Status = KERNEL_VAD::CreateInstance((KERNEL_VAD**)&VadObject);
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
+    }
+
+    if (*BaseAddress != NULL)
+    {
+        UNIMPLEMENTED;
+    }
+    else
+    {
+        Status = VadTable->InsertVadObject(VadObject,
+                                           NumberOfPages,
+                                           AddressToVpn(MmSystemRangeStart),
+                                           AddressToVpn(MmHighestSystemAddress),
+                                           1,
+                                           FALSE);
+    }
+
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to insert VAD object into VAD table: %x\n", Status);
+        delete VadObject;
+        return Status;
+    }
+
+    *BaseAddress = VadObject->GetBaseAddress();
+
+    return STATUS_SUCCESS;
+}
 
 }; // namespace Mm
 

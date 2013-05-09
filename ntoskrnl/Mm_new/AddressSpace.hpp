@@ -40,6 +40,11 @@ public:
     ReleaseWorkingSetLock (
         VOID);
 
+    NTSTATUS
+    ReserveVirtualMemory (
+        _Inout_ PVOID* BaseAddress,
+        _In_ ULONG_PTR NumberOfPages);
+
 };
 
 typedef ADDRESS_SPACE* PADDRESS_SPACE;

@@ -25,19 +25,6 @@ CreateMapping (
     _In_opt_ PPFN_NUMBER PfnArray,
     _In_opt_ class PTE* Prototypes);
 
-NTSTATUS
-ReservePageTables (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ ULONG Protect);
-
-VOID
-MapPrototypePtes (
-    _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages,
-    _In_ class PTE* Ptototypes,
-    _In_ ULONG Protect);
-
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
