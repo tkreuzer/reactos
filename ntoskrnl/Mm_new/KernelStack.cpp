@@ -4,10 +4,10 @@
 #include "KernelVad.hpp"
 #include "VadTable.hpp"
 #include "Mapping.hpp"
+#include "amd64/MachineDependent.hpp"
 
 namespace Mm {
 
-static const PVOID MmHighestSystemAddress = (PVOID)0xFFFFFFFFFFFFFFFFULL;
 
 PVOID
 ReserveKernelMemory (

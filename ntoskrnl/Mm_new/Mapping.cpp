@@ -701,29 +701,45 @@ MmMapLockedPagesSpecifyCache (
     ULONG Protect;
     NTSTATUS Status;
 
+__debugbreak();
+
+    Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CacheType);
+
     if (AccessMode == KernelMode)
     {
         AddressSpace = &g_KernelAddressSpace;
         BaseAddress = NULL;
-        Protect = MM_GLOBAL;
+        Protect |= MM_GLOBAL;
     }
     else
     {
         AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
         BugCheckOnFailure = 0;
-        Protect = MM_USER;
+        Protect |= MM_USER;
     }
 
     NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(Mdl->StartVa, Mdl->ByteCount);
 
-    Status = 0;//AddressSpace->ReserveVirtualMemory(&BaseAddress, NumberOfPages);
+    Status = AddressSpace->ReserveVirtualMemory(&BaseAddress, NumberOfPages);
     if (!NT_SUCCESS(Status))
     {
+        ERR("Failed to reserve virtual memory\n");
         goto Failure;
     }
 
-    // MapPfnArray
+    Status = MapPfnArray(AddressToVpn(BaseAddress),
+                         NumberOfPages,
+                         Protect,
+                         MmGetMdlPfnArray(Mdl));
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to map MDL PFN array\n");
+        // AddressSpace->ReleaseVirtualMemory()
+        UNIMPLEMENTED;
+        goto Failure;
+    }
 
+    return BaseAddress;
 
 Failure:
 
@@ -732,7 +748,6 @@ Failure:
         KeBugCheckEx(0, 0, 0, 0, 0);
     }
 
-    UNIMPLEMENTED;
     return NULL;
 }
 
