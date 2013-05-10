@@ -7,6 +7,37 @@
 #include "amd64/PageTables.hpp"
 #include "amd64/MachineDependent.hpp"
 
+/// HACK HACK HACK HACK
+VOID
+KeFlushMultipleTb (
+    _In_ PVOID* AddressArray,
+    _In_ ULONG AddressCount)
+{
+    while (AddressCount--)
+    {
+        __invlpg(AddressArray[AddressCount]);
+    }
+}
+
+VOID
+KeFlushRangeTb (
+    _In_ PVOID BaseAddress,
+    _In_ ULONG_PTR NumberOfPages)
+{
+    while (NumberOfPages--)
+    {
+        __invlpg(BaseAddress);
+        BaseAddress = AddToPointer(BaseAddress, PAGE_SIZE);
+    }
+}
+
+VOID
+KeFlushProcessTb ()
+{
+    __writecr3(__readcr3());
+}
+
+
 namespace Mm {
 
 extern ULONG_PTR LowestSystemVpn;
@@ -260,7 +291,7 @@ ReserveMappingPtes (
                 } while (CurrentPde < MarginPde);
 
                 /* Increment entry count in the page directory and count pages */
-                g_PfnDatabase.IncrementEntryCount(PfnOfPd, NumberOfNewPdes);
+                g_PfnDatabase.ModifyEntryCount(PfnOfPd, NumberOfNewPdes);
                 ActualCharge += NumberOfNewPdes;
             }
 
@@ -274,7 +305,7 @@ ReserveMappingPtes (
         } while (CurrentPpe < MarginPpe);
 
         /* Increment entry count in the parent directory and count pages */
-        g_PfnDatabase.IncrementEntryCount(PfnOfPdpt, NumberOfNewPpes);
+        g_PfnDatabase.ModifyEntryCount(PfnOfPdpt, NumberOfNewPpes);
         ActualCharge += NumberOfNewPpes;
 #endif /* MI_PAGING_LEVELS >= 3 */
 
@@ -284,7 +315,7 @@ ReserveMappingPtes (
     } while (CurrentPxe < EndPxe);
 
     /* Increment entry count in the parent page table */
-    g_PfnDatabase.IncrementEntryCount(PfnOfPdpt, NumberOfNewPxes);
+    g_PfnDatabase.ModifyEntryCount(PfnOfPml4, NumberOfNewPxes);
 #endif /* MI_PAGING_LEVELS >= 4 */
 
     return ActualCharge;
@@ -371,7 +402,7 @@ MapPhysicalMemory (
         if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
         {
             PfnOfPt = CurrentPde->GetPageFrameNumber();
-            g_PfnDatabase.IncrementEntryCount(PfnOfPt, NumberOfNewPtes);
+            g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
             NumberOfNewPtes = 0;
             CurrentPde++;
         }
@@ -404,7 +435,7 @@ MapPfnArray (
     PPDE CurrentPde;
     NTSTATUS Status;
 
-    /* For now only kernel mode addresses! */ /// might need usermode as well
+    /* For now only kernel mode addresses! */ /// we need usermode as well
     NT_ASSERT(VpnToAddress(StartingVpn) >= MmSystemRangeStart);
 
     NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
@@ -454,7 +485,7 @@ MapPfnArray (
         if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
         {
             PfnOfPt = CurrentPde->GetPageFrameNumber();
-            g_PfnDatabase.IncrementEntryCount(PfnOfPt, NumberOfNewPtes);
+            g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
             NumberOfNewPtes = 0;
             CurrentPde++;
         }
@@ -478,7 +509,7 @@ MapPrototypePtes (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
-    _In_ PPTE Ptototypes)
+    _In_ PPTE Prototypes)
 {
     ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
     PADDRESS_SPACE AddressSpace;
@@ -517,7 +548,7 @@ MapPrototypePtes (
     PagesUsed = ReserveMappingPtes(StartingVpn, EndingVpn, &PageList, Protect);
 
     /* Prepare a template PTE */
-    //TemplatePte.MakePrototypePte(Ptototypes, Protect);
+    //TemplatePte.MakePrototypePte(Prototypes, Protect);
 
     /* Loop all reserved PTEs */
     CurrentPte = VpnToPte(StartingVpn);
@@ -528,19 +559,19 @@ MapPrototypePtes (
         /* Make sure the PTE is empty */
         NT_ASSERT(CurrentPte->IsEmpty());
         //TemplatePte.SetPageFrameNumber(*PfnArray);
-        CurrentPte->MakePrototypePte(Ptototypes, Protect);
+        CurrentPte->MakePrototypePte(Prototypes, Protect);
         NumberOfNewPtes++;
 
         /* Next PTE and next prototype */
         CurrentPte++;
-        Ptototypes++;
+        Prototypes++;
         NumberOfPages--;
 
         /* Update the PFN of the PT, if we reached the next PT or the end */
         if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
         {
             PfnOfPt = CurrentPde->GetPageFrameNumber();
-            g_PfnDatabase.IncrementEntryCount(PfnOfPt, NumberOfNewPtes);
+            g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
             NumberOfNewPtes = 0;
             CurrentPde++;
         }
@@ -556,6 +587,110 @@ MapPrototypePtes (
 
     return STATUS_SUCCESS;
 }
+
+
+VOID
+UnmapPages (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages)
+{
+    PADDRESS_SPACE AddressSpace;
+    PFN_NUMBER PfnOfPt;
+    PFN_LIST PageList;
+    LONG NumberOfDeletedPtes, NumberOfInvalidatedPtes;
+    PVOID AddressArray[32];
+    ULONG AddressCount;
+    ULONG_PTR RemainingPages;
+    PPTE CurrentPte;
+    PPDE CurrentPde;
+
+    AddressCount = 0;
+
+    /* Acquire the working set lock */
+    AddressSpace = GetAddressSpaceForAddress(VpnToAddress(StartingVpn));
+    AddressSpace->AcquireWorkingSetLock();
+
+    /* Loop all PTEs */
+    CurrentPte = VpnToPte(StartingVpn);
+    CurrentPde = VpnToPde(StartingVpn);
+    NumberOfDeletedPtes = 0;
+    NumberOfInvalidatedPtes = 0;
+    RemainingPages = NumberOfPages;
+    do
+    {
+        /* Check if the PTE is not empty */
+        if (CurrentPte->IsEmpty())
+        {
+            /* Check if the PTE is valid */
+            if (CurrentPte->IsValid())
+            {
+                /* Add the page from this PTE to the page list */
+                /// check: if (CurrentPte->IsDirty()) ModifiedList.AddPage() else StandbyList.AddPage()???
+                PageList.AddPage(CurrentPte->GetPageFrameNumber());
+
+                /* Add this one to the address list */
+                if (AddressCount < RTL_NUMBER_OF(AddressArray))
+                {
+                    AddressArray[AddressCount] = PteToAddress(CurrentPte);
+                    AddressCount++;
+                }
+                NumberOfInvalidatedPtes++;
+            }
+
+            *(ULONG64*)CurrentPte = 0; /// FIXME
+            NumberOfDeletedPtes++;
+        }
+
+        /* Next PTE */
+        CurrentPte++;
+        RemainingPages--;
+
+        /* Update the PFN of the PT, if we reached the next PT or the end */
+        if ((CurrentPte->IsPdeBoundary()) || (RemainingPages == 0))
+        {
+            PfnOfPt = CurrentPde->GetPageFrameNumber();
+            g_PfnDatabase.ModifyValidCount(PfnOfPt, -NumberOfInvalidatedPtes);
+            if (g_PfnDatabase.ModifyUsedCount(PfnOfPt, -NumberOfDeletedPtes) == 0)
+            {
+                /// FIXME: unmap the üage table
+                __debugbreak();
+            }
+
+            NumberOfDeletedPtes = 0;
+            CurrentPde++;
+        }
+    }
+    while (RemainingPages);
+
+    /* Check if we have invalidated more than 32 PTEs */
+    if (AddressCount > RTL_NUMBER_OF(AddressArray))
+    {
+        /* Check if this is kernel or user mode */
+        if (StartingVpn < AddressToVpn(MmSystemRangeStart))
+        {
+            /* User mode, flush the process TLB */
+            KeFlushProcessTb();
+        }
+        else
+        {
+            /* Kernel mode, flush the whole range */
+            KeFlushRangeTb(VpnToAddress(StartingVpn), NumberOfPages);
+        }
+    }
+    /* Check if any pages were invalidated at all */
+    else if (AddressCount > 0)
+    {
+        /* Flush the addresses that we collected */
+        KeFlushMultipleTb(AddressArray, AddressCount);
+    }
+
+    /* Release the working set lock */
+    AddressSpace->ReleaseWorkingSetLock();
+
+    g_PfnDatabase.ReleaseMultiplePages(&PageList);
+
+}
+
 
 /// ****************************************************************************
 
@@ -701,7 +836,7 @@ MmMapLockedPagesSpecifyCache (
     ULONG Protect;
     NTSTATUS Status;
 
-__debugbreak();
+//__debugbreak();
 
     Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CacheType);
 
@@ -739,7 +874,7 @@ __debugbreak();
         goto Failure;
     }
 
-    return BaseAddress;
+    return AddToPointer(BaseAddress, Mdl->ByteOffset);
 
 Failure:
 
@@ -790,7 +925,10 @@ MmUnmapLockedPages (
     _In_ PVOID BaseAddress,
     _Inout_ PMDL MemoryDescriptorList)
 {
-    UNIMPLEMENTED;
+    ULONG_PTR NumberOfPages;
+__debugbreak();
+    NumberOfPages = BYTES_TO_PAGES(MemoryDescriptorList->ByteCount);
+    UnmapPages(AddressToVpn(BaseAddress), NumberOfPages);
 }
 
 

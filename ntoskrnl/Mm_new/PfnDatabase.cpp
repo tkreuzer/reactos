@@ -270,9 +270,10 @@ PFN_DATABASE::InitializePageTablePfn (
     if (PageTableLevel < MI_PAGING_LEVELS)
     {
         /* Increment the count of used and valid entries in the parent directory */
-        NT_ASSERT(m_PfnArray[ParendDirectoryPfn].State == PfnPageTable);
-        m_PfnArray[ParendDirectoryPfn].PageTable.UsedPteCount++;
-        m_PfnArray[ParendDirectoryPfn].PageTable.ValidPteCount++;
+        PfnEntry = &m_PfnArray[ParendDirectoryPfn];
+        NT_ASSERT(PfnEntry->State == PfnPageTable);
+        PfnEntry->PageTable.UsedPteCount++;
+        PfnEntry->PageTable.ValidPteCount++;
     }
 }
 
@@ -392,9 +393,11 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 {
                     for (l = 0; l < PTE_PER_PAGE; l++)
                     {
-                        InitializePageTablePfn(PfnForPde + i, PfnForPpe, Address, 0);
+                        m_PfnArray[PfnForPde + i].CacheAttribute = PfnCached;
+                        m_PfnArray[PfnForPde + i].PteAddress = PdePointer;
                     }
 
+                    ModifyEntryCount(PfnForPpe, 1);
                     continue;
                 }
 
@@ -676,38 +679,49 @@ PFN_DATABASE::MakePageTablePfn (
     PfnEntry->PageTable.ValidPteCount = 0;
 }
 
-VOID
-PFN_DATABASE::IncrementEntryCount (
+ULONG
+PFN_DATABASE::ModifyEntryCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ ULONG Addend)
+    _In_ LONG Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
     PfnEntry->PageTable.UsedPteCount += Addend;
     PfnEntry->PageTable.ValidPteCount += Addend;
+    NT_ASSERT((PfnEntry->PageTable.UsedPteCount >= 0) &&
+              (PfnEntry->PageTable.UsedPteCount <= PTE_PER_PAGE)); // HACK
+    NT_ASSERT((PfnEntry->PageTable.ValidPteCount >= 0) &&
+              (PfnEntry->PageTable.ValidPteCount <= PTE_PER_PAGE)); // HACK
+    return PfnEntry->PageTable.UsedPteCount;
 }
 
-VOID
-PFN_DATABASE::IncrementUsedCount (
+ULONG
+PFN_DATABASE::ModifyUsedCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ ULONG Addend)
+    _In_ LONG Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
     PfnEntry->PageTable.UsedPteCount += Addend;
+    NT_ASSERT((PfnEntry->PageTable.UsedPteCount >= 0) &&
+              (PfnEntry->PageTable.UsedPteCount <= PTE_PER_PAGE)); // HACK
+    return PfnEntry->PageTable.UsedPteCount;
 }
 
-VOID
-PFN_DATABASE::IncrementValidCount (
+ULONG
+PFN_DATABASE::ModifyValidCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ ULONG Addend)
+    _In_ LONG Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
     PfnEntry->PageTable.ValidPteCount += Addend;
+    NT_ASSERT((PfnEntry->PageTable.ValidPteCount >= 0) &&
+              (PfnEntry->PageTable.ValidPteCount <= PTE_PER_PAGE)); // HACK
+    return PfnEntry->PageTable.ValidPteCount;
 }
 
 PFN_NUMBER

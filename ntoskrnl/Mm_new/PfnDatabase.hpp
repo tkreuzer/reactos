@@ -266,22 +266,22 @@ public:
         _In_ ULONG Protect);
 
     static
-    VOID
-    IncrementEntryCount (
+    ULONG
+    ModifyEntryCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ ULONG Addend);
+        _In_ LONG Addend);
 
     static
-    VOID
-    IncrementUsedCount (
+    ULONG
+    ModifyUsedCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ ULONG Addend);
+        _In_ LONG Addend);
 
     static
-    VOID
-    IncrementValidCount (
+    ULONG
+    ModifyValidCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ ULONG Addend);
+        _In_ LONG Addend);
 
 #if 0
     AllocatePageNuma (

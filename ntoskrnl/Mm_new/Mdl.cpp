@@ -171,7 +171,7 @@ MmProbeAndLockPages (
     PPTE CurrentPte;
     PPDE CurrentPde;
 
-__debugbreak();
+//__debugbreak();
 
     CurrentPfnNumber = MmGetMdlPfnArray(Mdl);
     *CurrentPfnNumber = MAXULONG_PTR;
@@ -318,7 +318,8 @@ NTAPI
 MmUnlockPages (
     _Inout_ PMDLX MemoryDescriptorList)
 {
-    UNIMPLEMENTED;
+    DbgPrint("MmUnlockPages does nothing\n");
+    //UNIMPLEMENTED;
 }
 
 }; // extern "C"
