@@ -31,7 +31,7 @@ MapLargePagePdes (
     } while (CurrentPde < MarginPde);
 
     /* Increment entry count in the parent page table */
-    g_PfnDatabase.IncrementEntryCount(PfnOfPd, NumberOfNewPdes);
+    g_PfnDatabase.ModifyEntryCount(PfnOfPd, NumberOfNewPdes);
 
     /* Return the number of pages we removed from the page list */
     return NumberOfNewPdes * (LARGE_PAGE_SIZE / PAGE_SIZE);
@@ -145,14 +145,14 @@ MapPdesAndPtes (
         }
 
         /* Increment entry count in the parent page table */
-        g_PfnDatabase.IncrementEntryCount(PfnOfPt, NumberOfNewPtes);
+        g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
 
         /* Go to the next PDE */
         CurrentPde++;
     } while (CurrentPde < MarginPde);
 
     /* Increment entry count in the parent page table */
-    g_PfnDatabase.IncrementEntryCount(PfnOfPd, NumberOfNewPdes);
+    g_PfnDatabase.ModifyEntryCount(PfnOfPd, NumberOfNewPdes);
 
     /* Return the number of pages we removed from the page list */
     return NumberOfNewPdes + NumberOfPages;
@@ -283,7 +283,7 @@ PageMappingWorker (
         } while (CurrentPpe < MarginPpe);
 
         /* Increment entry count in the parent page table */
-        g_PfnDatabase.IncrementEntryCount(PfnOfPdpt, NumberOfNewPpes);
+        g_PfnDatabase.ModifyEntryCount(PfnOfPdpt, NumberOfNewPpes);
 #endif /* MI_PAGING_LEVELS >= 3 */
 
 #if (MI_PAGING_LEVELS >= 4)
@@ -292,7 +292,7 @@ PageMappingWorker (
     } while (CurrentPxe < EndPxe);
 
     /* Increment entry count in the parent page table */
-    g_PfnDatabase.IncrementEntryCount(PfnOfPdpt, NumberOfNewPxes);
+    g_PfnDatabase.ModifyEntryCount(PfnOfPml4, NumberOfNewPxes);
 #endif /* MI_PAGING_LEVELS >= 4 */
 
     return ActualCharge;
