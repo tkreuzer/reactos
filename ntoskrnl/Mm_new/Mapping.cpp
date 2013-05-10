@@ -592,11 +592,12 @@ MapPrototypePtes (
 VOID
 UnmapPages (
     _In_ ULONG_PTR StartingVpn,
-    _In_ ULONG_PTR NumberOfPages)
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ BOOLEAN ReleasePages)
 {
     PADDRESS_SPACE AddressSpace;
-    PFN_NUMBER PfnOfPt;
-    PFN_LIST PageList;
+    PFN_NUMBER PfnOfPt, PageFrameNumber;
+    //PFN_LIST PageList;
     LONG NumberOfDeletedPtes, NumberOfInvalidatedPtes;
     PVOID AddressArray[32];
     ULONG AddressCount;
@@ -604,6 +605,7 @@ UnmapPages (
     PPTE CurrentPte;
     PPDE CurrentPde;
 
+__debugbreak();
     AddressCount = 0;
 
     /* Acquire the working set lock */
@@ -619,21 +621,34 @@ UnmapPages (
     do
     {
         /* Check if the PTE is not empty */
-        if (CurrentPte->IsEmpty())
+        if (!CurrentPte->IsEmpty())
         {
             /* Check if the PTE is valid */
             if (CurrentPte->IsValid())
             {
-                /* Add the page from this PTE to the page list */
-                /// check: if (CurrentPte->IsDirty()) ModifiedList.AddPage() else StandbyList.AddPage()???
-                PageList.AddPage(CurrentPte->GetPageFrameNumber());
+                /* Check if the caller wants to release the pages */
+                if (ReleasePages)
+                {
+                    /* Get the page frame number */
+                    PageFrameNumber = CurrentPte->GetPageFrameNumber();
 
-                /* Add this one to the address list */
+                    UNIMPLEMENTED;
+
+                    /// since we own the WS lock, we can access the reference count
+                    /// of the PFN without locking the PFN database!
+                    /// For section PFNs, we must additionally own the SECTION lock!
+                    /// Locked pages and IoSpace are not released
+                }
+
+                /* Check if we still have free slots in the address list */
                 if (AddressCount < RTL_NUMBER_OF(AddressArray))
                 {
+                    /* Add this virtual address to the address list */
                     AddressArray[AddressCount] = PteToAddress(CurrentPte);
                     AddressCount++;
                 }
+
+                /* Increment number of invalidated PTEs in this PT */
                 NumberOfInvalidatedPtes++;
             }
 
@@ -686,9 +701,6 @@ UnmapPages (
 
     /* Release the working set lock */
     AddressSpace->ReleaseWorkingSetLock();
-
-    g_PfnDatabase.ReleaseMultiplePages(&PageList);
-
 }
 
 
@@ -793,7 +805,16 @@ MmUnmapIoSpace (
     _In_reads_bytes_ (NumberOfBytes) PVOID BaseAddress,
     _In_ SIZE_T NumberOfBytes)
 {
-    UNIMPLEMENTED;
+    ULONG_PTR NumberOfPages;
+
+    /* Get the number of pages for the mapping */
+    NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, NumberOfBytes);
+
+    /* Unmap the memory, ignore the PFNs */
+    UnmapPages(AddressToVpn(BaseAddress), NumberOfPages, FALSE);
+
+    /* Release the virtual memory */
+    ReleaseKernelMemory(BaseAddress);
 }
 
 _Must_inspect_result_
@@ -926,9 +947,9 @@ MmUnmapLockedPages (
     _Inout_ PMDL MemoryDescriptorList)
 {
     ULONG_PTR NumberOfPages;
-__debugbreak();
+
     NumberOfPages = BYTES_TO_PAGES(MemoryDescriptorList->ByteCount);
-    UnmapPages(AddressToVpn(BaseAddress), NumberOfPages);
+    UnmapPages(AddressToVpn(BaseAddress), NumberOfPages, FALSE);
 }
 
 
