@@ -44,6 +44,7 @@ PRTL_BITMAP_EX PFN_DATABASE::m_PhysicalMemoryBitmap;
 PFN_ENTRY* PFN_DATABASE::m_PfnArray;
 PULONG_PTR PFN_DATABASE::m_PhysicalBitmapBuffer;
 static KERNEL_VAD g_PfnDatabaseVad;
+static KERNEL_VAD g_MappingPtesVad;
 static KEVENT PagesAvailableEvent;
 #define NUMBER_OF_MAPPING_PTES 128
 PPTE ZeroingPtes;
@@ -183,7 +184,7 @@ PFN_DATABASE::InitializePfnEntries (
 
             /* Insert the page into the dirty list */
             Color = BasePage & KeGetCurrentPrcb()->SecondaryColorMask;
-            PfnEntry->Free.Next = m_FreeLists[Color].m_ListHead;
+            PfnEntry->Flink = m_FreeLists[Color].m_ListHead;
             m_FreeLists[Color].m_ListHead = BasePage;
         }
     }
@@ -456,7 +457,15 @@ PFN_DATABASE::Initialize (
 
     /* Reserve the whole area of mapping PTEs and HAL VA space */
     MappingBase = (PVOID)(MM_HAL_VA_START - (NUMBER_OF_MAPPING_PTES * PAGE_SIZE));
-    EarlyMapPages(MappingBase, (PVOID)MM_HAL_VA_END, MM_NOACCESS);
+    EarlyMapPages(MappingBase, (PVOID)MM_HAL_VA_END, MM_INVALID);
+
+    /* Reserve the virtual address range for mapping PTEs */
+    StartingVpn = AddressToVpn(MappingBase);
+    EndingVpn = AddressToVpn((PUCHAR)MM_HAL_VA_START - 1);
+    g_MappingPtesVad.Initialize();
+    g_KernelVadTable.InsertVadObjectAtVpn(&g_MappingPtesVad,
+                                          StartingVpn,
+                                          EndingVpn - StartingVpn + 1);
 
     /* Get the debug PTE and zeroing PTEs (one per CPU) */
     DebugPte = AddressToPte(MappingBase);
@@ -836,7 +845,7 @@ PFN_DATABASE::FreePageLocked (
     PfnEntry->State = PfnFree;
 
     /* Insert the page into the free list */ /// \todo check for Dirty flag
-    PfnEntry->Free.Next = m_FreeLists[Color].m_ListHead;
+    PfnEntry->Flink = m_FreeLists[Color].m_ListHead;
     m_FreeLists[Color].m_ListHead = PageFrameNumber;
 
     /* Set the free bit */
@@ -937,7 +946,7 @@ PFN_DATABASE::AllocateMultiplePages (
             }
 
             /* Get next PFN */
-            PageFrameNumber = m_PfnArray[PageFrameNumber].Free.Next;
+            PageFrameNumber = m_PfnArray[PageFrameNumber].Flink;
         }
     }
 
@@ -1202,7 +1211,7 @@ PFN_LIST::RemovePage (
         NT_ASSERT((PfnEntry->State == PfnFree) || (PfnEntry->State == PfnContiguous));
 
         /* Set head to the next entry */
-        m_ListHead = PfnEntry->Free.Next;
+        m_ListHead = PfnEntry->Flink;
     }
 
     return PageFrameNumber;
@@ -1216,8 +1225,7 @@ PFN_LIST::AddPage (
 
     /* Get the PFN entry of the new page */
     PfnEntry = &g_PfnDatabase.m_PfnArray[PageFrameNumber];
-    NT_ASSERT((PfnEntry->State == PfnFree) || (PfnEntry->State == PfnContiguous));
-    PfnEntry->Free.Next = 0;
+    PfnEntry->Flink = 0;
 
     /* Check if the list is empty */
     if (m_ListHead == 0)
@@ -1230,8 +1238,8 @@ PFN_LIST::AddPage (
         /* Get the PFN entry of the old list tail */
         NT_ASSERT(m_ListTail != 0);
         PfnEntry = &g_PfnDatabase.m_PfnArray[m_ListTail];
-        NT_ASSERT(PfnEntry->Free.Next == 0);
-        PfnEntry->Free.Next = PageFrameNumber;
+        NT_ASSERT(PfnEntry->Flink == 0);
+        PfnEntry->Flink = PageFrameNumber;
         m_ListTail = PageFrameNumber;
     }
 }

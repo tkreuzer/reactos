@@ -46,6 +46,9 @@ static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
 
 typedef struct PFN_ENTRY
 {
+    ULONG_PTR Flink;
+    PVOID PteAddress;
+
     struct
     {
         PFN_STATE State : 4;
@@ -58,7 +61,6 @@ typedef struct PFN_ENTRY
     {
         struct
         {
-            ULONG_PTR Next;
         } Free;
         struct
         {
@@ -72,12 +74,9 @@ typedef struct PFN_ENTRY
         } Active;
         struct
         {
-            ULONG_PTR Next;
             ULONG NumberOfPages;
         } Contiguous;
     };
-
-    PVOID PteAddress;
 
 } PFN_ENTRY, *PPFN_ENTRY;
 

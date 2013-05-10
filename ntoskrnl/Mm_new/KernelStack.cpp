@@ -27,7 +27,7 @@ ReserveKernelMemory (
                                               AddressToVpn(MmSystemRangeStart),
                                               AddressToVpn(MmHighestSystemAddress),
                                               1,
-                                              FALSE);
+                                              TRUE);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to insert VAD object into VAD table: %x\n", Status);
