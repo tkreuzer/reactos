@@ -4,8 +4,8 @@
 #include "PfnDatabase.hpp"
 #include "CommitCharge.hpp"
 #include "AddressSpace.hpp"
-#include "amd64/PageTables.hpp"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 
 /// HACK HACK HACK HACK
 VOID
@@ -605,7 +605,7 @@ UnmapPages (
     PPTE CurrentPte;
     PPDE CurrentPde;
 
-__debugbreak();
+//__debugbreak();
     AddressCount = 0;
 
     /* Acquire the working set lock */
@@ -783,7 +783,7 @@ MmMapIoSpace (
     Protect = ConvertProtectAndCaching(PAGE_READWRITE, CachingType);
 
     /* Map the physical pages */
-    BasePageFrameNumber = PhysicalAddress.QuadPart >> PAGE_SHIFT;
+    BasePageFrameNumber = (PFN_NUMBER)(PhysicalAddress.QuadPart >> PAGE_SHIFT);
     Status = MapPhysicalMemory(AddressToVpn(BaseAddress),
                                NumberOfPages,
                                Protect,
@@ -814,7 +814,7 @@ MmUnmapIoSpace (
     UnmapPages(AddressToVpn(BaseAddress), NumberOfPages, FALSE);
 
     /* Release the virtual memory */
-    ReleaseKernelMemory(BaseAddress);
+    ReleaseKernelMemory(ALIGN_DOWN_POINTER_BY(BaseAddress, PAGE_SIZE));
 }
 
 _Must_inspect_result_
@@ -857,7 +857,10 @@ MmMapLockedPagesSpecifyCache (
     ULONG Protect;
     NTSTATUS Status;
 
-//__debugbreak();
+if (Mdl == (PVOID)0xfffffa80001f7e20ULL) __debugbreak();
+
+    /* Make sure the MDL is not yet mapped */
+    ASSERT(!(Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA));
 
     Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CacheType);
 
@@ -895,7 +898,10 @@ MmMapLockedPagesSpecifyCache (
         goto Failure;
     }
 
-    return AddToPointer(BaseAddress, Mdl->ByteOffset);
+    Mdl->MappedSystemVa = AddToPointer(BaseAddress, Mdl->ByteOffset);
+    Mdl->MdlFlags |= MDL_MAPPED_TO_SYSTEM_VA;
+
+    return Mdl->MappedSystemVa;
 
 Failure:
 
@@ -934,7 +940,7 @@ NTAPI
 MmUnmapReservedMapping (
     _In_ PVOID BaseAddress,
     _In_ ULONG PoolTag,
-    _Inout_ PMDLX MemoryDescriptorList)
+    _Inout_ PMDLX Mdl)
 {
     UNIMPLEMENTED;
 }
@@ -944,12 +950,14 @@ VOID
 NTAPI
 MmUnmapLockedPages (
     _In_ PVOID BaseAddress,
-    _Inout_ PMDL MemoryDescriptorList)
+    _Inout_ PMDL Mdl)
 {
     ULONG_PTR NumberOfPages;
 
-    NumberOfPages = BYTES_TO_PAGES(MemoryDescriptorList->ByteCount);
+    NumberOfPages = BYTES_TO_PAGES(Mdl->ByteCount);
     UnmapPages(AddressToVpn(BaseAddress), NumberOfPages, FALSE);
+
+    Mdl->MdlFlags &= ~(MDL_PARTIAL_HAS_BEEN_MAPPED | MDL_MAPPED_TO_SYSTEM_VA);
 }
 
 

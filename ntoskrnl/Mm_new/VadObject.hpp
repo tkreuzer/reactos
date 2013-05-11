@@ -77,6 +77,19 @@ public:
     }
 
     inline
+    LONG
+    Release (
+        VOID)
+    {
+        LONG NewRefCount = InterlockedDecrement(&m_RefCount);
+        if (NewRefCount == 0)
+        {
+            delete this;
+        }
+        return NewRefCount;
+    }
+
+    inline
     VAD_OBJECT*
     GetVadObject ()
     {

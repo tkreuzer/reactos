@@ -4,7 +4,8 @@
 #include "VadObject.hpp"
 #include "VadTable.hpp"
 #include "KernelVad.hpp"
-#include "amd64/MachineDependent.hpp"
+//#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 
 namespace Mm {
 

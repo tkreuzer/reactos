@@ -339,6 +339,7 @@ if(ARCH STREQUAL "i386")
         ke/i386/traphdlr.c
         ke/i386/usercall.c
         ke/i386/v86vdm.c
+        Mm_New/i386/MachineDependent.cpp
 #        mm/i386/page.c
 #        mm/ARM3/i386/init.c
         ps/i386/psctx.c

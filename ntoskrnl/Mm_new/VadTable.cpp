@@ -316,6 +316,9 @@ VAD_TABLE::RemoveVadObject (
     /* Remove the list entry */
     RemoveEntryList(&VadObject->m_Node.ListEntry);
 
+    /* Release the VAD object */
+    VadObject->Release();
+
     /* Unlock the table */
     ReleaseTableLock(&LockHandle);
 }

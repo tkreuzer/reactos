@@ -1,6 +1,6 @@
 
 #include "ntosbase.h"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 
 extern "C" {
 

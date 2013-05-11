@@ -2,6 +2,7 @@
 
 #include "Section.hpp"
 #include "ntintsafe.h"
+#include <ndk/pstypes.h>
 
 namespace Mm {
 
@@ -29,8 +30,8 @@ GetSectionImageInformation (
         ImageInfo->TransferAddress = reinterpret_cast<PVOID>(
             NtHeaders->OptionalHeader.ImageBase +
             NtHeaders->OptionalHeader.AddressOfEntryPoint);
-        ImageInfo->MaximumStackSize = OptionalHeader->SizeOfStackReserve;
-        ImageInfo->CommittedStackSize = OptionalHeader->SizeOfStackCommit;
+        ImageInfo->MaximumStackSize = (ULONG_PTR)OptionalHeader->SizeOfStackReserve;
+        ImageInfo->CommittedStackSize = (ULONG_PTR)OptionalHeader->SizeOfStackCommit;
         ImageInfo->LoaderFlags = OptionalHeader->LoaderFlags;
     }
     else

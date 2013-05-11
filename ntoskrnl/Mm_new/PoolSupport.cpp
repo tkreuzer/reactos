@@ -4,7 +4,7 @@
 #include "Mapping.hpp"
 #include "VadTable.hpp"
 #include "AddressSpace.hpp"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 
 namespace Mm {
 
@@ -21,7 +21,7 @@ extern SIZE_T MmSizeOfPfnDatabase;
 #ifdef _WIN64
 #define POOL_SIZE_IN_PAGES_MAX (128ULL * 1024 * 1024 * 1024 / PAGE_SIZE)
 #else
-#define POOL_SIZE_IN_PAGES_MAX  (2 * 1024 * 1024 * 1024 / PAGE_SIZE)
+#define POOL_SIZE_IN_PAGES_MAX  (2ULL * 1024 * 1024 * 1024 / PAGE_SIZE)
 #endif
 
 extern "C" PVOID MmPfnDatabase;
@@ -40,7 +40,7 @@ KSPIN_LOCK PoolPageSpinlock[2];
 
 #ifndef _WIN64
 /* On 32 bit systems we track each large page sized VA block used for np pool */
-#define MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE (2 * 1024 * 1024 * 1024)
+#define MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE (2ULL * 1024 * 1024 * 1024)
 ULONG NonPagedPoolVaBitmap[MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
 ULONG InitialPoolSizeInPages[2];
 PVOID* PoolExpansionArray[2];
@@ -184,8 +184,8 @@ InitializePoolSupportSingle (
 
 #ifndef _WIN64
     /* On 32 bit systems, we add an array of expansion pointers */
-    PoolExpansionArray[NonPagedPool] = AddToPointer(BitmapBuffer, AllocatedSize);
-    NonPagedPoolExpansionCount =
+    PoolExpansionArray[NonPagedPool] = (PVOID*)AddToPointer(BitmapBuffer, AllocatedSize);
+    ULONG NonPagedPoolExpansionCount =
         (MaximumNumberOfPages - NumberOfPages + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE;
 
     /* Add the expansion array to the allocated size */
@@ -283,7 +283,7 @@ MmDeterminePoolType (
     }
 #else
     /* Check the pool VA bitmap */
-    Index = PointerDiff(VirtualAddress, MmSystemRangeStart) / LARGE_PAGE_SIZE;
+    ULONG Index = PointerDiff(VirtualAddress, MmSystemRangeStart) / LARGE_PAGE_SIZE;
     if ((NonPagedPoolVaBitmap[Index / 32] >> (Index & 31)) & 1)
     {
         return NonPagedPool;

@@ -3,7 +3,7 @@
 #include "Mdl.hpp"
 #include "AddressSpace.hpp"
 #include "PfnDatabase.hpp"
-#include "amd64/PageTables.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
 #include <ndk/ketypes.h>
 #include <ndk/rtlfuncs.h>
 
@@ -89,9 +89,54 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
 MmBuildMdlForNonPagedPool (
-    _Inout_ PMDLX MemoryDescriptorList)
+    _Inout_ PMDLX Mdl)
 {
-    UNIMPLEMENTED;
+    PPFN_NUMBER CurrentPfnNumber;
+    ULONG_PTR NumberOfPages;
+    PVOID BaseAddress;
+    PPTE CurrentPte;
+    PPDE CurrentPde;
+
+    NT_ASSERT(Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA);
+    NT_ASSERT(Mdl->StartVa != NULL);
+    //NT_ASSERT(MmDeterminePoolType(Mdl->StartVa) == NonPagedPool);
+
+    BaseAddress = AddToPointer(Mdl->StartVa, Mdl->ByteOffset);
+
+    /* Calculate the size in pages */
+    NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Mdl->ByteCount);
+
+    CurrentPfnNumber = MmGetMdlPfnArray(Mdl);
+    CurrentPte = AddressToPte(Mdl->StartVa);
+    CurrentPde = AddressToPde(Mdl->StartVa);
+
+    do
+    {
+        /* Get the PDE */
+        CurrentPde = PteToPde(CurrentPte);
+
+        /* Check if this is a large page allocation */
+        if (CurrentPde->IsLargePage())
+        {
+            /* Get the relative PFN from the large page PDE */
+            *CurrentPfnNumber = CurrentPde->GetPageFrameNumber();
+            *CurrentPfnNumber += CurrentPte - PdeToPte(CurrentPde);
+        }
+        else
+        {
+            /* Get the PFN from the PTE */
+            *CurrentPfnNumber = CurrentPte->GetPageFrameNumber();
+        }
+
+        /* Next PTE */
+        CurrentPte++;
+    }
+    while (--NumberOfPages > 0);
+
+    Mdl->Process = 0;
+    Mdl->MappedSystemVa = BaseAddress;
+    Mdl->MdlFlags |= MDL_SOURCE_IS_NONPAGED_POOL;
+
 }
 
 PMDL

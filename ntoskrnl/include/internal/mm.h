@@ -142,6 +142,16 @@ extern MM_MEMORY_CONSUMER MiMemoryConsumers[];
 /* Maximum chunk size per copy */
 #define MMDBG_COPY_MAX_SIZE         0x8
 
+#ifdef _M_IX86
+VOID
+NTAPI
+MmSetPageProtect(
+    struct _EPROCESS* Process,
+    PVOID Address,
+    ULONG flProtect
+);
+#endif
+
 /* Mm copy support for Kd */
 NTSTATUS
 NTAPI

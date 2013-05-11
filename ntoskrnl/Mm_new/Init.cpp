@@ -7,8 +7,8 @@
 #include "VadTable.hpp"
 #include "KernelVad.hpp"
 #include "CommitCharge.hpp"
-#include "amd64/PageTables.hpp"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 #include <arc/arc.h>
 #include <limits.h>
 
@@ -129,7 +129,7 @@ EarlyMapPages (
         {
             NT_ASSERT(PxePointer->IsEmpty());
             PxePointer->MakeValidPxe(EarlyAllocPage(), Protect);
-            RtlFillMemoryUlonglong(PxeToPpe(PxePointer), PAGE_SIZE, 0);
+            RtlFillMemoryUlongPtr(PxeToPpe(PxePointer), PAGE_SIZE, 0);
         }
     }
 #endif
@@ -142,7 +142,7 @@ EarlyMapPages (
         {
             NT_ASSERT(PpePointer->IsEmpty());
             PpePointer->MakeValidPpe(EarlyAllocPage(), Protect);
-            RtlFillMemoryUlonglong(PpeToPde(PpePointer), PAGE_SIZE, 0);
+            RtlFillMemoryUlongPtr(PpeToPde(PpePointer), PAGE_SIZE, 0);
         }
     }
 #endif
@@ -156,12 +156,12 @@ EarlyMapPages (
             if (Protect & MM_LARGEPAGE)
             {
                 PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
-                RtlFillMemoryUlonglong(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
+                RtlFillMemoryUlongPtr(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
             }
             else
             {
                 PdePointer->MakeValidPde(EarlyAllocPage(), Protect);
-                RtlFillMemoryUlonglong(PdeToPte(PdePointer), PAGE_SIZE, 0);
+                RtlFillMemoryUlongPtr(PdeToPte(PdePointer), PAGE_SIZE, 0);
             }
         }
     }
@@ -356,7 +356,7 @@ MEMORY_MANAGER::Inititalize (
     g_PfnDatabase.Initialize(LoaderBlock);
 
     /* Allocate the global zero page */
-    GlobalZeroPfn = g_PfnDatabase.AllocatePage(TRUE);
+//    GlobalZeroPfn = g_PfnDatabase.AllocatePage(TRUE);
 
     /* Initialize the system commit limit */
     InitializeSystemCommitLimit();

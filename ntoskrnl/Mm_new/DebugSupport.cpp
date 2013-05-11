@@ -1,6 +1,6 @@
 
 #include "ntosbase.h"
-#include "amd64/PageTables.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
 
 namespace Mm {
 

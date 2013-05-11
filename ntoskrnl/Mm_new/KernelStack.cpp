@@ -4,7 +4,8 @@
 #include "KernelVad.hpp"
 #include "VadTable.hpp"
 #include "Mapping.hpp"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
+
 
 namespace Mm {
 
@@ -31,7 +32,7 @@ ReserveKernelMemory (
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to insert VAD object into VAD table: %x\n", Status);
-        delete VadObject;
+        VadObject->Release();
         return NULL;
     }
 
@@ -42,7 +43,16 @@ VOID
 ReleaseKernelMemory (
     PVOID BaseAddress)
 {
-    UNIMPLEMENTED;
+    PVAD_OBJECT VadObject;
+
+    /* Reference the VAD object */
+    VadObject = g_KernelVadTable.ReferenceVadObjectByAddress(BaseAddress);
+    NT_ASSERT(VadObject != NULL);
+    NT_ASSERT(VadObject->GetBaseAddress() == BaseAddress);
+
+    /* Remove the VAD object from the table */
+    g_KernelVadTable.RemoveVadObject(VadObject);
+    VadObject->Release();
 }
 
 extern "C" {

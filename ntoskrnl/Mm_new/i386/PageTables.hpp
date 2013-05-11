@@ -1,11 +1,16 @@
 
 #pragma once
 
-#define MI_PAGING_LEVELS 4
+#define MI_PAGING_LEVELS 2
+
+#define PTE_BASE 0xC0000000
+#define PDE_BASE 0xC0300000
+#define PDE_TOP  0xC0300FFF
+#define PTE_TOP  0xC03FFFFF
+#define PTE_PER_PAGE 1024
+#define PDE_PER_PAGE 1024
 
 namespace Mm {
-
-extern PFN_NUMBER GlobalZeroPfn;
 
 enum PTE_TYPE
 {
@@ -29,89 +34,69 @@ enum PTE_TYPE
 
 typedef struct _HARDWARE_PTE
 {
-    UINT64 Valid : 1;
-    UINT64 Write : 1;
-    UINT64 Owner : 1;
-    UINT64 WriteCombining : 1;
-    UINT64 CacheDisable : 1;
-    UINT64 Accessed : 1;
-    UINT64 Dirty : 1;
-    UINT64 LargePage : 1;
-    UINT64 Global : 1;
-    UINT64 CopyOnWrite : 1;
-    UINT64 Reserved0 : 2;
-    UINT64 PageFrameNumber : 36;
-    UINT64 Reserved1 : 4;
-    UINT64 SoftwareWsIndex : 11;
-    UINT64 NoExecute : 1;
+    ULONG Valid : 1;
+    ULONG Write : 1;
+    ULONG Owner : 1;
+    ULONG WriteThrough : 1;
+    ULONG CacheDisable : 1;
+    ULONG Accessed : 1;
+    ULONG Dirty : 1;
+    ULONG LargePage : 1;
+    ULONG Global : 1;
+    ULONG CopyOnWrite : 1;
+    ULONG Unused : 1;
+    ULONG WriteSMP : 1;
+    ULONG PageFrameNumber : 20;
 } HARDWARE_PTE, *PHARDWARE_PTE;
 
 typedef struct _SOFTWARE_PTE
 {
-    UINT64 MustBeZero : 1;
-    UINT64 HardwareState : 8;
-    UINT64 CopyOnWrite : 1;
-    UINT64 Prototype : 1;
-    UINT64 Transition : 1;
-    UINT64 Reserved : 46;
-    UINT64 Protection : 5;
-    UINT64 NoExecuteOverlay : 1;
+    ULONG MustBeZero : 1;
+    ULONG PageFileLow : 4;
+    ULONG Protection : 5;
+    ULONG Prototype : 1;
+    ULONG Transition : 1;
+    ULONG PageFileHigh : 20;
 } SOFTWARE_PTE, *PSOFTWARE_PTE;
 
 typedef struct _TRANSITION_PTE
 {
-    UINT64 MustBeZero : 1;
-    UINT64 HardwareState : 8;
-    UINT64 CopyOnWrite : 1;
-    UINT64 Reserved0 : 1;
-    UINT64 Transition : 1;
-    UINT64 PageFrameNumber : 36;
-    UINT64 Reserved1 : 15;
-    UINT64 NoExecute : 1;
+    ULONG MustBeZero : 1;
+    ULONG Write : 1;
+    ULONG Spare : 1;
+    ULONG WriteThrough : 1;
+    ULONG CacheDisable : 1;
+    ULONG Protection : 5;
+    ULONG PrototypeMBZ : 1;
+    ULONG Transition : 1;
+    ULONG PageFrameNumber : 20;
 } TRANSITION_PTE, *PTRANSITION_PTE;
 
 typedef struct _PAGEFILE_PTE
 {
-    UINT64 MustBeZero : 1;
-    UINT64 HardwareState : 8;
-    UINT64 CopyOnWrite : 1;
-    UINT64 Reserved0 : 2;
-    UINT64 PageFileNumber : 4;
-    UINT64 PageFileIndex : 32;
-    UINT64 PageFileReserved : 1;
-    UINT64 PageFileAllocated : 1;
-    UINT64 DbgCrc : 7;
-    UINT64 Reserved : 1;
-    UINT64 Protection : 5;
-    UINT64 InStore : 1;
+    ULONG MustBeZero : 1;
+    ULONG PageFileLow : 4;
+    ULONG Protection : 5;
+    ULONG PrototypeMBZ : 1;
+    ULONG Transition : 1;
+    ULONG PageFileHigh : 20;
 } PAGEFILE_PTE, *PPAGEFILE_PTE;
 
 typedef struct _PROTOTYPE_PTE
 {
-    UINT64 MustBeZero : 1;
-    UINT64 DemandFillProto : 1;
-    UINT64 HiberVerifyConverted : 1;
-    UINT64 Unused1 : 5;
-    UINT64 ReadOnly : 1;
-    UINT64 Combined : 1;
-    UINT64 Prototype : 1;
-    UINT64 Protection : 5;
-    INT64 ProtoAddress : 48;
+    ULONG MustBeZero : 1;
+    ULONG ProtoAddressLow : 8;
+    ULONG ReadOnly : 1;
+    ULONG Prototype : 1;
+    ULONG ProtoAddressHigh : 21;
 } PROTOTYPE_PTE, *PPROTOTYPE_PTE;
 
-static const PROTOTYPE_PTE PrototypePte = {0, 0, 0, 0, 0, 0, 1, 0, 0};
+static const PROTOTYPE_PTE PrototypePte = {0, 0, 0, 1, 0};
 
 typedef struct _VAD_PTE
 {
-    UINT64 MustBeZero : 1;
-    UINT64 DemandFillProto : 1;
-    UINT64 HiberVerifyConverted : 1;
-    UINT64 Unused1 : 5;
-    UINT64 ReadOnly : 1;
-    UINT64 Combined : 1;
-    UINT64 Prototype : 1;
-    UINT64 Protection : 5;
-    INT64 VadAddress : 48;
+    ULONG MustBeZero : 1;
+    ULONG Reserved : 31;
 } VAD_PTE, *PVAD_PTE;
 
 typedef union
@@ -119,21 +104,21 @@ typedef union
     HARDWARE_PTE Hard;
     SOFTWARE_PTE Soft;
     PROTOTYPE_PTE Proto;
-    ULONG64 Long;
+    ULONG Long;
 } UNION_PTE, *PUNION_PTE;
 
 extern const HARDWARE_PTE ProtectToPteBase[8];
 extern const HARDWARE_PTE ProtectToPteFlags[32];
 
 #define ProtectToPteMask(Protect) \
-    (*(PULONG64)&ProtectToPteBase[(Protect) & 0x7] | *(PULONG64)&ProtectToPteFlags[((Protect) & 0xF8) >> 3])
+    (*(PULONG)&ProtectToPteBase[(Protect) & 0x7] | *(PULONG)&ProtectToPteFlags[((Protect) & 0xF8) >> 3])
 
 //                                                         W C         C
 //                                                   V W O T D A D L G W
-static const HARDWARE_PTE ValidPte                = {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const HARDWARE_PTE ValidPde                = {1,1,0,0,0,0,0,0,0,0,0,0,0,0,0};
-static const HARDWARE_PTE ValidLargePagePde       = {1,0,0,0,0,0,0,1,0,0,0,0,0,0,0};
-static const SOFTWARE_PTE NoAccessPte             = {0,0,0,0,0,0,MM_NOACCESS,0};
+//static const HARDWARE_PTE ValidPte              = {1,0,0,0,0,0,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidPde                = {1,1,0,0,0,0,0,0,0,0,0,0};
+static const HARDWARE_PTE ValidLargePagePde       = {1,0,0,0,0,0,0,1,0,0,0,0};
+static const SOFTWARE_PTE NoAccessPte             = {0,0,MM_NOACCESS,0,0,0};
 
 class PTE_COMMON
 {
@@ -144,7 +129,7 @@ protected:
         PROTOTYPE_PTE Proto;
         SOFTWARE_PTE Soft;
         PAGEFILE_PTE PageFile;
-        LONG64 Long;
+        LONG Long;
     };
 
 #if 1 || DBG
@@ -198,10 +183,9 @@ public:
     ULONG
     GetProtection ()
     {
-        ULONG Protect = 0;
+        ULONG Protect = MM_EXECUTE;
         if (this->Hard.Valid) Protect |= MM_READONLY;
         if (this->Hard.Write) Protect |= MM_READWRITE;
-        if (!this->Hard.NoExecute) Protect |= MM_EXECUTE;
         if (this->Hard.Global) Protect |= MM_GLOBAL;
         if (this->Hard.LargePage) Protect |= MM_LARGEPAGE;
         return Protect;
@@ -230,21 +214,21 @@ public:
     bool
     IsPdeBoundary ()
     {
-        return (((ULONG64)this & (PAGE_SIZE - 1)) == 0);
+         return (((ULONG)this & (PAGE_SIZE - 1)) == 0);
     }
 
     inline
     bool
     IsNoAccess ()
     {
-        return (this->Long == *(ULONG64*)&NoAccessPte);
+        return (this->Long == *(ULONG*)&NoAccessPte);
     }
 
     inline
     bool
     IsExecutable ()
     {
-        return !this->Hard.NoExecute;
+        return true;
     }
 
     inline
@@ -314,8 +298,9 @@ public:
     {
         PROTOTYPE_PTE ProtoPte = {0};
         ProtoPte.Prototype = 1;
-        ProtoPte.Protection = Protect;
-        ProtoPte.ProtoAddress = reinterpret_cast<ULONG64>(Prototype) & 0xFFFFFFFFFFFFULL;
+        ProtoPte.ReadOnly = !(Protect & MM_READWRITE);
+        ProtoPte.ProtoAddressHigh = reinterpret_cast<ULONG>(Prototype) >> 10;
+        ProtoPte.ProtoAddressLow  = reinterpret_cast<ULONG>(Prototype) >> 2;
         this->Proto = ProtoPte;
     }
 
@@ -325,7 +310,8 @@ public:
     {
         if (this->Soft.Prototype == 0)
             return NULL;
-        ULONG64 Address = this->Proto.ProtoAddress | 0xFFFF800000000000ULL;
+        ULONG Address = (this->Proto.ProtoAddressHigh << 10) | 0x80000000 |
+                        (this->Proto.ProtoAddressLow << 2);
         return reinterpret_cast<PTE*>(Address);
     }
 
@@ -357,6 +343,7 @@ public:
         //NT_ASSERT(PteValue.Hard.Valid);
         //PteValue.Hard.PageFrameNumber = PageFrameNumber;
         //this->Long = PteValue.Long;
+        __debugbreak();
     }
 
     inline
@@ -375,9 +362,9 @@ public:
     {
         PTE OldPteValue;
 
-        OldPteValue.Long = InterlockedCompareExchange64(&this->Long,
-                                                        ExchangePte.Long,
-                                                        CurrentPte->Long);
+        OldPteValue.Long = ::InterlockedCompareExchange(&this->Long,
+                                                      ExchangePte.Long,
+                                                      CurrentPte->Long);
         if (OldPteValue.Long != CurrentPte->Long)
         {
             CurrentPte->Long = OldPteValue.Long;
@@ -403,7 +390,8 @@ public:
         {
             return PteTransition;
         }
-        else if (this->PageFile.PageFileIndex != 0)
+        else if ((this->PageFile.PageFileLow != 0) &&
+                 (this->PageFile.PageFileHigh != 0))
         {
             return PtePageFile;
         }
@@ -413,7 +401,7 @@ public:
         }
         else if (this->Soft.Protection & MM_GUARDPAGE)
         {
-             // FIXME: yould also be MM_DECOMMIT, but we ignore this for now
+             // FIXME: could also be MM_DECOMMIT, but we ignore this for now
              return PteGuardPage;
         }
         else if (this->Soft.Protection != MM_INVALID)
@@ -422,9 +410,9 @@ public:
         }
         else //if (this->Long == 0)
         {
+            NT_ASSERT(this->Long == 0);
             return PteEmpty;
         }
-
     }
 
 };
@@ -459,7 +447,7 @@ public:
         _In_ ULONG Protect)
     {
         HARDWARE_PTE HardPde = ValidLargePagePde;
-        NT_ASSERT((PageFrameNumber & 0x1FFULL) == 0);
+        NT_ASSERT((PageFrameNumber & 0x2FFULL) == 0);
         if (Protect & MM_READWRITE) HardPde.Write = 1;
         if (Protect & MM_GLOBAL) HardPde.Global = 1;
         HardPde.PageFrameNumber = PageFrameNumber;
@@ -468,60 +456,8 @@ public:
 
 };
 
-class PPE : public PTE_COMMON
-{
-public:
-
-    inline
-    bool
-    IsRealPpe ()
-    {
-        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PPE_BASE;
-        return Offset < (PPE_TOP + 1 - PPE_BASE);
-    }
-
-    inline
-    VOID
-    MakeValidPpe (
-        _In_ PFN_NUMBER PageFrameNumber,
-        _In_ ULONG Protect)
-    {
-        HARDWARE_PTE HardPpe = ValidPde;
-        HardPpe.PageFrameNumber = PageFrameNumber;
-        this->Hard = HardPpe;
-    }
-
-};
-
-class PXE : public PTE_COMMON
-{
-public:
-
-    inline
-    bool
-    IsRealPxe ()
-    {
-        ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PXE_BASE;
-        return Offset < (PXE_TOP + 1 - PXE_BASE);
-    }
-
-    inline
-    VOID
-    MakeValidPxe (
-        _In_ PFN_NUMBER PageFrameNumber,
-        _In_ ULONG Protect)
-    {
-        HARDWARE_PTE HardPxe = ValidPde;
-        HardPxe.PageFrameNumber = PageFrameNumber;
-        this->Hard = HardPxe;
-    }
-
-};
-
 typedef PTE *PPTE;
 typedef PDE *PPDE;
-typedef PPE *PPPE;
-typedef PXE *PPXE;
 
 enum PAGE_FAULT_ERROR_CODE
 {
@@ -536,36 +472,14 @@ PPTE
 FORCEINLINE
 AddressToPte(PVOID Address)
 {
-    ULONG64 Offset = (ULONG64)Address >> (PTI_SHIFT - 3);
-    Offset &= 0xFFFFFFFFFULL << 3;
-    return (PPTE)(PTE_BASE + Offset);
+    return (PPTE)(((((ULONG)Address) >> 12) << 2) + PTE_BASE);
 }
 
 PPDE
 FORCEINLINE
 AddressToPde(PVOID Address)
 {
-    ULONG64 Offset = (ULONG64)Address >> (PDI_SHIFT - 3);
-    Offset &= 0x7FFFFFF << 3;
-    return (PPDE)(PDE_BASE + Offset);
-}
-
-PPPE
-FORCEINLINE
-AddressToPpe(PVOID Address)
-{
-    ULONG64 Offset = (ULONG64)Address >> (PPI_SHIFT - 3);
-    Offset &= 0x3FFFF << 3;
-    return (PPPE)(PPE_BASE + Offset);
-}
-
-PPXE
-FORCEINLINE
-AddressToPxe(PVOID Address)
-{
-    ULONG64 Offset = (ULONG64)Address >> (PXI_SHIFT - 3);
-    Offset &= PXI_MASK << 3;
-    return (PPXE)(PXE_BASE + Offset);
+    return (PPDE)(((((ULONG)Address) >> 22) << 2) + PTE_BASE);
 }
 
 PVOID
@@ -573,7 +487,7 @@ FORCEINLINE
 PteToAddress(PPTE PtePointer)
 {
     /* Use signed math */
-    return (PVOID)(((LONG64)PtePointer << 25) >> 16);
+    return (PVOID)((ULONG)PtePointer << 10);
 }
 
 PVOID
@@ -581,23 +495,7 @@ FORCEINLINE
 PdeToAddress(PPDE PdePointer)
 {
     /* Use signed math */
-    return (PVOID)(((LONG64)PdePointer << 34) >> 16);
-}
-
-PVOID
-FORCEINLINE
-PpeToAddress(PPPE PpePointer)
-{
-    /* Use signed math */
-    return (PVOID)(((LONG64)PpePointer << 43) >> 16);
-}
-
-PVOID
-FORCEINLINE
-PxeToAddress(PPXE PxePointer)
-{
-    /* Use signed math */
-    return (PVOID)(((LONG64)PxePointer << 52) >> 16);
+    return (PVOID)((ULONG)PdePointer << 20);
 }
 
 bool
@@ -622,7 +520,7 @@ InvalidateTlbEntry (
 #define PdeToPte(PdePointer) AddressToPte(PdeToAddress(PdePointer))
 */
 
-/* For amd64: */
+/* For i386: */
 #define PxeToPpe(Pxe) ((PPPE)PteToAddress((PPTE)Pxe))
 #define PpeToPde(Ppe) ((PPDE)PteToAddress((PPTE)Ppe))
 #define PdeToPte(Pde) ((PPTE)PteToAddress((PPTE)Pde))
