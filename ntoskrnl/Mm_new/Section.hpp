@@ -7,7 +7,7 @@
 #include "ntimage.h"
 
 /// \todo HACK
-#define IMAGE_FILE_MACHINE_NATIVE IMAGE_FILE_MACHINE_AMD64
+//#define IMAGE_FILE_MACHINE_NATIVE IMAGE_FILE_MACHINE_AMD64
 
 static const ULONG TAG_TEMP = 'xxmM';
 static const ULONG TAG_SECTION = 'tSmM';

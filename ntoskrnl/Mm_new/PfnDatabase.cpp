@@ -18,8 +18,8 @@ Concurrency between interlocked page removal and contiguous page allocation:
 #include "PfnDatabase.hpp"
 #include "VadTable.hpp"
 #include "KernelVad.hpp"
-#include "amd64/MachineDependent.hpp"
-#include "amd64/PageTables.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 #include <arc/arc.h>
 #include <ndk/ketypes.h>
 #include <ndk/pstypes.h>
@@ -285,13 +285,12 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
     VOID)
 {
     PVOID Address = NULL;
-    PFN_NUMBER PfnForPpe, PfnForPde, PfnForPte;
+    PFN_NUMBER PfnForPxe, PfnForPpe, PfnForPde, PfnForPte;
     PPDE PdePointer;
     PPTE PtePointer;
     ULONG k, l;
 #if (MI_PAGING_LEVELS >= 3)
     PPPE PpePointer;
-    PFN_NUMBER PfnForPxe;
     ULONG j;
 #endif
 #if (MI_PAGING_LEVELS == 4)
@@ -308,11 +307,10 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
 #elif (MI_PAGING_LEVELS == 3)
     PtePointer = MiAddressToPte(PPE_BASE);
     PfnForPxe = PtePointer->GetPageFrameNumber();
-    InitializePageTablePfn(PfnForPxe, 0, (PVOID)PPE_BASE, 3);
 #else
-    PtePointer = MiAddressToPte(PDE_BASE);
+    PtePointer = AddressToPte((PVOID)PDE_BASE);
+    PfnForPxe = 0;
     PfnForPpe = PtePointer->GetPageFrameNumber();
-    InitializePageTablePfn(PfnForPpe, 0, (PVOID)PDE_BASE, 2);
 #endif
 
 #if (MI_PAGING_LEVELS == 4)
@@ -327,9 +325,8 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
             continue;
         }
 
-        /* Get starting VA for this PXE and the first PPE */
+        /* Get starting VA for this PXE */
         Address = PxeToAddress(PxePointer);
-        PpePointer = AddressToPpe(Address);
 
         /* Skip page-table PXE */
         if (IsPageTableAddress(Address))
@@ -337,11 +334,16 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
             continue;
         }
 
-        /* Initialize the PFN entry for the PDPT */
+        /* Get the PFN for the PXE */
         PfnForPxe = PxePointer->GetPageFrameNumber();
-        InitializePageTablePfn(PfnForPxe, PfnForPml4, PpePointer, 3);
 #endif
 #if (MI_PAGING_LEVELS >= 3)
+        /* Get the PPE for the current address */
+        PpePointer = AddressToPpe(Address);
+
+        /* Initialize the PFN entry for the PDPT */
+        InitializePageTablePfn(PfnForPxe, PfnForPml4, PpePointer, 3);
+
         /* Loop all PPEs in this PDPT */
         for (j = 0; j < PPE_PER_PAGE; ++j, ++PpePointer)
         {
@@ -352,9 +354,8 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 continue;
             }
 
-            /* Get starting VA for this PPE and the first PDE */
+            /* Get starting VA for this PPE */
             Address = PpeToAddress(PpePointer);
-            PdePointer = AddressToPde(Address);
 
             /* Skip page-table PPEs */
             if (IsPageTableAddress(Address))
@@ -362,10 +363,15 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 continue;
             }
 
-            /* Initialize the PFN entry for the PD */
+            /* Get the PFN for the PPE */
             PfnForPpe = PpePointer->GetPageFrameNumber();
-            InitializePageTablePfn(PfnForPpe, PfnForPxe, PdePointer, 2);
 #endif
+            /* Get the PDE for the current address */
+            PdePointer = AddressToPde(Address);
+
+            /* Initialize the PFN entry for the PD */
+            InitializePageTablePfn(PfnForPpe, PfnForPxe, PdePointer, 2);
+
             /* Loop all PDEs in this PD */
             for (k = 0; k < PDE_PER_PAGE; ++k, ++PdePointer)
             {
@@ -394,8 +400,8 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 {
                     for (l = 0; l < PTE_PER_PAGE; l++)
                     {
-                        m_PfnArray[PfnForPde + i].CacheAttribute = PfnCached;
-                        m_PfnArray[PfnForPde + i].PteAddress = PdePointer;
+                        m_PfnArray[PfnForPde + l].CacheAttribute = PfnCached;
+                        m_PfnArray[PfnForPde + l].PteAddress = PdePointer;
                     }
 
                     ModifyEntryCount(PfnForPpe, 1);
@@ -637,7 +643,7 @@ ZeroPage (
     MappingPte->MakeValidPte(PageFrameNumber, Protect);
 
     /* zero the page */
-    RtlFillMemoryUlonglong(PteToAddress(MappingPte), PAGE_SIZE, 0);
+    RtlFillMemoryUlongPtr(PteToAddress(MappingPte), PAGE_SIZE, 0);
 
     /* Unmap the page */
     //MappingPte->Erase();

@@ -2,8 +2,8 @@
 #include "ntosbase.h"
 #include "PfnDatabase.hpp"
 #include "AddressSpace.hpp"
-#include "amd64/PageTables.hpp"
-#include "ndk/pstypes.h"
+#include _ARCH_RELATIVE_(PageTables.hpp)
+#include <ndk/pstypes.h>
 
 namespace Mm {
 

@@ -26,7 +26,9 @@
 #define PsProcessType _PsProcessType
 #define KeEnterCriticalRegion _KeEnterCriticalRegion
 #define KeLeaveCriticalRegion _KeLeaveCriticalRegion
+#ifdef _M_AMD64
 #define KeGetCurrentThread _KeGetCurrentThread
+#endif
 
 #include <ntifs.h>
 
@@ -52,11 +54,29 @@
 
 #ifdef _WIN64
 #define InterlockedCompareExchangeSizeT(D, E, C) InterlockedCompareExchange64((LONG64*)D, E, C)
+#define RtlFillMemoryUlongPtr RtlFillMemoryUlonglong
 #else
 #define InterlockedCompareExchangeSizeT(D, E, C) InterlockedCompareExchange((LONG*)D, E, C)
+#define RtlFillMemoryUlongPtr RtlFillMemoryUlong
 #endif
 
 #define MinPtr(Ptr1, Ptr2) ((((ULONG_PTR)(Ptr1)) < ((ULONG_PTR)(Ptr2))) ? (Ptr1) : (Ptr2))
+
+/* Macro expansion helpers */
+#define _EXPAND2_(x) x
+#define _EXPAND_(x) _EXPAND2_(x)
+#define _STREXPAND2_(x) #x
+#define _STREXPAND_(x) _STREXPAND2_(x)
+
+/* A path separator */
+#define _C_PATHSEP_ /
+
+/* Helper for including from architecture specific paths.
+ * Architectures can be x86, amd64, arm, ppc, mips, mips64
+ * Use like this: '#include _ARCH_RELATIVE_(test.h)' */
+#define _ARCH_RELATIVE_(file) \
+    _STREXPAND_(_EXPAND_(_ARCH_) ## _EXPAND_(_C_PATHSEP_) ## file)
+
 
 #ifdef _WIN64
 

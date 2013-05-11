@@ -5,7 +5,7 @@
 #include "Mapping.hpp"
 #include "AddressSpace.hpp"
 #include "VadTable.hpp"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 #include <ndk/ketypes.h>
 #include <ndk/pstypes.h>
 
@@ -174,7 +174,7 @@ MapViewOfSection (
             return STATUS_INVALID_PARAMETER;
         }
 
-        RelativeStartingVpn = BYTES_TO_PAGES(SectionOffset->QuadPart);
+        RelativeStartingVpn = (ULONG_PTR)BYTES_TO_PAGES(SectionOffset->QuadPart);
     }
     else
     {

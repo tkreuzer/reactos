@@ -1,8 +1,8 @@
 
 
 #include "ntosbase.h"
-#include "amd64/PageTables.hpp"
-#include "amd64/MachineDependent.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
 #include "PfnDatabase.hpp"
 #include "CommitCharge.hpp"
 
