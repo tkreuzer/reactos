@@ -34,9 +34,9 @@ AllocateContiguousMemory (
 
     /* Convert to pages */
     NumberOfPages = (PFN_COUNT)BYTES_TO_PAGES(NumberOfBytes);
-    LowestAcceptablePfn = (LowestAcceptableAddress.QuadPart + PAGE_SIZE - 1) >> PAGE_SHIFT;
-    HighestAcceptablePfn = HighestAcceptableAddress.QuadPart >> PAGE_SHIFT;
-    BoundaryPageMultiple = BoundaryAddressMultiple.QuadPart >> PAGE_SHIFT;
+    LowestAcceptablePfn = (PFN_NUMBER)((LowestAcceptableAddress.QuadPart + PAGE_SIZE - 1) >> PAGE_SHIFT);
+    HighestAcceptablePfn = (PFN_NUMBER)(HighestAcceptableAddress.QuadPart >> PAGE_SHIFT);
+    BoundaryPageMultiple = (PFN_NUMBER)(BoundaryAddressMultiple.QuadPart >> PAGE_SHIFT);
 
     /* Check for overflow and if the ranges are OK */
     if (((LowestAcceptablePfn + NumberOfPages - 1) > HighestAcceptablePfn) ||

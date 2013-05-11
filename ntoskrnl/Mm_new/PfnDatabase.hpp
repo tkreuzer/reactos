@@ -3,7 +3,6 @@
 
 #include "ntosbase.h"
 
-extern "C" ULONG KeNodeMask;
 enum _TYPE_OF_MEMORY;
 
 namespace Mm {

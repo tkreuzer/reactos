@@ -5,8 +5,6 @@
 namespace Mm {
 extern "C" {
 
-ULONG KeNodeMask;
-
 /*!
 
     \name  MmGetPhysicalMemoryRanges

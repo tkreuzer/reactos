@@ -3,10 +3,11 @@
 
 #define MI_PAGING_LEVELS 2
 
-#define PTE_BASE 0xC0000000
-#define PDE_BASE 0xC0300000
-#define PDE_TOP  0xC0300FFF
-#define PTE_TOP  0xC03FFFFF
+#define PTE_BASE    0xC0000000
+#define PDE_BASE    0xC0300000
+#define PDE_TOP     0xC0300FFF
+#define PDE_SELFMAP 0xC0300C00
+#define PTE_TOP     0xC03FFFFF
 #define PTE_PER_PAGE 1024
 #define PDE_PER_PAGE 1024
 
@@ -479,7 +480,7 @@ PPDE
 FORCEINLINE
 AddressToPde(PVOID Address)
 {
-    return (PPDE)(((((ULONG)Address) >> 22) << 2) + PTE_BASE);
+    return (PPDE)(((((ULONG)Address) >> 22) << 2) + PDE_BASE);
 }
 
 PVOID

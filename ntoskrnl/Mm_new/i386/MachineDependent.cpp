@@ -91,12 +91,19 @@ InitializePageTable ()
     PFN_NUMBER PdPfn;
     PPDE CurrentPde;
 
+    /* Make sure this is not PAE */
+    if (__readcr4() & CR4_PAE)
+    {
+        ERR("Non-PAE kernel loaded with PAE enabled!\n");
+        KeBugCheckEx(MEMORY_MANAGEMENT, 0x03030303, 0, 0, 0);
+    }
+
     /* Get current directory base */
-    PdPte = (PPTE)AddressToPde((PVOID)PTE_BASE);
+    PdPte = (PPTE)PDE_SELFMAP;
     PdPfn = PdPte->GetPageFrameNumber();
 
     PdPhysicalAddress = PdPfn << PAGE_SHIFT;
-    ASSERT(PdPhysicalAddress == __readcr3());
+    NT_ASSERT(PdPhysicalAddress == __readcr3());
 
     /* Set directory base for the system process */
     PsGetCurrentProcess()->Pcb.DirectoryTableBase[0] = PdPhysicalAddress;
@@ -105,18 +112,23 @@ InitializePageTable ()
     __writecr4(__readcr4() | CR4_PGE);
     ASSERT(__readcr4() & CR4_PGE);
 
+    /* Enable page size extension */
+    __writecr4(__readcr4() | CR4_PSE);
+    ASSERT(__readcr4() & CR4_PSE);
+
     /* Loop the user mode PDEs */
     for (CurrentPde = AddressToPde(0);
          CurrentPde <= AddressToPde(MmHighestUserAddress);
          CurrentPde++)
     {
-        /* Zero the PXE, clear all mappings */
+        /* Zero the PDE, clear all mappings */
         CurrentPde->Erase();
     }
 
     /* Flush the TLB */
     KeFlushCurrentTb();
 
+    __writecr4(__readcr4());
 
     /* Setup 1 PPE for hyper space */
     //MiMapPPEs((PVOID)HYPER_SPACE_START, (PVOID)HYPER_SPACE_END);

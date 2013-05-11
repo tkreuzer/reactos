@@ -92,11 +92,11 @@ InitializePageTable ()
     PPXE CurrentPxe;
 
     /* Get current directory base */
-    Pml4Pte = ((PPTE)PXE_SELFMAP);
+    Pml4Pte = (PPTE)PXE_SELFMAP;
     Pml4Pfn = Pml4Pte->GetPageFrameNumber();
 
     PxePhysicalAddress = Pml4Pfn << PAGE_SHIFT;
-    ASSERT(PxePhysicalAddress == __readcr3());
+    NT_ASSERT(PxePhysicalAddress == __readcr3());
 
     /* Set directory base for the system process */
     PsGetCurrentProcess()->Pcb.DirectoryTableBase[0] = PxePhysicalAddress;

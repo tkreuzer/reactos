@@ -24,6 +24,8 @@ extern SIZE_T MmSizeOfPfnDatabase;
 #define POOL_SIZE_IN_PAGES_MAX  (2ULL * 1024 * 1024 * 1024 / PAGE_SIZE)
 #endif
 
+#define PAGES_PER_LARGE_PAGE (LARGE_PAGE_SIZE / PAGE_SIZE)
+
 extern "C" PVOID MmPfnDatabase;
 extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
 extern "C" PVOID MmNonPagedPoolStart;
@@ -44,6 +46,7 @@ KSPIN_LOCK PoolPageSpinlock[2];
 ULONG NonPagedPoolVaBitmap[MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
 ULONG InitialPoolSizeInPages[2];
 PVOID* PoolExpansionArray[2];
+ULONG PoolExpansionCount[2];
 #endif
 
 /*!
@@ -105,11 +108,8 @@ CalculatePoolDimensions (
 
 #ifndef _WIN64
     InitialPoolSizeInPages[NonPagedPool] = SizeOfNonPagedPoolInPages;
-    InitialPoolSizeInPages[PagedPool] = 0; /// \todo
+    InitialPoolSizeInPages[PagedPool] = BYTES_TO_PAGES(MmSizeOfPagedPoolInBytes);
 #endif
-
-
-
 }
 
 VOID
@@ -183,15 +183,24 @@ InitializePoolSupportSingle (
     AllocatedSize = 2 * BitmapSize;
 
 #ifndef _WIN64
-    /* On 32 bit systems, we add an array of expansion pointers */
-    PoolExpansionArray[NonPagedPool] = (PVOID*)AddToPointer(BitmapBuffer, AllocatedSize);
-    ULONG NonPagedPoolExpansionCount =
-        (MaximumNumberOfPages - NumberOfPages + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE;
+    /* On 32 bit systems, we add an array of expansion pointers, each pointing
+       to a new large page sized (4 MB on x86) pool chunk */
+    PoolExpansionArray[PoolType] = (PVOID*)AddToPointer(BitmapBuffer, AllocatedSize);
+    PoolExpansionCount[PoolType] =
+        (MaximumNumberOfPages - NumberOfPages + PAGES_PER_LARGE_PAGE - 1) / PAGES_PER_LARGE_PAGE;
 
     /* Add the expansion array to the allocated size */
-    AllocatedSize += NonPagedPoolExpansionCount * sizeof(PVOID);
+    AllocatedSize += PoolExpansionCount[PoolType] * sizeof(PVOID);
 
-    /// \todo set bits in NonPagedPoolVaBitmap
+    /* Initialize the non-paged pool VA bitmap with the bits for the
+       initial non-paged pool */
+    RTL_BITMAP Bitmap;
+    RtlInitializeBitMap(&Bitmap,
+                        NonPagedPoolVaBitmap,
+                        MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE);
+    RtlSetBits(&Bitmap,
+               PointerDiff(MmNonPagedPoolStart, MmSystemRangeStart) / LARGE_PAGE_SIZE,
+               (MmSizeOfNonPagedPoolInBytes + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE);
 #endif
 
     /* Calculate how many pages we used up already */
@@ -238,10 +247,8 @@ InitializePoolSupport (
     InitializePoolSupportSingle(PagedPool,
                                 MmPagedPoolStart,
                                 MmSizeOfPagedPoolInBytes,
-                                POOL_SIZE_IN_PAGES_MAX,
+                                POOL_SIZE_IN_PAGES_MAX * PAGE_SIZE,
                                 Protect);
-
-
 }
 
 NTSTATUS

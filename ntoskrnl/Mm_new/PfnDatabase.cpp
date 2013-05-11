@@ -29,8 +29,7 @@ extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
 extern "C" PVOID MmPfnDatabase;
 
-ULONG KeNumberNodes;
-ULONG KeNodeShift;
+ULONG KeNumberNodes = 1;
 
 namespace Mm {
 
@@ -49,6 +48,8 @@ static KEVENT PagesAvailableEvent;
 #define NUMBER_OF_MAPPING_PTES 128
 PPTE ZeroingPtes;
 PPTE DebugPte;
+ULONG NodeShift;
+ULONG NodeMask;
 
 SIZE_T MmSizeOfPfnDatabase;
 
@@ -114,11 +115,11 @@ CalculatePageColors (
     KeGetCurrentPrcb()->SecondaryColorMask = (PageColors - 1);
 
     /* Make sure the number of nodes is a power of 2 */
-    NT_ASSERT((KeNumberNodes & (KeNumberNodes - 1)) == 0);
+    NT_ASSERT((KeNumberNodes != 0) && (KeNumberNodes & (KeNumberNodes - 1)) == 0);
 
     /* Get the node shift and calculate the node mask */
-    NT_VERIFY(BitScanReverse(&KeNodeShift, PageColors));
-    KeNodeMask = (KeNumberNodes - 1) << KeNodeShift;
+    NT_VERIFY(BitScanReverse(&NodeShift, PageColors));
+    NodeMask = (KeNumberNodes - 1) << NodeShift;
 }
 
 inline
@@ -129,7 +130,7 @@ GetNextPageColor (
     ULONG CacheColorMask = KeGetCurrentPrcb()->SecondaryColorMask;
 
     /* Return the next cache color */
-    return ((PageColor + 1) & CacheColorMask) | (PageColor & KeNodeMask);
+    return ((PageColor + 1) & CacheColorMask) | (PageColor & NodeMask);
 }
 
 inline
@@ -152,7 +153,7 @@ GetNextPageColorCycleNodes (
     }
 
     /* Combine to full color */
-    NextColor |= (PageColor & KeNodeMask);
+    NextColor |= (PageColor & NodeMask);
 
     return NextColor;
 }

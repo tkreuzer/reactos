@@ -361,9 +361,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
 MmUnlockPages (
-    _Inout_ PMDLX MemoryDescriptorList)
+    _Inout_ PMDLX Mdl)
 {
-    DbgPrint("MmUnlockPages does nothing\n");
+
+    /* Check if the MDL is still mapped */
+    if (Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA)
+    {
+        /* Unmap it */
+        MmUnmapLockedPages(Mdl->MappedSystemVa, Mdl);
+    }
+
+    DbgPrint("MmUnlockPages stub\n");
     //UNIMPLEMENTED;
 }
 
