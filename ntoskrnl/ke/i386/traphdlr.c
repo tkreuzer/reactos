@@ -588,6 +588,13 @@ KiTrap03Handler(IN PKTRAP_FRAME TrapFrame)
     /* Save trap frame */
     KiEnterTrap(TrapFrame);
 
+    /* Hack for a VBox bug! */
+    if ((*(UCHAR*)TrapFrame->Eip == 0xCC) &&
+        (*((UCHAR*)TrapFrame->Eip - 1) != 0xCC))
+    {
+        TrapFrame->Eip++;
+    }
+
     /* Continue with the common handler */
     KiDebugHandler(TrapFrame, BREAKPOINT_BREAK, 0, 0);
 }
@@ -1720,7 +1727,7 @@ DECLSPEC_NORETURN
 VOID
 FASTCALL
 KiSystemServiceHandler(IN PKTRAP_FRAME TrapFrame,
-                       IN PVOID Arguments)
+             IN PVOID Arguments)
 {
     PKTHREAD Thread;
     PKSERVICE_TABLE_DESCRIPTOR DescriptorTable;
