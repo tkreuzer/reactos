@@ -901,6 +901,9 @@ if (Mdl == (PVOID)0xfffffa80001f7e20ULL) __debugbreak();
     Mdl->MappedSystemVa = AddToPointer(BaseAddress, Mdl->ByteOffset);
     Mdl->MdlFlags |= MDL_MAPPED_TO_SYSTEM_VA;
 
+    if (Mdl->MdlFlags & MDL_PARTIAL)
+        Mdl->MdlFlags |= MDL_PARTIAL_HAS_BEEN_MAPPED;
+
     return Mdl->MappedSystemVa;
 
 Failure:

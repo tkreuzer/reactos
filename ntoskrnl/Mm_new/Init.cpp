@@ -304,9 +304,6 @@ MEMORY_MANAGER::Inititalize (
     RandomNumberSeed = static_cast<ULONG>(KeQueryInterruptTime() << 8);
     RandomNumberSeed ^= static_cast<ULONG>(__rdtsc());
 
-    /* Set lowest system VPN */
-    LowestSystemVpn = AddressToVpn(MmSystemRangeStart);
-
     /* Set and initialize the kernel address space */
     g_SystemProcessAddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
     g_SystemProcessAddressSpace->Initialize();
@@ -351,6 +348,13 @@ MEMORY_MANAGER::Inititalize (
 
     /* Initialize machine dependent parts */
     InitializeMachineDependent(LoaderBlock);
+
+    /* Sanity checks for some variables */
+    NT_ASSERT(MmSystemRangeStart != NULL);
+    NT_ASSERT(MmHighestSystemAddress != NULL);
+
+    /* Set lowest system VPN */
+    LowestSystemVpn = AddressToVpn(MmSystemRangeStart);
 
     /* Initialize the PFN database */
     g_PfnDatabase.Initialize(LoaderBlock);

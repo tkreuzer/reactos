@@ -32,6 +32,7 @@ ReserveKernelMemory (
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to insert VAD object into VAD table: %x\n", Status);
+        __debugbreak();
         VadObject->Release();
         return NULL;
     }
