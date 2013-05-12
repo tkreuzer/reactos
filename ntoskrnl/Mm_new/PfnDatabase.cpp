@@ -27,6 +27,7 @@ Concurrency between interlocked page removal and contiguous page allocation:
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
+extern "C" PFN_NUMBER MmAvailablePages;
 extern "C" PVOID MmPfnDatabase;
 
 ULONG KeNumberNodes = 1;
@@ -752,18 +753,21 @@ PFN_DATABASE::AllocatePageLocked (
     /* Safe the original page color */
     PageColor = DesiredPageColor;
 
+    /* Check if the caller wants a zeroed page */
     if (*Zeroed)
     {
+        /* Yes, try zeroed list first, then dirty list */
         List1 = m_ZeroedLists;
         List2 = m_FreeLists;
     }
     else
     {
+        /* No, try dirty list first, then zeroed list */
         List1 = m_FreeLists;
         List2 = m_ZeroedLists;
     }
 
-    do
+    for (;;)
     {
         /* Remove a page from the preferred list */
         PageFrameNumber = List1[PageColor].RemovePage();
@@ -773,6 +777,7 @@ PFN_DATABASE::AllocatePageLocked (
             PageFrameNumber = List2[PageColor].RemovePage();
             if (PageFrameNumber != 0)
             {
+                /* Signal the caller, that we didn't get the preferred type */
                 *Zeroed = !*Zeroed;
             }
         }
@@ -780,23 +785,28 @@ PFN_DATABASE::AllocatePageLocked (
         /* Did we get a page? */
         if (PageFrameNumber != 0)
         {
-            /* Check if it was not allocated by contiguous allocations */
-            if (RtlTestBitEx(m_PhysicalMemoryBitmap, PageFrameNumber))
+            /* Check if it was allocated by contiguous allocations */
+            if (!RtlTestBitEx(m_PhysicalMemoryBitmap, PageFrameNumber))
             {
-                /* This one must be free now. Clear the free bit */
-                NT_ASSERT(m_PfnArray[PageFrameNumber].State == PfnFree);
-                m_PfnArray[PageFrameNumber].ReferenceCount = 1;
-                RtlClearBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
-                break;
+                /* Continue with this page color */
+                continue;
             }
+
+            /* This one must be free now. Clear the free bit */
+            NT_ASSERT(m_PfnArray[PageFrameNumber].State == PfnFree);
+            m_PfnArray[PageFrameNumber].ReferenceCount = 1;
+            RtlClearBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
+            MmAvailablePages--;
+            return PageFrameNumber;
         }
 
         /* Try with the next page color */
         PageColor = GetNextPageColorCycleNodes(PageColor, DesiredPageColor);
+        if (PageColor == DesiredPageColor)
+            break;
     }
-    while (PageColor != DesiredPageColor);
 
-    return PageFrameNumber;
+    return 0;
 }
 
 PFN_NUMBER
@@ -857,6 +867,8 @@ PFN_DATABASE::FreePageLocked (
 
     /* Set the free bit */
     RtlSetBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
+
+    MmAvailablePages++;
 }
 
 VOID
@@ -1132,6 +1144,8 @@ PFN_DATABASE::AllocateContiguousPages (
     Status = STATUS_NO_MEMORY;
 
 Done:
+
+    MmAvailablePages -= NumberOfPages;
 
     /* Release the PFN database lock */
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
