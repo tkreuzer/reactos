@@ -249,7 +249,7 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
         if(NOT USE_CLANG_CL)
             add_definitions(-D_M_IX86)
         endif()
-        add_definitions(-D_X86_ -D__i386__ -Di386)
+        add_definitions(-D_X86_ -D__i386__ -Di386 -D_ARCH_=i386)
         if(SARCH STREQUAL "xbox")
             add_definitions(-DSARCH_XBOX)
         elseif(SARCH STREQUAL "pc98")
@@ -260,10 +260,10 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
         if (NOT (MSVC AND CMAKE_C_COMPILER_ID STREQUAL "Clang"))
             add_compile_definitions(_M_AMD64)
         endif()
-        add_definitions(-D_AMD64_ -D__x86_64__ -D_WIN64)
+        add_definitions(-D_AMD64_ -D__x86_64__ -D_WIN64 -D_ARCH_=amd64)
     elseif(ARCH STREQUAL "arm")
         # _M_ARM is already defined by toolchain
-        add_definitions(-D_ARM_ -D__arm__ -DWIN32)
+        add_definitions(-D_ARM_ -D__arm__ -DWIN32 -D_ARCH_=arm)
         if(SARCH STREQUAL "omap3-zoom2")
             add_definitions(-D_ZOOM2_)
         endif()
@@ -382,6 +382,14 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
 
     # Create the registry hives
     create_registry_hives()
+
+    if(NOT CORE_ONLY)
+        add_subdirectory(base)
+        add_subdirectory(dll)
+        add_subdirectory(modules)
+        add_subdirectory(subsystems)
+        add_subdirectory(win32ss)
+    endif()
 
     # Create {bootcd, livecd, bootcdregtest}.lst
     create_iso_lists()
