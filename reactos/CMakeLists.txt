@@ -138,12 +138,12 @@ else()
 
     # Arch Options
     if(ARCH STREQUAL "i386")
-        add_definitions(-D_M_IX86 -D_X86_ -D__i386__ -Di386)
+        add_definitions(-D_M_IX86 -D_X86_ -D__i386__ -Di386 -D_ARCH_=i386)
     elseif(ARCH STREQUAL "amd64")
-        add_definitions(-D_M_AMD64 -D_AMD64_ -D__x86_64__ -D_WIN64)
+        add_definitions(-D_M_AMD64 -D_AMD64_ -D__x86_64__ -D_WIN64 -D_ARCH_=amd64)
     elseif(ARCH STREQUAL "arm")
         # _M_ARM is already defined by toolchain
-        add_definitions(-D_ARM_ -D__arm__)
+        add_definitions(-D_ARM_ -D__arm__ -D_ARCH_=arm)
     endif()
 
     # Other
@@ -233,6 +233,14 @@ else()
         #add_subdirectory(modules)
         #add_subdirectory(subsystems)
         #add_subdirectory(win32ss)
+    endif()
+
+    if(NOT CORE_ONLY)
+        add_subdirectory(base)
+        add_subdirectory(dll)
+        add_subdirectory(modules)
+        add_subdirectory(subsystems)
+        add_subdirectory(win32ss)
     endif()
 
     # Create {bootcd, livecd, bootcdregtest}.lst
