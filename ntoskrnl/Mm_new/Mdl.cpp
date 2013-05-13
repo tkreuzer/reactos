@@ -97,8 +97,10 @@ MmBuildMdlForNonPagedPool (
     PPTE CurrentPte;
     PPDE CurrentPde;
 
-    NT_ASSERT(Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA);
+    NT_ASSERT(!(Mdl->MdlFlags & (MDL_MAPPED_TO_SYSTEM_VA | MDL_PAGES_LOCKED |
+                                 MDL_SOURCE_IS_NONPAGED_POOL | MDL_PARTIAL)));
     NT_ASSERT(Mdl->StartVa != NULL);
+    NT_ASSERT(Mdl->ByteCount != 0);
     //NT_ASSERT(MmDeterminePoolType(Mdl->StartVa) == NonPagedPool);
 
     BaseAddress = AddToPointer(Mdl->StartVa, Mdl->ByteOffset);
@@ -223,7 +225,7 @@ MmProbeAndLockPages (
     Mdl->Process = NULL;
 
     /* Get start and end of the VA range */
-    StartVa = Mdl->StartVa;
+    StartVa = AddToPointer(Mdl->StartVa, Mdl->ByteOffset);
     EndVa = AddToPointer(StartVa, Mdl->ByteCount);
 
     /* Check for invalid VA range */
