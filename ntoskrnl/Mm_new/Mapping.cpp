@@ -977,18 +977,41 @@ NTAPI
 MmGetPhysicalAddress(
     _In_ PVOID BaseAddress)
 {
+    PFN_NUMBER PageFrameNumber;
     PHYSICAL_ADDRESS PhysicalAddress;
+    PPDE PdePointer;
     PPTE PtePointer;
 
-    /* Get the PTE */
+    /* Check if the address is valid */
+    if (!MmIsAddressValid(BaseAddress))
+    {
+        PhysicalAddress.QuadPart = 0;
+        return PhysicalAddress;
+    }
+
+    /* Get the PDE and PTE */
+    PdePointer = AddressToPde(BaseAddress);
     PtePointer = AddressToPte(BaseAddress);
 
-    /* Get the base physical address */
-    PhysicalAddress.QuadPart = PtePointer->GetPageFrameNumber() * PAGE_SIZE;
+    /* Check if this is a large page allocation */
+    if (PdePointer->IsLargePage())
+    {
+        /* Get the base page frame number of the large page */
+        PageFrameNumber = PdePointer->GetPageFrameNumber();
 
-    /* Add byte offset */
-    PhysicalAddress.LowPart +=
-        reinterpret_cast<ULONG_PTR>(BaseAddress) & (PAGE_SIZE - 1);
+        /* Add the page offset for the given address */
+        PageFrameNumber += PtePointer - PdeToPte(PdePointer);
+    }
+    else
+    {
+        /* Get the page frame number */
+        PageFrameNumber = PtePointer->GetPageFrameNumber();
+    }
+
+    /* Calculate the physical address */
+    PhysicalAddress.QuadPart =
+        (static_cast<ULONG64>(PageFrameNumber) << PAGE_SHIFT) +
+        (reinterpret_cast<ULONG_PTR>(BaseAddress) & (PAGE_SIZE - 1));
 
     return PhysicalAddress;
 }
