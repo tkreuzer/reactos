@@ -16,12 +16,9 @@ typedef struct VAD_NODE
 } VAD_NODE, *PVAD_NODE;
 
 /* The abstract VAD_OBJECT base class */
-class VAD_OBJECT
+class VAD_OBJECT : private VAD_NODE
 {
 private:
-
-    /* The node in the VAD table */
-    VAD_NODE m_Node;
 
     /* Reference count */
     LONG m_RefCount;
@@ -39,7 +36,13 @@ protected:
         VOID)
     {
         m_RefCount = 1;
-        InitializeListHead(&m_Node.ListEntry);
+        InitializeListHead(&ListEntry);
+    }
+
+    virtual
+    ~VAD_OBJECT (
+        VOID)
+    {
     }
 
 public:
@@ -49,7 +52,7 @@ public:
     GetStartingVpn (
         VOID)
     {
-        return m_Node.StartingVpn;
+        return StartingVpn;
     }
 
     inline
@@ -57,7 +60,7 @@ public:
     GetEndingVpn (
         VOID)
     {
-        return m_Node.EndingVpn;
+        return EndingVpn;
     }
 
     inline
@@ -65,7 +68,7 @@ public:
     GetBaseAddress (
         VOID)
     {
-        return reinterpret_cast<PVOID>(m_Node.StartingVpn << PAGE_SHIFT);
+        return reinterpret_cast<PVOID>(StartingVpn << PAGE_SHIFT);
     }
 
     inline

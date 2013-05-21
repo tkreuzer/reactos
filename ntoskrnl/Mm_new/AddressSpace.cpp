@@ -13,15 +13,8 @@ PADDRESS_SPACE g_SystemProcessAddressSpace;
 ADDRESS_SPACE g_KernelAddressSpace;
 VAD_TABLE g_KernelVadTable;
 
-enum ADDRESS_SPACE_TYPE
-{
-    ProcessAddressSpace,
-    SystemAddressSpace,
-    SessionAddressSpace,
-};
-
 inline
-ADDRESS_SPACE_TYPE
+ADDRESS_SPACE::ADDRESS_SPACE_TYPE
 ADDRESS_SPACE::GetAddressSpaceType ()
 {
     // This will need modification with newer Windows versions
@@ -122,9 +115,9 @@ ADDRESS_SPACE::ReserveVirtualMemory (
     else if (AddressSpaceType == SessionAddressSpace)
     {
         //PSESSION_SPACE SessionSpace = CONTAINING_RECORD(&m_Support, SESSION_SPACE, Vm);
-        //return reinterpret_cast<class VAD_TABLE*>(&SessionSpace->VadRoot);
-        //LowestStartingVpn = AddressToVpn(MmSessionSpaceStart);
-        //HighestEndingVpn = AddressToVpn(MmSessionSpaceEnd);
+        VadTable = 0; //reinterpret_cast<class VAD_TABLE*>(&SessionSpace->VadRoot);
+        LowestStartingVpn = 0;//AddressToVpn(MmSessionSpaceStart);
+        HighestEndingVpn = 0;//AddressToVpn(MmSessionSpaceEnd);
         UNIMPLEMENTED;
     }
     else
@@ -148,8 +141,8 @@ ADDRESS_SPACE::ReserveVirtualMemory (
     {
         Status = VadTable->InsertVadObject(VadObject,
                                            NumberOfPages,
-                                           AddressToVpn(MmSystemRangeStart),
-                                           AddressToVpn(MmHighestSystemAddress),
+                                           LowestStartingVpn,
+                                           HighestEndingVpn,
                                            1,
                                            FALSE);
     }
@@ -157,7 +150,7 @@ ADDRESS_SPACE::ReserveVirtualMemory (
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to insert VAD object into VAD table: %x\n", Status);
-        delete VadObject;
+        VadObject->Release();
         return Status;
     }
 

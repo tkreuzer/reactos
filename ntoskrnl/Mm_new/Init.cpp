@@ -12,8 +12,10 @@
 #include <arc/arc.h>
 #include <limits.h>
 
+#ifdef _MSC_VER
 // This is to shut up linker warnings about .CRT sections
 #pragma comment(linker, "/merge:.CRT=.rdata")
+#endif
 
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
@@ -221,7 +223,7 @@ ScanMemoryDescriptors (
                                        MEMORY_ALLOCATION_DESCRIPTOR,
                                        ListEntry);
         TRACE("MD Type: %lx Base: %lx Count: %lx\n",
-            Descriptor->MemoryType, Descriptor->BasePage, Descriptor->PageCount);
+            Descriptor->MemoryType, (ULONG)Descriptor->BasePage, (ULONG)Descriptor->PageCount);
 
         /* Count this descriptor */
         NumberOfMemoryDescriptors++;

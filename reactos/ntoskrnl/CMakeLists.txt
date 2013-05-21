@@ -3,6 +3,10 @@ PROJECT(NTOS)
 
 spec2def(ntoskrnl.exe ntoskrnl.spec ADD_IMPORTLIB)
 
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-exceptions -fno-rtti")
+endif()
+
 include_directories(
     ${REACTOS_SOURCE_DIR}
     ${REACTOS_SOURCE_DIR}/lib/cmlib
@@ -501,6 +505,10 @@ target_link_libraries(ntoskrnl
     wdmguid
     ioevent)
 
+if(NOT MSVC)
+    target_link_libraries(ntoskrnl -lgcc)
+endif()
+
 add_importlibs(ntoskrnl hal kdcom bootvid)
 add_pch(ntoskrnl include/ntoskrnl.h)
 add_dependencies(ntoskrnl psdk bugcodes asm)
@@ -541,6 +549,9 @@ if(BUILD_MP)
     endif()
 
     target_link_libraries(ntkrnlmp cportlib csq ${PSEH_LIB} cmlib rtl ${ROSSYM_LIB} libcntpr wdmguid ioevent)
+    if(NOT MSVC)
+        target_link_libraries(ntkrnlmp -lgcc)
+    endif()
     add_importlibs(ntkrnlmp hal kdcom bootvid)
     add_dependencies(ntkrnlmp psdk bugcodes asm)
     add_cd_file(TARGET ntkrnlmp DESTINATION reactos/system32 NO_CAB FOR all)

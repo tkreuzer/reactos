@@ -131,7 +131,7 @@ private:
     ~SECTION (
         VOID);
 
-    friend class super;
+    friend super;
     friend class MEMORY_MANAGER;
 
 public:

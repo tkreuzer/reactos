@@ -49,6 +49,9 @@ CONTROL_AREA::ReferenceOrCreateControlArea (
     PSEGMENT Segment;
     NTSTATUS Status;
 
+*OutControlArea = 0;
+Segment = 0;
+
     /* Assume success */
     Status = STATUS_SUCCESS;
 

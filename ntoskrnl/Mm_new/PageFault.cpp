@@ -10,12 +10,12 @@ namespace Mm {
 static
 NTSTATUS
 ResolveFaultForPte (
-    _In_ PPTE PtePointer,
+    _Inout_ PPTE PtePointer,
     _In_ PVOID Address,
     _In_ IN KPROCESSOR_MODE Mode,
     _In_ PVOID TrapInformation,
     _In_ UCHAR AccessFlags,
-    _Out_ volatile PFN_NUMBER* PageFrameNumber);
+    _Inout_ volatile PFN_NUMBER* PageFrameNumber);
 
 #define PAGE_GLOBAL 0x800
 
@@ -70,6 +70,7 @@ ResolveDemandZeroFault (
 
     CurrentPteValue->MakeValidPte(*PageFrameNumber, Protect);
     *PageFrameNumber = 0;
+    NewPteValue->Erase();
 
     return STATUS_PAGE_FAULT_DEMAND_ZERO;
 }
@@ -400,12 +401,15 @@ DbgPrint("Pagefault for Address %p, PdeAddress = %p (%d), PteAddress = %p\n",
     return Status;
 }
 
-extern "C"
+extern "C" {
+
 BOOLEAN
+NTAPI
 MmIsRecursiveIoFault (
     VOID)
 {
     return PsGetCurrentThread()->ActiveFaultCount > 0;
 }
 
+}; // extern "C"
 }; // namespace Mm

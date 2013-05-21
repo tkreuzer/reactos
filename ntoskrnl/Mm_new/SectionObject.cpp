@@ -10,13 +10,14 @@
 
 POBJECT_TYPE MmSectionObjectType;
 
+#define RTL_CONSTANT_STRING2(s)  { sizeof(s)-sizeof((s)[0]), sizeof(s), (PWCHAR)(s) }
 namespace Mm {
 
 VOID
 SECTION_OBJECT::InitializeClass (
     VOID)
 {
-    static const UNICODE_STRING ObjectName = RTL_CONSTANT_STRING(L"Section");
+    static const UNICODE_STRING ObjectName = RTL_CONSTANT_STRING2(L"Section");
     static const GENERIC_MAPPING GenericMapping =
     {
         STANDARD_RIGHTS_READ | SECTION_MAP_READ | SECTION_QUERY,
@@ -320,6 +321,12 @@ NtCreateSection (
         _SEH2_END;
     }
 
+    if (MaximumSize == NULL)
+    {
+        SafeMaximumSize.QuadPart = 0;
+        MaximumSize = &SafeMaximumSize;
+    }
+
     /* Call the exported function */
     Status = MmCreateSection(&SectionObject,
                              DesiredAccess,
@@ -338,31 +345,35 @@ NtCreateSection (
                                 0,
                                 NULL,
                                 &SectionHandle);
-        if (!NT_SUCCESS(Status))
+        if (NT_SUCCESS(Status))
         {
+            /* Check if this call comes from user mode */
+            if (ExGetPreviousMode() != KernelMode)
+            {
+                /* Use SEH to return the handle */
+                _SEH2_TRY
+                {
+                    ProbeForWriteHandle(OutSectionHandle);
+                    *OutSectionHandle = SectionHandle;
+                }
+                _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+                {
+                    ERR("Exception!\n");
+                    Status = _SEH2_GetExceptionCode();
+                }
+                _SEH2_END;
+            }
+            else
+            {
+                /* Return the section handle */
+                *OutSectionHandle = SectionHandle;
+            }
+        }
+        else
+        {
+            /* Could not insert the object, so dereference it */
             ObDereferenceObject(SectionObject);
         }
-    }
-
-    /* Check if this call comes from user mode */
-    if (ExGetPreviousMode() != KernelMode)
-    {
-        /* Use SEH to return the handle */
-        _SEH2_TRY
-        {
-            ProbeForWriteHandle(OutSectionHandle);
-            *OutSectionHandle = SectionHandle;
-        }
-        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-        {
-            ERR("Exception!\n");
-            Status = _SEH2_GetExceptionCode();
-        }
-        _SEH2_END;
-    }
-    else
-    {
-        *OutSectionHandle = SectionHandle;
     }
 
     return Status;

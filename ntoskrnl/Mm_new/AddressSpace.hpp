@@ -6,8 +6,6 @@
 
 namespace Mm {
 
-enum ADDRESS_SPACE_TYPE;
-
 class ADDRESS_SPACE
 {
 private:
@@ -15,6 +13,12 @@ private:
     /// alternatively we can add additional parts from EPROCESS here and address
     /// the vad table directly and include it into the system / session address space
 
+    enum ADDRESS_SPACE_TYPE
+    {
+        ProcessAddressSpace,
+        SystemAddressSpace,
+        SessionAddressSpace,
+    };
 
     VOID
     Initialize (

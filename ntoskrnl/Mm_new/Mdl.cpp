@@ -310,10 +310,9 @@ MmProbeAndLockPages (
                 AddressSpace->AcquireWorkingSetLock();
             }
 
-            /* Get the page frame number from the PTE */
+            /* Get the page frame number from the PTE and lock it */
             *CurrentPfnNumber = CurrentPte->GetPageFrameNumber();
-
-            //g_PfnDatabase.LockPage(*CurrentPfnNumber);
+            g_PfnDatabase.LockPage(*CurrentPfnNumber);
         }
 
         /* Go to the next page */
@@ -365,6 +364,9 @@ NTAPI
 MmUnlockPages (
     _Inout_ PMDLX Mdl)
 {
+    PADDRESS_SPACE AddressSpace;
+    PPFN_NUMBER PageFrameNumber;
+    ULONG PageCount;
 
     /* Check if the MDL is still mapped */
     if (Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA)
@@ -373,8 +375,34 @@ MmUnlockPages (
         MmUnmapLockedPages(Mdl->MappedSystemVa, Mdl);
     }
 
-    DbgPrint("MmUnlockPages stub\n");
-    //UNIMPLEMENTED;
+    /* Check if the MDL has a process */
+    if (Mdl->Process != NULL)
+    {
+        /* Use the related process address space */
+        AddressSpace = GetProcessAddressSpace(Mdl->Process);
+    }
+    else
+    {
+        /* Use the kernel address space */
+        AddressSpace = &g_KernelAddressSpace;
+    }
+
+    /* Acquire the working set lock */
+    AddressSpace->AcquireWorkingSetLock();
+
+    /* Loop all pages in the MDL */
+    PageCount = ALIGN_UP_BY(Mdl->ByteOffset + Mdl->ByteCount, PAGE_SIZE);
+    PageFrameNumber = MmGetMdlPfnArray(Mdl);
+    do
+    {
+        /* Unlock this page */
+        g_PfnDatabase.UnlockPage(*PageFrameNumber);
+        PageFrameNumber++;
+    }
+    while (--PageCount);
+
+    /* Unlock the working set */
+    AddressSpace->ReleaseWorkingSetLock();
 }
 
 }; // extern "C"

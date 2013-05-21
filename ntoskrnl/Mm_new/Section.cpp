@@ -49,7 +49,8 @@ SECTION::CreateInstance (
     NTSTATUS Status;
 
     /* Calculate the size of the SECTION with all SUBSECTIONs */
-    Size = FIELD_OFFSET(SECTION, m_Subsections[NumberOfSubsections]);
+    //Size = FIELD_OFFSET(SECTION, m_Subsections[NumberOfSubsections]);
+    Size = sizeof(SECTION) + (NumberOfSubsections - 1) * sizeof(SUBSECTION);
 
     /* Allocate the SECTION */
     Section = new(Size) SECTION;
@@ -307,6 +308,7 @@ SECTION::PrefetchPages (
 }
 
 
+extern "C" {
 
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
@@ -319,5 +321,5 @@ MmCanFileBeTruncated (
     return FALSE;
 }
 
-
+}; // extern "C"
 }; // namespace Mm

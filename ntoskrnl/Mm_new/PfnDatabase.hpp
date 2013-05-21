@@ -3,8 +3,6 @@
 
 #include "ntosbase.h"
 
-enum _TYPE_OF_MEMORY;
-
 namespace Mm {
 
 static const ULONG TAG_MEMORY_RANGES = 'hPmM';
@@ -50,7 +48,11 @@ typedef struct PFN_ENTRY
 
     struct
     {
+#ifdef __GNUC__ // this shit is broken
+        ULONG State : 4;
+#else
         PFN_STATE State : 4;
+#endif
         PFN_CACHE_ATTRIBUTE CacheAttribute : 2;
         ULONG Dirty : 1;
         ULONG ReferenceCount : 25;
@@ -165,7 +167,7 @@ class PFN_DATABASE
     InitializePfnEntries (
         _In_ PFN_NUMBER BasePage,
         _In_ PFN_NUMBER PageCount,
-        _In_ enum _TYPE_OF_MEMORY MemoryType);
+        _In_ ULONG MemoryType);
 
     static
     VOID
@@ -280,6 +282,16 @@ public:
     ModifyValidCount (
         _In_ PFN_NUMBER PageFrameNumber,
         _In_ LONG Addend);
+
+    static
+    VOID
+    LockPage (
+        _In_ PFN_NUMBER PageFrameNumber);
+
+    static
+    VOID
+    UnlockPage (
+        _In_ PFN_NUMBER PageFrameNumber);
 
 #if 0
     AllocatePageNuma (

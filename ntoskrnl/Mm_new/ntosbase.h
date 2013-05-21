@@ -1,26 +1,6 @@
 
 #pragma once
 
-/* Dependencies */
-#define NT_INCLUDED
-#include <excpt.h>
-#include <ntdef.h>
-#include <ntstatus.h>
-#include <kernelspecs.h>
-#include <ntiologc.h>
-#include <intrin.h>
-#include <pseh/pseh2.h>
-
-#if defined(_MSC_VER)
-
-/* Disable some warnings */
-#pragma warning(disable:4115) /* Named type definition in parentheses */
-#pragma warning(disable:4201) /* Nameless unions and structs */
-#pragma warning(disable:4214) /* Bit fields of other types than int */
-#pragma warning(disable:4820) /* Padding added, due to alignment requirement */
-
-#endif /* _MSC_VER */
-
 /* Hacks! */
 #define IoFileObjectType _IoFileObjectType
 #define PsProcessType _PsProcessType
@@ -31,6 +11,7 @@
 #endif
 
 #include <ntifs.h>
+//#include <pseh/pseh2.h>
 
 #define ProbeForWriteHandle(x) ProbeForWrite(x, sizeof(HANDLE), sizeof(HANDLE))
 
@@ -71,12 +52,20 @@
 /* A path separator */
 #define _C_PATHSEP_ /
 
+#if 0
 /* Helper for including from architecture specific paths.
  * Architectures can be x86, amd64, arm, ppc, mips, mips64
  * Use like this: '#include _ARCH_RELATIVE_(test.h)' */
 #define _ARCH_RELATIVE_(file) \
-    _STREXPAND_(_EXPAND_(_ARCH_) ## _EXPAND_(_C_PATHSEP_) ## file)
+    _STREXPAND_(_EXPAND_(_ARCH_)_EXPAND_(_C_PATHSEP_)file)
+#endif
 
+#ifdef _M_IX86
+#undef i386
+#define _ARCH_RELATIVE_(_file) _STREXPAND_(i386/_file)
+#elif defined(_M_AMD64)
+#define _ARCH_RELATIVE_(_file) _STREXPAND_(amd64/_file)
+#endif
 
 #ifdef _WIN64
 
@@ -290,3 +279,22 @@ typedef struct _PROTOTYPE
 } PROTOTYPE, *PPROTOTYPE;
 
 }; // namespace Mm
+
+/// HACK OF HACK HACK
+
+#define _SEH2_TRY  {
+#define _SEH2_FINALLY }  {
+#define _SEH2_EXCEPT(...) } if (0) {
+#define _SEH2_END }
+#define _SEH2_GetExceptionInformation()
+#define _SEH2_GetExceptionCode() 0
+#define _SEH2_AbnormalTermination()
+#define _SEH2_YIELD(STMT_) STMT_
+#define _SEH2_LEAVE
+#define _SEH2_VOLATILE volatile
+
+#ifdef _PREFAST_
+#undef NT_ASSERT
+#define NT_ASSERT(exp) ((void)NT_VERIFY(exp), __analysis_assume(exp))
+#endif
+

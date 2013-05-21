@@ -14,7 +14,8 @@ SEGMENT::CreateInstance (
     SIZE_T Size;
 
     /* Calculate the size of the segment including the PFN array */
-    Size = FIELD_OFFSET(SEGMENT, m_ThePtes[NumberOfPages]);
+    //Size = FIELD_OFFSET(SEGMENT, m_ThePtes[NumberOfPages]);
+    Size = sizeof(SEGMENT) + NumberOfPages * sizeof(PTE);
 
     /* Allocate the segment */
     Segment = new(Size) SEGMENT;

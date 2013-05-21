@@ -20,15 +20,11 @@ KERNEL_VAD::CreateInstance (
     KERNEL_VAD* NewVad;
 
     /* Allocate a new VAD from non-paged pool */
-    NewVad = reinterpret_cast<KERNEL_VAD*>(
-                ExAllocatePoolWithTag(NonPagedPool, sizeof(KERNEL_VAD), 'daVM'));
+    NewVad = new(NonPagedPool, sizeof(KERNEL_VAD), 'daVM') KERNEL_VAD;
     if (NewVad == NULL)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
-
-    /* Initialize it */
-    NewVad->Initialize();
 
     *OutKernelVad = NewVad;
     return STATUS_SUCCESS;

@@ -312,7 +312,7 @@ MiAllocatePoolPages (
     ULONG BasePoolType, PageCount, Index;
     KLOCK_QUEUE_HANDLE LockHandle;
     PVOID BaseAddress;
-    SIZE_T PoolSizeInBytes;
+    //SIZE_T PoolSizeInBytes;
     NTSTATUS Status;
 
     /* Get the base pool type */
@@ -321,12 +321,12 @@ MiAllocatePoolPages (
     if (BasePoolType == NonPagedPool)
     {
         BaseAddress = MmNonPagedPoolStart;
-        PoolSizeInBytes = MmSizeOfNonPagedPoolInBytes;
+        //PoolSizeInBytes = MmSizeOfNonPagedPoolInBytes;
     }
     else
     {
         BaseAddress = MmPagedPoolStart;
-        PoolSizeInBytes = MmSizeOfPagedPoolInBytes;
+        //PoolSizeInBytes = MmSizeOfPagedPoolInBytes;
     }
 
     /* Calculate page count */
@@ -339,7 +339,7 @@ MiAllocatePoolPages (
     {
         /* First try to find clear bits without holding the lock */
         Index = RtlFindClearBits(Bitmap, PageCount, PoolHintIndex[BasePoolType]);
-        if (Index != -1)
+        if (Index != MAXULONG)
         {
             /* Acquire the lock */
             KeAcquireInStackQueuedSpinLock(&PoolPageSpinlock[BasePoolType],
@@ -352,7 +352,7 @@ MiAllocatePoolPages (
             KeReleaseInStackQueuedSpinLock(&LockHandle);
 
             /* Check if that succeeded */
-            if (Index != -1)
+            if (Index != MAXULONG)
             {
                 /* Stop looping */
                 break;
@@ -431,6 +431,7 @@ MiFreePoolPages (
 
     /* Search for the next set bit in the end-of-allocation bitmap */
     EndIndex = RtlFindSetBits(&EndOfAllocationBitmap[PoolType], 1, StartIndex);
+    NT_ASSERT(EndIndex != MAXULONG);
 
     /* Calculate the number of pages we have */
     NumberOfPages = EndIndex - StartIndex + 1;

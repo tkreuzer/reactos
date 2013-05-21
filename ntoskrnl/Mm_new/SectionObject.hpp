@@ -19,6 +19,8 @@
 
 namespace Mm {
 
+class SECTION;
+
 class SECTION_OBJECT : public Ob::OBJECT
 {
 private:

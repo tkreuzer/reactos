@@ -97,6 +97,12 @@ NtProtectVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/// HACK for stupid GCC
+enum _MEMORY_INFORMATION_CLASS
+{
+    Test,
+};
+
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
