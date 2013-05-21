@@ -55,7 +55,7 @@ ULONG
 ConvertProtect (
     _In_ ULONG Win32Protect)
 {
-    ULONG Protect;
+    ULONG Protect = MM_INVALID;
 
     if (Win32Protect & PAGE_IS_WRITECOPY)
         Protect = MM_WRITECOPY;
@@ -115,7 +115,7 @@ AllocatePagesForMapping (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR EndingVpn,
     _Out_ PPFN_LIST PageList,
-    _Out_opt_ PPFN_LIST LargePageList,
+    _When_(Protect & MM_LARGEPAGE, _Out_) PPFN_LIST LargePageList,
     _In_ BOOLEAN ChargeForPages,
     _In_ ULONG Protect,
     _Out_ PULONG_PTR PagesCharged)
@@ -132,6 +132,7 @@ AllocatePagesForMapping (
         NT_ASSERT(Protect & MM_NONPAGED);
         // assert alignment
         UNIMPLEMENTED;
+        LargePageList->AddPage(0);
     }
 
     /* Calculate the maximum number of page tables and pages */
@@ -201,8 +202,8 @@ ReserveMappingPtes (
     PPDE CurrentPde = VpnToPde(StartingVpn);
     PPDE EndPde = VpnToPde(EndingVpn) + 1;
     PPDE MarginPde;
-    PPTE CurrentPte = VpnToPte(StartingVpn);
-    PPTE EndPte = VpnToPte(EndingVpn) + 1;
+//    PPTE CurrentPte = VpnToPte(StartingVpn);
+//    PPTE EndPte = VpnToPte(EndingVpn) + 1;
 
 #if (MI_PAGING_LEVELS == 4)
     PfnOfPml4 = AddressToPte((PVOID)PXE_BASE)->GetPageFrameNumber();
@@ -297,7 +298,7 @@ ReserveMappingPtes (
 
             /* Continue with PDE at the next PPE boundary */
             CurrentPde = MarginPde;
-            CurrentPte = PdeToPte(CurrentPde);
+//            CurrentPte = PdeToPte(CurrentPde);
 
 #if (MI_PAGING_LEVELS >= 3)
             /* Go to the next PPE */
@@ -524,7 +525,7 @@ MapPrototypePtes (
     NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
     NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
 
-    if (Protect == -1) __debugbreak(); /// not yet handled
+    if (Protect == (ULONG)-1) __debugbreak(); /// not yet handled
 
     /* Allocate pages for the page tables */
     EndingVpn = StartingVpn + NumberOfPages - 1;
@@ -633,6 +634,7 @@ UnmapPages (
                     PageFrameNumber = CurrentPte->GetPageFrameNumber();
 
                     UNIMPLEMENTED;
+                    (void)PageFrameNumber;
 
                     /// since we own the WS lock, we can access the reference count
                     /// of the PFN without locking the PFN database!
@@ -835,10 +837,10 @@ MmMapLockedPages (
                                         NormalPagePriority);
 }
 
-_Post_writable_byte_size_(MemoryDescriptorList->ByteCount)
+_Post_writable_byte_size_(Mdl->ByteCount)
 _When_(AccessMode==KernelMode, _IRQL_requires_max_(DISPATCH_LEVEL))
 _When_(AccessMode==UserMode, _Maybe_raises_SEH_exception_ _IRQL_requires_max_(APC_LEVEL) _Post_notnull_)
-_At_(MemoryDescriptorList->MappedSystemVa, _Post_writable_byte_size_(MemoryDescriptorList->ByteCount))
+_At_(Mdl->MappedSystemVa, _Post_writable_byte_size_(Mdl->ByteCount))
 _Must_inspect_result_
 _Success_(return != NULL)
 PVOID

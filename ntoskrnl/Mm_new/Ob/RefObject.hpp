@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "ntosbase.h"
+#include "../ntosbase.h"
 
 class REF_OBJECT_CORE
 {

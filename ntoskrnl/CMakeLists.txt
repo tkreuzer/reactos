@@ -13,8 +13,17 @@ if(NOT MSVC)
     add_compile_options(-fno-common)
 endif()
 
-set(NTOSKRNL_SOURCE ${SOURCE})
-set(NTOSKRNL_ASM_SOURCE ${ASM_SOURCE})
+if(NOT MSVC)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fno-exceptions -fno-rtti")
+endif()
+
+include_directories(
+    ${REACTOS_SOURCE_DIR}
+    ${REACTOS_SOURCE_DIR}/lib/cmlib
+    include
+    ${CMAKE_CURRENT_BINARY_DIR}/include
+    ${CMAKE_CURRENT_BINARY_DIR}/include/internal
+    ${REACTOS_SOURCE_DIR}/include/reactos/drivers)
 
 set(NTKRNLMP_SOURCE ${SOURCE})
 set(NTKRNLMP_ASM_SOURCE ${ASM_SOURCE})
@@ -494,6 +503,10 @@ if(STACK_PROTECTOR)
     target_sources(ntoskrnl PRIVATE $<TARGET_OBJECTS:gcc_ssp_nt>)
 endif()
 
+if(NOT MSVC)
+    target_link_libraries(ntoskrnl -lgcc)
+endif()
+
 add_importlibs(ntoskrnl hal kdcom bootvid)
 add_pch(ntoskrnl ${REACTOS_SOURCE_DIR}/ntoskrnl/include/ntoskrnl.h "${PCH_SKIP_SOURCE}")
 add_dependencies(ntoskrnl psdk asm)
@@ -502,6 +515,42 @@ add_cd_file(TARGET ntoskrnl DESTINATION reactos/system32 NO_CAB FOR all)
 if(BUILD_MP)
     add_subdirectory(ntkrnlmp)
     endif()
+
+    add_asm_files(ntkrnlmp_asm ${ASM_SOURCE})
+
+    add_executable(ntkrnlmp
+        ${ntkrnlmp_asm}
+        ${SOURCE}
+        ${CMAKE_CURRENT_BINARY_DIR}/ntkrnlmp.def)
+
+    add_target_compile_definitions(ntkrnlmp CONFIG_SMP)
+
+    if(ARCH STREQUAL "i386")
+        set_entrypoint(ntkrnlmp KiSystemStartup 4)
+    else()
+        set_entrypoint(ntkrnlmp KiSystemStartup)
+    endif()
+    set_subsystem(ntkrnlmp native)
+
+    if(MSVC)
+        set_image_base(ntkrnlmp 0x00400000)
+    else()
+        set_image_base(ntkrnlmp 0x80800000)
+    endif()
+
+    # Linker bug
+    if(NOT MSVC AND LTCG)
+        add_target_link_flags(ntkrnlmp "-shared")
+    endif()
+
+    target_link_libraries(ntkrnlmp cportlib csq ${PSEH_LIB} cmlib rtl ${ROSSYM_LIB} libcntpr wdmguid ioevent)
+    if(NOT MSVC)
+        target_link_libraries(ntkrnlmp -lgcc)
+    endif()
+    add_importlibs(ntkrnlmp hal kdcom bootvid)
+    add_dependencies(ntkrnlmp psdk bugcodes asm)
+    add_cd_file(TARGET ntkrnlmp DESTINATION reactos/system32 NO_CAB FOR all)
+endif()
 
 add_asm_files(ntdllsys_asm ntdll.S)
 add_library(ntdllsys ${ntdllsys_asm})

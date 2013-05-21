@@ -19,7 +19,7 @@ CcGetLsnForFileObject (
     _In_ PFILE_OBJECT FileObject,
     _Out_opt_ PLARGE_INTEGER OldestLsn)
 {
-    LARGE_INTEGER Result = {0};
+    LARGE_INTEGER Result = {{0,0}};
     UNIMPLEMENTED;
     return Result;
 }
@@ -34,6 +34,9 @@ CcInitializeCacheMap (
     _In_ PCACHE_MANAGER_CALLBACKS Callbacks,
     _In_ PVOID LazyWriteContext)
 {
+    // get section object pointers
+    // check if it has a shared cache map
+
     UNIMPLEMENTED;
 }
 
@@ -116,7 +119,7 @@ CcGetFlushedValidData (
     _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
     _In_ BOOLEAN BcbListHeld)
 {
-    LARGE_INTEGER Result = {0};
+    LARGE_INTEGER Result = {{0,0}};
     UNIMPLEMENTED;
     return Result;
 }
@@ -495,7 +498,7 @@ CcGetDirtyPages (
     _In_ PVOID Context1,
     _In_ PVOID Context2)
 {
-    LARGE_INTEGER Result = {0};
+    LARGE_INTEGER Result = {{0,0}};
     UNIMPLEMENTED;
     return Result;
 }
@@ -531,6 +534,7 @@ CcPurgeCacheSection (
 #if (NTDDI_VERSION < NTDDI_VISTA)
     ULONG Flags = UninitializeCacheMaps;
 #endif
+    (void)Flags;
     UNIMPLEMENTED;
     return FALSE;
 }

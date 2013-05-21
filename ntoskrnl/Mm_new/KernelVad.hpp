@@ -24,6 +24,13 @@ public:
     Initialize (
         VOID);
 
+    /// FIXME: why can't this shit be protected???
+    virtual
+    ~KERNEL_VAD (
+        VOID)
+    {
+    }
+
     static
     NTSTATUS
     CreateInstance (

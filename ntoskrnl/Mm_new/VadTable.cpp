@@ -153,7 +153,7 @@ VAD_TABLE::InsertVadObject (
     NT_ASSERT(PageCount != 0);
 
     /* Make sure the VAD was not already inserted */
-    NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
+    NT_ASSERT(IsListEmpty(&VadObject->ListEntry));
 
     /* Check parameter */
     if (PageCount > MAXLONG_PTR)
@@ -207,11 +207,11 @@ VAD_TABLE::InsertVadObject (
             (PostGapStartingVpn - GapStartingVpn) >= PageCount)
         {
             /* Set the starting and ending VPN in the node */
-            VadObject->m_Node.StartingVpn = GapStartingVpn;
-            VadObject->m_Node.EndingVpn = PostGapStartingVpn - 1;
+            VadObject->StartingVpn = GapStartingVpn;
+            VadObject->EndingVpn = PostGapStartingVpn - 1;
 
             /* Insert the VAD *after* the current node, or at the lowest end */
-            InsertAfter(CurrentNode, &VadObject->m_Node);
+            InsertAfter(CurrentNode, VadObject);
             Status = STATUS_SUCCESS;
         }
     }
@@ -245,11 +245,11 @@ VAD_TABLE::InsertVadObject (
             (PostGapStartingVpn - GapStartingVpn) >= PageCount)
         {
             /* Set the starting and ending VPN in the node */
-            VadObject->m_Node.StartingVpn = GapStartingVpn;
-            VadObject->m_Node.EndingVpn = PostGapStartingVpn - 1;
+            VadObject->StartingVpn = GapStartingVpn;
+            VadObject->EndingVpn = PostGapStartingVpn - 1;
 
             /* Insert the VAD *before* the current node, or at the lowest end */
-            InsertBefore(CurrentNode, &VadObject->m_Node);
+            InsertBefore(CurrentNode, VadObject);
             Status = STATUS_SUCCESS;
         }
     }
@@ -275,12 +275,12 @@ VAD_TABLE::InsertVadObjectAtVpn (
     NT_ASSERT(PageCount != 0);
 
     /* Make sure the VAD was not already inserted */
-    NT_ASSERT(IsListEmpty(&VadObject->m_Node.ListEntry));
+    NT_ASSERT(IsListEmpty(&VadObject->ListEntry));
 
     /* Calculate ending VPN */
     EndingVpn = StartingVpn + PageCount - 1;
-    VadObject->m_Node.StartingVpn = StartingVpn;
-    VadObject->m_Node.EndingVpn = EndingVpn;
+    VadObject->StartingVpn = StartingVpn;
+    VadObject->EndingVpn = EndingVpn;
 
     /* Default to failure */
     Status = STATUS_CONFLICTING_ADDRESSES;
@@ -294,7 +294,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
     /* Check if there is enough free space */
     if ((VadNode == NULL) || (VadNode->StartingVpn > EndingVpn))
     {
-        InsertBefore(VadNode, &VadObject->m_Node);
+        InsertBefore(VadNode, VadObject);
         Status = STATUS_SUCCESS;
     }
 
@@ -314,7 +314,7 @@ VAD_TABLE::RemoveVadObject (
     AcquireTableLock(&LockHandle);
 
     /* Remove the list entry */
-    RemoveEntryList(&VadObject->m_Node.ListEntry);
+    RemoveEntryList(&VadObject->ListEntry);
 
     /* Release the VAD object */
     VadObject->Release();
@@ -322,6 +322,9 @@ VAD_TABLE::RemoveVadObject (
     /* Unlock the table */
     ReleaseTableLock(&LockHandle);
 }
+
+#define CONTAINING_RECORD2(_Pointer, _Structure, _Field) \
+    ((_Structure*)(((char*)(_Pointer)) - offsetof(_Structure, _Field)))
 
 _Must_inspect_result_
 PVAD_OBJECT
@@ -349,7 +352,8 @@ VAD_TABLE::ReferenceVadObjectByAddress (
     if (VadNode->StartingVpn <= RequestedVpn)
     {
         /* Get the VAD object and reference it */
-        VadObject = CONTAINING_RECORD(VadNode, VAD_OBJECT, m_Node);
+        VadObject = static_cast<VAD_OBJECT*>(VadNode);
+
         VadObject->AddRef();
     }
 

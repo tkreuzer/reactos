@@ -102,12 +102,11 @@ PageReadHelper (
     MmInitializeMdl(Mdl, *Buffer, *Size);
     MmBuildMdlForNonPagedPool(Mdl);
 
+    /* Initialize the event */
+    KeInitializeEvent(&Event, NotificationEvent, FALSE);
+
     /* Read the first page */
-    Status = IoPageRead(FileObject,
-                        Mdl,
-                        &Offset,
-                        &Event,
-                        &IoStatusBlock);
+    Status = IoPageRead(FileObject, Mdl, &Offset, &Event, &IoStatusBlock);
     if (Status == STATUS_PENDING)
     {
         KeWaitForSingleObject(&Event, WrPageIn, 0, 0, 0);
@@ -229,7 +228,7 @@ SECTION::CreateImageFileSection (
     LARGE_INTEGER FileSize;
     PSECTION Section;
     ULONG NtHeaderOffset, Offset, ByteOffset, NumberOfPages, NumberOfSections;
-    ULONG Size, AvailableHeaderSize, SectorSize;
+    ULONG Size, SectorSize; //, AvailableHeaderSize;
     ULONG SizeOfSectionHeaders, NtHeaderSize, HeaderSize, FullHeaderSize;
     PVOID BaseAddress;
 
@@ -295,7 +294,7 @@ SECTION::CreateImageFileSection (
         /* We can safely access the NT-Headers inside the first page */
         NtHeaders = reinterpret_cast<PIMAGE_NT_HEADERS>(
                                     AddToPtr(DosHeader, NtHeaderOffset));
-        AvailableHeaderSize = Size - NtHeaderOffset;
+        //AvailableHeaderSize = Size - NtHeaderOffset;
     }
     else
     {
@@ -327,7 +326,7 @@ SECTION::CreateImageFileSection (
         /* Get the NT-Headers and calculate the available size */
         NtHeaders = reinterpret_cast<PIMAGE_NT_HEADERS>(
             AddToPtr(NtHeadersBuffer, NtHeaderOffset & (PAGE_SIZE - 1)));
-        AvailableHeaderSize = Size - ByteOffset;
+        //AvailableHeaderSize = Size - ByteOffset;
     }
 
     /* Verify that the NT-Headers are valid */
@@ -480,10 +479,9 @@ Cleanup:
 
     if (!NT_SUCCESS(Status))
     {
-
-        Section->Release();
+        if (Section != NULL)
+            Section->Release();
     }
-
 
     return Status;
 }

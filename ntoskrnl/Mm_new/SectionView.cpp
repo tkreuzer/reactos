@@ -59,14 +59,12 @@ SECTION_VIEW::CreateInstance (
 
     /// \todo Evaluate if we can use paged pool for user VADs, when the VAD
     ///       table doesn't use a spinlock
-    SectionView = static_cast<PSECTION_VIEW>(
-        ExAllocatePoolWithTag(NonPagedPool, sizeof(SECTION_VIEW), 'wVmM'));
+    /* Allocate a new VAD from non-paged pool */
+    SectionView = new(NonPagedPool, sizeof(SECTION_VIEW), 'wVmM') SECTION_VIEW;
     if (SectionView == NULL)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
-
-    new(SectionView) SECTION_VIEW;
 
     SectionView->m_Section = Section;
 
@@ -94,7 +92,7 @@ SECTION_VIEW::CommitPages (
 
     // get the SECTION
     UNIMPLEMENTED;
-    return 0;
+    return Status;
 }
 
 NTSTATUS
@@ -169,7 +167,7 @@ MapViewOfSection (
     if (SectionOffset != NULL)
     {
         /* Check if it's valid */
-        if (SectionOffset->QuadPart >= (ULONG64)MAXULONG * PAGE_SIZE)
+        if (SectionOffset->QuadPart >= (LONG64)(ULONG64)MAXULONG * PAGE_SIZE)
         {
             return STATUS_INVALID_PARAMETER;
         }
@@ -201,11 +199,15 @@ MapViewOfSection (
     }
     else if (VaType == VaSessionSpace)
     {
-        AddressSpace = 0;
+        AddressSpace = &g_KernelAddressSpace; /// HACK
         LowestStartingVpn = AddressToVpn(SESSION_SPACE_START);
         HighestEndingVpn = AddressToVpn(SESSION_VIEW_END);
         BoundaryPageMultiple = 1;
         Protect |= MM_GLOBAL;
+    }
+    else
+    {
+        return STATUS_INVALID_PARAMETER;
     }
 
 #if 0
@@ -254,7 +256,7 @@ MapViewOfSection (
             ((StartingVpn + ViewSizeInPages) < StartingVpn))
         {
             ERR("Invalid parameters: StartingVpn\n");
-            delete SectionView;
+            SectionView->Release();
             return STATUS_INVALID_PARAMETER;
         }
 
@@ -299,8 +301,7 @@ MapViewOfSection (
 
     if (!NT_SUCCESS(Status))
     {
-        //SectionView->Release();
-        delete SectionView;
+        SectionView->Release();
         return Status;
     }
 
@@ -312,8 +313,7 @@ MapViewOfSection (
     if (!NT_SUCCESS(Status))
     {
         VadTable->RemoveVadObject(SectionView);
-        //SectionView->Release();
-        delete SectionView;
+        SectionView->Release();
         return Status;
     }
 
@@ -363,6 +363,7 @@ MmMapViewInSystemSpace (
     _Inout_ PSIZE_T ViewSize)
 {
     /* Call the internal function */
+    *BaseAddress = NULL;
     return MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
                             VaSystemSpace,
                             BaseAddress,
@@ -395,6 +396,7 @@ MmMapViewInSessionSpace (
     _Inout_ PSIZE_T ViewSize)
 {
     /* Call the internal function */
+    *BaseAddress = NULL;
     return MapViewOfSection(static_cast<PSECTION_OBJECT>(SectionObject),
                             VaSessionSpace,
                             BaseAddress,

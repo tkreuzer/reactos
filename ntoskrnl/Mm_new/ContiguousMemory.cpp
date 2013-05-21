@@ -5,7 +5,7 @@
 
 namespace Mm {
 
-static const PHYSICAL_ADDRESS c_PhysicalAddress0 = {0,0};
+static const PHYSICAL_ADDRESS c_PhysicalAddress0 = {{0,0}};
 
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)

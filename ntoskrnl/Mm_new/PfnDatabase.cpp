@@ -30,7 +30,7 @@ extern "C" PFN_NUMBER MmHighestPhysicalPage;
 extern "C" PFN_NUMBER MmAvailablePages;
 extern "C" PVOID MmPfnDatabase;
 
-ULONG KeNumberNodes = 1;
+extern "C" ULONG KeNumberNodes;
 
 namespace Mm {
 
@@ -165,7 +165,7 @@ INIT_FUNCTION
 PFN_DATABASE::InitializePfnEntries (
     _In_ PFN_NUMBER BasePage,
     _In_ PFN_NUMBER PageCount,
-    _In_ TYPE_OF_MEMORY MemoryType)
+    _In_ ULONG MemoryType) /// FIXME: better use PFN_STATE?
 {
     PFN_ENTRY* PfnEntry;
     ULONG Color;
@@ -174,7 +174,7 @@ PFN_DATABASE::InitializePfnEntries (
     PfnEntry = &m_PfnArray[BasePage];
 
     /* Check if the memory is free */
-    if (IsFreeMemory(MemoryType))
+    if (IsFreeMemory((TYPE_OF_MEMORY)MemoryType))
     {
         /* Loop all pages */
         for ( ; PageCount-- > 0; PfnEntry++, BasePage++)
@@ -454,7 +454,7 @@ PFN_DATABASE::Initialize (
     PFN_NUMBER BasePage, PageCount, NextPage;
     PLIST_ENTRY ListEntry;
     PMEMORY_ALLOCATION_DESCRIPTOR Descriptor;
-    PULONG_PTR Buffer, BufferEnd;
+    PULONG_PTR Buffer, BufferEnd = NULL;
     ULONG_PTR StartingVpn, EndingVpn;
     ULONG Protect = MM_READWRITE | MM_GLOBAL | MM_LARGEPAGE | MM_MAPPED;
     PVOID MappingBase;
@@ -1181,6 +1181,20 @@ PFN_DATABASE::FreeContiguousPages (
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
+
+VOID
+PFN_DATABASE::LockPage (
+    _In_ PFN_NUMBER PageFrameNumber)
+{
+
+}
+
+VOID
+PFN_DATABASE::UnlockPage (
+    _In_ PFN_NUMBER PageFrameNumber)
+{
+
+}
 
 VOID
 PFN_DATABASE::SetPageMapping (

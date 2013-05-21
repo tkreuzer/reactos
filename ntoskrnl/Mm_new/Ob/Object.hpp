@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ntosbase.h"
+#include "../ntosbase.h"
 #include <ndk/obtypes.h>
 
 namespace Ob {
@@ -91,10 +91,10 @@ public:
         _In_opt_ POBJECT_TYPE ObjectType,
         _In_ KPROCESSOR_MODE AccessMode)
     {
-        ObReferenceObjectByPointer(this,
-                                   DesiredAccess,
-                                   ObjectType,
-                                   AccessMode);
+        return ObReferenceObjectByPointer(this,
+                                          DesiredAccess,
+                                          ObjectType,
+                                          AccessMode);
     }
 
     VOID

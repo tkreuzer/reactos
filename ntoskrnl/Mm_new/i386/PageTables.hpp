@@ -222,7 +222,7 @@ public:
     bool
     IsNoAccess ()
     {
-        return (this->Long == *(ULONG*)&NoAccessPte);
+        return (this->Long == *(LONG*)&NoAccessPte);
     }
 
     inline
@@ -275,7 +275,7 @@ public:
     {
         NT_ASSERT(!(Protect & (MM_MAPPED|MM_LARGEPAGE)));
         NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_INVALID);
-        UNION_PTE PteValue = { 0 };
+        UNION_PTE PteValue = {{ 0 }};
         PteValue.Soft.Protection = Protect & MM_PROTECTION_MASK;
         this->Long = PteValue.Long;
     }

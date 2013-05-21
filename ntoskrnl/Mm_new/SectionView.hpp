@@ -11,6 +11,13 @@ class SECTION_VIEW : public VAD_OBJECT
 
 public:
 
+    /// FIXME: why can't this shit be protected???
+    virtual
+    ~SECTION_VIEW (
+        VOID)
+    {
+    }
+
     virtual
     const char*
     GetVadType () const;
