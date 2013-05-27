@@ -293,7 +293,7 @@ SECTION::CreateImageFileSection (
     {
         /* We can safely access the NT-Headers inside the first page */
         NtHeaders = reinterpret_cast<PIMAGE_NT_HEADERS>(
-                                    AddToPtr(DosHeader, NtHeaderOffset));
+                                    AddToPointer(DosHeader, NtHeaderOffset));
         //AvailableHeaderSize = Size - NtHeaderOffset;
     }
     else
@@ -325,7 +325,7 @@ SECTION::CreateImageFileSection (
 
         /* Get the NT-Headers and calculate the available size */
         NtHeaders = reinterpret_cast<PIMAGE_NT_HEADERS>(
-            AddToPtr(NtHeadersBuffer, NtHeaderOffset & (PAGE_SIZE - 1)));
+            AddToPointer(NtHeadersBuffer, NtHeaderOffset & (PAGE_SIZE - 1)));
         //AvailableHeaderSize = Size - ByteOffset;
     }
 
@@ -418,7 +418,7 @@ SECTION::CreateImageFileSection (
 
     /* Get the address of the Section headers in the header mapping */
     SectionHeaders = reinterpret_cast<PIMAGE_SECTION_HEADER>(
-        AddToPtr(BaseAddress, NtHeaderOffset + NtHeaderSize));
+        AddToPointer(BaseAddress, NtHeaderOffset + NtHeaderSize));
     Section->m_ControlArea.SectionHeaders = SectionHeaders;
 
     /* Verify the section headers */

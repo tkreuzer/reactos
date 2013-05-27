@@ -606,11 +606,11 @@ NtMapViewOfSection (
 
     /* Get the required access mask from the page protection */
     DesiredAccess = SECTION_MAP_READ;
-    if (Win32Protect & PAGE_ANY_WRITE)
+    if (Win32Protect & PAGE_IS_WRITABLE)
     {
         DesiredAccess |= SECTION_MAP_WRITE;
     }
-    if (Win32Protect & PAGE_ANY_EXECUTE)
+    if (Win32Protect & PAGE_IS_EXECUTABLE)
     {
         DesiredAccess |= SECTION_MAP_EXECUTE;
     }

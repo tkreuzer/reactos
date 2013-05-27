@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ntosbase.h"
+#include "RtlBitmapEx.h"
 
 namespace Mm {
 
@@ -348,5 +349,10 @@ extern PFN_DATABASE g_PfnDatabase;
 VOID
 ZeroPage (
     _In_ PFN_NUMBER PageFrameNumber);
+
+VOID
+INIT_FUNCTION
+ScanMemoryDescriptors (
+    _In_ struct _LOADER_PARAMETER_BLOCK* LoaderBlock);
 
 }; // namespace Mm

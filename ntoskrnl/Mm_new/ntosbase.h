@@ -13,25 +13,40 @@
 #include <ntifs.h>
 //#include <pseh/pseh2.h>
 
-#define ProbeForWriteHandle(x) ProbeForWrite(x, sizeof(HANDLE), sizeof(HANDLE))
+/* Macro expansion helpers */
+#define _EXPAND2_(x) x
+#define _EXPAND_(x) _EXPAND2_(x)
+#define _STREXPAND2_(x) #x
+#define _STREXPAND_(x) _STREXPAND2_(x)
 
-#define MmLowestUserAddress ((PVOID)0x10000)
+/* Access to architecture relative headers */
+#ifdef _M_IX86
+#undef i386
+#define _ARCH_RELATIVE_(_file) _STREXPAND_(i386/_file)
+#elif defined(_M_AMD64)
+#define _ARCH_RELATIVE_(_file) _STREXPAND_(amd64/_file)
+#endif
 
-#define UNIMPLEMENTED __debugbreak()
-#define INIT_FUNCTION
-#define ERR DbgPrint
-#define TRACE DbgPrint
-#define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
-#define AddToPtr(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
+/* Useful helper macros */
 #define AddToPointer(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
+#define PointerDiff(Address1, Address2) ((PUCHAR)Address2 - (PUCHAR)Address1)
+#define MinPtr(Ptr1, Ptr2) ((((ULONG_PTR)(Ptr1)) < ((ULONG_PTR)(Ptr2))) ? (Ptr1) : (Ptr2))
 #define AddressToVpn(Address) (((ULONG_PTR)(Address)) >> PAGE_SHIFT)
 #define VpnToAddress(Vpn)  ((PVOID)((Vpn) << PAGE_SHIFT))
-#define PointerDiff(Address1, Address2) ((PUCHAR)Address2 - (PUCHAR)Address1)
 
+/* Debug macros */
+#define UNIMPLEMENTED __debugbreak()
+#define ERR DbgPrint
+#define TRACE DbgPrint
+#ifdef _PREFAST_
+#undef NT_ASSERT
+#define NT_ASSERT(exp) ((void)NT_VERIFY(exp), __analysis_assume(exp))
+#endif
 
-#define PAGE_ANY_READ (PAGE_READONLY|PAGE_READWRITE|PAGE_WRITECOPY|PAGE_EXECUTE_READWRITE)
-#define PAGE_ANY_WRITE (PAGE_READWRITE|PAGE_EXECUTE_READWRITE)
-#define PAGE_ANY_EXECUTE (PAGE_EXECUTE|PAGE_EXECUTE_READ|PAGE_EXECUTE_READWRITE|PAGE_EXECUTE_WRITECOPY)
+//#define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
+#define MmLowestUserAddress ((PVOID)0x10000)
+#define INIT_FUNCTION
+
 
 #ifdef _WIN64
 #define InterlockedCompareExchangeSizeT(D, E, C) InterlockedCompareExchange64((LONG64*)D, E, C)
@@ -41,119 +56,6 @@
 #define RtlFillMemoryUlongPtr RtlFillMemoryUlong
 #endif
 
-#define MinPtr(Ptr1, Ptr2) ((((ULONG_PTR)(Ptr1)) < ((ULONG_PTR)(Ptr2))) ? (Ptr1) : (Ptr2))
-
-/* Macro expansion helpers */
-#define _EXPAND2_(x) x
-#define _EXPAND_(x) _EXPAND2_(x)
-#define _STREXPAND2_(x) #x
-#define _STREXPAND_(x) _STREXPAND2_(x)
-
-/* A path separator */
-#define _C_PATHSEP_ /
-
-#if 0
-/* Helper for including from architecture specific paths.
- * Architectures can be x86, amd64, arm, ppc, mips, mips64
- * Use like this: '#include _ARCH_RELATIVE_(test.h)' */
-#define _ARCH_RELATIVE_(file) \
-    _STREXPAND_(_EXPAND_(_ARCH_)_EXPAND_(_C_PATHSEP_)file)
-#endif
-
-#ifdef _M_IX86
-#undef i386
-#define _ARCH_RELATIVE_(_file) _STREXPAND_(i386/_file)
-#elif defined(_M_AMD64)
-#define _ARCH_RELATIVE_(_file) _STREXPAND_(amd64/_file)
-#endif
-
-#ifdef _WIN64
-
-extern "C" {
-
-typedef struct _RTL_BITMAP64
-{
-    ULONG64 SizeOfBitMap;
-    PULONG64 Buffer;
-} RTL_BITMAP64, *PRTL_BITMAP64;
-
-VOID
-NTAPI
-RtlInitializeBitMap64 (
-    _Out_ PRTL_BITMAP64 BitMapHeader,
-    _In_ PULONG64 BitMapBuffer,
-    _In_ ULONG64 SizeOfBitMap);
-
-BOOLEAN
-NTAPI
-RtlTestBit64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 BitNumber);
-
-VOID
-NTAPI
-RtlClearBit64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 BitNumber);
-
-VOID
-NTAPI
-RtlClearBits64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 StartingIndex,
-    _In_ ULONG64 NumberToClear);
-
-VOID
-NTAPI
-RtlSetBit64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 BitNumber);
-
-VOID
-NTAPI
-RtlSetBits64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 StartingIndex,
-    _In_ ULONG64 NumberToClear);
-
-BOOLEAN
-NTAPI
-RtlAreBitsSet64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 StartingIndex,
-    _In_ ULONG64 Length);
-
-ULONG64
-NTAPI
-RtlFindSetBits64 (
-    _In_ PRTL_BITMAP64 BitMapHeader,
-    _In_ ULONG64 NumberToFind,
-    _In_ ULONG64 HintIndex);
-
-};
-
-#define RtlInitializeBitMapEx RtlInitializeBitMap64
-#define RtlTestBitEx RtlTestBit64
-#define RtlClearBitEx RtlClearBit64
-#define RtlClearBitsEx RtlClearBits64
-#define RtlSetBitEx RtlSetBit64
-#define RtlSetBitsEx RtlSetBits64
-#define RtlAreBitsSetEx RtlAreBitsSet64
-#define RtlFindSetBitsEx RtlFindSetBits64
-#define RTL_BITMAP_EX RTL_BITMAP64
-#define PRTL_BITMAP_EX PRTL_BITMAP64
-#else
-#define RtlInitializeBitMapEx RtlInitializeBitMap
-#define RtlTestBitEx RtlTestBit
-#define RtlClearBitEx RtlClearBit
-#define RtlClearBitsEx RtlClearBits
-#define RtlSetBitEx RtlSetBit
-#define RtlSetBitsEx RtlSetBits
-#define RtlAreBitsSetEx RtlAreBitsSet
-#define RtlFindSetBitsEx RtlFindSetBits
-#define RTL_BITMAP_EX RTL_BITMAP
-#define PRTL_BITMAP_EX PRTL_BITMAP
-#endif
 
 #define PAGE_FLAGS_VALID_FROM_USER_MODE     \
     (PAGE_READONLY | \
@@ -200,6 +102,8 @@ RtlFindSetBits64 (
 #define PAGE_IS_WRITECOPY                   \
     (PAGE_WRITECOPY | \
     PAGE_EXECUTE_WRITECOPY)
+
+#ifdef __cplusplus
 
 inline
 void*
@@ -280,6 +184,8 @@ typedef struct _PROTOTYPE
 
 }; // namespace Mm
 
+#endif
+
 /// HACK OF HACK HACK
 
 #define _SEH2_TRY  {
@@ -293,8 +199,4 @@ typedef struct _PROTOTYPE
 #define _SEH2_LEAVE
 #define _SEH2_VOLATILE volatile
 
-#ifdef _PREFAST_
-#undef NT_ASSERT
-#define NT_ASSERT(exp) ((void)NT_VERIFY(exp), __analysis_assume(exp))
-#endif
 

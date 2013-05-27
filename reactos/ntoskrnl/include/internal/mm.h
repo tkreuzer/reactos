@@ -152,6 +152,12 @@ MmDbgCopyMemory(
     IN ULONG Flags
 );
 
+ULONG
+NTAPI
+MmGetPageProtect (
+    _In_ PEPROCESS Process,
+    _In_ PVOID Address);
+
 BOOLEAN
 NTAPI
 MmArmInitSystem(
