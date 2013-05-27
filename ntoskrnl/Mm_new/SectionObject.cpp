@@ -353,7 +353,7 @@ NtCreateSection (
                 /* Use SEH to return the handle */
                 _SEH2_TRY
                 {
-                    ProbeForWriteHandle(OutSectionHandle);
+                    ProbeForWrite(OutSectionHandle, sizeof(HANDLE), sizeof(HANDLE));
                     *OutSectionHandle = SectionHandle;
                 }
                 _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
@@ -398,7 +398,7 @@ NtOpenSection (
         _SEH2_TRY
         {
             /* Probe the output parameter */
-            ProbeForWriteHandle(SectionHandle);
+            ProbeForWrite(SectionHandle, sizeof(HANDLE), sizeof(HANDLE));
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {

@@ -2,6 +2,8 @@
 #include "../ntosbase.h"
 #include "PageTables.hpp"
 #include "MachineDependent.hpp"
+#include "../KernelVad.hpp"
+#include "../VadTable.hpp"
 #include <ndk/pstypes.h>
 #include <ndk/ketypes.h>
 #include <ndk/kefuncs.h>
@@ -82,6 +84,9 @@ const ULONG64 ProtectToPteMask[8] =
 };
 #endif
 
+static KERNEL_VAD PageTableVad;
+static KERNEL_VAD HyperSpaceVad;
+
 VOID
 INIT_FUNCTION
 InitializePageTable ()
@@ -90,6 +95,23 @@ InitializePageTable ()
     PPTE PdPte;
     PFN_NUMBER PdPfn;
     PPDE CurrentPde;
+    ULONG_PTR NumberOfPages;
+    NTSTATUS Status;
+
+    /* Reserve the address space for the page tables */
+    PageTableVad.Initialize();
+    NumberOfPages = AddressToVpn(PTE_TOP) - AddressToVpn(PTE_BASE) + 1;
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&PageTableVad,
+                                                   AddressToVpn(PTE_BASE),
+                                                   NumberOfPages);
+    NT_ASSERT(NT_SUCCESS(Status));
+
+    /* Reserve the address space for hyper space (same size as page tables) */
+    HyperSpaceVad.Initialize();
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&HyperSpaceVad,
+                                                   AddressToVpn(PTE_TOP) + 1,
+                                                   NumberOfPages);
+    NT_ASSERT(NT_SUCCESS(Status));
 
     /* Make sure this is not PAE */
     if (__readcr4() & CR4_PAE)
