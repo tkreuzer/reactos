@@ -19,13 +19,13 @@
 
 namespace Mm {
 
-class SECTION;
+class PHYSICAL_SECTION;
 
 class SECTION_OBJECT : public Ob::OBJECT
 {
 private:
 
-    class SECTION* m_Section;
+    class PHYSICAL_SECTION* m_Section;
     ULONG64 m_SectionSize;
     ULONG m_SectionFlags;
     ULONG m_PageProtection;
@@ -66,7 +66,7 @@ public:
         _In_ ULONG AllocationAttributes,
         _In_opt_ PFILE_OBJECT FileObject);
 
-    class SECTION*
+    class PHYSICAL_SECTION*
     ReferenceSection (
         VOID);
 

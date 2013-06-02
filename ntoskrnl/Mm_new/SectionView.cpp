@@ -52,7 +52,7 @@ SECTION_VIEW::GetVadType () const
 NTSTATUS
 SECTION_VIEW::CreateInstance (
     _Out_ SECTION_VIEW** OutSectionView,
-    _In_ PSECTION Section)
+    _In_ PPHYSICAL_SECTION Section)
 {
     PSECTION_VIEW SectionView;
     NT_ASSERT(Section != NULL);
@@ -151,7 +151,7 @@ MapViewOfSection (
     SECTION_VIEW* SectionView;
     NTSTATUS Status;
     PVAD_TABLE VadTable;
-    PSECTION Section;
+    PPHYSICAL_SECTION Section;
     ULONG Protect;
 
 //__debugbreak();

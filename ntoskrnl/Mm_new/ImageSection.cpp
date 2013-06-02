@@ -217,7 +217,7 @@ VerifySectionHeaders (
 }
 
 NTSTATUS
-SECTION::CreateImageFileSection (
+PHYSICAL_SECTION::CreateImageFileSection (
     _In_ PFILE_OBJECT FileObject)
 {
     PVOID DosHeaderBuffer, NtHeadersBuffer;
@@ -226,7 +226,7 @@ SECTION::CreateImageFileSection (
     PIMAGE_SECTION_HEADER SectionHeaders;
     NTSTATUS Status;
     LARGE_INTEGER FileSize;
-    PSECTION Section;
+    PPHYSICAL_SECTION Section;
     ULONG NtHeaderOffset, Offset, ByteOffset, NumberOfPages, NumberOfSections;
     ULONG Size, SectorSize; //, AvailableHeaderSize;
     ULONG SizeOfSectionHeaders, NtHeaderSize, HeaderSize, FullHeaderSize;
@@ -341,9 +341,9 @@ SECTION::CreateImageFileSection (
     NumberOfSections = NtHeaders->FileHeader.NumberOfSections;
 
     /* Create an empty section */
-    Status = SECTION::CreateInstance(&Section,
-                                     NumberOfSections + 1,
-                                     NumberOfPages);
+    Status = PHYSICAL_SECTION::CreateInstance(&Section,
+                                              NumberOfSections + 1,
+                                              NumberOfPages);
     if (!NT_SUCCESS(Status))
     {
         goto Cleanup;
@@ -512,4 +512,20 @@ SECTION::RelocateImagePage (
 }
 #endif
 
+extern "C" {
+
+_IRQL_requires_max_ (APC_LEVEL)
+BOOLEAN
+NTAPI
+MmFlushImageSection (
+    _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
+    _In_ MMFLUSH_TYPE FlushType)
+{
+    // NT File system internals p. 238
+    UNIMPLEMENTED;
+    return FALSE;
+}
+
+}; // extern "C"
 }; // namespace Mm
+

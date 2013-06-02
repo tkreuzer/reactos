@@ -8,13 +8,13 @@ namespace Mm {
 static const ULONG NUMBER_OF_IMAGE_BITMAP_BITS = 0x2800;
 
 static ULONG ImageLoadBitmapBuffer[NUMBER_OF_IMAGE_BITMAP_BITS / sizeof(ULONG)];
-const RTL_BITMAP SECTION::ImageLoadBitMap =
+const RTL_BITMAP PHYSICAL_SECTION::ImageLoadBitMap =
     {NUMBER_OF_IMAGE_BITMAP_BITS, ImageLoadBitmapBuffer};
-UCHAR SECTION::DllImageBias;
+UCHAR PHYSICAL_SECTION::DllImageBias;
 extern ULONG RandomNumberSeed;
 
 VOID
-SECTION::InitializeClass (
+PHYSICAL_SECTION::InitializeClass (
     VOID)
 {
 
@@ -24,13 +24,13 @@ SECTION::InitializeClass (
 
 }
 
-SECTION::SECTION (
+PHYSICAL_SECTION::PHYSICAL_SECTION (
     VOID)
 {
     // nothing for now
 }
 
-SECTION::~SECTION (
+PHYSICAL_SECTION::~PHYSICAL_SECTION (
     VOID)
 {
     if (m_ControlArea.Segment != NULL)
@@ -38,25 +38,25 @@ SECTION::~SECTION (
 }
 
 NTSTATUS
-SECTION::CreateInstance (
-    _Out_ PSECTION* OutSection,
+PHYSICAL_SECTION::CreateInstance (
+    _Out_ PPHYSICAL_SECTION* OutSection,
     _In_ ULONG NumberOfSubsections,
     _In_ ULONG_PTR NumberOfPages)
 {
-    PSECTION Section;
+    PPHYSICAL_SECTION Section;
     PSEGMENT Segment;
     SIZE_T Size;
     NTSTATUS Status;
 
-    /* Calculate the size of the SECTION with all SUBSECTIONs */
-    //Size = FIELD_OFFSET(SECTION, m_Subsections[NumberOfSubsections]);
-    Size = sizeof(SECTION) + (NumberOfSubsections - 1) * sizeof(SUBSECTION);
+    /* Calculate the size of the PHYSICAL_SECTION with all SUBSECTIONs */
+    //Size = FIELD_OFFSET(PHYSICAL_SECTION, m_Subsections[NumberOfSubsections]);
+    Size = sizeof(PHYSICAL_SECTION) + (NumberOfSubsections - 1) * sizeof(SUBSECTION);
 
-    /* Allocate the SECTION */
-    Section = new(Size) SECTION;
+    /* Allocate the PHYSICAL_SECTION */
+    Section = new(Size) PHYSICAL_SECTION;
     if (Section == NULL)
     {
-        ERR("Could not allocate a SECTION\n");
+        ERR("Could not allocate a PHYSICAL_SECTION\n");
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
@@ -80,25 +80,30 @@ SECTION::CreateInstance (
 }
 
 NTSTATUS
-SECTION::CreatePageFileSection (
-    _Out_ PSECTION* OutSection,
+PHYSICAL_SECTION::CreatePageFileSection (
+    _Out_ PPHYSICAL_SECTION* OutSection,
     _In_ ULONG64 SizeInBytes,
     _In_ ULONG SectionPageProtection,
     _In_ ULONG AllocationAttributes)
 {
     NTSTATUS Status;
-    PSECTION Section;
+    PPHYSICAL_SECTION Section;
     ULONG NumberOfPages;
 
     // check max size of SizeInBytes
+    if (SizeInBytes == 0)
+    {
+        /* This is not allowed */
+        return STATUS_INVALID_PARAMETER;
+    }
 
     NumberOfPages = (ULONG)BYTES_TO_PAGES(SizeInBytes);
 
-    /* Create a SECTION with one subsection */
-    Status = SECTION::CreateInstance(&Section, 1, NumberOfPages);
+    /* Create a PHYSICAL_SECTION with one subsection */
+    Status = PHYSICAL_SECTION::CreateInstance(&Section, 1, NumberOfPages);
     if (!NT_SUCCESS(Status))
     {
-        ERR("Failed to allocate a SECTION: 0x%lx\n", Status);
+        ERR("Failed to allocate a PHYSICAL_SECTION: 0x%lx\n", Status);
         return Status;
     }
 
@@ -131,7 +136,7 @@ SECTION::CreatePageFileSection (
 
 
 NTSTATUS
-SECTION::CommitPages (
+PHYSICAL_SECTION::CommitPages (
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect)
@@ -156,7 +161,7 @@ SECTION::CommitPages (
 
 /// \todo Use binary search
 ULONG
-SECTION::RelativeVpnToSubsectionIndex (
+PHYSICAL_SECTION::RelativeVpnToSubsectionIndex (
     _In_ ULONG_PTR RelativeVpn)
 {
     /* Loop all subsections */
@@ -178,7 +183,7 @@ SECTION::RelativeVpnToSubsectionIndex (
 // This much simpler variant can be used, if the prototypes are created with
 // a protection according to the subsection protection
 NTSTATUS
-SECTION::CreateMapping (
+PHYSICAL_SECTION::CreateMapping (
     _In_ PVOID BaseAddress,
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages,
@@ -198,7 +203,7 @@ SECTION::CreateMapping (
 }
 #else
 NTSTATUS
-SECTION::CreateMapping (
+PHYSICAL_SECTION::CreateMapping (
     _In_ PVOID BaseAddress,
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages,
@@ -277,7 +282,7 @@ SECTION::CreateMapping (
 #endif
 
 NTSTATUS
-SECTION::GetMapping (
+PHYSICAL_SECTION::GetMapping (
     _Out_ PVOID* BaseAddress,
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages)
@@ -287,7 +292,7 @@ SECTION::GetMapping (
 }
 
 VOID
-SECTION::SetPageContent (
+PHYSICAL_SECTION::SetPageContent (
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ PVOID Buffer)
@@ -299,7 +304,7 @@ SECTION::SetPageContent (
 }
 
 NTSTATUS
-SECTION::PrefetchPages (
+PHYSICAL_SECTION::PrefetchPages (
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages)
 {
