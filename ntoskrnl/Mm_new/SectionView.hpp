@@ -7,7 +7,7 @@ namespace Mm {
 
 class SECTION_VIEW : public VAD_OBJECT
 {
-    class SECTION* m_Section;
+    class PHYSICAL_SECTION* m_Section;
 
 public:
 
@@ -26,7 +26,7 @@ public:
     NTSTATUS
     CreateInstance (
         _Out_ SECTION_VIEW** OutSectionView,
-        _In_ class SECTION* Section);
+        _In_ class PHYSICAL_SECTION* Section);
 
     NTSTATUS
     CreateMapping (

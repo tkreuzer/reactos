@@ -17,7 +17,7 @@ static const ULONG TAG_SECTION = 'tSmM';
 namespace Mm {
 
 /* Forward declarations */
-typedef class SECTION *PSECTION;
+typedef class PHYSICAL_SECTION *PPHYSICAL_SECTION;
 
 typedef struct _SECTION_IMAGE_INFORMATION
 {
@@ -107,7 +107,7 @@ typedef struct _SUBSECTION
     ULONG Protect;
 } SUBSECTION, *PSUBSECTION;
 
-class SECTION : public REF_OBJECT<SECTION, NonPagedPool, TAG_SECTION>
+class PHYSICAL_SECTION : public REF_OBJECT<PHYSICAL_SECTION, NonPagedPool, TAG_SECTION>
 {
 private:
     static UCHAR DllImageBias;
@@ -125,10 +125,10 @@ private:
     RelativeVpnToSubsectionIndex (
         _In_ ULONG_PTR RelativeVpn);
 
-    SECTION (
+    PHYSICAL_SECTION (
         VOID);
 
-    ~SECTION (
+    ~PHYSICAL_SECTION (
         VOID);
 
     friend super;
@@ -139,14 +139,14 @@ public:
     static
     NTSTATUS
     CreateInstance (
-        _Out_ PSECTION* OutSection,
+        _Out_ PPHYSICAL_SECTION* OutSection,
         _In_ ULONG NumberOfSubsections,
         _In_ ULONG_PTR NumberOfPtes);
 
     static
     NTSTATUS
     CreatePageFileSection (
-        _Out_ PSECTION* OutSection,
+        _Out_ PPHYSICAL_SECTION* OutSection,
         _In_ ULONG64 MaximumSize,
         _In_ ULONG SectionPageProtection,
         _In_ ULONG AllocationAttributes);

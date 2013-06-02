@@ -93,17 +93,17 @@ SECTION_OBJECT::CreateInstance (
 {
     PVOID Object;
     PSECTION_OBJECT SectionObject;
-    PSECTION Section;
+    PPHYSICAL_SECTION Section;
     NTSTATUS Status;
 
     /* Check if this is a file backed section */
     if (FileObject == NULL)
     {
         /* No backing file, so create a new page-file backed SECTION */
-        Status = SECTION::CreatePageFileSection(&Section,
-                                                MaximumSize,
-                                                SectionPageProtection,
-                                                AllocationAttributes);
+        Status = PHYSICAL_SECTION::CreatePageFileSection(&Section,
+                                                         MaximumSize,
+                                                         SectionPageProtection,
+                                                         AllocationAttributes);
         if (!NT_SUCCESS(Status))
         {
             ERR("Failed to create SECTION: 0x%lx\n", Status);
@@ -131,7 +131,7 @@ SECTION_OBJECT::CreateInstance (
         }
     }
 
-    /* Allocate a section object with Ob */
+    /* Allocate a section object with the object manager */
     Status = Ob::OBJECT::CreateObject(&Object,
                                       MmSectionObjectType,
                                       ObjectAttributes);
@@ -155,7 +155,7 @@ SECTION_OBJECT::CreateInstance (
     return STATUS_SUCCESS;
 }
 
-class SECTION*
+class PHYSICAL_SECTION*
 SECTION_OBJECT::ReferenceSection (
     VOID)
 {

@@ -14,16 +14,6 @@ MmQuerySystemSize (
     return MmLargeSystem;
 }
 
-_IRQL_requires_max_ (APC_LEVEL)
-BOOLEAN
-NTAPI
-MmFlushImageSection (
-    _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
-    _In_ MMFLUSH_TYPE FlushType)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
 
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
