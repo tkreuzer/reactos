@@ -1,6 +1,6 @@
 
 #include "SectionView.hpp"
-#include "Section.hpp"
+#include "PhysicalSection.hpp"
 #include "SectionObject.hpp"
 #include "Mapping.hpp"
 #include "AddressSpace.hpp"

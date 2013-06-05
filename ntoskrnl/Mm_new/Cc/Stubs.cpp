@@ -1,5 +1,7 @@
 
 #include "..\ntosbase.h"
+#include <ndk/rtlfuncs.h>
+#include <ndk/mmfuncs.h>
 
 #define UNIMPLEMENTED __debugbreak()
 
@@ -153,6 +155,8 @@ NTAPI
 CcRepinBcb (
     _In_ PVOID Bcb)
 {
+    // Bcb->AddRef();
+    // InterlockedIncrement(&Bcb->RefCount);
     UNIMPLEMENTED;
 }
 
@@ -164,6 +168,7 @@ CcUnpinRepinnedBcb (
     _In_ BOOLEAN WriteThrough,
     _Out_ PIO_STATUS_BLOCK IoStatus)
 {
+    // Bcb->Release();
     UNIMPLEMENTED;
 }
 
@@ -183,6 +188,7 @@ NTAPI
 CcGetFileObjectFromBcb (
     _In_ PVOID Bcb)
 {
+    // return ExGetObjectFastReference(Bcb->SharedCacheMap->FileObjectFastRef);
     UNIMPLEMENTED;
     return NULL;
 }
@@ -196,6 +202,7 @@ CcCanIWrite (
     _In_ BOOLEAN Wait,
     _In_ BOOLEAN Retrying)
 {
+    /// NT file system internals p. 301
     UNIMPLEMENTED;
     return FALSE;
 }
@@ -221,6 +228,29 @@ CcDeferWrite (
     UNIMPLEMENTED;
 }
 
+BOOLEAN
+NTAPI
+CcCopyReadEx (
+    _In_ PFILE_OBJECT FileObject,
+    _In_ PLARGE_INTEGER FileOffset,
+    _In_ ULONG Length,
+    _In_ BOOLEAN Wait,
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_ PIO_STATUS_BLOCK IoStatus,
+    _In_opt_ PETHREAD IoIssuerThread)
+{
+    /// NT File System Internals p. 295
+    // Get shared cache map
+    // for each block in the file
+        // find VACB
+        // Create VACB if not existing
+    // prefetch the pages we need MmPrefetchPages
+    // for each block in the file
+        // find VACB
+        // Copy the block
+    UNIMPLEMENTED;
+    return FALSE;
+}
 
 BOOLEAN
 NTAPI
@@ -232,17 +262,14 @@ CcCopyRead (
     _Out_writes_bytes_(Length) PVOID Buffer,
     _Out_ PIO_STATUS_BLOCK IoStatus)
 {
-    // Get shared cache map
-    // for each block in the file
-        // find VACB
-        // Create VACB if not existing
-    // prefetch the pages we need MmPrefetchPages
-    // for each block in the file
-        // find VACB
-        // Copy the block
-
-    UNIMPLEMENTED;
-    return FALSE;
+    /* Pass on to the extended version */
+    return CcCopyReadEx(FileObject,
+                        FileOffset,
+                        Length,
+                        Wait,
+                        Buffer,
+                        IoStatus,
+                        NULL);
 }
 
 
@@ -256,9 +283,32 @@ CcFastCopyRead (
     _Out_writes_bytes_(Length) PVOID Buffer,
     _Out_ PIO_STATUS_BLOCK IoStatus)
 {
-    UNIMPLEMENTED;
+    LARGE_INTEGER LargeFileOffset;
+
+    /* Pass on to the extended version */
+    LargeFileOffset.QuadPart = FileOffset;
+    CcCopyReadEx(FileObject,
+                 &LargeFileOffset,
+                 Length,
+                 TRUE,
+                 Buffer,
+                 IoStatus,
+                 NULL);
 }
 
+BOOLEAN
+NTAPI
+CcCopyWriteEx (
+    _In_ PFILE_OBJECT FileObject,
+    _In_ PLARGE_INTEGER FileOffset,
+    _In_ ULONG Length,
+    _In_ BOOLEAN Wait,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ PETHREAD IoIssuerThread)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
 
 BOOLEAN
 NTAPI
@@ -269,10 +319,14 @@ CcCopyWrite (
     _In_ BOOLEAN Wait,
     _In_reads_bytes_(Length) PVOID Buffer)
 {
-    UNIMPLEMENTED;
-    return FALSE;
+    /* Pass on to the extended version */
+    return CcCopyWriteEx(FileObject,
+                         FileOffset,
+                         Length,
+                         Wait,
+                         Buffer,
+                         NULL);
 }
-
 
 VOID
 NTAPI
@@ -282,7 +336,16 @@ CcFastCopyWrite (
     _In_ ULONG Length,
     _In_reads_bytes_(Length) PVOID Buffer)
 {
-    UNIMPLEMENTED;
+    LARGE_INTEGER LargeFileOffset;
+
+    /* Pass on to the extended version */
+    LargeFileOffset.QuadPart = FileOffset;
+    CcCopyWriteEx(FileObject,
+                  &LargeFileOffset,
+                  Length,
+                  TRUE,
+                  Buffer,
+                  NULL);
 }
 
 
@@ -295,7 +358,17 @@ CcMdlRead (
     _Out_ PMDL *MdlChain,
     _Out_ PIO_STATUS_BLOCK IoStatus)
 {
+    PMDL Mdl;
+
     UNIMPLEMENTED;
+
+    // reference and lock the FCB
+    Mdl = 0;//MmProbeAndLockSectionPages(Section, StartingPage, PageCount);
+    if (Mdl == NULL)
+    {
+        RtlRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
+    }
+
 }
 
 
@@ -305,7 +378,8 @@ CcMdlReadComplete (
     _In_ PFILE_OBJECT FileObject,
     _In_ PMDL MdlChain)
 {
-    UNIMPLEMENTED;
+    MmUnlockPages(MdlChain);
+    //MmFreeMdl(MdlChain);
 }
 
 
@@ -321,6 +395,15 @@ CcPrepareMdlWrite (
     UNIMPLEMENTED;
 }
 
+VOID
+NTAPI
+CcMdlWriteComplete2 (
+    IN PFILE_OBJECT FileObject,
+    IN PLARGE_INTEGER FileOffset,
+    IN PMDL MdlChain)
+{
+    UNIMPLEMENTED;
+}
 
 VOID
 NTAPI
@@ -329,7 +412,26 @@ CcMdlWriteComplete (
     _In_ PLARGE_INTEGER FileOffset,
     _In_ PMDL MdlChain)
 {
-    UNIMPLEMENTED;
+    PDEVICE_OBJECT FsDeviceObject;
+    PFAST_IO_DISPATCH FastIoDispatch;
+
+    FsDeviceObject = IoGetRelatedDeviceObject(FileObject);
+    FastIoDispatch = FsDeviceObject->DriverObject->FastIoDispatch;
+
+    if ((FastIoDispatch != NULL) &&
+        (FastIoDispatch->SizeOfFastIoDispatch > 0x4C) &&
+        (FastIoDispatch->MdlWriteComplete != NULL))
+    {
+        if (FastIoDispatch->MdlWriteComplete(FileObject,
+                                             FileOffset,
+                                             MdlChain,
+                                             FsDeviceObject))
+        {
+            return;
+        }
+    }
+
+    CcMdlWriteComplete2(FileObject, FileOffset, MdlChain);
 }
 
 
@@ -623,15 +725,6 @@ CcMdlReadComplete2 (
     UNIMPLEMENTED;
 }
 
-VOID
-NTAPI
-CcMdlWriteComplete2 (
-    IN PFILE_OBJECT FileObject,
-    IN PLARGE_INTEGER FileOffset,
-    IN PMDL MdlChain)
-{
-    UNIMPLEMENTED;
-}
 
 VOID
 NTAPI
