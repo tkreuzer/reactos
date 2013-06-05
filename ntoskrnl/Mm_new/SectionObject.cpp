@@ -4,7 +4,7 @@
  */
 
 #include "SectionObject.hpp"
-#include "Section.hpp"
+#include "PhysicalSection.hpp"
 #include <ndk/iotypes.h>
 #include <ndk/obfuncs.h>
 

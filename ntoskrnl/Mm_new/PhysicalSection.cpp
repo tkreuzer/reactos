@@ -1,5 +1,5 @@
 
-#include "Section.hpp"
+#include "PhysicalSection.hpp"
 #include "Segment.hpp"
 #include "Mapping.hpp"
 
@@ -322,6 +322,7 @@ MmCanFileBeTruncated (
     _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
     _In_opt_ PLARGE_INTEGER NewFileSize)
 {
+    // NT File system internsla p. 240
     UNIMPLEMENTED;
     return FALSE;
 }
