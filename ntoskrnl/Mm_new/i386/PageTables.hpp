@@ -197,11 +197,6 @@ public:
     {
         TargetPte->Long = this->Long;
     }
-};
-
-class PTE : public PTE_COMMON
-{
-public:
 
     inline
     bool
@@ -210,6 +205,19 @@ public:
         ULONG_PTR Offset = reinterpret_cast<ULONG_PTR>(this) - PTE_BASE;
         return Offset < (PTE_TOP + 1 - PTE_BASE);
     }
+
+    inline
+    ULONG
+    GetTableIndex ()
+    {
+        return ((ULONG)this & (PAGE_SIZE - 1)) / sizeof(*this);
+    }
+
+};
+
+class PTE : public PTE_COMMON
+{
+public:
 
     inline
     bool

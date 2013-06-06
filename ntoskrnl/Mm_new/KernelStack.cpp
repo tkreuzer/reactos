@@ -115,11 +115,9 @@ MmCreateKernelStack (
 
     /* Map the initial memory */
     StartingVpn = AddressToVpn(StackBase) - BYTES_TO_PAGES(CommitSize);
-    Status = CreateMapping(StartingVpn,
-                           BYTES_TO_PAGES(CommitSize),
-                           MM_READWRITE | MM_MAPPED | MM_NONPAGED,
-                           NULL,
-                           NULL);
+    Status = MapVirtualMemory(StartingVpn,
+                              BYTES_TO_PAGES(CommitSize),
+                              MM_READWRITE | MM_MAPPED | MM_NONPAGED);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to create a mapping: %lx\n", Status);
