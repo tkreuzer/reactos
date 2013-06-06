@@ -31,7 +31,7 @@ extern "C" PFN_NUMBER MmHighestPhysicalPage;
 extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
 extern "C" PFN_NUMBER MmAvailablePages;
 extern "C" PVOID MmPfnDatabase;
-extern "C" ULONG KeNumberNodes;
+extern "C" UCHAR KeNumberNodes;
 
 PFN_NUMBER MmBadPagesDetected;
 
@@ -59,7 +59,9 @@ SIZE_T MmSizeOfPfnDatabase;
 
 PFN_NUMBER EarlyAllocPageBase;
 PFN_NUMBER EarlyAllocPageCount;
+#ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 PFN_NUMBER EarlyAllocLargePageBase;
+#endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 ULONG NumberOfPhysicalMemoryRuns;
 ULONG NumberOfMemoryDescriptors;
 PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
@@ -109,6 +111,7 @@ EarlyAllocPage (
     return EarlyAllocPageBase++;
 }
 
+#ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 /*! \name EarlyAllocLargePage
  *
  *  \brief Allocates a single large page of physical memory, before the PFN
@@ -135,6 +138,7 @@ EarlyAllocLargePage (
     EarlyAllocLargePageBase -= LARGE_PAGE_SIZE / PAGE_SIZE;
     return EarlyAllocLargePageBase;
 }
+#endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 
 VOID
 INIT_FUNCTION
@@ -176,12 +180,14 @@ EarlyMapPages (
         if (!PdePointer->IsValid())
         {
             NT_ASSERT(PdePointer->IsEmpty());
+#ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
             if (Protect & MM_LARGEPAGE)
             {
                 PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
                 RtlFillMemoryUlongPtr(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
             }
             else
+#endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
             {
                 PdePointer->MakeValidPde(EarlyAllocPage(), Protect);
                 RtlFillMemoryUlongPtr(PdeToPte(PdePointer), PAGE_SIZE, 0);

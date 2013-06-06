@@ -43,7 +43,7 @@ KSPIN_LOCK PoolPageSpinlock[2];
 #ifndef _WIN64
 /* On 32 bit systems we track each large page sized VA block used for np pool */
 #define MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE (2ULL * 1024 * 1024 * 1024)
-ULONG NonPagedPoolVaBitmap[MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
+ULONG PoolVaBitmap[2][MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
 ULONG InitialPoolSizeInPages[2];
 PVOID* PoolExpansionArray[2];
 ULONG PoolExpansionCount[2];
@@ -164,7 +164,7 @@ InitializePoolSupportSingle (
     if (Protect & MM_MAPPED)
     {
         /* Map the pages */
-        Status = CreateMapping(StartingVpn, NumberOfPages, Protect, NULL, NULL);
+        Status = MapVirtualMemory(StartingVpn, NumberOfPages, Protect);
         NT_ASSERT(NT_SUCCESS(Status));
     }
 
@@ -196,7 +196,7 @@ InitializePoolSupportSingle (
        initial non-paged pool */
     RTL_BITMAP Bitmap;
     RtlInitializeBitMap(&Bitmap,
-                        NonPagedPoolVaBitmap,
+                        PoolVaBitmap[PoolType],
                         MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE);
     RtlSetBits(&Bitmap,
                PointerDiff(MmNonPagedPoolStart, MmSystemRangeStart) / LARGE_PAGE_SIZE,
@@ -211,7 +211,7 @@ InitializePoolSupportSingle (
     {
         /* We still need to map the pages */
         Protect |= MM_MAPPED;
-        Status = CreateMapping(StartingVpn, NumberOfPages, Protect, NULL, NULL);
+        Status = MapVirtualMemory(StartingVpn, NumberOfPages, Protect);
         NT_ASSERT(NT_SUCCESS(Status));
     }
 
@@ -291,13 +291,15 @@ MmDeterminePoolType (
 #else
     /* Check the pool VA bitmap */
     ULONG Index = PointerDiff(VirtualAddress, MmSystemRangeStart) / LARGE_PAGE_SIZE;
-    if ((NonPagedPoolVaBitmap[Index / 32] >> (Index & 31)) & 1)
+    if ((PoolVaBitmap[NonPagedPool][Index / 32] >> (Index & 31)) & 1)
     {
         return NonPagedPool;
     }
 
-    /// \todo check paged pool bitmap
-    return PagedPool;
+    if ((PoolVaBitmap[PagedPool][Index / 32] >> (Index & 31)) & 1)
+    {
+        return PagedPool;
+    }
 #endif
     KeBugCheck(0);
 }
@@ -396,7 +398,7 @@ MiAllocatePoolPages (
         ULONG_PTR StartingVpn;
 
         StartingVpn = AddressToVpn(BaseAddress) + Index;
-        Status = CreateMapping(StartingVpn, PageCount, Protect, NULL, NULL);
+        Status = MapVirtualMemory(StartingVpn, PageCount, Protect);
         if (!NT_SUCCESS(Status))
         {
             /// \todo handle failure

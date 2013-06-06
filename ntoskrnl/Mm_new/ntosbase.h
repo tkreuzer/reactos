@@ -43,7 +43,7 @@
 #define NT_ASSERT(exp) ((void)NT_VERIFY(exp), __analysis_assume(exp))
 #endif
 
-//#define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
+#define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 #define MmLowestUserAddress ((PVOID)0x10000)
 #define INIT_FUNCTION
 

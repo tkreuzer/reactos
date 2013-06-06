@@ -125,26 +125,25 @@ AllocatePagesForMapping (
 
     NT_ASSERT(EndingVpn >= StartingVpn);
 
+    /* Calculate the maximum number of page tables and pages */
+    MaxPageTables = CalculateMaximumNumberOfPageTables(StartingVpn, EndingVpn);
+    NumberOfPages = EndingVpn - StartingVpn + 1;
+
     /* Check if we allocate for a large page mapping */
     if (Protect & MM_LARGEPAGE)
     {
         NT_ASSERT(LargePageList != NULL);
         NT_ASSERT(Protect & MM_NONPAGED);
-        // assert alignment
-        UNIMPLEMENTED;
-        LargePageList->AddPage(0);
-    }
+        NT_ASSERT(Protect & MM_MAPPED);
 
-    /* Calculate the maximum number of page tables and pages */
-    MaxPageTables = CalculateMaximumNumberOfPageTables(StartingVpn, EndingVpn);
-    NumberOfPages = EndingVpn - StartingVpn + 1;
+        // assert alignment?
+
+        /* Fix up page count for page tables (don't allocate pages for PTs) */
+        MaxPageTables -= VpnToPde(EndingVpn) - VpnToPde(StartingVpn) + 1;
+    }
 
     /* Calculate for how many pages we charge */
-    CommitCharge = MaxPageTables;
-    if (ChargeForPages)
-    {
-        CommitCharge += NumberOfPages;
-    }
+    CommitCharge = MaxPageTables + (ChargeForPages ? NumberOfPages : 0);
 
     /* Charge the system commit */
     Status = ChargeSystemCommit(CommitCharge);
@@ -155,7 +154,7 @@ AllocatePagesForMapping (
 
     /* Calculate how many pages we need to allocate */
     PageAllocation = MaxPageTables;
-    if (Protect & MM_MAPPED)
+    if ((Protect & (MM_MAPPED|MM_LARGEPAGE)) == MM_MAPPED)
     {
         PageAllocation += NumberOfPages;
     }
@@ -168,15 +167,23 @@ AllocatePagesForMapping (
         return Status;
     }
 
+    /* Check if we allocate for a large page mapping */
+    if (Protect & MM_LARGEPAGE)
+    {
+        /* Allocate large pages */
+        Status = g_PfnDatabase.AllocateLargePages(LargePageList,
+                                                  NumberOfPages / (LARGE_PAGE_SIZE / PAGE_SIZE),
+                                                  FALSE);
+        if (!NT_SUCCESS(Status))
+        {
+            UnchargeSystemCommit(CommitCharge);
+            return Status;
+        }
+    }
+
     *PagesCharged = CommitCharge;
     return STATUS_SUCCESS;
 }
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-#include "Mapping_old.cpp"
-
 
 
 ULONG_PTR
@@ -268,7 +275,7 @@ ReserveMappingPtes (
             /* Check if large pages are requested */
             if (Protect & MM_LARGEPAGE)
             {
-                UNIMPLEMENTED;
+                //UNIMPLEMENTED;
             }
             else
             {
@@ -328,8 +335,145 @@ MapVirtualMemory (
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect)
 {
-    UNIMPLEMENTED;
-    return 0;
+    PADDRESS_SPACE AddressSpace;
+    ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
+    PFN_NUMBER PageFrameNumber, PfnOfPt;
+    ULONG NumberOfNewPdes, NumberOfNewPtes;
+    PFN_LIST PageList, LargePageList;
+    PTE TemplatePte;
+    PPTE CurrentPte;
+    PPDE CurrentPde;
+    NTSTATUS Status;
+
+    NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
+
+    /* Calculate the ending VPN */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+
+    /* Check for large page mapping */
+    if ((Protect & MM_LARGEPAGE) != 0)
+    {
+        /* Align VPNs and page count to large page boundaries */
+        StartingVpn = ALIGN_DOWN_BY(StartingVpn, LARGE_PAGE_SIZE / PAGE_SIZE);
+        EndingVpn = ALIGN_UP_BY(EndingVpn + 1, LARGE_PAGE_SIZE / PAGE_SIZE) - 1;
+        NumberOfPages = EndingVpn - StartingVpn + 1;
+    }
+
+    /* Allocate pages for the page tables */
+    Status = AllocatePagesForMapping(StartingVpn,
+                                     EndingVpn,
+                                     &PageList,
+                                     &LargePageList,
+                                     TRUE,
+                                     Protect,
+                                     &PagesCharged);
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Could not allocate pages for mapping: %x\n", Status);
+        return Status;
+    }
+
+    /* Acquire the working set lock */
+    AddressSpace = GetAddressSpaceForAddress(VpnToAddress(StartingVpn));
+    AddressSpace->AcquireWorkingSetLock();
+
+    /* Reserve the PTEs for the mapping */
+    PagesUsed = ReserveMappingPtes(StartingVpn, EndingVpn, &PageList, Protect);
+
+    /* Check for large page mapping */
+    if ((Protect & MM_LARGEPAGE) != 0)
+    {
+        /* Loop all reserved PDEs */
+#if (MI_PAGING_LEVELS >= 4)
+        PPPE CurrentPpe = VpnToPpe(StartingVpn);
+#endif
+        CurrentPde = VpnToPde(StartingVpn);
+        NumberOfNewPdes = 0;
+        do
+        {
+            /* Check if the PDE is empty */
+            if (CurrentPde->IsEmpty())
+            {
+                /* Map the large page */
+                PageFrameNumber = LargePageList.RemovePage();
+                g_PfnDatabase.MakeLargePagePfn(PageFrameNumber, CurrentPde, Protect);
+                CurrentPde->MakeValidLargePagePde(PageFrameNumber, Protect);
+                NumberOfNewPdes++;
+            }
+            else
+            {
+                NT_ASSERT(CurrentPde->IsLargePage());
+            }
+
+            /* Next PDE */
+            CurrentPde++;
+            NumberOfPages -= LARGE_PAGE_SIZE / PAGE_SIZE;
+
+            /* Update the PFN of the PD, if we reached the next PD or the end */
+            if ((CurrentPde->GetTableIndex() == 0) || (NumberOfPages == 0))
+            {
+#if (MI_PAGING_LEVELS >= 4)
+                PFN_NUMBER PfnOfPd = CurrentPpe->GetPageFrameNumber();
+                g_PfnDatabase.ModifyEntryCount(PfnOfPd, NumberOfNewPdes);
+                CurrentPpe++;
+#endif
+                PagesUsed += NumberOfNewPdes * (LARGE_PAGE_SIZE / PAGE_SIZE);
+                NumberOfNewPdes = 0;
+            }
+        }
+        while (NumberOfPages);
+
+        /* Return the large pages, we did not use */
+        g_PfnDatabase.ReleaseLargePages(&LargePageList);
+    }
+    else
+    {
+        /* Prepare a template PTE */
+        TemplatePte.MakeValidPte(0, Protect);
+
+        /* Loop all reserved PTEs */
+        CurrentPte = VpnToPte(StartingVpn);
+        CurrentPde = VpnToPde(StartingVpn);
+        NumberOfNewPtes = 0;
+        do
+        {
+            /* Check, if the PTE is empty */
+            if (CurrentPte->IsEmpty())
+            {
+                TemplatePte.SetPageFrameNumber(PageList.RemovePage());
+                CurrentPte->WriteValidPte(TemplatePte);
+                NumberOfNewPtes++;
+            }
+            else
+            {
+                __debugbreak();
+            }
+
+            /* Next PTE */
+            CurrentPte++;
+            NumberOfPages--;
+
+            /* Update the PFN of the PT, if we reached the next PT or the end */
+            if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+            {
+                PfnOfPt = CurrentPde->GetPageFrameNumber();
+                g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
+                PagesUsed += NumberOfNewPtes;
+                NumberOfNewPtes = 0;
+                CurrentPde++;
+            }
+        }
+        while (NumberOfPages);
+    }
+
+    /* Release the working set lock */
+    AddressSpace->ReleaseWorkingSetLock();
+
+    /* Return the pages, we did not use */
+    g_PfnDatabase.ReleaseMultiplePages(&PageList);
+    UnchargeSystemCommit(PagesCharged - PagesUsed);
+
+    return STATUS_SUCCESS;
 }
 
 _Must_inspect_result_
@@ -731,11 +875,9 @@ MmAllocateMappingAddress (
     }
 
     /* Map no-access PTEs */
-    Status = CreateMapping(AddressToVpn(BaseAddress),
-                           BYTES_TO_PAGES(NumberOfBytes),
-                           MM_NOACCESS | MM_GLOBAL | MM_NONPAGED,
-                           NULL,
-                           NULL);
+    Status = MapVirtualMemory(AddressToVpn(BaseAddress),
+                              BYTES_TO_PAGES(NumberOfBytes),
+                              MM_NOACCESS | MM_GLOBAL | MM_NONPAGED);
     if (!NT_SUCCESS(Status))
     {
         ReleaseKernelMemory(BaseAddress);
