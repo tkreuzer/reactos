@@ -241,7 +241,6 @@ list(APPEND SOURCE
 #########################
     Mm_new/SectionObject.cpp
     Mm_new/VadTable.cpp
-    Mm_new/ControlArea.cpp
     Mm_new/Segment.cpp
     Mm_New/PageFault.cpp
     Mm_New/MmData.cpp

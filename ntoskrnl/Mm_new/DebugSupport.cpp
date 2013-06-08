@@ -1,6 +1,10 @@
 
 #include "ntosbase.h"
+#include "PfnDatabase.hpp"
 #include _ARCH_RELATIVE_(PageTables.hpp)
+
+/// HACK!
+#define KeInvalidateTlbEntry(Address) __invlpg(Address)
 
 namespace Mm {
 
@@ -10,95 +14,172 @@ static const ULONG MMDBG_COPY_UNSAFE         = 0x00000004;
 static const ULONG MMDBG_COPY_CACHED         = 0x00000008;
 static const ULONG MMDBG_COPY_UNCACHED       = 0x00000010;
 static const ULONG MMDBG_COPY_WRITE_COMBINED = 0x00000020;
+extern PPTE DebugPte;
+
+static
+PVOID
+DbgCopyMapPhysicalMemory (
+    _In_ ULONG64 PhysicalAddress,
+    _In_ ULONG Flags)
+{
+    PFN_NUMBER PageFrameNumber;
+    ULONG Protect;
+    PFN_CACHE_ATTRIBUTE CacheAttribute;
+
+    /* We must have a debug PTE, otherwise we cannot do anything */
+    if (DebugPte == NULL)
+    {
+        return NULL;
+    }
+
+    /* Calculate the page frame number and check if it's valid */
+    PageFrameNumber = static_cast<PFN_NUMBER>(PhysicalAddress >> PAGE_SHIFT);
+    if (!g_PfnDatabase.IsValidPageFrameNumber(PageFrameNumber))
+    {
+        return NULL;
+    }
+
+    /* Check if the debug PTE already has the correct page frame number */
+    if (DebugPte->GetPageFrameNumber() != PageFrameNumber)
+    {
+        /* Set the protection */
+        Protect = MM_READWRITE;
+
+        /* Check for requested cache attributes */
+        if (Flags & MMDBG_COPY_UNCACHED)
+        {
+            Protect |= MM_UNCACHED;
+        }
+        else if (Flags & MMDBG_COPY_WRITE_COMBINED)
+        {
+            Protect |= MM_WRITECOMBINE;
+        }
+        else if ((Flags & MMDBG_COPY_CACHED) == 0)
+        {
+            /* No flag was set, get the caching from the PFN database */
+            CacheAttribute = g_PfnDatabase.GetPfnCacheAttribute(PageFrameNumber);
+            if (CacheAttribute == PfnNonCached)
+                Protect |= MM_UNCACHED;
+            else if (CacheAttribute == PfnWriteCombined)
+                Protect |= MM_WRITECOMBINE;
+        }
+
+        /* Now write a new PTE and invalidate the TLB entry */
+        DebugPte->MakeValidPte(PageFrameNumber, MM_READWRITE);
+        KeInvalidateTlbEntry(PteToAddress(DebugPte));
+    }
+
+    return AddToPointer(PteToAddress(DebugPte), PhysicalAddress & (PAGE_SIZE - 1));
+}
 
 extern "C" {
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-NTAPI
-MmIsAddressValid (
-    _In_ PVOID VirtualAddress)
-{
-    /* Check all present page table levels */
-    return (
-#if MI_PAGING_LEVELS >= 4
-        AddressToPxe(VirtualAddress)->IsValid() &&
-#endif
-#if MI_PAGING_LEVELS >= 3
-        AddressToPpe(VirtualAddress)->IsValid() &&
-#endif
-        AddressToPde(VirtualAddress)->IsValid() &&
-        (AddressToPde(VirtualAddress)->IsLargePage() ||
-         AddressToPte(VirtualAddress)->IsValid()));
-}
-
 NTSTATUS
 NTAPI
-MmDbgCopyMemory (
-    IN ULONG64 Address,
-    IN PVOID Buffer,
-    IN ULONG Size,
-    IN ULONG Flags)
+MmDbgCopyMemoryEx (
+    _In_ ULONG64 Address,
+    _In_ PVOID Buffer,
+    _In_ ULONG Size,
+    _In_ ULONG Flags)
 {
     ULONG64 EndAddress;
-    ULONG PageOffset;
+    ULONG PageOffset, CopySize;
     PVOID Pointer;
     BOOLEAN NeedMakeWritable;
-
-    if (Flags & MMDBG_COPY_PHYSICAL)
-    {
-        //DbgPrint("MMDBG_COPY_PHYSICAL is not supported yet!\n");
-        return STATUS_UNSUCCESSFUL;
-    }
 
     /* Calculate the end of the copy area */
     EndAddress = Address + Size;
 
     do
     {
-        /* Convert to a pointer */
-        Pointer = reinterpret_cast<PVOID>(Address);
-
-        /* Check if this address is accessible */
-        if (!MmIsAddressValid(Pointer))
+        /* Check if this is a physical memory copy */
+        if (Flags & MMDBG_COPY_PHYSICAL)
         {
-            return STATUS_UNSUCCESSFUL;
-        }
-
-        /* Check if this we write to memory */
-        if (Flags & MMDBG_COPY_WRITE)
-        {
-            /* Figure out, if the address is writable */
-            NeedMakeWritable = !AddressToPte(Pointer)->IsWritable();
-            if (NeedMakeWritable)
+            /* Map the physical memory and get the pointer to the VA */
+            Pointer = DbgCopyMapPhysicalMemory(Address, Flags);
+            if (Pointer == NULL)
             {
-                /* It's not writable, so make it writable */
-                AddressToPte(Pointer)->SetWritable(TRUE);
+                return STATUS_UNSUCCESSFUL;
+            }
+        }
+        else
+        {
+            /* Convert current virtual address to a pointer */
+            Pointer = reinterpret_cast<PVOID>(Address);
+
+            /* Check if this address is accessible */
+            if (!MmIsAddressValid(Pointer))
+            {
+                return STATUS_UNSUCCESSFUL;
             }
 
-            /* Copy the maximum that is inside this page */
-            PageOffset = Address & (PAGE_SIZE - 1);
-            RtlCopyMemory(Pointer, Buffer, min(Size, PAGE_SIZE - PageOffset));
-
-            if (NeedMakeWritable)
+            /* Check if we write to memory */
+            if (Flags & MMDBG_COPY_WRITE)
             {
+                /* Check if the address is writable */
+                NeedMakeWritable = !AddressToPte(Pointer)->IsWritable();
+                if (NeedMakeWritable)
+                {
+                    /* It's not writable, so make it writable */
+                    AddressToPte(Pointer)->SetWritable(TRUE);
+                }
+            }
+        }
+
+        /* Calculate the offset and the size we can copy */
+        PageOffset = Address & (PAGE_SIZE - 1);
+        CopySize = min(Size, PAGE_SIZE - PageOffset);
+
+        /* Check if we read or write */
+        if (Flags & MMDBG_COPY_WRITE)
+        {
+            /* Copy the maximum that is inside this page */
+            RtlCopyMemory(Pointer, Buffer, CopySize);
+
+            /* Check if we modified a PTE */
+            if (!(Flags & MMDBG_COPY_PHYSICAL) && NeedMakeWritable)
+            {
+                /* Reset back to read-only */
                 AddressToPte(Pointer)->SetWritable(FALSE);
             }
         }
         else
         {
             /* Copy the maximum that is inside this page */
-            PageOffset = Address & (PAGE_SIZE - 1);
-            RtlCopyMemory(Buffer, Pointer, min(Size, PAGE_SIZE - PageOffset));
+            RtlCopyMemory(Buffer, Pointer, CopySize);
         }
 
         /* Go to next page */
-        Address += PAGE_SIZE;
-        Size -= PAGE_SIZE;
+        Address += CopySize;
+        Size -= CopySize;
     }
     while (Address < EndAddress);
 
     return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+MmDbgCopyMemory (
+    _In_ ULONG64 Address,
+    _In_ PVOID Buffer,
+    _In_ ULONG Size,
+    _In_ ULONG Flags)
+{
+    /* Verify the requested size is ok */
+    if ((Size != 1) && (Size != 2) && (Size != 4) && (Size != 8))
+    {
+        return STATUS_INVALID_PARAMETER_3;
+    }
+
+    /* Verify that the Address is sufficiently aligned */
+    if ((Address & (Size - 1)) != 0)
+    {
+        return STATUS_INVALID_PARAMETER_1;
+    }
+
+    /* Use the extended function */
+    return MmDbgCopyMemoryEx(Address, Buffer, Size, Flags);
 }
 
 static const

@@ -877,6 +877,30 @@ ZeroPage (
     KeLowerIrql(OldIrql);
 }
 
+BOOLEAN
+PFN_DATABASE::IsValidPageFrameNumber (
+    _In_ PFN_NUMBER PageFrameNumber)
+{
+    PPFN_ENTRY PfnEntry;
+
+    /* Get the PFN entry and check if is mapped */
+    PfnEntry = &m_PfnArray[PageFrameNumber];
+    if (!MmIsAddressValid(PfnEntry))
+    {
+        return FALSE;
+    }
+
+    /* Return, whether the PFN is valid */
+    return (PfnEntry->State != PfnNotPresent);
+}
+
+PFN_CACHE_ATTRIBUTE
+PFN_DATABASE::GetPfnCacheAttribute (
+    _In_ PFN_NUMBER PageFrameNumber)
+{
+    return m_PfnArray[PageFrameNumber].CacheAttribute;
+}
+
 VOID
 PFN_DATABASE::MakeActivePfn (
     _Inout_ PFN_NUMBER PageFrameNumber,
@@ -1125,10 +1149,15 @@ PFN_DATABASE::AllocateMultiplePages (
     ULONG PageColor;
     BOOLEAN WasZeroed;
     KIRQL OldIrql;
-    NT_ASSERT(NumberOfPages != 0);
 
     /* Initialize the page list */
     PageList->Initialize();
+
+    /* Check if there is anything to do */
+    if (NumberOfPages == 0)
+    {
+        return STATUS_SUCCESS;
+    }
 
     /* Get the current process and the next page color */
     Process = PsGetCurrentProcess();
