@@ -294,6 +294,16 @@ public:
     UnlockPage (
         _In_ PFN_NUMBER PageFrameNumber);
 
+    static
+    BOOLEAN
+    IsValidPageFrameNumber (
+        _In_ PFN_NUMBER PageFrameNumber);
+
+    static
+    PFN_CACHE_ATTRIBUTE
+    GetPfnCacheAttribute (
+        _In_ PFN_NUMBER PageFrameNumber);
+
 #if 0
     AllocatePageNuma (
         _In_ ULONG NodeNumber)

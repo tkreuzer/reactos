@@ -6,12 +6,17 @@
 #define PsProcessType _PsProcessType
 #define KeEnterCriticalRegion _KeEnterCriticalRegion
 #define KeLeaveCriticalRegion _KeLeaveCriticalRegion
+#define KeEnterGuardedRegion _KeEnterGuardedRegion
+#define KeLeaveGuardedRegion _KeLeaveGuardedRegion
 #ifdef _M_AMD64
 #define KeGetCurrentThread _KeGetCurrentThread
 #endif
 
 #include <ntifs.h>
 //#include <pseh/pseh2.h>
+
+#define ExAcquirePushLockExclusive ExfAcquirePushLockExclusive
+#define ExReleasePushLock ExfReleasePushLock
 
 /* Macro expansion helpers */
 #define _EXPAND2_(x) x
@@ -183,6 +188,25 @@ typedef struct _PROTOTYPE
 } PROTOTYPE, *PPROTOTYPE;
 
 }; // namespace Mm
+
+#endif
+
+#if 0
+VOID
+FASTCALL
+ExfAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock);
+
+FORCEINLINE
+VOID
+ExAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)
+{
+    /* Try acquiring the lock */
+    if (InterlockedBitTestAndSet((PLONG)PushLock, 0))
+    {
+        /* Someone changed it, use the slow path */
+        ExfAcquirePushLockExclusive(PushLock);
+    }
+}
 
 #endif
 
