@@ -199,7 +199,7 @@ InitializePoolSupportSingle (
                         PoolVaBitmap[PoolType],
                         MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE);
     RtlSetBits(&Bitmap,
-               PointerDiff(MmNonPagedPoolStart, MmSystemRangeStart) / LARGE_PAGE_SIZE,
+               PointerDiff(MmSystemRangeStart, PoolStart) / LARGE_PAGE_SIZE,
                (MmSizeOfNonPagedPoolInBytes + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE);
 #endif
 
@@ -290,7 +290,7 @@ MmDeterminePoolType (
     }
 #else
     /* Check the pool VA bitmap */
-    ULONG Index = PointerDiff(VirtualAddress, MmSystemRangeStart) / LARGE_PAGE_SIZE;
+    ULONG Index = PointerDiff(MmSystemRangeStart, VirtualAddress) / LARGE_PAGE_SIZE;
     if ((PoolVaBitmap[NonPagedPool][Index / 32] >> (Index & 31)) & 1)
     {
         return NonPagedPool;

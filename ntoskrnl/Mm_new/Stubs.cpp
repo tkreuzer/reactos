@@ -14,27 +14,6 @@ MmQuerySystemSize (
     return MmLargeSystem;
 }
 
-
-_IRQL_requires_max_ (APC_LEVEL)
-BOOLEAN
-NTAPI
-MmForceSectionClosed (
-  _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
-  _In_ BOOLEAN DelayClose)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
-BOOLEAN
-NTAPI
-MmIsNonPagedSystemAddressValid (
-  _In_ PVOID VirtualAddress)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
 BOOLEAN
 NTAPI
 MmIsThisAnNtAsSystem (
@@ -44,18 +23,6 @@ MmIsThisAnNtAsSystem (
     return FALSE;
 }
 
-_Must_inspect_result_
-_IRQL_requires_max_(APC_LEVEL)
-NTSTATUS
-NTAPI
-MmMapUserAddressesToPage (
-  _In_reads_bytes_(NumberOfBytes) PVOID BaseAddress,
-  _In_ SIZE_T NumberOfBytes,
-  _In_ PVOID PageAddress)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
 
 _IRQL_requires_max_ (PASSIVE_LEVEL)
 NTSTATUS
@@ -81,15 +48,6 @@ MmAdjustWorkingSetSize (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-BOOLEAN
-NTAPI
-MmDisableModifiedWriteOfSection (
-    _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer)
-{
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
 PVOID
 NTAPI
 MmLockPageableDataSection (
@@ -110,6 +68,14 @@ MmLockPageableSectionByHandle (
     UNIMPLEMENTED;
 }
 
+VOID
+NTAPI
+MmUnlockPageableImageSection (
+    IN PVOID ImageSectionHandle)
+{
+    UNIMPLEMENTED;
+}
+
 NTSTATUS
 NTAPI
 MmSetBankedSection (
@@ -123,15 +89,6 @@ MmSetBankedSection (
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
-
-VOID
-NTAPI
-MmUnlockPageableImageSection (
-    IN PVOID ImageSectionHandle)
-{
-    UNIMPLEMENTED;
-}
-
 
 NTSTATUS
 NTAPI
