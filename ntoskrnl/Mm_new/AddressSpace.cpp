@@ -6,6 +6,7 @@
 #include "KernelVad.hpp"
 //#include "amd64/MachineDependent.hpp"
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
+#include <ndk/exfuncs.h>
 
 namespace Mm {
 
@@ -72,7 +73,7 @@ ADDRESS_SPACE::Initialize (
         //
     }
 
-    /* Initialize the Addresss Space */
+    /* Initialize the VAD table */
     GetVadTable()->Initialize();
 #endif
 }
@@ -91,6 +92,49 @@ ADDRESS_SPACE::ReleaseWorkingSetLock (
 {
     //ExReleasePushLock(&m_Support.WorkingSetMutex);
     //KeLeaveGuardedRegion();
+}
+
+KIRQL
+ADDRESS_SPACE::AcquireAddressCreationLock (
+    VOID)
+{
+    ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
+    if (AddressSpaceType == ProcessAddressSpace)
+    {
+        KeEnterGuardedRegion();
+        ExAcquirePushLockExclusive(&m_Support.WorkingSetMutex);
+        return 0;
+    }
+    else if (AddressSpaceType == SessionAddressSpace)
+    {
+        __debugbreak();
+        return 0;
+    }
+    else
+    {
+        return KeAcquireQueuedSpinLock(LockQueueSystemSpaceLock);
+    }
+}
+
+VOID
+ADDRESS_SPACE::ReleaseAddressCreationLock (
+    KIRQL OldIrql)
+{
+    ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
+
+    if (AddressSpaceType == ProcessAddressSpace)
+    {
+        ExReleasePushLock(&m_Support.WorkingSetMutex);
+        KeLeaveGuardedRegion();
+    }
+    else if (AddressSpaceType == SessionAddressSpace)
+    {
+        __debugbreak();
+    }
+    else
+    {
+        KeReleaseQueuedSpinLock(LockQueueSystemSpaceLock, OldIrql);
+    }
 }
 
 NTSTATUS

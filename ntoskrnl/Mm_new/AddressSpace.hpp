@@ -44,6 +44,14 @@ public:
     ReleaseWorkingSetLock (
         VOID);
 
+    KIRQL
+    AcquireAddressCreationLock (
+        VOID);
+
+    VOID
+    ReleaseAddressCreationLock (
+        KIRQL OldIrql);
+
     NTSTATUS
     ReserveVirtualMemory (
         _Inout_ PVOID* BaseAddress,

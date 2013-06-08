@@ -327,5 +327,25 @@ MmCanFileBeTruncated (
     return FALSE;
 }
 
+_IRQL_requires_max_ (APC_LEVEL)
+BOOLEAN
+NTAPI
+MmForceSectionClosed (
+  _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer,
+  _In_ BOOLEAN DelayClose)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
+
+BOOLEAN
+NTAPI
+MmDisableModifiedWriteOfSection (
+    _In_ PSECTION_OBJECT_POINTERS SectionObjectPointer)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
+
 }; // extern "C"
 }; // namespace Mm

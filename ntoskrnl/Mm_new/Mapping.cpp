@@ -1171,5 +1171,46 @@ MmSetAddressRangeModified (
     return FALSE;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+NTAPI
+MmIsAddressValid (
+    _In_ PVOID VirtualAddress)
+{
+    /* Check all present page table levels */
+    return (
+#if MI_PAGING_LEVELS >= 4
+        AddressToPxe(VirtualAddress)->IsValid() &&
+#endif
+#if MI_PAGING_LEVELS >= 3
+        AddressToPpe(VirtualAddress)->IsValid() &&
+#endif
+        AddressToPde(VirtualAddress)->IsValid() &&
+        (AddressToPde(VirtualAddress)->IsLargePage() ||
+         AddressToPte(VirtualAddress)->IsValid()));
+}
+
+BOOLEAN
+NTAPI
+MmIsNonPagedSystemAddressValid (
+  _In_ PVOID VirtualAddress)
+{
+    UNIMPLEMENTED;
+    return FALSE;
+}
+
+_Must_inspect_result_
+_IRQL_requires_max_(APC_LEVEL)
+NTSTATUS
+NTAPI
+MmMapUserAddressesToPage (
+  _In_reads_bytes_(NumberOfBytes) PVOID BaseAddress,
+  _In_ SIZE_T NumberOfBytes,
+  _In_ PVOID PageAddress)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
 }; // extern "C"
 }; // namespace Mm
