@@ -503,6 +503,13 @@ NtGdiCreateDIBBrush(
         return NULL;
     }
 
+    /* Check for undocumented case 2 */
+    if (iUsage == 2)
+    {
+        /* Tests show that this results in a hollow/null brush */
+        return GreCreateNullBrush();
+    }
+
     /* Allocate a buffer large enough to hold the complete packed DIB */
     pvSaveDIB = ExAllocatePoolWithTag(PagedPool, cjDIBSize, TAG_DIB);
     if (pvSaveDIB == NULL)
@@ -557,12 +564,12 @@ NtGdiCreateDIBBrush(
     hbmPattern = GreCreateDIBitmapInternal(NULL,
                                            pbmi->bmiHeader.biWidth,
                                            abs(pbmi->bmiHeader.biHeight),
-                                           CBM_INIT,
+                                           CBM_INIT | CBM_CREATDIB,
                                            pvSafeBits,
                                            pbmi,
                                            iUsage,// FIXME!!!
-                                           0,
                                            cjDIBSize - cjInfoSize,
+                                           0,
                                            NULL);
 
     /* Free the buffer already */
