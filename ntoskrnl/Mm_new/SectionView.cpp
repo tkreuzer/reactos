@@ -419,6 +419,9 @@ MmUnmapViewInSessionSpace (
     return UnmapViewOfSection(VaSessionSpace, BaseAddress);
 }
 
+//MmMapViewInSystemCache
+//MmUnmapViewInSystemCache
+
 NTSTATUS
 NTAPI
 MmMapViewOfSection (
