@@ -10,6 +10,7 @@ extern "C" {
 SIZE_T MmTotalCommittedPages;
 SIZE_T MmTotalCommitLimit;
 SIZE_T MmtotalCommitLimitMaximum; /// \todo Fix typo
+SIZE_T MmPeakCommitment;
 
 };
 

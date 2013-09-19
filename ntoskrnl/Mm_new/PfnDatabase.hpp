@@ -13,7 +13,7 @@ static const ULONG MAXIMUM_NUMA_NODES = 16;
 
 /// \todo use enum class, once GCC is fixed.
 /// http://gcc.gnu.org/bugzilla/show_bug.cgi?id=51242
-enum PFN_STATE : ULONG
+enum PFN_STATE //: ULONG
 {
     PfnNotPresent = 0,
     PfnKernelReserved,
@@ -37,9 +37,9 @@ enum PFN_CACHE_ATTRIBUTE
 };
 
 #define ProtectToCacheAttribute(Protect) ((PFN_CACHE_ATTRIBUTE)((((Protect) >> 3) - 2) & 3))
-static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
-static_assert(ProtectToCacheAttribute(MM_UNCACHED) == PfnNonCached, "");
-static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
+//static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
+//static_assert(ProtectToCacheAttribute(MM_UNCACHED) == PfnNonCached, "");
+//static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
 
 
 typedef struct PFN_ENTRY

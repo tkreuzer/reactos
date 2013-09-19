@@ -1,6 +1,7 @@
 
 #include "ntosbase.h"
 
+#include "AddressSpace.hpp"
 #include "KernelVad.hpp"
 #include "VadTable.hpp"
 #include "Mapping.hpp"
@@ -47,7 +48,7 @@ ReleaseKernelMemory (
     PVAD_OBJECT VadObject;
 
     /* Reference the VAD object */
-    VadObject = g_KernelVadTable.ReferenceVadObjectByAddress(BaseAddress);
+    VadObject = g_KernelAddressSpace.ReferenceVadObjectByAddress(BaseAddress, FALSE);
     NT_ASSERT(VadObject != NULL);
     NT_ASSERT(VadObject->GetBaseAddress() == BaseAddress);
 

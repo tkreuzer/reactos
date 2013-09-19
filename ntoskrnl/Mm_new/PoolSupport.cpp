@@ -30,8 +30,8 @@ extern "C" PVOID MmPfnDatabase;
 extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
 extern "C" PVOID MmNonPagedPoolStart;
 extern "C" SIZE_T MmSizeOfNonPagedPoolInBytes;
-extern "C" SIZE_T MmMaximumNonPagedPoolInBytes;
 extern "C" PVOID MmPagedPoolStart;
+extern "C" PVOID MmPagedPoolEnd;
 extern "C" SIZE_T MmSizeOfPagedPoolInBytes;
 
 KERNEL_VAD PoolVad[2];
@@ -39,6 +39,11 @@ RTL_BITMAP PoolBitmap[2];
 RTL_BITMAP EndOfAllocationBitmap[2];
 ULONG PoolHintIndex[2];
 KSPIN_LOCK PoolPageSpinlock[2];
+
+extern "C" {
+SIZE_T MmMaximumNonPagedPoolInBytes;
+
+};
 
 #ifndef _WIN64
 /* On 32 bit systems we track each large page sized VA block used for np pool */
@@ -102,11 +107,16 @@ CalculatePoolDimensions (
                                   reinterpret_cast<PUCHAR>(MmNonPagedPoolStart);
 
     /// \todo improve this
+
+#ifdef _WIN64
     MmSizeOfPagedPoolInBytes = 32 * 1024 * 1024;
     MmPagedPoolStart = AddToPointer(MmNonPagedPoolStart, MmMaximumNonPagedPoolInBytes);
     MmPagedPoolStart = ALIGN_UP_POINTER_BY(MmPagedPoolStart, LARGE_PAGE_SIZE);
-
-#ifndef _WIN64
+#else
+    MmSizeOfPagedPoolInBytes = 32 * 1024 * 1024;
+    MmPagedPoolStart = AddToPointer(MmNonPagedPoolStart, MmSizeOfNonPagedPoolInBytes);
+    MmPagedPoolStart = ALIGN_UP_POINTER_BY(MmPagedPoolStart, LARGE_PAGE_SIZE);
+    MmPagedPoolEnd = AddToPointer(MmPagedPoolStart, MmSizeOfPagedPoolInBytes);
     InitialPoolSizeInPages[NonPagedPool] = SizeOfNonPagedPoolInPages;
     InitialPoolSizeInPages[PagedPool] = BYTES_TO_PAGES(MmSizeOfPagedPoolInBytes);
 #endif
@@ -139,12 +149,12 @@ InitializePoolSupportSingle (
 
 #ifdef _WIN64
     /* On 64 bit systems we reserve the maximum pool size */
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(PoolVad[PoolType].GetVadObject(),
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&PoolVad[PoolType],
                                                    StartingVpn,
                                                    MaximumNumberOfPages);
 #else
     /* On 32 bit systems we only reserve the actual pool size */
-    Status = g_KernelVadTable.InsertVadObjectAtVpn(PoolVad[PoolType].GetVadObject(),
+    Status = g_KernelVadTable.InsertVadObjectAtVpn(&PoolVad[PoolType],
                                                    StartingVpn,
                                                    NumberOfPages);
 #endif
@@ -161,7 +171,7 @@ InitializePoolSupportSingle (
     /// \todo this if (...) is all pretty hacky, maybe we can improve this later
 
     /* Check if we shall map the pages */
-    if (Protect & MM_MAPPED)
+    //if (Protect & MM_MAPPED)
     {
         /* Map the pages */
         Status = MapVirtualMemory(StartingVpn, NumberOfPages, Protect);
@@ -192,15 +202,14 @@ InitializePoolSupportSingle (
     /* Add the expansion array to the allocated size */
     AllocatedSize += PoolExpansionCount[PoolType] * sizeof(PVOID);
 
-    /* Initialize the non-paged pool VA bitmap with the bits for the
-       initial non-paged pool */
+    /* Initialize the VA bitmap with the bits for the initial pool */
     RTL_BITMAP Bitmap;
     RtlInitializeBitMap(&Bitmap,
                         PoolVaBitmap[PoolType],
                         MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE);
     RtlSetBits(&Bitmap,
                PointerDiff(MmSystemRangeStart, PoolStart) / LARGE_PAGE_SIZE,
-               (MmSizeOfNonPagedPoolInBytes + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE);
+               (InitialSize + LARGE_PAGE_SIZE - 1) / LARGE_PAGE_SIZE);
 #endif
 
     /* Calculate how many pages we used up already */

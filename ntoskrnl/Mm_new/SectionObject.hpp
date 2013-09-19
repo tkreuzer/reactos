@@ -16,6 +16,7 @@
 
 #include "ntosbase.h"
 #include "Ob/Object.hpp"
+#include <ndk/mmtypes.h>
 
 namespace Mm {
 
@@ -73,6 +74,15 @@ public:
     PFILE_OBJECT
     GetFileObject (
         VOID);
+
+    VOID
+    QueryBasicInformation (
+        _Out_ PSECTION_BASIC_INFORMATION BasicInformation);
+
+    VOID
+    QueryImagenformation (
+        _Out_ PSECTION_IMAGE_INFORMATION BasicInformation);
+
 
 };
 

@@ -6,6 +6,7 @@
 namespace Mm {
 
 ULONG_PTR g_LowestSystemVpn;
+VAD_TABLE g_KernelVadTable;
 
 inline
 VOID
@@ -207,7 +208,7 @@ VAD_TABLE::InsertVadObject (
             (PostGapStartingVpn - GapStartingVpn) >= PageCount)
         {
             /* Set the starting and ending VPN in the node */
-            VadObject->StartingVpn = GapStartingVpn;
+            VadObject->StartingVpn = PostGapStartingVpn - PageCount;
             VadObject->EndingVpn = PostGapStartingVpn - 1;
 
             /* Insert the VAD *after* the current node, or at the lowest end */
@@ -246,7 +247,7 @@ VAD_TABLE::InsertVadObject (
         {
             /* Set the starting and ending VPN in the node */
             VadObject->StartingVpn = GapStartingVpn;
-            VadObject->EndingVpn = PostGapStartingVpn - 1;
+            VadObject->EndingVpn = GapStartingVpn + PageCount - 1;
 
             /* Insert the VAD *before* the current node, or at the lowest end */
             InsertBefore(CurrentNode, VadObject);
@@ -273,6 +274,8 @@ VAD_TABLE::InsertVadObjectAtVpn (
     KLOCK_QUEUE_HANDLE LockHandle;
     NT_ASSERT(StartingVpn != 0);
     NT_ASSERT(PageCount != 0);
+
+    //DbgPrint("! %lx - %lx\n", StartingVpn, StartingVpn + PageCount);
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->ListEntry));
@@ -304,6 +307,26 @@ VAD_TABLE::InsertVadObjectAtVpn (
     return Status;
 }
 
+#if 0
+/// HACK
+_Must_inspect_result_
+NTSTATUS
+VAD_TABLE::InsertVadObject (
+    _Inout_ PVAD_OBJECT VadObject,
+    _In_ ULONG_PTR PageCount,
+    _In_ ULONG_PTR LowestStartingVpn,
+    _In_ ULONG_PTR HighestEndingVpn,
+    _In_opt_ ULONG_PTR BoundaryPageMultiple,
+    _In_ BOOLEAN TopDown)
+{
+    PVOID BaseAddress;
+
+    BaseAddress = EalReserveVirtualMemory(PageCount * PAGE_SIZE,
+                                          LowestStartingVpn,
+                                          HighestEndingVpn)
+}
+#endif
+
 VOID
 VAD_TABLE::RemoveVadObject (
     _Inout_ PVAD_OBJECT VadObject)
@@ -323,42 +346,33 @@ VAD_TABLE::RemoveVadObject (
     ReleaseTableLock(&LockHandle);
 }
 
-#define CONTAINING_RECORD2(_Pointer, _Structure, _Field) \
-    ((_Structure*)(((char*)(_Pointer)) - offsetof(_Structure, _Field)))
 
 _Must_inspect_result_
 PVAD_OBJECT
-VAD_TABLE::ReferenceVadObjectByAddress (
+VAD_TABLE::GetVadObjectByAddress (
     PVOID Address)
 {
     ULONG_PTR RequestedVpn;
     PVAD_NODE VadNode;
     VAD_OBJECT* VadObject;
-    KLOCK_QUEUE_HANDLE LockHandle;
 
     /* Calculate the VPN for the address */
-    RequestedVpn = reinterpret_cast<ULONG_PTR>(Address) >> PAGE_SHIFT;
-
-    /* Default to not found */
-    VadObject = NULL;
-
-    /* Lock the table */
-    AcquireTableLock(&LockHandle);
+    RequestedVpn = AddressToVpn(Address);
 
     /* Get the lowest VAD that ends at or above the requested address */
     VadNode = GetLowestNodeWithEndingVpnNotBelow(RequestedVpn);
 
-    /* Check if the node also begins before our address */
-    if (VadNode->StartingVpn <= RequestedVpn)
+    /* Check if we found anything */
+    if (VadNode != NULL)
     {
-        /* Get the VAD object and reference it */
+        /* Get the VAD object */
         VadObject = static_cast<VAD_OBJECT*>(VadNode);
-
-        VadObject->AddRef();
     }
-
-    /* Unlock the table */
-    ReleaseTableLock(&LockHandle);
+    else
+    {
+        /* Not found */
+        VadObject = NULL;
+    }
 
     return VadObject;
 }

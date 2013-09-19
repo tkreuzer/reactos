@@ -3,6 +3,7 @@
 #include <ndk/rtlfuncs.h>
 #include <ndk/mmfuncs.h>
 
+#undef UNIMPLEMENTED
 #define UNIMPLEMENTED __debugbreak()
 
 namespace Cc {

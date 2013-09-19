@@ -94,7 +94,7 @@ MmCheckSystemImage (
     IN HANDLE ImageHandle,
     IN BOOLEAN PurgeSection)
 {
-    UNIMPLEMENTED;
+//    UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 

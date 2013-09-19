@@ -17,11 +17,28 @@ ConvertProtectAndCaching (
     _In_ ULONG Win32Protect,
     _In_ MEMORY_CACHING_TYPE CachingType);
 
+ULONG
+ConvertProtectToWin32 (
+    _In_ ULONG Protect);
+
 NTSTATUS
 MapVirtualMemory (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect);
+
+NTSTATUS
+ProtectVirtualMemory (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect,
+    _Out_ PULONG OldProtect);
+
+VOID
+CheckVirtualMapping (
+    _In_ PVOID BaseAddress,
+    _Out_ PSIZE_T OutRegionSize,
+    _Out_ PULONG OutProtect);
 
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -68,6 +68,8 @@ NTAPI
 SECTION_OBJECT::ObDeleteProcedure (
     _In_ PVOID Object)
 {
+    DbgPrint("TODO: SECTION_OBJECT::ObDeleteProcedure is UNIMPLEMENTED!\n");
+    //__debugbreak();
 }
 
 VOID
@@ -79,7 +81,16 @@ SECTION_OBJECT::ObCloseProcedure (
     _In_ ULONG ProcessHandleCount,
     _In_ ULONG SystemHandleCount)
 {
+    DbgPrint("TODO: SECTION_OBJECT::ObCloseProcedure is UNIMPLEMENTED!\n");
 }
+
+VOID
+AcquireFileForSectionSynchronization (
+    PFILE_OBJECT FileObject)
+{
+
+}
+
 
 _Must_inspect_result_
 NTSTATUS
@@ -112,23 +123,9 @@ SECTION_OBJECT::CreateInstance (
     }
     else
     {
-        PSECTION_OBJECT_POINTERS SectionObjectPointers = FileObject->SectionObjectPointer;
-
-        if (SectionObjectPointers == NULL)
-        {
-            return STATUS_INVALID_FILE_FOR_SECTION;
-        }
-
-        if (AllocationAttributes & SEC_IMAGE)
-        {
-            // reference existing section or create a new one
-            UNIMPLEMENTED;
-        }
-        else
-        {
-            // reference existing section or create a new one
-            UNIMPLEMENTED;
-        }
+        Status = PHYSICAL_SECTION::ReferenceOrCreateFileSection(&Section,
+                                                                FileObject,
+                                                                AllocationAttributes);
     }
 
     /* Allocate a section object with the object manager */
@@ -193,7 +190,23 @@ MmGetFileNameForSection (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+ULONG
+CalculateFileAccess (
+    _In_ ULONG PageProtection)
+{
+    switch (PageProtection & 0xFF)
+    {
+        case PAGE_NOACCESS: return FILE_READ_DATA;
+        case PAGE_READONLY: return FILE_READ_DATA;
+        case PAGE_READWRITE: return FILE_READ_DATA | FILE_WRITE_DATA;
+        case PAGE_WRITECOPY: return FILE_READ_DATA;
+        case PAGE_EXECUTE: return FILE_EXECUTE;
+        case PAGE_EXECUTE_READ: return FILE_EXECUTE | FILE_READ_DATA;
+        case PAGE_EXECUTE_READWRITE: return FILE_EXECUTE | FILE_READ_DATA | FILE_WRITE_DATA;
+    }
 
+    return FILE_EXECUTE | FILE_READ_DATA | FILE_WRITE_DATA;
+}
 
 /** Exported API **************************************************************/
 
@@ -232,9 +245,10 @@ MmCreateSection (
                                                 ExGetPreviousMode(),
                                                 &FileObject);
 #endif
-        /// \todo properly calculate access
-        FileAccess = FILE_READ_DATA | FILE_WRITE_DATA | SYNCHRONIZE;
+        /* Calculate access mask */
+        FileAccess = CalculateFileAccess(SectionPageProtection);
 
+        /* Reference the file object */
         Status = ObReferenceObjectByHandle(FileHandle,
                                            FileAccess,
                                            IoFileObjectType,
@@ -268,7 +282,6 @@ MmCreateSection (
 
     return Status;
 }
-
 
 /** Syscall API ***************************************************************/
 
@@ -436,6 +449,92 @@ NtOpenSection (
     return Status;
 }
 
+VOID
+SECTION_OBJECT::QueryBasicInformation (
+    _Out_ PSECTION_BASIC_INFORMATION BasicInformation)
+{
+    BasicInformation->BaseAddress = m_Section->GetBaseAddress();
+    BasicInformation->Attributes = m_SectionFlags; /// CHECKME
+    BasicInformation->Size.QuadPart = m_SectionSize;
+}
+
+VOID
+SECTION_OBJECT::QueryImagenformation (
+    _Out_ PSECTION_IMAGE_INFORMATION ImageInformation)
+{
+    PSECTION_IMAGE_INFORMATION_EX ImageInformationEx;
+
+    /* Get the image information */
+    ImageInformationEx = m_Section->GetImageInformation();
+    if (ImageInformationEx != NULL)
+    {
+        RtlCopyMemory(ImageInformation, ImageInformationEx, sizeof(*ImageInformation));
+    }
+    else
+    {
+        //NT_ASSERT((m_SectionFlags & SEC_IMAGE) == 0);
+        RtlZeroMemory(ImageInformation, sizeof(*ImageInformation));
+    }
+}
+
+NTSTATUS
+NTAPI
+MmQuerySectionInformation (
+    _In_ PSECTION_OBJECT SectionObject,
+    _In_ enum _SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_ PVOID SectionInformation,
+    _In_ SIZE_T Length,
+    _Out_ PSIZE_T ResultLength)
+{
+    NTSTATUS Status;
+
+    switch (SectionInformationClass)
+    {
+    case SectionBasicInformation:
+
+            if (Length < sizeof(SECTION_BASIC_INFORMATION))
+            {
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            SectionObject->QueryBasicInformation((PSECTION_BASIC_INFORMATION)SectionInformation);
+            Status = STATUS_SUCCESS;
+            break;
+
+    case SectionImageInformation:
+
+            if (Length < sizeof(SECTION_IMAGE_INFORMATION))
+            {
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            SectionObject->QueryImagenformation((PSECTION_IMAGE_INFORMATION)SectionInformation);
+            Status = STATUS_SUCCESS;
+            break;
+
+    default:
+        return STATUS_INVALID_INFO_CLASS;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+// This should probably be a Ps function and use MmQuerySectionInformation
+VOID
+NTAPI
+MmGetImageInformation (
+    _Out_ PSECTION_IMAGE_INFORMATION ImageInformation)
+{
+    PSECTION_OBJECT SectionObject;
+
+    /* Get the section object of this process*/
+    SectionObject = static_cast<PSECTION_OBJECT>(PsGetCurrentProcess()->SectionObject);
+    NT_ASSERT(SectionObject != NULL);
+
+    /* Return the image information */
+    SectionObject->QueryImagenformation(ImageInformation);
+}
+
 NTSTATUS
 NTAPI
 NtQuerySection (
@@ -445,8 +544,87 @@ NtQuerySection (
     _In_ SIZE_T Length,
     _Out_ PSIZE_T ResultLength)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    KPROCESSOR_MODE PreviousMode;
+    PSECTION_OBJECT SectionObject;
+    PVOID SafeSectionInformation;
+    SIZE_T SafeLength;
+    NTSTATUS Status;
+    union
+    {
+        SECTION_BASIC_INFORMATION BasicInformation;
+        SECTION_IMAGE_INFORMATION ImageInformation;
+    } InfoBuffer;
+
+    /* Get the previous mode */
+    PreviousMode = ExGetPreviousMode();
+
+    /* Reference the section handle */
+    Status = ObReferenceObjectByHandle(SectionHandle,
+                                       SECTION_QUERY,
+                                       MmSectionObjectType,
+                                       PreviousMode,
+                                       (PVOID*)&SectionObject,
+                                       NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        //DPRINT1("Failed to reference the section handle\n");
+        /// set result length?
+        return Status;
+    }
+
+    /* Check the previous mode */
+    if (PreviousMode != KernelMode)
+    {
+        /* UserMode, use the stack buffer */
+        SafeSectionInformation = &InfoBuffer;
+        SafeLength = min(Length, sizeof(InfoBuffer));
+    }
+    else
+    {
+        /* KernelMode, use the provided buffer directly */
+        SafeSectionInformation = SectionInformation;
+        SafeLength = Length;
+    }
+
+    /* Call the internal function */
+    Status = MmQuerySectionInformation(SectionObject,
+                                       SectionInformationClass,
+                                       SafeSectionInformation,
+                                       SafeLength,
+                                       &SafeLength);
+
+    /* Dereference the section object */
+    ObDereferenceObject(SectionObject);
+
+    /* Check if we need to return the data */
+    if (NT_SUCCESS(Status))
+    {
+        if (PreviousMode != KernelMode)
+        {
+            _SEH2_TRY
+            {
+                if (ResultLength != NULL)
+                    *ResultLength = SafeLength;
+
+                /* Copy the data back to user mode */
+                RtlCopyMemory(SectionInformation,
+                              SafeSectionInformation,
+                              SafeLength);
+            }
+            _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+            {
+                Status = _SEH2_GetExceptionCode();
+            }
+            _SEH2_END;
+        }
+        else
+        {
+            if (ResultLength != NULL)
+                *ResultLength = SafeLength;
+        }
+    }
+
+    return Status;
 }
 
 

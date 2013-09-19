@@ -2,6 +2,7 @@
 #pragma once
 
 /* Hacks! */
+#define KeNumberProcessors _KeNumberProcessors
 #define IoFileObjectType _IoFileObjectType
 #define PsProcessType _PsProcessType
 #define KeEnterCriticalRegion _KeEnterCriticalRegion
@@ -38,9 +39,16 @@
 #define MinPtr(Ptr1, Ptr2) ((((ULONG_PTR)(Ptr1)) < ((ULONG_PTR)(Ptr2))) ? (Ptr1) : (Ptr2))
 #define AddressToVpn(Address) (((ULONG_PTR)(Address)) >> PAGE_SHIFT)
 #define VpnToAddress(Vpn)  ((PVOID)((Vpn) << PAGE_SHIFT))
+#define SetPointerMask(_Pointer, _Mask) \
+    ((PVOID)(((ULONG_PTR)(_Pointer)) | ((ULONG_PTR)(_Mask))))
+
+#define ClearPointerMask(_Pointer, _Mask) \
+    ((PVOID)(((ULONG_PTR)(_Pointer)) & ~((ULONG_PTR)(_Mask))))
+
 
 /* Debug macros */
-#define UNIMPLEMENTED __debugbreak()
+#define UNIMPLEMENTED DbgPrint("(%s:%d) WARNING: %s is UNIMPLEMENTED!\n", __FILE__, __LINE__, __FUNCTION__);
+#define UNIMPLEMENTED_DBGBREAK __debugbreak()
 #define ERR DbgPrint
 #define TRACE DbgPrint
 #ifdef _PREFAST_
@@ -223,4 +231,28 @@ ExAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)
 #define _SEH2_LEAVE
 #define _SEH2_VOLATILE volatile
 
+#undef PsGetCurrentProcess
+#define PsGetCurrentProcess() ((PEPROCESS)(PsGetCurrentThread()->Tcb.ApcState.Process))
+#define ExGetPreviousMode() KeGetCurrentPrcb()->CurrentThread->PreviousMode
 
+extern "C"
+VOID
+FASTCALL
+KeWaitForGate(
+    _In_ PKGATE Gate,
+    _In_ KWAIT_REASON WaitReason,
+    _In_ KPROCESSOR_MODE WaitMode);
+
+extern "C"
+VOID
+FASTCALL
+KeSignalGateBoostPriority (
+    PKGATE Gate);
+
+extern "C"
+NTSTATUS
+NTAPI
+SeInitializeProcessAuditName (
+    _In_ PFILE_OBJECT FileObject,
+    _In_ BOOLEAN DoAudit,
+    _Out_ POBJECT_NAME_INFORMATION *AuditInfo);

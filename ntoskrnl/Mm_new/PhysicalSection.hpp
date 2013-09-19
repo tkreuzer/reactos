@@ -1,5 +1,7 @@
 
+#include "linux/PhysicalSection.hpp"
 
+#if 0
 #pragma once
 
 #include "ntosbase.h"
@@ -52,6 +54,12 @@ typedef struct _SECTION_IMAGE_INFORMATION_EX : _SECTION_IMAGE_INFORMATION
     ULONG SizeOfImage;
 } SECTION_IMAGE_INFORMATION_EX, *PSECTION_IMAGE_INFORMATION_EX;
 
+typedef struct _SECTION_WAIT_BLOCK
+{
+    struct _SECTION_WAIT_BLOCK* Next;
+    KGATE Gate;
+} SECTION_WAIT_BLOCK, *PSECTION_WAIT_BLOCK;
+
 typedef struct _SECTION_FLAGS
 {
     ULONG Image : 1;
@@ -61,7 +69,7 @@ typedef struct _SECTION_FLAGS
 typedef struct _CONTROL_AREA
 {
     class SEGMENT* Segment;
-    PFILE_OBJECT FilePointer;
+    PFILE_OBJECT FileObject;
     struct _IMAGE_SECTION_HEADER* SectionHeaders;
     ULONG_PTR SizeInPages;
     ULONG_PTR NumberOfSectionReferences;
@@ -131,7 +139,8 @@ private:
     ~PHYSICAL_SECTION (
         VOID);
 
-    friend super;
+    //friend super;
+    friend class REF_OBJECT<PHYSICAL_SECTION, NonPagedPool, TAG_SECTION>;
     friend class MEMORY_MANAGER;
 
 public:
@@ -153,7 +162,15 @@ public:
 
     static
     NTSTATUS
+    ReferenceOrCreateFileSection (
+        _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
+        _Inout_ PFILE_OBJECT FileObject,
+        _In_ ULONG AllocationAttributes);
+
+    static
+    NTSTATUS
     CreateImageFileSection (
+        _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
         _In_ PFILE_OBJECT FileObject);
 
     inline
@@ -178,7 +195,7 @@ public:
         _In_ ULONG_PTR NumberOfPages,
         _In_ ULONG Protect);
 
-    VOID
+    NTSTATUS
     SetPageContent (
         _In_ ULONG_PTR RelativeStartingVpn,
         _In_ ULONG_PTR NumberOfPages,
@@ -202,7 +219,14 @@ public:
         _In_ ULONG_PTR RelativeStartingVpn,
         _In_ ULONG_PTR NumberOfPages);
 
+    VOID
+    RemoveMapping (
+        _In_ PVOID BaseAddress,
+        _In_ SIZE_T Size);
+
 };
 
 
 }; // namespace Mm
+
+#endif
