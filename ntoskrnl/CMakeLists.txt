@@ -277,6 +277,7 @@ list(APPEND SOURCE
     Mm_New/AddressSpace.cpp
     Mm_New/PageTables.cpp
     Mm_New/Paging.cpp
+    Mm_New/VadObject.cpp
     Mm_New/Stubs.cpp
     Mm_New/Cc/Stubs.cpp
 #########################

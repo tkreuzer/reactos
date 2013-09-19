@@ -134,6 +134,126 @@ PHYSICAL_SECTION::CreatePageFileSection (
     return STATUS_SUCCESS;
 }
 
+NTSTATUS
+PHYSICAL_SECTION::ReferenceOrCreateFileSection (
+    _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
+    _Inout_ PFILE_OBJECT FileObject,
+    _In_ ULONG AllocationAttributes)
+{
+    PSECTION_OBJECT_POINTERS SectionObjectPointers;
+    PVOID* SectionPointer;
+    PVOID Previous;
+    PPHYSICAL_SECTION PhysicalSection;//, PrevSection;
+    NTSTATUS Status;
+    SECTION_WAIT_BLOCK WaitBlock, *WaitBlockPointer;
+
+    /* Check if we have section pointers */
+    SectionObjectPointers = FileObject->SectionObjectPointer;
+    if (SectionObjectPointers == NULL)
+    {
+        return STATUS_INVALID_FILE_FOR_SECTION;
+    }
+
+    if (AllocationAttributes & SEC_IMAGE)
+    {
+        SectionPointer = &SectionObjectPointers->ImageSectionObject;
+    }
+    else
+    {
+        SectionPointer = &SectionObjectPointers->DataSectionObject;
+    }
+
+    /* Start looping */
+    for (;;)
+    {
+        /* Get the current value of the pointer and check what we have */
+        PhysicalSection = static_cast<PPHYSICAL_SECTION>(*SectionPointer);
+        if (PhysicalSection == NULL)
+        {
+            /* There is no section yet and noone is creating it currently.
+               Mark the pointer to express that creation is in progress. */
+            Previous = InterlockedCompareExchangePointer(SectionPointer,
+                                                            NULL,
+                                                            (PVOID)1);
+            if (Previous != NULL)
+            {
+                continue;
+            }
+
+            PhysicalSection = NULL;
+
+            /* Check if we need an image section or data section */
+            if (AllocationAttributes & SEC_IMAGE)
+            {
+                /* Create an image section */
+                Status = PHYSICAL_SECTION::CreateImageFileSection(&PhysicalSection,
+                                                                  FileObject);
+            }
+            else
+            {
+                /* Create a data section */
+            }
+
+            /* Exchange with the newly created section and check for waiters */
+            Previous = InterlockedExchangePointer(SectionPointer, PhysicalSection);
+            WaitBlockPointer = static_cast<PSECTION_WAIT_BLOCK>(ClearPointerMask(Previous, 1));
+
+            /* Loop while we have waiters */
+            while (WaitBlockPointer != NULL)
+            {
+                /* Wake up the waiter */
+                KeSignalGateBoostPriority(&WaitBlockPointer->Gate);
+                WaitBlockPointer = WaitBlockPointer->Next;
+            }
+
+            break;
+        }
+        else if (reinterpret_cast<ULONG_PTR>(PhysicalSection) & 1)
+        {
+            /* Section creation is in progress, enqueue a wait block */
+            WaitBlock.Next = static_cast<PSECTION_WAIT_BLOCK>(ClearPointerMask(PhysicalSection, 1));
+            Previous = InterlockedCompareExchangePointer(SectionPointer,
+                                                            PhysicalSection,
+                                                            SetPointerMask(&WaitBlock, 1));
+            if (Previous == PhysicalSection)
+            {
+                /* Exchange succeeded, wait on the wait block */
+                KeWaitForGate(&WaitBlock.Gate, Executive, KernelMode);
+            }
+        }
+        else if (reinterpret_cast<ULONG_PTR>(PhysicalSection) & 2)
+        {
+            /* There is a section, but it is locked, spin until it get's released */
+            KIRQL OldIrql = KfRaiseIrql(DISPATCH_LEVEL);
+
+            while (reinterpret_cast<ULONG_PTR>(*SectionPointer) & 2)
+                YieldProcessor();
+
+            KeLowerIrql(OldIrql);
+        }
+        else
+        {
+            /* There is a section. We need to acquire a spinlock to synchronize
+               with section deletion */
+            Previous = InterlockedCompareExchangePointer(SectionPointer,
+                                                            PhysicalSection,
+                                                            SetPointerMask(PhysicalSection, 2));
+            if (Previous == PhysicalSection)
+            {
+                /* Exchange succeeded, reference the section */
+                PhysicalSection->AddRef();
+                InterlockedExchangePointer(SectionPointer, Previous);
+                Status = STATUS_SUCCESS;
+                break;
+            }
+        }
+    }
+
+    /* Return the result */
+    *OutPhysicalSection = PhysicalSection;
+    return Status;
+}
+
 
 NTSTATUS
 PHYSICAL_SECTION::CommitPages (
@@ -144,11 +264,11 @@ PHYSICAL_SECTION::CommitPages (
     // Charge system commit
 
     /* Check if we have a file-backed section */
-    if (m_ControlArea.FilePointer != NULL)
+    //if (m_ControlArea.FilePointer != NULL)
     {
         UNIMPLEMENTED;
     }
-    else
+    //else
     {
         /* Commit demand zero pages */
         m_ControlArea.Segment->CommitDemandZeroPages(RelativeStartingVpn,
@@ -292,6 +412,14 @@ PHYSICAL_SECTION::GetMapping (
 }
 
 VOID
+PHYSICAL_SECTION::RemoveMapping (
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T Size)
+{
+    UNIMPLEMENTED;
+}
+
+NTSTATUS
 PHYSICAL_SECTION::SetPageContent (
     _In_ ULONG_PTR RelativeStartingVpn,
     _In_ ULONG_PTR NumberOfPages,
@@ -301,6 +429,7 @@ PHYSICAL_SECTION::SetPageContent (
     // get the page index
     // Status = Segment->SetPageContent(BasePageIndex, NumberOfPages, Buffer);
     UNIMPLEMENTED;
+    return -1;
 }
 
 NTSTATUS

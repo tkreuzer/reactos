@@ -22,11 +22,17 @@ public:
     const char*
     GetVadType () const;
 
+    virtual
+    ULONG
+    GetMemoryType (
+        VOID);
+
     static
     NTSTATUS
     CreateInstance (
         _Out_ SECTION_VIEW** OutSectionView,
-        _In_ class PHYSICAL_SECTION* Section);
+        _In_ class PHYSICAL_SECTION* Section,
+        _In_ ULONG Protect);
 
     NTSTATUS
     CreateMapping (

@@ -55,7 +55,17 @@ public:
     NTSTATUS
     ReserveVirtualMemory (
         _Inout_ PVOID* BaseAddress,
-        _In_ ULONG_PTR NumberOfPages);
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG Protect);
+
+    VOID
+    ReleaseVirtualMemory (
+        _Inout_ PVOID BaseAddress);
+
+    class VAD_OBJECT*
+    ReferenceVadObjectByAddress (
+        _In_ PVOID BaseAddress,
+        _In_ BOOLEAN AllowHigherVads);
 
 };
 

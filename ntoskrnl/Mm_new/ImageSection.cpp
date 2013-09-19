@@ -4,13 +4,29 @@
 #include "ntintsafe.h"
 #include <ndk/pstypes.h>
 
+#define DPRINT(...)
+
+#define AslrEnabled(NtHeaders) 0 /// For now disable ASLR
+    // (NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
+
 namespace Mm {
 
-VOID
+extern ULONG RandomNumberSeed;
+
+PSECTION_IMAGE_INFORMATION_EX
 GetSectionImageInformation (
-    _Out_ PSECTION_IMAGE_INFORMATION_EX ImageInfo,
     _In_ PIMAGE_NT_HEADERS NtHeaders)
 {
+    PSECTION_IMAGE_INFORMATION_EX ImageInfo;
+
+    /* Allocate image information from paged pool */
+    ImageInfo = static_cast<PSECTION_IMAGE_INFORMATION_EX>(
+        ExAllocatePoolWithTag(PagedPool, sizeof(*ImageInfo), 'iImM'));
+    if (ImageInfo == NULL)
+    {
+        return NULL;
+    }
+
     /* Fill in the fields */
     ImageInfo->ImageCharacteristics = NtHeaders->FileHeader.Characteristics;
     ImageInfo->Machine = NtHeaders->FileHeader.Machine;
@@ -18,7 +34,9 @@ GetSectionImageInformation (
     ImageInfo->SubSystemMinorVersion = NtHeaders->OptionalHeader.MinorSubsystemVersion;
     ImageInfo->SubSystemMajorVersion = NtHeaders->OptionalHeader.MajorSubsystemVersion;
     ImageInfo->DllCharacteristics = NtHeaders->OptionalHeader.DllCharacteristics;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
     ImageInfo->CheckSum = NtHeaders->OptionalHeader.CheckSum;
+#endif
     ImageInfo->SizeOfHeaders = NtHeaders->OptionalHeader.SizeOfHeaders;
     ImageInfo->SizeOfImage = NtHeaders->OptionalHeader.SizeOfImage;
 
@@ -50,9 +68,12 @@ GetSectionImageInformation (
     ImageInfo->ZeroBits = 0; /// \todo
     ImageInfo->ImageFileSize = 0; /// \todo
     ImageInfo->GpValue = 0; /// \todo
-    ImageInfo->ImageFlags = 0; /// \todo
     ImageInfo->ImageContainsCode = TRUE; /// \todo
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    ImageInfo->ImageFlags = 0; /// \todo
+#endif
 
+    return ImageInfo;
 }
 
 static
@@ -91,6 +112,7 @@ PageReadHelper (
     {
         /* Use the MDL on the stack */
         Mdl = &MdlBuffer.Mdl;
+        MmInitializeMdl(Mdl, *Buffer, *Size); /// move into if
     }
     else
     {
@@ -98,8 +120,7 @@ PageReadHelper (
         Mdl = IoAllocateMdl(*Buffer, *Size, FALSE, FALSE, NULL);
     }
 
-    /* Build an MDL for the file header */
-    MmInitializeMdl(Mdl, *Buffer, *Size);
+    /* Build an MDL from the pool allocation */
     MmBuildMdlForNonPagedPool(Mdl);
 
     /* Initialize the event */
@@ -116,6 +137,7 @@ PageReadHelper (
     if (!NT_SUCCESS(Status))
     {
         /// FIXME handle failure
+        __debugbreak();
     }
 
     /* Return the actual read size */
@@ -136,18 +158,7 @@ VerifyNtHeaders (
     }
 
     /* Check if this is a 32 or 64 bit PE header */
-    if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-    {
-        PIMAGE_OPTIONAL_HEADER64 OptionalHeader =
-            reinterpret_cast<PIMAGE_OPTIONAL_HEADER64>(&NtHeaders->OptionalHeader);
-
-        /* Check if we have a valid optional header size */
-        if (NtHeaders->FileHeader.SizeOfOptionalHeader < sizeof(*OptionalHeader))
-        {
-            return STATUS_INVALID_IMAGE_FORMAT;
-        }
-    }
-    else if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR_MAGIC)
+    if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR_MAGIC)
     {
         PIMAGE_OPTIONAL_HEADER32 OptionalHeader =
             reinterpret_cast<PIMAGE_OPTIONAL_HEADER32>(&NtHeaders->OptionalHeader);
@@ -158,6 +169,19 @@ VerifyNtHeaders (
             return STATUS_INVALID_IMAGE_FORMAT;
         }
     }
+#ifdef _Win64
+    else if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER64 OptionalHeader =
+            reinterpret_cast<PIMAGE_OPTIONAL_HEADER64>(&NtHeaders->OptionalHeader);
+
+        /* Check if we have a valid optional header size */
+        if (NtHeaders->FileHeader.SizeOfOptionalHeader < sizeof(*OptionalHeader))
+        {
+            return STATUS_INVALID_IMAGE_FORMAT;
+        }
+    }
+#endif /* _WIN64 */
     else
     {
         return STATUS_INVALID_IMAGE_FORMAT;
@@ -174,20 +198,19 @@ VerifySectionHeaders (
     _In_ ULONG FullHeaderSize,
     _In_ ULONG FileSize)
 {
-    ULONG NextRva, NumberOfSections, RawDataEnd;
+    ULONG NextRva, NumberOfSections, RawDataEnd, VirtualSize;
     NTSTATUS Status;
 
     NumberOfSections = NtHeaders->FileHeader.NumberOfSections;
 
     /* Calculate the required start of the next section */
-    NextRva = BYTES_TO_PAGES(FullHeaderSize);
+    NextRva = ALIGN_UP_BY(FullHeaderSize, PAGE_SIZE);
 
     /* Loop all section headers */
     for (ULONG i = 0; i < NumberOfSections; i++)
     {
-        /* Check if the RVA and size are page aligned */
-        if ((SectionHeaders[i].VirtualAddress & (PAGE_SIZE - 1)) ||
-            (SectionHeaders[i].Misc.VirtualSize & (PAGE_SIZE - 1)))
+        /* Check if the RVA is page aligned */
+        if (SectionHeaders[i].VirtualAddress & (PAGE_SIZE - 1))
         {
             return STATUS_INVALID_IMAGE_FORMAT;
         }
@@ -209,8 +232,17 @@ VerifySectionHeaders (
             return STATUS_INVALID_IMAGE_FORMAT;
         }
 
+        /* Calculate the virtual size of the section */
+        VirtualSize = ALIGN_UP_BY(SectionHeaders[i].Misc.VirtualSize, PAGE_SIZE);
+
+        /* Check if the raw size exceeds the virtual size */
+        if (SectionHeaders[i].SizeOfRawData > VirtualSize)
+        {
+            return STATUS_INVALID_IMAGE_FORMAT;
+        }
+
         /* Calculate the next section's RVA */
-        NextRva += SectionHeaders[i].Misc.VirtualSize;
+        NextRva += VirtualSize;
     }
 
     return STATUS_SUCCESS;
@@ -218,6 +250,7 @@ VerifySectionHeaders (
 
 NTSTATUS
 PHYSICAL_SECTION::CreateImageFileSection (
+    _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
     _In_ PFILE_OBJECT FileObject)
 {
     PVOID DosHeaderBuffer, NtHeadersBuffer;
@@ -231,9 +264,14 @@ PHYSICAL_SECTION::CreateImageFileSection (
     ULONG Size, SectorSize; //, AvailableHeaderSize;
     ULONG SizeOfSectionHeaders, NtHeaderSize, HeaderSize, FullHeaderSize;
     PVOID BaseAddress;
+    SCHAR AslrOffset;
+    UINT32 CommitSize;
+
+//__debugbreak();
 
     DosHeaderBuffer = NULL;
     NtHeadersBuffer = NULL;
+    BaseAddress = NULL;
     Section = NULL;
 
     /* Get the file size */
@@ -349,6 +387,10 @@ PHYSICAL_SECTION::CreateImageFileSection (
         goto Cleanup;
     }
 
+    /* Mark the section as an image section */
+    Section->m_ControlArea.Flags.Image = TRUE;
+    Section->m_ControlArea.FileObject = FileObject;
+
     /* Calculate the section header size */
     Status = RtlULongMult(NumberOfSections,
                           sizeof(IMAGE_SECTION_HEADER),
@@ -388,32 +430,82 @@ PHYSICAL_SECTION::CreateImageFileSection (
     /* Get the sector size */
     SectorSize = FileObject->DeviceObject->SectorSize;
 
+    /* Check if this is a 32 or 64 bit PE header */
+    if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER64 OptionalHeader =
+            reinterpret_cast<PIMAGE_OPTIONAL_HEADER64>(&NtHeaders->OptionalHeader);
+
+        /* Set Image base */
+        Section->m_ControlArea.BaseAddress = reinterpret_cast<PVOID>(OptionalHeader->ImageBase);
+    }
+    else if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER32 OptionalHeader =
+            reinterpret_cast<PIMAGE_OPTIONAL_HEADER32>(&NtHeaders->OptionalHeader);
+
+        /* Set Image base */
+        Section->m_ControlArea.BaseAddress = reinterpret_cast<PVOID>(OptionalHeader->ImageBase);
+    }
+
+    /* Check if ASLR is enabled */
+    if (AslrEnabled(NtHeaders))
+    {
+        /* Check if this is a DLL */
+        if (NtHeaders->FileHeader.Characteristics & IMAGE_FILE_DLL)
+        {
+            /* Use the constant ASLR offset */
+            AslrOffset = PHYSICAL_SECTION::DllImageBias;
+        }
+        else
+        {
+            /* Use new random ASLR offset */
+            AslrOffset = RtlRandomEx(&RandomNumberSeed) & 0xFF;
+        }
+
+        /* Adjust base address by ASLR offset */
+        Section->m_ControlArea.BaseAddress = AddToPointer(Section->m_ControlArea.BaseAddress,
+                                                          AslrOffset * 16 * PAGE_SIZE);
+    }
+
     /* Initialize the first subsection, which represents the file headers */
     Section->m_Subsections[0].StartingSector = 0;
     Section->m_Subsections[0].NumberOfFullSectors = FullHeaderSize / SectorSize;
     Section->m_Subsections[0].NumberOfPages = FullHeaderSize / PAGE_SIZE;
-
-    /* Set the contents of page 0 */
-    Section->SetPageContent(0, 1, DosHeaderBuffer);
-
-    /* If we read the NT headers, populate those 2 pages as well */
-    if (NtHeadersBuffer != NULL)
-    {
-        Section->SetPageContent(NtHeaderOffset / PAGE_SIZE, 2, NtHeadersBuffer);
-    }
-
-    /* Prefetch the rest of the pages for the file header */
-    Status = Section->PrefetchPages(0, FullHeaderSize / PAGE_SIZE);
-    if (!NT_SUCCESS(Status))
-    {
-        goto Cleanup;
-    }
+    Section->m_Subsections[0].Protect = MM_READONLY;
 
     /* Get a mapping for the full header */
-    Status = Section->GetMapping(&BaseAddress, 0, FullHeaderSize / SectorSize);
+    Status = Section->GetMapping(&BaseAddress, 0, FullHeaderSize / PAGE_SIZE);
     if (!NT_SUCCESS(Status))
     {
         goto Cleanup;
+    }
+
+    /* Copy the contents of page 0 */
+    RtlCopyMemory(BaseAddress, DosHeaderBuffer, PAGE_SIZE);
+
+    /* Check if the header is larger than 1 page (rare case) */
+    if (FullHeaderSize > PAGE_SIZE)
+    {
+        __debugbreak();
+
+        /// we may need to read more stuff in between!
+
+        /* If we read the NT headers, populate those 2 pages as well */
+        if (NtHeadersBuffer != NULL)
+        {
+            NtHeaders = 0;//AddToPointer(BaseAddress, NtHeaderOffset);
+            RtlCopyMemory(ALIGN_DOWN_POINTER_BY(NtHeaders, PAGE_SIZE),
+                          NtHeadersBuffer,
+                          2 * PAGE_SIZE);
+        }
+
+        /* Prefetch the rest of the pages for the file header */
+        Status = Section->PrefetchPages(0, FullHeaderSize / PAGE_SIZE);
+        if (!NT_SUCCESS(Status))
+        {
+            goto Cleanup;
+        }
     }
 
     /* Get the address of the Section headers in the header mapping */
@@ -441,14 +533,40 @@ PHYSICAL_SECTION::CreateImageFileSection (
             ((SectionHeaders[i].SizeOfRawData + SectorSize - 1) / SectorSize) +
             ((SectionHeaders[i].PointerToRawData & (SectorSize - 1)) ? 1 : 0);
         Section->m_Subsections[i + 1].NumberOfPages =
-            SectionHeaders[i].Misc.VirtualSize / PAGE_SIZE;
+            BYTES_TO_PAGES(SectionHeaders[i].Misc.VirtualSize);
         Section->m_Subsections[i + 1].RelativeStartingVpn =
             SectionHeaders[i].VirtualAddress / PAGE_SIZE;
 //        Section->m_Subsections[i + 1].SectionHeader =
 //            SectionHeadersOffset + i * sizeof(IMAGE_SECTION_HEADER);
+
+        /// FIXME this is pretty simplified
+        if (SectionHeaders[i].Characteristics & IMAGE_SCN_MEM_WRITE)
+            Section->m_Subsections[i + 1].Protect = MM_READWRITE;
+        else
+            Section->m_Subsections[i + 1].Protect = MM_READONLY;
+
+        DPRINT("Image subsection #%u, sect 0x%x, sectors %u, pages %u, vpn %u\n",
+                 i + 1,
+                 Section->m_Subsections[i + 1].StartingSector,
+                 Section->m_Subsections[i + 1].NumberOfFullSectors,
+                 Section->m_Subsections[i + 1].NumberOfPages,
+                 Section->m_Subsections[i + 1].RelativeStartingVpn);
     }
 
+    /* The section is now complete, commit the pages */
+    CommitSize = NtHeaders->OptionalHeader.SizeOfImage - FullHeaderSize;
+    Status = Section->CommitPages(FullHeaderSize / PAGE_SIZE,
+                                  BYTES_TO_PAGES(CommitSize),
+                                  -1);
+
     /* Get the section image information */
+    Section->m_ImageInformation = GetSectionImageInformation(NtHeaders);
+    if (Section->m_ImageInformation == NULL)
+    {
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Cleanup;
+    }
+
 //    GetSectionImageInformation(Section->m_ControlArea.Segment->ImageInformation,
 //                               NtHeaders);
 //    Section->m_ControlArea.Segment->GetSectionImageInformation(NtHeaders);
@@ -467,6 +585,12 @@ PHYSICAL_SECTION::CreateImageFileSection (
     }
 
 Cleanup:
+    if (BaseAddress != NULL)
+    {
+        NT_ASSERT(Section != NULL);
+        Section->RemoveMapping(BaseAddress, FullHeaderSize);
+    }
+
     if (NtHeadersBuffer != NULL)
     {
         ExFreePoolWithTag(NtHeadersBuffer, TAG_TEMP);
@@ -483,6 +607,7 @@ Cleanup:
             Section->Release();
     }
 
+    *OutPhysicalSection = Section;
     return Status;
 }
 

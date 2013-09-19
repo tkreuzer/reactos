@@ -52,7 +52,8 @@ SECTION_VIEW::GetVadType () const
 NTSTATUS
 SECTION_VIEW::CreateInstance (
     _Out_ SECTION_VIEW** OutSectionView,
-    _In_ PPHYSICAL_SECTION Section)
+    _In_ PPHYSICAL_SECTION Section,
+    _In_ ULONG Protect)
 {
     PSECTION_VIEW SectionView;
     NT_ASSERT(Section != NULL);
@@ -67,31 +68,55 @@ SECTION_VIEW::CreateInstance (
     }
 
     SectionView->m_Section = Section;
+    SectionView->m_Protect = Protect;
 
     *OutSectionView = SectionView;
     return STATUS_SUCCESS;
 }
 
+ULONG
+SECTION_VIEW::GetMemoryType (
+    VOID)
+{
+    SECTION_FLAGS SectionFlags;
+
+    SectionFlags = m_Section->GetSectionFlags();
+    if (SectionFlags.Image)
+        return MEM_IMAGE;
+    else
+        return MEM_MAPPED;
+}
+
 NTSTATUS
 SECTION_VIEW::CommitPages (
-    _In_ ULONG_PTR RelativeStartingVpn,
+    _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect)
 {
     NTSTATUS Status;
-    PVOID BaseAddress;
+    //PVOID BaseAddress;
+    ULONG_PTR EndingVpn;
 
     /// \todo check the range
 
-    BaseAddress = AddToPointer(GetBaseAddress(), RelativeStartingVpn * PAGE_SIZE);
+    /* Check parameter */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+    if ((NumberOfPages == 0) || (EndingVpn < StartingVpn))
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
 
-    Status = m_Section->CreateMapping(BaseAddress,
-                                      RelativeStartingVpn,
+    /* Check the range */
+    if ((StartingVpn < GetStartingVpn()) || (EndingVpn > GetEndingVpn()))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    Status = m_Section->CreateMapping(VpnToAddress(StartingVpn),
+                                      StartingVpn - GetStartingVpn(),
                                       NumberOfPages,
                                       Protect);
 
-    // get the SECTION
-    UNIMPLEMENTED;
     return Status;
 }
 
@@ -104,17 +129,6 @@ SECTION_VIEW::CreateMapping (
 {
     NTSTATUS Status;
 
-    /* Forward the mapping request to the section */
-    Status = m_Section->CreateMapping(GetBaseAddress(),
-                                      RelativeStartingVpn,
-                                      NumberOfPages,
-                                      Protect);
-    if (!NT_SUCCESS(Status))
-    {
-        ERR("Failed to create prototype PTE mapping: 0x%lx\n", Status);
-        return Status;
-    }
-
     /* Check if we shall commit pages */
     if (CommitSizeInPages != 0)
     {
@@ -126,6 +140,17 @@ SECTION_VIEW::CreateMapping (
             __debugbreak(); // we need to make sure that the memory gets unmapped!
             return Status;
         }
+    }
+
+    /* Forward the mapping request to the section */
+    Status = m_Section->CreateMapping(GetBaseAddress(),
+                                      RelativeStartingVpn,
+                                      NumberOfPages,
+                                      Protect);
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to create prototype PTE mapping: 0x%lx\n", Status);
+        return Status;
     }
 
     return STATUS_SUCCESS;
@@ -196,6 +221,7 @@ MapViewOfSection (
         LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
         HighestEndingVpn = AddressToVpn(SYSTEM_RANGE_END);
         BoundaryPageMultiple = 1;
+        Protect |= MM_GLOBAL;
     }
     else if (VaType == VaSessionSpace)
     {
@@ -203,7 +229,6 @@ MapViewOfSection (
         LowestStartingVpn = AddressToVpn(SESSION_SPACE_START);
         HighestEndingVpn = AddressToVpn(SESSION_VIEW_END);
         BoundaryPageMultiple = 1;
-        Protect |= MM_GLOBAL;
     }
     else
     {
@@ -224,7 +249,7 @@ MapViewOfSection (
     NT_ASSERT(Section != NULL);
 
     /* Create a section view VAD */
-    Status = SECTION_VIEW::CreateInstance(&SectionView, Section);
+    Status = SECTION_VIEW::CreateInstance(&SectionView, Section, Protect);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to create section view VAD: 0x%lx\n", Status);
@@ -440,7 +465,7 @@ MmMapViewOfSection (
     BOOLEAN Attached = FALSE;
     NTSTATUS Status;
 
-    /* Check if this the current process is requested */
+    /* Check if the current process is requested */
     if ((PKPROCESS)Process != KeGetCurrentThread()->ApcState.Process)
     {
         /* Foreign process, attach to it */
@@ -463,6 +488,7 @@ MmMapViewOfSection (
     /* Detach if required */
     if (Attached)
     {
+        /* Detach from the target process */
         KeUnstackDetachProcess(&SavedApcState);
     }
 
@@ -525,6 +551,8 @@ NtMapViewOfSection (
     KAPC_STATE SavedApcState;
     PEPROCESS Process;
     NTSTATUS Status;
+
+    Process = NULL;
 
     /* Check ZeroBits parameter */
     if (ZeroBits > 21)
@@ -602,13 +630,14 @@ NtMapViewOfSection (
         {
             return Status;
         }
-
-        /* Attach to it */
-        KeStackAttachProcess(&Process->Pcb, &SavedApcState);
     }
 
     /* Get the required access mask from the page protection */
-    DesiredAccess = SECTION_MAP_READ;
+    DesiredAccess = 0;
+    if (Win32Protect & PAGE_IS_READABLE)
+    {
+        DesiredAccess |= SECTION_MAP_READ;
+    }
     if (Win32Protect & PAGE_IS_WRITABLE)
     {
         DesiredAccess |= SECTION_MAP_WRITE;
@@ -627,7 +656,19 @@ NtMapViewOfSection (
                                        NULL);
     if (!NT_SUCCESS(Status))
     {
-        goto Cleanup;
+        if (Process != NULL)
+        {
+            /* Dereference process */
+            ObDereferenceObject(Process);
+        }
+        return Status;
+    }
+
+    /* Check if we have a process */
+    if (Process != NULL)
+    {
+        /* Attach to it */
+        KeStackAttachProcess(&Process->Pcb, &SavedApcState);
     }
 
     /* Call the internal function */
@@ -641,6 +682,17 @@ NtMapViewOfSection (
                               InheritDisposition,
                               AllocationType,
                               Win32Protect);
+
+    /* Check if we attached to a process */
+    if (Process != NULL)
+    {
+        /* Detach and dereference the process */
+        KeUnstackDetachProcess(&SavedApcState);
+        ObDereferenceObject(Process);
+    }
+
+    /* Dereference the section object */
+    ObDereferenceObject(SectionObject);
 
     if (NT_SUCCESS(Status))
     {
@@ -668,18 +720,6 @@ NtMapViewOfSection (
             if (SectionOffset != NULL)
                 *SectionOffset = SafeSectionOffset;
         }
-    }
-
-    /* Dereference the section object */
-    ObDereferenceObject(SectionObject);
-
-Cleanup:
-
-    if (ProcessHandle != NtCurrentProcess())
-    {
-        /* Detach and dereference process */
-        KeUnstackDetachProcess(&SavedApcState);
-        ObDereferenceObject(Process);
     }
 
     return Status;

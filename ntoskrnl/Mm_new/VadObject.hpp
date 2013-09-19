@@ -10,7 +10,7 @@ typedef struct VAD_NODE
     /* For now use a simple LIST_ENTRY */
     LIST_ENTRY ListEntry;
 
-    /* Starting and ending VPN - EndingVpn = StartingVpn + PageCount - 1 */
+    /* Starting and ending VPN (EndingVpn = StartingVpn + PageCount - 1) */
     ULONG_PTR StartingVpn;
     ULONG_PTR EndingVpn;
 } VAD_NODE, *PVAD_NODE;
@@ -19,7 +19,6 @@ typedef struct VAD_NODE
 class VAD_OBJECT : private VAD_NODE
 {
 private:
-
     /* Reference count */
     LONG m_RefCount;
 
@@ -28,6 +27,9 @@ private:
 
     /* The VAD table needs to access the VAD_NODE */
     friend class VAD_TABLE;
+
+protected:
+    ULONG m_Protect;
 
 protected:
 
@@ -46,6 +48,12 @@ protected:
     }
 
 public:
+
+    static
+    NTSTATUS
+    CreateInstance (
+        _Out_ VAD_OBJECT** OutVadObject,
+        _In_ ULONG Protect);
 
     inline
     ULONG_PTR
@@ -72,6 +80,14 @@ public:
     }
 
     inline
+    ULONG
+    GetProtect (
+        VOID)
+    {
+        return m_Protect;
+    }
+
+    inline
     LONG
     AddRef (
         VOID)
@@ -92,16 +108,23 @@ public:
         return NewRefCount;
     }
 
-    inline
-    VAD_OBJECT*
-    GetVadObject ()
-    {
-        return this;
-    }
+    virtual
+    ULONG
+    GetMemoryType (
+        VOID);
 
     virtual
     const char*
-    GetVadType () const = 0;
+    GetVadType (
+        VOID) const;
+
+    virtual
+    NTSTATUS
+    CommitPages (
+        _In_ ULONG_PTR StartingVpn,
+        _In_ ULONG_PTR NumberOfPages,
+        _In_ ULONG Protect);
+
 
 #if 0
     virtual

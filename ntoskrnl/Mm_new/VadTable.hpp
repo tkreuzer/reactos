@@ -86,6 +86,10 @@ public:
     ReferenceVadObjectByAddress (
         PVOID Address);
 
+    _Must_inspect_result_
+    class VAD_OBJECT*
+    GetVadObjectByAddress (
+        PVOID Address);
 
 };
 

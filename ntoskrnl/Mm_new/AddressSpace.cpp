@@ -12,7 +12,6 @@ namespace Mm {
 
 PADDRESS_SPACE g_SystemProcessAddressSpace;
 ADDRESS_SPACE g_KernelAddressSpace;
-VAD_TABLE g_KernelVadTable;
 
 inline
 ADDRESS_SPACE::ADDRESS_SPACE_TYPE
@@ -101,8 +100,13 @@ ADDRESS_SPACE::AcquireAddressCreationLock (
     ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
     if (AddressSpaceType == ProcessAddressSpace)
     {
+        PEPROCESS Process = CONTAINING_RECORD(&m_Support, EPROCESS, Vm);
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
         KeEnterGuardedRegion();
-        ExAcquirePushLockExclusive(&m_Support.WorkingSetMutex);
+        ExAcquirePushLockExclusive(&Process->AddressCreationLock);
+#else
+        KeAcquireGuardedMutex(&Process->AddressCreationLock);
+#endif
         return 0;
     }
     else if (AddressSpaceType == SessionAddressSpace)
@@ -124,8 +128,13 @@ ADDRESS_SPACE::ReleaseAddressCreationLock (
 
     if (AddressSpaceType == ProcessAddressSpace)
     {
-        ExReleasePushLock(&m_Support.WorkingSetMutex);
+        PEPROCESS Process = CONTAINING_RECORD(&m_Support, EPROCESS, Vm);
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+        ExReleasePushLock(&Process->AddressCreationLock);
         KeLeaveGuardedRegion();
+#else
+        KeReleaseGuardedMutex(&Process->AddressCreationLock);
+#endif
     }
     else if (AddressSpaceType == SessionAddressSpace)
     {
@@ -137,24 +146,32 @@ ADDRESS_SPACE::ReleaseAddressCreationLock (
     }
 }
 
+
 NTSTATUS
 ADDRESS_SPACE::ReserveVirtualMemory (
     _Inout_ PVOID* BaseAddress,
-    _In_ ULONG_PTR NumberOfPages)
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect)
 {
     ADDRESS_SPACE_TYPE AddressSpaceType = GetAddressSpaceType();
     ULONG_PTR LowestStartingVpn, HighestEndingVpn;
     PVAD_TABLE VadTable;
     PVAD_OBJECT VadObject;
     NTSTATUS Status;
+    KIRQL OldIrql;
 
     if (AddressSpaceType == ProcessAddressSpace)
     {
         PEPROCESS Process = CONTAINING_RECORD(&m_Support, EPROCESS, Vm);
         VadTable = reinterpret_cast<class VAD_TABLE*>(&Process->VadRoot);
-        LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
-        HighestEndingVpn = AddressToVpn(MmHighestSystemAddress);
-        UNIMPLEMENTED;
+        LowestStartingVpn = 0x10;
+        HighestEndingVpn = AddressToVpn(MmHighestUserAddress);
+
+        Status = VAD_OBJECT::CreateInstance(&VadObject, Protect);
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
     }
     else if (AddressSpaceType == SessionAddressSpace)
     {
@@ -177,9 +194,14 @@ ADDRESS_SPACE::ReserveVirtualMemory (
         }
     }
 
+    /* Acquire address creation lock */
+    OldIrql = AcquireAddressCreationLock();
+
     if (*BaseAddress != NULL)
     {
-        UNIMPLEMENTED;
+        Status = VadTable->InsertVadObjectAtVpn(VadObject,
+                                                AddressToVpn(*BaseAddress),
+                                                NumberOfPages);
     }
     else
     {
@@ -190,6 +212,9 @@ ADDRESS_SPACE::ReserveVirtualMemory (
                                            1,
                                            FALSE);
     }
+
+    /* Release address creation lock */
+    ReleaseAddressCreationLock(OldIrql);
 
     if (!NT_SUCCESS(Status))
     {
@@ -202,6 +227,68 @@ ADDRESS_SPACE::ReserveVirtualMemory (
 
     return STATUS_SUCCESS;
 }
+
+VOID
+ADDRESS_SPACE::ReleaseVirtualMemory (
+    _Inout_ PVOID BaseAddress)
+{
+    PVAD_TABLE VadTable;
+    PVAD_OBJECT VadObject;
+    KIRQL OldIrql;
+
+    /* Get the VAD table */
+    VadTable = GetVadTable();
+
+    /* Acquire address creation lock */
+    OldIrql = AcquireAddressCreationLock();
+
+    /* Get the VAD object for this allocation */
+    VadObject = VadTable->GetVadObjectByAddress(BaseAddress);
+    NT_ASSERT(VadObject && VadObject->GetBaseAddress() == BaseAddress);
+    VadTable->RemoveVadObject(VadObject);
+
+    /* Release address creation lock */
+    ReleaseAddressCreationLock(OldIrql);
+
+    VadObject->Release();
+}
+
+PVAD_OBJECT
+ADDRESS_SPACE::ReferenceVadObjectByAddress (
+    _In_ PVOID BaseAddress,
+    _In_ BOOLEAN AllowHigherVads)
+{
+    PVAD_TABLE VadTable;
+    PVAD_OBJECT VadObject;
+    KIRQL OldIrql;
+
+    /* Get the VAD table */
+    VadTable = GetVadTable();
+
+    /* Acquire address creation lock */
+    OldIrql = AcquireAddressCreationLock();
+
+    /* Get the VAD object for this allocation */
+    VadObject = VadTable->GetVadObjectByAddress(BaseAddress);
+    if (VadObject != NULL)
+    {
+        /* Check if this VAD is what we want */
+        if (AllowHigherVads || (VadObject->GetBaseAddress() <= BaseAddress))
+        {
+            VadObject->AddRef();
+        }
+        else
+        {
+            VadObject = NULL;
+        }
+    }
+
+    /* Release address creation lock */
+    ReleaseAddressCreationLock(OldIrql);
+
+    return VadObject;
+}
+
 
 }; // namespace Mm
 

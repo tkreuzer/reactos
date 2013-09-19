@@ -62,13 +62,13 @@ SIZE_T MmSharedCommit;
 SIZE_T MmDriverCommit;
 SIZE_T MmProcessCommit;
 SIZE_T MmPagedPoolCommit;
-SIZE_T MmPeakCommitment;
+//SIZE_T MmPeakCommitment;
 MMPFNLIST MmZeroedPageListHead;
 MMPFNLIST MmFreePageListHead;
 MMPFNLIST MmStandbyPageListHead;
 MMPFNLIST MmModifiedPageListHead;
 MMPFNLIST MmModifiedNoWritePageListHead;
-SIZE_T MmMaximumNonPagedPoolInBytes;
+//SIZE_T MmMaximumNonPagedPoolInBytes;
 PVOID MmNonPagedSystemStart;
 PVOID MmNonPagedPoolStart;
 PVOID MmNonPagedPoolEnd;
@@ -82,6 +82,13 @@ PFN_NUMBER MmLowestPhysicalPage;
 PFN_NUMBER MmHighestPhysicalPage;
 PFN_NUMBER MmAvailablePages;
 LIST_ENTRY MmLoadedUserImageList;
+
+SIZE_T MmHeapSegmentCommit;
+SIZE_T MmHeapSegmentReserve;
+SIZE_T MmHeapDeCommitFreeBlockThreshold;
+SIZE_T MmHeapDeCommitTotalFreeThreshold;
+SIZE_T MmMinimumStackCommitInBytes;
+ULONG MmCritsectTimeoutSeconds;
 
 /* Fr thread.c */
 ULONG MmReadClusterSize;

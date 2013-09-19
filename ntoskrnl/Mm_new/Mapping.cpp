@@ -90,6 +90,39 @@ ConvertProtectAndCaching (
     return ConvertProtect(Win32Protect);
 }
 
+const ULONG ProtectToWin32[8] =
+{
+    PAGE_NOACCESS, // MM_INVALID
+    PAGE_READONLY, // MM_READONLY
+    PAGE_EXECUTE, // MM_EXECUTE
+    PAGE_EXECUTE_READ, // MM_EXECUTE_READ
+    PAGE_READWRITE, // MM_READWRITE
+    PAGE_WRITECOPY, // MM_WRITECOPY
+    PAGE_EXECUTE_READWRITE, // MM_EXECUTE_READWRITE
+    PAGE_EXECUTE_WRITECOPY, // MM_EXECUTE_WRITECOPY
+};
+
+const ULONG ProtectToWin32Flags[32] =
+{
+    0, // -
+    PAGE_NOCACHE, // MM_UNCACHED
+    PAGE_GUARD, // MM_GUARDPAGE
+    PAGE_WRITECOMBINE, // MM_WRITECOMBINE
+};
+
+ULONG
+ConvertProtectToWin32 (
+    _In_ ULONG Protect)
+{
+    /* Check for all No-access cases */
+    if ((Protect & 0x7) == MM_INVALID)
+        return PAGE_NOACCESS;
+
+    /* Otherwise use actual protection and flags */
+    return ProtectToWin32[Protect & 0x7] |
+           ProtectToWin32Flags[(Protect >> 3) & 3];
+}
+
 ULONG_PTR
 CalculateMaximumNumberOfPageTables (
     _In_ ULONG_PTR StartingVpn,
@@ -849,6 +882,25 @@ UnmapPages (
     AddressSpace->ReleaseWorkingSetLock();
 }
 
+NTSTATUS
+ProtectVirtualMemory (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect,
+    _Out_ PULONG OutOldProtect)
+{
+    UNIMPLEMENTED;
+    return STATUS_UNSUCCESSFUL;
+}
+
+VOID
+CheckVirtualMapping (
+    _In_ PVOID BaseAddress,
+    _Out_ PSIZE_T OutRegionSize,
+    _Out_ PULONG OutProtect)
+{
+    UNIMPLEMENTED;
+}
 
 /// ****************************************************************************
 
@@ -1001,8 +1053,6 @@ MmMapLockedPagesSpecifyCache (
     ULONG Protect;
     NTSTATUS Status;
 
-if (Mdl == (PVOID)0xfffffa80001f7e20ULL) __debugbreak();
-
     /* Make sure the MDL is not yet mapped */
     ASSERT(!(Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA));
 
@@ -1023,7 +1073,9 @@ if (Mdl == (PVOID)0xfffffa80001f7e20ULL) __debugbreak();
 
     NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(Mdl->StartVa, Mdl->ByteCount);
 
-    Status = AddressSpace->ReserveVirtualMemory(&BaseAddress, NumberOfPages);
+    Status = AddressSpace->ReserveVirtualMemory(&BaseAddress,
+                                                NumberOfPages,
+                                                Protect);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to reserve virtual memory\n");

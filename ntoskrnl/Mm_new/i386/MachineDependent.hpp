@@ -28,7 +28,11 @@ enum _ADDRESS_SPACE
 //static const ULONG64 SESSION_SPACE_END          = 0xFFFFF97FFFFFFFFFULL;
 //static const ULONG64 SYSTEM_SPACE_START         = 0xFFFFF98000000000ULL;
     SHARED_SYSTEM_PAGE         = 0xFFC00000,
+#ifdef __linux__
+    SYSTEM_RANGE_END           = 0xBFFFFFFF,
+#else
     SYSTEM_RANGE_END           = 0xFFFFFFFF,
+#endif
 //static const ULONG64 HIGHEST_SYSTEM_ADDRESS     = 0xFFFFFFFFFFFFFFFFULL;
 };
 

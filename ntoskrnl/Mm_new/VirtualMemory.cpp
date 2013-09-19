@@ -1,5 +1,99 @@
 
-#include "ntosbase.h"
+#include "VirtualMemory.hpp"
+#include "AddressSpace.hpp"
+#include "VadObject.hpp"
+#include "Mapping.hpp"
+#include <ndk/ketypes.h>
+#include <ndk/pstypes.h>
+
+namespace Mm {
+
+_Must_inspect_result_
+_At_(*BaseAddress, __drv_allocatesMem(Mem))
+__kernel_entry
+NTSTATUS
+AllocateVirtualMemory (
+    _Inout_ _Outptr_result_buffer_(*RegionSize) PVOID *BaseAddress,
+    _In_ ULONG_PTR ZeroBits,
+    _Inout_ PSIZE_T RegionSize,
+    _In_ ULONG AllocationType,
+    _In_ ULONG Protect)
+{
+    PADDRESS_SPACE AddressSpace;
+    PVOID AlignedBaseAddress, EndAddress;
+    ULONG_PTR Granularity;
+    ULONG_PTR NumberOfPages;
+    NTSTATUS Status;
+    VAD_OBJECT* VadObject;
+
+    /* Calculate the end-address and align it to pages granularity */
+    EndAddress = AddToPointer(*BaseAddress, *RegionSize);
+    EndAddress = ALIGN_UP_POINTER_BY(EndAddress, PAGE_SIZE);
+
+    /* Align down the base address to page/allocation granularity */
+    Granularity = (AllocationType & MEM_RESERVE) ? 64 * 1024 : PAGE_SIZE;
+    AlignedBaseAddress = ALIGN_DOWN_POINTER_BY(*BaseAddress, Granularity);
+
+    /* We cannot allocate at address 0! */
+    if ((*BaseAddress != NULL) && (AlignedBaseAddress == NULL))
+    {
+        ERR("Tried to allocate at address 0\n");
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Save the aligned base address */
+    *BaseAddress = AlignedBaseAddress;
+
+    /* Calculate the size of the aligned region */
+    *RegionSize = reinterpret_cast<ULONG_PTR>(EndAddress) -
+                  reinterpret_cast<ULONG_PTR>(*BaseAddress);
+    NumberOfPages = BYTES_TO_PAGES(*RegionSize);
+
+    /* Get current process address space */
+    AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+
+    /* Check if we need to reserve memory */
+    if (AllocationType & MEM_RESERVE)
+    {
+        /* Reserve memory */
+        Status = AddressSpace->ReserveVirtualMemory(BaseAddress,
+                                                    NumberOfPages,
+                                                    Protect);
+        if (!NT_SUCCESS(Status))
+        {
+            __debugbreak();
+            return Status;
+        }
+    }
+    //else
+    {
+        /// find VAD for address
+        VadObject = AddressSpace->ReferenceVadObjectByAddress(*BaseAddress, FALSE);
+        if (VadObject == NULL)
+        {
+            ERR("Trying to commit memory that was not reserved!");
+            return STATUS_CONFLICTING_ADDRESSES;
+        }
+    }
+
+    /* Check if we need to commit memory */
+    if (AllocationType & MEM_COMMIT)
+    {
+        /// FIXME: we should instead use VadObject->Commit
+        VadObject->CommitPages(AddressToVpn(*BaseAddress), NumberOfPages, Protect);
+        if (!NT_SUCCESS(Status))
+        {
+            /* Did we also reserve? */
+            if (AllocationType & MEM_RESERVE)
+            {
+                /* Release the reserved memory as well */
+                AddressSpace->ReleaseVirtualMemory(*BaseAddress);
+            }
+        }
+    }
+
+    return 0;
+}
 
 extern "C" {
 
@@ -25,6 +119,7 @@ MmUnsecureVirtualMemory (
     UNIMPLEMENTED;
 }
 
+
 /*!
     \param AllocationType -
         The lowest 5 bits encode the NUMA node, if all 5 bits are 0, the ideal
@@ -42,16 +137,120 @@ NtAllocateVirtualMemory (
     _In_ ULONG_PTR ZeroBits,
     _Inout_ PSIZE_T RegionSize,
     _In_ ULONG AllocationType,
-    _In_ ULONG Protect)
+    _In_ ULONG Win32Protect)
 {
+    KPROCESSOR_MODE PreviousMode;
+    PVOID CapturedBaseAddress;
+    SIZE_T CapturedRegionSize;
+    KAPC_STATE SavedApcState;
+    PEPROCESS Process;
+    ULONG Protect;
+    NTSTATUS Status;
+
     // Check parameters
-    // Probe and copy pointer data
-    // reference the process (or NULL for NtCurrentProcess())
-    // call internal function
-    // dereference the process
-    // return pointer parameters
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+
+    //__debugbreak();
+
+    /* Get the previous mode and check if this was user mode */
+    PreviousMode = ExGetPreviousMode();
+    if (PreviousMode != KernelMode)
+    {
+        /* Called from user mode, use SEH to access parameters */
+        _SEH2_TRY
+        {
+            ProbeForWrite(BaseAddress, sizeof(*BaseAddress), sizeof(*BaseAddress));
+            CapturedBaseAddress = *BaseAddress;
+            ProbeForWrite(RegionSize, sizeof(*RegionSize), sizeof(*RegionSize));
+            CapturedRegionSize = *RegionSize;
+        }
+        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+            /* Return the exception code */
+            _SEH2_YIELD(return _SEH2_GetExceptionCode());
+        }
+        _SEH2_END;
+    }
+    else
+    {
+        /* Kernel mode, just copy the parameters */
+        CapturedBaseAddress = *BaseAddress;
+        CapturedRegionSize = *RegionSize;
+    }
+
+    /* Check if the current process is specified */
+    //DbgPrint("NtAllocateVirtualMemory: ProcessHandle = %p\n", ProcessHandle);
+    if (ProcessHandle != NtCurrentProcess())
+    {
+        //DbgPrint("-- before debugbreak\n");
+        /* Reference the process object */
+        Status = ObReferenceObjectByHandle(ProcessHandle,
+                                           PROCESS_VM_OPERATION,
+                                           PsProcessType,
+                                           PreviousMode,
+                                           reinterpret_cast<PVOID*>(&Process),
+                                           NULL);
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
+
+        /* Attach to it */
+        KeStackAttachProcess(&Process->Pcb, &SavedApcState);
+
+        //__debugbreak();
+        //DbgPrint("-- after debugbreak\n");
+        //__debugbreak();
+    }
+
+    /* Check if address should be chosen automatically */
+    if (CapturedBaseAddress == NULL)
+    {
+        /* This means the caller wants to reserve memory */
+        AllocationType |= MEM_RESERVE;
+    }
+
+    Protect = ConvertProtect(Win32Protect);
+
+    /* Call the internal function */
+    Status = AllocateVirtualMemory(&CapturedBaseAddress,
+                                   ZeroBits,
+                                   &CapturedRegionSize,
+                                   AllocationType,
+                                   Win32Protect);
+
+    /* Check if we attached to a process */
+    if (ProcessHandle != NtCurrentProcess())
+    {
+        /* Detach and dereference process */
+        KeUnstackDetachProcess(&SavedApcState);
+        ObDereferenceObject(Process);
+    }
+
+    if (NT_SUCCESS(Status))
+    {
+        if (PreviousMode != KernelMode)
+        {
+            /* Use SEH to copy the data back (pointers are already probed) */
+            _SEH2_TRY
+            {
+                *BaseAddress = CapturedBaseAddress;
+                *RegionSize = CapturedRegionSize;
+            }
+            _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+            {
+                //ERR("Could not
+                _SEH2_YIELD(return _SEH2_GetExceptionCode();)
+            }
+            _SEH2_END;
+        }
+        else
+        {
+            *BaseAddress = CapturedBaseAddress;
+            *RegionSize = CapturedRegionSize;
+        }
+    }
+
+    return Status;
 }
 
 __kernel_entry
@@ -82,6 +281,7 @@ NtFlushVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -91,17 +291,228 @@ NtProtectVirtualMemory (
     _In_ PVOID *BaseAddress,
     _In_ SIZE_T *NumberOfBytesToProtect,
     _In_ ULONG NewAccessProtection,
-    _Out_ PULONG OldAccessProtection)
+    _Out_ PULONG OutOldAccessProtection)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    PEPROCESS Process;
+    ULONG OldAccessProtection;
+    ULONG Protection;
+    PVOID CapturedBaseAddress = NULL;
+    SIZE_T NumberOfBytes = 0;
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    NTSTATUS Status;
+    BOOLEAN Attached = FALSE;
+    KAPC_STATE ApcState;
+    ULONG Protect;
+    ULONG NumberOfPages;
+    PAGED_CODE();
+
+//__debugbreak();
+
+    /* Check for valid protection flags */
+    Protection = NewAccessProtection & ~(PAGE_GUARD|PAGE_NOCACHE);
+    if (Protection != PAGE_NOACCESS &&
+        Protection != PAGE_READONLY &&
+        Protection != PAGE_READWRITE &&
+        Protection != PAGE_WRITECOPY &&
+        Protection != PAGE_EXECUTE &&
+        Protection != PAGE_EXECUTE_READ &&
+        Protection != PAGE_EXECUTE_READWRITE &&
+        Protection != PAGE_EXECUTE_WRITECOPY)
+    {
+        return STATUS_INVALID_PAGE_PROTECTION;
+    }
+
+    /* Check if we came from user mode */
+    if (PreviousMode != KernelMode)
+    {
+        // Enter SEH for probing
+        _SEH2_TRY
+        {
+            // Validate all outputs
+            ProbeForWrite(BaseAddress, sizeof(PVOID), sizeof(PVOID));
+            ProbeForWrite(NumberOfBytesToProtect, sizeof(SIZE_T), sizeof(SIZE_T));
+            ProbeForWrite(OutOldAccessProtection, sizeof(ULONG), sizeof(ULONG));
+
+            // Capture them
+            CapturedBaseAddress = *BaseAddress;
+            NumberOfBytes = *NumberOfBytesToProtect;
+        }
+        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+            _SEH2_YIELD(return _SEH2_GetExceptionCode());
+        }
+        _SEH2_END;
+    }
+    else
+    {
+        // Capture directly
+        CapturedBaseAddress = *BaseAddress;
+        NumberOfBytes = *NumberOfBytesToProtect;
+    }
+
+    // Catch illegal base address
+    if (CapturedBaseAddress > MmHighestUserAddress)
+    {
+        return STATUS_INVALID_PARAMETER_2;
+    }
+
+    /* Check if the size is valid */
+    if ((NumberOfBytes == 0) ||
+        ((MmUserProbeAddress - (ULONG_PTR)CapturedBaseAddress) < NumberOfBytes))
+    {
+        return STATUS_INVALID_PARAMETER_3;
+    }
+
+    /* Check if we have a foreign process */
+    if (ProcessHandle != NtCurrentProcess())
+    {
+        /* Reference the process */
+        Status = ObReferenceObjectByHandle(ProcessHandle,
+                                           PROCESS_VM_OPERATION,
+                                           PsProcessType,
+                                           PreviousMode,
+                                           (PVOID*)(&Process),
+                                           NULL);
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
+
+        /* Attach to the process */
+        KeStackAttachProcess(&Process->Pcb, &ApcState);
+        Attached = TRUE;
+    }
+
+    Protect = ConvertProtect(NewAccessProtection);
+
+    /* Calculate page aligned values */
+    NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(CapturedBaseAddress, NumberOfBytes);
+    NumberOfBytes = NumberOfPages * PAGE_SIZE;
+    CapturedBaseAddress = ALIGN_DOWN_POINTER_BY(CapturedBaseAddress, PAGE_SIZE);
+
+    // Do the actual work
+    Status = ProtectVirtualMemory(AddressToVpn(CapturedBaseAddress),
+                                  NumberOfPages,
+                                  Protect,
+                                  &Protect);
+
+    OldAccessProtection = ConvertProtectToWin32(Protect);
+
+    /* Check if we need to detach from the process */
+    if (ProcessHandle != NtCurrentProcess())
+    {
+        KeUnstackDetachProcess(&ApcState);
+        ObDereferenceObject(Process);
+    }
+
+    /* Check if we came from user mode */
+    if (PreviousMode != KernelMode)
+    {
+        // Enter SEH to return data
+        _SEH2_TRY
+        {
+            // Return data to user
+            *OutOldAccessProtection = OldAccessProtection;
+            *BaseAddress = CapturedBaseAddress;
+            *NumberOfBytesToProtect = NumberOfBytes;
+        }
+        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
+        _SEH2_END;
+    }
+    else
+    {
+        *OutOldAccessProtection = OldAccessProtection;
+        *BaseAddress = CapturedBaseAddress;
+        *NumberOfBytesToProtect = NumberOfBytes;
+    }
+
+    // Return status
+    return Status;
 }
 
-/// HACK for stupid GCC
-enum _MEMORY_INFORMATION_CLASS
+NTSTATUS
+QueryMemoryBasicInformation (
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_BASIC_INFORMATION Information,
+    _In_ SIZE_T BufferSize)
 {
-    Test,
-};
+    PADDRESS_SPACE AddressSpace;
+    PVAD_OBJECT VadObject;
+    ULONG Protect;
+    PVOID VadBaseAddress, EndAddress;
+
+    /* Get current process address space */
+    AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+
+    /// find VAD for address
+    VadObject = AddressSpace->ReferenceVadObjectByAddress(BaseAddress, TRUE);
+
+    if (VadObject != NULL)
+    {
+        /* Get the VAD's base address */
+        VadBaseAddress = VadObject->GetBaseAddress();
+
+        /* Check if the given address is within this VAD */
+        if (VadBaseAddress <= BaseAddress)
+        {
+            /* We found the VAD, use it's information */
+            Information->BaseAddress = ALIGN_DOWN_POINTER_BY(BaseAddress, PAGE_SIZE);
+            Information->AllocationBase = VadBaseAddress;
+            Information->AllocationProtect = ConvertProtectToWin32(VadObject->GetProtect());
+            Information->Type = VadObject->GetMemoryType();
+
+            /* Check the actual mappings */
+            CheckVirtualMapping(Information->BaseAddress,
+                                &Information->RegionSize,
+                                &Protect);
+            Information->Protect = ConvertProtectToWin32(Protect);
+            Information->State = (Protect == MM_INVALID) ? MEM_FREE : MEM_PRIVATE;
+
+            /* Release the VAD object */
+            VadObject->Release();
+
+            return STATUS_SUCCESS;
+        }
+        else
+        {
+            /* This is the hext higher VAD, the region ends at it's base address */
+            EndAddress = VadBaseAddress;
+        }
+
+        /* Release the VAD object */
+        VadObject->Release();
+    }
+    else
+    {
+        EndAddress = (PVOID)MmUserProbeAddress;
+    }
+
+    /* There is no VAD at the given address, so this memory is free */
+    Information->BaseAddress = ALIGN_DOWN_POINTER_BY(BaseAddress, PAGE_SIZE);
+    Information->AllocationBase = NULL;
+    Information->AllocationProtect = 0;
+    Information->RegionSize = (ULONG_PTR)EndAddress - (ULONG_PTR)Information->BaseAddress;
+    Information->State = MEM_FREE;
+    Information->Protect = PAGE_NOACCESS;
+    Information->Type = 0;
+
+    return STATUS_SUCCESS;
+}
+
+
+NTSTATUS
+QueryMemorySectionName (
+    _In_ PVOID BaseAddress,
+    _Out_ PMEMORY_SECTION_NAME MemorySectionName,
+    _In_ SIZE_T BufferSize,
+    _Out_ PSIZE_T ResultLength)
+{
+    UNIMPLEMENTED;
+    __debugbreak();
+    return 0;
+}
 
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -109,14 +520,146 @@ NTSTATUS
 NTAPI
 NtQueryVirtualMemory (
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID Address,
-    _In_ enum _MEMORY_INFORMATION_CLASS VirtualMemoryInformationClass,
-    _Out_ PVOID VirtualMemoryInformation,
-    _In_ SIZE_T Length,
+    _In_ PVOID BaseAddress,
+    _In_ enum _MEMORY_INFORMATION_CLASS MemoryInformationClass,
+    _Out_ PVOID MemoryInformation,
+    _In_ SIZE_T InfoBufferSize,
     _Out_opt_ PSIZE_T ResultLength)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS Status = STATUS_SUCCESS;
+    KPROCESSOR_MODE PreviousMode;
+    SIZE_T InformationSize;
+    PEPROCESS Process;
+    KAPC_STATE ApcState;
+    union
+    {
+        MEMORY_BASIC_INFORMATION BasicInformation;
+        struct
+        {
+            MEMORY_SECTION_NAME SectionName;
+            WCHAR SectionNameBuffer[MAX_PATH];
+        };
+    } StackBuffer;
+
+    //DPRINT("Querying class %d about address: %p\n", MemoryInformationClass, BaseAddress);
+
+    /* Check if the address is valid */
+    if (BaseAddress > MmHighestUserAddress)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Probe return buffer */
+    PreviousMode =  ExGetPreviousMode();
+    if (PreviousMode != KernelMode)
+    {
+        _SEH2_TRY
+        {
+            ProbeForWrite(MemoryInformation, InfoBufferSize, sizeof(ULONG_PTR));
+            if (ResultLength != NULL)
+                ProbeForWrite(ResultLength, sizeof(SIZE_T), sizeof(SIZE_T));
+        }
+        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+            _SEH2_YIELD(return _SEH2_GetExceptionCode());
+        }
+        _SEH2_END;
+    }
+
+    /* Check if we have a foreign process */
+    if (ProcessHandle != NtCurrentProcess())
+    {
+        /* Reference the process */
+        Status = ObReferenceObjectByHandle(ProcessHandle,
+                                           PROCESS_VM_OPERATION,
+                                           PsProcessType,
+                                           PreviousMode,
+                                           (PVOID*)(&Process),
+                                           NULL);
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
+
+        /* Attach to the process */
+        KeStackAttachProcess(&Process->Pcb, &ApcState);
+    }
+
+    switch (MemoryInformationClass)
+    {
+        case MemoryBasicInformation:
+
+            /* Validate the size information of the class */
+            InformationSize = sizeof(MEMORY_BASIC_INFORMATION);
+            if (InfoBufferSize < InformationSize)
+            {
+                /* The size is invalid */
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            Status = QueryMemoryBasicInformation(BaseAddress,
+                                                 &StackBuffer.BasicInformation,
+                                                 InformationSize);
+            break;
+
+        case MemorySectionName:
+
+            /* Validate the size information of the class */
+            if (InfoBufferSize < sizeof(MEMORY_SECTION_NAME))
+            {
+                /* The size is invalid */
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            Status = QueryMemorySectionName(BaseAddress,
+                                            &StackBuffer.SectionName,
+                                            sizeof(StackBuffer),
+                                            &InformationSize);
+            break;
+
+        case MemoryWorkingSetList:
+        case MemoryBasicVlmInformation:
+        default:
+            ERR("Unhandled memory information class %d\n", MemoryInformationClass);
+            break;
+    }
+
+    InfoBufferSize = min(InfoBufferSize, InformationSize);
+
+    /* Return the data, NtQueryInformation already probed it*/
+    if (PreviousMode != KernelMode)
+    {
+        _SEH2_TRY
+        {
+            RtlCopyMemory(MemoryInformation, &StackBuffer, InfoBufferSize);
+            if (ResultLength)
+            {
+                *ResultLength = InformationSize;
+            }
+        }
+         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+            Status = _SEH2_GetExceptionCode();
+        }
+        _SEH2_END;
+    }
+    else
+    {
+        RtlCopyMemory(MemoryInformation, &StackBuffer, InfoBufferSize);
+        if (ResultLength)
+        {
+            *ResultLength = InformationSize;
+        }
+    }
+
+    /* Check if we need to detach from the process */
+    if (ProcessHandle != NtCurrentProcess())
+    {
+        KeUnstackDetachProcess(&ApcState);
+        ObDereferenceObject(Process);
+    }
+
+    return Status;
 }
 
 __kernel_entry
@@ -168,13 +711,95 @@ NTSTATUS
 NTAPI
 NtWriteVirtualMemory (
     _In_ HANDLE ProcessHandle,
-    _In_ PVOID  BaseAddress,
+    _In_ PVOID BaseAddress,
     _In_ PVOID Buffer,
     _In_ SIZE_T NumberOfBytesToWrite,
     _Out_opt_ PSIZE_T NumberOfBytesWritten)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    KPROCESSOR_MODE PreviousMode;
+    PKPROCESS TargetProcess;
+    KAPC_STATE ApcState;
+    PVOID SafeBuffer;
+    NTSTATUS Status;
+
+    PreviousMode = ExGetPreviousMode();
+
+    /* Refernce the process handle */
+    Status = ObReferenceObjectByHandle(ProcessHandle,
+                                       PROCESS_VM_WRITE,
+                                       PsProcessType,
+                                       PreviousMode,
+                                       (PVOID*)&TargetProcess,
+                                       NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        __debugbreak();
+        return Status;
+    }
+
+    /* Allocate an intermediate buffer */
+    SafeBuffer = ExAllocatePoolWithTag(PagedPool, NumberOfBytesToWrite, 'fBmM');
+    if (SafeBuffer == NULL)
+    {
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Cleanup;
+    }
+
+    /* SEH protect memory access */
+    _SEH2_TRY
+    {
+        /* Check if the caller was from user mode */
+        if (PreviousMode != KernelMode)
+        {
+            /* Probe the usermode buffer */
+            ProbeForRead(Buffer, NumberOfBytesToWrite, 1);
+        }
+
+        /* Copy the memory to the intermediate buffer */
+        RtlCopyMemory(SafeBuffer, Buffer, NumberOfBytesToWrite);
+    }
+    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+    {
+        Status = _SEH2_GetExceptionCode();
+        _SEH2_YIELD(goto Cleanup);
+    }
+    _SEH2_END;
+
+    /* Attach to the target process */
+    KeStackAttachProcess(TargetProcess, &ApcState);
+
+    /* Assume success */
+    Status = STATUS_SUCCESS;
+
+    /* SEH protect memory access */
+    _SEH2_TRY
+    {
+        /* Probe and copy the memory to the intermediate buffer */
+        ProbeForWrite(BaseAddress, NumberOfBytesToWrite, 1);
+        RtlCopyMemory(BaseAddress, SafeBuffer, NumberOfBytesToWrite);
+    }
+    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+    {
+        Status = _SEH2_GetExceptionCode();
+    }
+    _SEH2_END;
+
+    /* Detach fron the target process */
+    KeUnstackDetachProcess(&ApcState);
+
+Cleanup:
+    /* Check if we allocated a temp buffer */
+    if ((SafeBuffer != NULL) && (SafeBuffer != Buffer))
+    {
+        /* Free the temp buffer */
+        ExFreePoolWithTag(SafeBuffer, 'fBmM');
+    }
+
+    /* Dereference the process */
+    ObDereferenceObject(TargetProcess);
+
+    return Status;
 }
 
 }; // extern "C"
+}; // namespace Mm
