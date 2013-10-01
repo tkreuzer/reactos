@@ -1,12 +1,22 @@
+/*!
 
-#include "linux/PhysicalSection.hpp"
+    \file PhysicalSection.hpp
 
-#if 0
+    \brief Contains the definition of the PHYSICAL_SECTION class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
+
 #pragma once
 
 #include "ntosbase.h"
 #include "Ob/RefObject.hpp"
-#include "ntimage.h"
+#include <ndk/mmtypes.h>
+#include <ntimage.h>
 
 /// \todo HACK
 //#define IMAGE_FILE_MACHINE_NATIVE IMAGE_FILE_MACHINE_AMD64
@@ -20,33 +30,7 @@ namespace Mm {
 
 /* Forward declarations */
 typedef class PHYSICAL_SECTION *PPHYSICAL_SECTION;
-
-typedef struct _SECTION_IMAGE_INFORMATION
-{
-    PVOID TransferAddress;
-    ULONG ZeroBits;
-    SIZE_T MaximumStackSize;
-    SIZE_T CommittedStackSize;
-    ULONG SubSystemType;
-    union
-    {
-        struct
-        {
-            USHORT SubSystemMinorVersion;
-            USHORT SubSystemMajorVersion;
-        };
-        ULONG SubSystemVersion;
-    };
-    ULONG GpValue;
-    USHORT ImageCharacteristics;
-    USHORT DllCharacteristics;
-    USHORT Machine;
-    BOOLEAN ImageContainsCode;
-    UCHAR ImageFlags;
-    ULONG LoaderFlags;
-    ULONG ImageFileSize;
-    ULONG CheckSum;
-} SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
+class SEGMENT;
 
 typedef struct _SECTION_IMAGE_INFORMATION_EX : _SECTION_IMAGE_INFORMATION
 {
@@ -122,6 +106,7 @@ private:
     static const RTL_BITMAP ImageLoadBitMap;
 
     CONTROL_AREA m_ControlArea;
+    PSECTION_IMAGE_INFORMATION_EX m_ImageInformation;
     SUBSECTION m_Subsections[1];
 
     static
@@ -162,16 +147,22 @@ public:
 
     static
     NTSTATUS
-    ReferenceOrCreateFileSection (
+    CreateDataFileSection (
         _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
-        _Inout_ PFILE_OBJECT FileObject,
-        _In_ ULONG AllocationAttributes);
+        _In_ PFILE_OBJECT FileObject);
 
     static
     NTSTATUS
     CreateImageFileSection (
         _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
         _In_ PFILE_OBJECT FileObject);
+
+    static
+    NTSTATUS
+    ReferenceOrCreateFileSection (
+        _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
+        _Inout_ PFILE_OBJECT FileObject,
+        _In_ ULONG AllocationAttributes);
 
     inline
     PVOID
@@ -187,6 +178,22 @@ public:
         VOID)
     {
         return m_ControlArea.SizeInPages;
+    }
+
+    inline
+    SECTION_FLAGS
+    GetSectionFlags (
+        VOID)
+    {
+        return m_ControlArea.Flags;
+    }
+
+    inline
+    PSECTION_IMAGE_INFORMATION_EX
+    GetImageInformation (
+        VOID)
+    {
+        return m_ImageInformation;
     }
 
     NTSTATUS
@@ -226,7 +233,4 @@ public:
 
 };
 
-
 }; // namespace Mm
-
-#endif

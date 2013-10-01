@@ -1,5 +1,18 @@
+/*!
+
+    \file MmData.cpp
+
+    \brief Global data
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
+#include "MmData.hpp"
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
 
 extern "C" {
@@ -26,6 +39,7 @@ ULONG MmVerifyDriverLevel;
 WCHAR MmVerifyDriverBuffer[512];
 ULONG MmVerifyDriverBufferLength;
 SIZE_T MmSizeOfNonPagedPoolInBytes;
+SIZE_T MmMaximumNonPagedPoolInBytes;
 SIZE_T MmSizeOfPagedPoolInBytes;
 ULONG MmSecondaryColors;
 ULONG MmNumberOfSystemPtes;
@@ -77,10 +91,12 @@ PVOID MmPagedPoolEnd;
 PVOID MmSessionBase;
 SIZE_T MmSessionSize;
 struct _MMPFN* MmPfnDatabase;
+SIZE_T MmSizeOfPfnDatabase;
 PFN_NUMBER MmNumberOfPhysicalPages;
 PFN_NUMBER MmLowestPhysicalPage;
 PFN_NUMBER MmHighestPhysicalPage;
 PFN_NUMBER MmAvailablePages;
+PFN_NUMBER MmBadPagesDetected;
 LIST_ENTRY MmLoadedUserImageList;
 
 SIZE_T MmHeapSegmentCommit;

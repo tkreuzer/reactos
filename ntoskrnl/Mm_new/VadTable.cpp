@@ -1,4 +1,15 @@
+/*!
 
+    \file VadTable.cpp
+
+    \brief Implements the VAD_TABLE class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "VadTable.hpp"
 #include "VadObject.hpp"
@@ -8,6 +19,20 @@ namespace Mm {
 ULONG_PTR g_LowestSystemVpn;
 VAD_TABLE g_KernelVadTable;
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 VOID
 VAD_TABLE::AcquireTableLock (
@@ -16,6 +41,20 @@ VAD_TABLE::AcquireTableLock (
     KeAcquireInStackQueuedSpinLock(&m_ListLock, LockHandle);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 VOID
 VAD_TABLE::ReleaseTableLock (
@@ -24,6 +63,20 @@ VAD_TABLE::ReleaseTableLock (
     KeReleaseInStackQueuedSpinLock(LockHandle);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 VOID
 VAD_TABLE::Initialize (
     BOOLEAN KernelMode)
@@ -32,6 +85,20 @@ VAD_TABLE::Initialize (
     KeInitializeSpinLock(&m_ListLock);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 PVAD_NODE
 VAD_TABLE::GetLowestNodeWithEndingVpnNotBelow (
@@ -55,6 +122,20 @@ VAD_TABLE::GetLowestNodeWithEndingVpnNotBelow (
     return NULL;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 PVAD_NODE
 VAD_TABLE::GetHighestNodeWithStartingVpnNotAbove (
@@ -78,6 +159,20 @@ VAD_TABLE::GetHighestNodeWithStartingVpnNotAbove (
     return NULL;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 PVAD_NODE
 VAD_TABLE::GetNextHigherNode (
@@ -91,6 +186,20 @@ VAD_TABLE::GetNextHigherNode (
     return CONTAINING_RECORD(Node->ListEntry.Flink, VAD_NODE, ListEntry);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 PVAD_NODE
 VAD_TABLE::GetNextLowerNode (
@@ -104,6 +213,20 @@ VAD_TABLE::GetNextLowerNode (
     return CONTAINING_RECORD(Node->ListEntry.Blink, VAD_NODE, ListEntry);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 VOID
 VAD_TABLE::InsertBefore (
@@ -120,6 +243,20 @@ VAD_TABLE::InsertBefore (
     }
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 inline
 VOID
 VAD_TABLE::InsertAfter (
@@ -137,6 +274,20 @@ VAD_TABLE::InsertAfter (
 }
 
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 NTSTATUS
 VAD_TABLE::InsertVadObject (
@@ -261,6 +412,20 @@ VAD_TABLE::InsertVadObject (
     return Status;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 NTSTATUS
 VAD_TABLE::InsertVadObjectAtVpn (
@@ -301,6 +466,9 @@ VAD_TABLE::InsertVadObjectAtVpn (
         Status = STATUS_SUCCESS;
     }
 
+    /* Add a reference to the VAD object */
+    VadObject->AddRef();
+
     /* Unlock the table */
     ReleaseTableLock(&LockHandle);
 
@@ -327,6 +495,20 @@ VAD_TABLE::InsertVadObject (
 }
 #endif
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 VOID
 VAD_TABLE::RemoveVadObject (
     _Inout_ PVAD_OBJECT VadObject)
@@ -346,7 +528,20 @@ VAD_TABLE::RemoveVadObject (
     ReleaseTableLock(&LockHandle);
 }
 
-
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 PVAD_OBJECT
 VAD_TABLE::GetVadObjectByAddress (

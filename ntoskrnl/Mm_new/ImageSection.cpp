@@ -1,10 +1,19 @@
+/*!
 
+    \file ImageSection.cpp
+
+    \brief Implements the image related part of the PHYSICAL_SECTION class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "PhysicalSection.hpp"
 #include "ntintsafe.h"
 #include <ndk/pstypes.h>
-
-#define DPRINT(...)
 
 #define AslrEnabled(NtHeaders) 0 /// For now disable ASLR
     // (NtHeaders->OptionalHeader.DllCharacteristics & IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE)
@@ -13,8 +22,109 @@ namespace Mm {
 
 extern ULONG RandomNumberSeed;
 
+
+/*! \fn PageReadHelper
+ *
+ *  \brief
+ *
+ *  \param [in] FileObject - Pointer to the file object for the file to read
+ *
+ *  \param [in] FileOffset - Offset into the file from where the read starts
+ *
+ *  \param [in,out] Size - Pointer to a variable that contains the number of
+ *      bytes to read. The function writes the number of actual bytes read
+ *      (aligned up to pages).
+ *
+ *  \param [out] Buffer - Pointer to a variable that receives a pointer to a
+ *      buffer that the function allocates from non-paged pool. The caller is
+ *      responsible for freeing the buffer. The pool tag is TAG_TEMP.
+ *
+ *  \return STATUS_SUCESS on success, an appropriate failure code on error.
+ */
+static
+NTSTATUS
+PageReadHelper (
+    _In_ PFILE_OBJECT FileObject,
+    _In_ SIZE_T FileOffset,
+    _Inout_ PULONG Size,
+    _Out_ PVOID* Buffer)
+{
+    PMDL Mdl;
+    KEVENT Event;
+    IO_STATUS_BLOCK IoStatusBlock;
+    LARGE_INTEGER Offset;
+    struct
+    {
+        MDL Mdl;
+        PFN_NUMBER PfnArray[5];
+    } MdlBuffer;
+    NTSTATUS Status;
+
+    /* Align the size up to pages */
+    *Size = ALIGN_UP_BY(*Size, PAGE_SIZE);
+
+    /* Allocate a buffer for the data */
+    *Buffer = ExAllocatePoolWithTag(NonPagedPool, *Size, TAG_TEMP);
+    if (*Buffer == NULL)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    /* Check if the request fits within the stack MDL */
+    if (*Size < 5 * PAGE_SIZE)
+    {
+        /* Use the MDL on the stack */
+        Mdl = &MdlBuffer.Mdl;
+        MmInitializeMdl(Mdl, *Buffer, *Size);
+    }
+    else
+    {
+        /* Allocate a new MDL */
+        Mdl = IoAllocateMdl(*Buffer, *Size, FALSE, FALSE, NULL);
+    }
+
+    /* Build an MDL from the pool allocation */
+    MmBuildMdlForNonPagedPool(Mdl);
+
+    /* Initialize the event */
+    KeInitializeEvent(&Event, NotificationEvent, FALSE);
+
+    /* Setup the read offset */
+    Offset.QuadPart = FileOffset;
+
+    /* Read the file data */
+    Status = IoPageRead(FileObject, Mdl, &Offset, &Event, &IoStatusBlock);
+    if (Status == STATUS_PENDING)
+    {
+        KeWaitForSingleObject(&Event, WrPageIn, 0, 0, 0);
+        Status = IoStatusBlock.Status;
+    }
+
+    if (!NT_SUCCESS(Status))
+    {
+        /// FIXME handle failure
+        __debugbreak();
+    }
+
+    /* Return the actual read size */
+    *Size = static_cast<ULONG>(IoStatusBlock.Information);
+
+    return IoStatusBlock.Status;
+}
+
+/*! \fn BuildSectionImageInformation
+ *
+ *  \brief Allocates a SECTION_IMAGE_INFORMATION_EX structure from paged pool
+ *      and initializes the fields from a given image.
+ *
+ *  \param [in] NtHeaders - Pointer to the IMAGE_NT_HEADERS structure of a
+ *      mapped image.
+ *
+ *  \return Pointer to the SECTION_IMAGE_INFORMATION_EX structure.
+ */
+static
 PSECTION_IMAGE_INFORMATION_EX
-GetSectionImageInformation (
+BuildSectionImageInformation (
     _In_ PIMAGE_NT_HEADERS NtHeaders)
 {
     PSECTION_IMAGE_INFORMATION_EX ImageInfo;
@@ -40,8 +150,10 @@ GetSectionImageInformation (
     ImageInfo->SizeOfHeaders = NtHeaders->OptionalHeader.SizeOfHeaders;
     ImageInfo->SizeOfImage = NtHeaders->OptionalHeader.SizeOfImage;
 
+    /* Check if this is a 64 bit PE image */
     if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
+        /* 64 bit PE, use 64 bit optional header */
         PIMAGE_OPTIONAL_HEADER64 OptionalHeader =
             reinterpret_cast<PIMAGE_OPTIONAL_HEADER64>(&NtHeaders->OptionalHeader);
 
@@ -54,6 +166,7 @@ GetSectionImageInformation (
     }
     else
     {
+        /* 32 bit PE, use 32 bit optional header */
         PIMAGE_OPTIONAL_HEADER32 OptionalHeader =
             reinterpret_cast<PIMAGE_OPTIONAL_HEADER32>(&NtHeaders->OptionalHeader);
 
@@ -76,76 +189,15 @@ GetSectionImageInformation (
     return ImageInfo;
 }
 
-static
-NTSTATUS
-PageReadHelper (
-    _In_ PFILE_OBJECT FileObject,
-    _In_ SIZE_T FileOffset,
-    _In_ PULONG Size,
-    _Out_ PVOID* Buffer)
-{
-    PMDL Mdl;
-    KEVENT Event;
-    IO_STATUS_BLOCK IoStatusBlock;
-    LARGE_INTEGER Offset;
-    struct
-    {
-        MDL Mdl;
-        PFN_NUMBER PfnArray[5];
-    } MdlBuffer;
-    NTSTATUS Status;
-
-    /* Align the size up to pages */
-    *Size = ALIGN_UP_BY(*Size, PAGE_SIZE);
-
-    Offset.QuadPart = FileOffset;
-
-    /* Allocate a page for the file header */
-    *Buffer = ExAllocatePoolWithTag(NonPagedPool, *Size, TAG_TEMP);
-    if (*Buffer == NULL)
-    {
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    /* Check if the request fits within the stack MDL */
-    if (*Size < 5 * PAGE_SIZE)
-    {
-        /* Use the MDL on the stack */
-        Mdl = &MdlBuffer.Mdl;
-        MmInitializeMdl(Mdl, *Buffer, *Size); /// move into if
-    }
-    else
-    {
-        /* Allocate a new MDL */
-        Mdl = IoAllocateMdl(*Buffer, *Size, FALSE, FALSE, NULL);
-    }
-
-    /* Build an MDL from the pool allocation */
-    MmBuildMdlForNonPagedPool(Mdl);
-
-    /* Initialize the event */
-    KeInitializeEvent(&Event, NotificationEvent, FALSE);
-
-    /* Read the first page */
-    Status = IoPageRead(FileObject, Mdl, &Offset, &Event, &IoStatusBlock);
-    if (Status == STATUS_PENDING)
-    {
-        KeWaitForSingleObject(&Event, WrPageIn, 0, 0, 0);
-        Status = IoStatusBlock.Status;
-    }
-
-    if (!NT_SUCCESS(Status))
-    {
-        /// FIXME handle failure
-        __debugbreak();
-    }
-
-    /* Return the actual read size */
-    *Size = static_cast<ULONG>(IoStatusBlock.Information);
-
-    return IoStatusBlock.Status;
-}
-
+/*! \fn VerifyNtHeaders
+ *
+ *  \brief Checks the NT headers of a PE image for validity.
+ *
+ *  \param [in] NtHeaders - Pointer to the IMAGE_NT_HEADERS to check.
+ *
+ *  \return STATUS_SUCCESS if the NT headers are valid,
+ *      STATUS_INVALID_IMAGE_FORMAT if the header is not valid.
+ */
 static
 NTSTATUS
 VerifyNtHeaders (
@@ -169,7 +221,7 @@ VerifyNtHeaders (
             return STATUS_INVALID_IMAGE_FORMAT;
         }
     }
-#ifdef _Win64
+#ifdef _WIN64
     else if (NtHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
         PIMAGE_OPTIONAL_HEADER64 OptionalHeader =
@@ -190,6 +242,22 @@ VerifyNtHeaders (
     return STATUS_SUCCESS;
 }
 
+/*! \fn VerifySectionHeaders
+ *
+ *  \brief Checks the IMAGE_SECTION_HEADER and all sections for valitidy.
+ *
+ *  \param [in] NtHeaders - Pointer to the IMAGE_NT_HEADERS structure
+ *
+ *  \param [in] SectionHeaders - Pointer to the IMAGE_SECTION_HEADER structure
+ *
+ *  \param [in] FullHeaderSize - Size of all PE headers, including the section
+ *      headers.
+ *
+ *  \param [in] FileSize - Full size of the raw file.
+ *
+ *  \return STATUS_SUCCESS if the section headers are valid,
+ *      STATUS_INVALID_IMAGE_FORMAT otherwise.
+ */
 static
 NTSTATUS
 VerifySectionHeaders (
@@ -201,6 +269,7 @@ VerifySectionHeaders (
     ULONG NextRva, NumberOfSections, RawDataEnd, VirtualSize;
     NTSTATUS Status;
 
+    /* Get the number of sections */
     NumberOfSections = NtHeaders->FileHeader.NumberOfSections;
 
     /* Calculate the required start of the next section */
@@ -248,6 +317,25 @@ VerifySectionHeaders (
     return STATUS_SUCCESS;
 }
 
+/*! \fn PHYSICAL_SECTION::CreateImageFileSection
+ *
+ *  \brief Creates a PHYSICAL_SECTION object for a PE image based section.
+ *
+ *  \param [out] OutPhysicalSection - Pointer to a variable that receives a
+ *      pointer to the newly created object.
+ *
+ *  \param [in] FileObject - Pointer to the file object from which the section
+ *      is to be created.
+ *
+ *  \return STATUS_SUCCESS on success, STATUS_INVALID_FILE_FOR_SECTION if the
+ *      file is not valid for section creation, STATUS_INVALID_IMAGE_NOT_MZ if
+ *      the file is not an image file, STATUS_INVALID_IMAGE_FORMAT if
+ *      the file is not a valid PE image, STATUS_IMAGE_MACHINE_TYPE_MISMATCH if
+ *      the architecture of the image does not match the OS architecture (this
+ *      is a success code and in this case the operation will be completed),
+ *      STATUS_INSUFFICIENT_RESOURCES if there was not enough free pool memory
+ *      to complete the operation.
+ */
 NTSTATUS
 PHYSICAL_SECTION::CreateImageFileSection (
     _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
@@ -404,8 +492,8 @@ PHYSICAL_SECTION::CreateImageFileSection (
     /* Calculate the size of the full NT-Header (This cannot overflow, since
        SizeOfOptionalHeader is an USHORT. The field offset is the same for
        the 32 and 64 bit IMAGE_NT_HEADERS structure.) */
-    NtHeaderSize = NtHeaders->FileHeader.SizeOfOptionalHeader +
-                   FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader);
+    NtHeaderSize = FIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader) +
+                   NtHeaders->FileHeader.SizeOfOptionalHeader;
 
     /* Calculate the size of the headers including the section headers */
     Status = RtlULongAdd(NtHeaderSize, SizeOfSectionHeaders, &HeaderSize);
@@ -545,7 +633,7 @@ PHYSICAL_SECTION::CreateImageFileSection (
         else
             Section->m_Subsections[i + 1].Protect = MM_READONLY;
 
-        DPRINT("Image subsection #%u, sect 0x%x, sectors %u, pages %u, vpn %u\n",
+        TRACE("Image subsection #%u, sect 0x%x, sectors %u, pages %u, vpn %u\n",
                  i + 1,
                  Section->m_Subsections[i + 1].StartingSector,
                  Section->m_Subsections[i + 1].NumberOfFullSectors,
@@ -560,16 +648,12 @@ PHYSICAL_SECTION::CreateImageFileSection (
                                   -1);
 
     /* Get the section image information */
-    Section->m_ImageInformation = GetSectionImageInformation(NtHeaders);
+    Section->m_ImageInformation = BuildSectionImageInformation(NtHeaders);
     if (Section->m_ImageInformation == NULL)
     {
         Status = STATUS_INSUFFICIENT_RESOURCES;
         goto Cleanup;
     }
-
-//    GetSectionImageInformation(Section->m_ControlArea.Segment->ImageInformation,
-//                               NtHeaders);
-//    Section->m_ControlArea.Segment->GetSectionImageInformation(NtHeaders);
 
     /// \todo we should probably do this as well, when we reference an
     /// existing section
@@ -639,6 +723,18 @@ SECTION::RelocateImagePage (
 
 extern "C" {
 
+/*! \fn MmFlushImageSection
+ *
+ *  \brief Flushes the image section for a file.
+ *
+ *  \param [in] SectionObjectPointer - Pointer to the SECTION_OBJECT_POINTERS
+ *      structure for the file.
+ *
+ *  \param [in] FlushType - Specifies the flush operation. MmFlushForDelete
+ *      or MmFlushForWrite.
+ *
+ *  \return TRUE if the operation completed successfully, FALSE otherwise.
+ */
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
 NTAPI

@@ -4,7 +4,8 @@
 
     \brief Implements the REF_OBJECT base class template
 
-    \copyright Released under the terms of the GNU GPL v2
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
 
     \author Timo Kreuzer (timo.kreuzer@reactos.org)
 

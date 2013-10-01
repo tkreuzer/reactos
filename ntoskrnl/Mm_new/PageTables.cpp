@@ -1,4 +1,15 @@
+/*!
 
+    \file PageTables.cpp
+
+    \brief Implements page table related functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include _ARCH_RELATIVE_(PageTables.hpp)

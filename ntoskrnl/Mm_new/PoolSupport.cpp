@@ -1,12 +1,23 @@
+/*!
+
+    \file PoolSupport.cpp
+
+    \brief Implements the pool support functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include "KernelVad.hpp"
 #include "Mapping.hpp"
 #include "VadTable.hpp"
 #include "AddressSpace.hpp"
+#include "MmData.hpp"
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
-
-namespace Mm {
 
 extern "C"
 VOID
@@ -14,50 +25,37 @@ NTAPI
 InitializePool(IN POOL_TYPE PoolType,
                IN ULONG Threshold);
 
-extern SIZE_T MmSizeOfPfnDatabase;
-
 #define NP_POOL_SIZE_IN_PAGES_LOW (40 * 1024 * 1024 / PAGE_SIZE)
-
 #ifdef _WIN64
 #define POOL_SIZE_IN_PAGES_MAX (128ULL * 1024 * 1024 * 1024 / PAGE_SIZE)
 #else
 #define POOL_SIZE_IN_PAGES_MAX  (2ULL * 1024 * 1024 * 1024 / PAGE_SIZE)
 #endif
 
-#define PAGES_PER_LARGE_PAGE (LARGE_PAGE_SIZE / PAGE_SIZE)
+namespace Mm {
 
-extern "C" PVOID MmPfnDatabase;
-extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
-extern "C" PVOID MmNonPagedPoolStart;
-extern "C" SIZE_T MmSizeOfNonPagedPoolInBytes;
-extern "C" PVOID MmPagedPoolStart;
-extern "C" PVOID MmPagedPoolEnd;
-extern "C" SIZE_T MmSizeOfPagedPoolInBytes;
-
-KERNEL_VAD PoolVad[2];
-RTL_BITMAP PoolBitmap[2];
-RTL_BITMAP EndOfAllocationBitmap[2];
-ULONG PoolHintIndex[2];
-KSPIN_LOCK PoolPageSpinlock[2];
-
-extern "C" {
-SIZE_T MmMaximumNonPagedPoolInBytes;
-
-};
-
+static KERNEL_VAD PoolVad[2];
+static RTL_BITMAP PoolBitmap[2];
+static RTL_BITMAP EndOfAllocationBitmap[2];
+static ULONG PoolHintIndex[2];
+static KSPIN_LOCK PoolPageSpinlock[2];
 #ifndef _WIN64
 /* On 32 bit systems we track each large page sized VA block used for np pool */
 #define MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE (2ULL * 1024 * 1024 * 1024)
-ULONG PoolVaBitmap[2][MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
-ULONG InitialPoolSizeInPages[2];
-PVOID* PoolExpansionArray[2];
-ULONG PoolExpansionCount[2];
+static ULONG PoolVaBitmap[2][MI_MAXIMUM_SIZE_OF_SYSTEM_SPACE /  LARGE_PAGE_SIZE / 32];
+static ULONG InitialPoolSizeInPages[2];
+static PVOID* PoolExpansionArray[2];
+static ULONG PoolExpansionCount[2];
 #endif
 
-/*!
- * MmSizeOfNonPagedPoolInBytes, MmMaximumNonPagedPoolInBytes,
- * MmSizeOfPagedPoolInBytes
-*/
+
+/*! \fn CalculatePoolDimensions
+ *
+ *  \brief ...
+ *
+ *  \remarks Initializes MmSizeOfNonPagedPoolInBytes, MmMaximumNonPagedPoolInBytes,
+ *      MmSizeOfPagedPoolInBytes
+ */
 static
 VOID
 INIT_FUNCTION
@@ -122,6 +120,20 @@ CalculatePoolDimensions (
 #endif
 }
 
+/*! \fn InitializePoolSupportSingle
+ *
+ *  \brief ...
+ *
+ *  \param [in] PoolType -
+ *
+ *  \param [in] PoolStart -
+ *
+ *  \param [in] InitialSize -
+ *
+ *  \param [in] MaximumSize -
+ *
+ *  \param [in] Protect -
+ */
 VOID
 INIT_FUNCTION
 InitializePoolSupportSingle (
@@ -231,10 +243,10 @@ InitializePoolSupportSingle (
     InitializePool(PoolType, 0);
 }
 
-VOID
-ScanPageTables (
-    _In_ PFN_NUMBER PageFrameNumber);
-
+/*! \fn InitializePoolSupport
+ *
+ *  \brief ...
+ */
 VOID
 INIT_FUNCTION
 InitializePoolSupport (
@@ -260,6 +272,16 @@ InitializePoolSupport (
                                 Protect);
 }
 
+/*! \fn ExpandPool
+ *
+ *  \brief ...
+ *
+ *  \param [in] BasePoolType -
+ *
+ *  \param [in] Index -
+ *
+ *  \return ...
+ */
 NTSTATUS
 ExpandPool (
     _In_ ULONG BasePoolType,
@@ -275,10 +297,18 @@ ExpandPool (
 
 extern "C" {
 
+/*! \fn MmDeterminePoolType
+ *
+ *  \brief ...
+ *
+ *  \param [in] VirtualAddress -
+ *
+ *  \return ...
+ */
 POOL_TYPE
 NTAPI
 MmDeterminePoolType (
-    IN PVOID VirtualAddress)
+    _In_ PVOID VirtualAddress)
 {
 #ifdef _WIN64
     PVOID PoolEnd;
@@ -313,6 +343,16 @@ MmDeterminePoolType (
     KeBugCheck(0);
 }
 
+/*! \fn MiAllocatePoolPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] PoolType -
+ *
+ *  \param [in] SizeInBytes -
+ *
+ *  \return ...
+ */
 PVOID
 NTAPI
 MiAllocatePoolPages (
@@ -419,10 +459,18 @@ MiAllocatePoolPages (
     return AddToPointer(BaseAddress, Index * PAGE_SIZE);
 }
 
+/*! \fn MiFreePoolPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \return ...
+ */
 ULONG
 NTAPI
 MiFreePoolPages (
-    IN PVOID BaseAddress)
+    _In_ PVOID BaseAddress)
 {
     ULONG_PTR StartingVpn;
     ULONG StartIndex, EndIndex, NumberOfPages;
@@ -465,46 +513,82 @@ MiFreePoolPages (
     return NumberOfPages;
 }
 
+/*! \fn MmUseSpecialPool
+ *
+ *  \brief ...
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \param [in] Tag -
+ *
+ *  \return ...
+ */
 BOOLEAN
 NTAPI
 MmUseSpecialPool (
-    IN SIZE_T NumberOfBytes,
-    IN ULONG Tag)
+    _In_ SIZE_T NumberOfBytes,
+    _In_ ULONG Tag)
 {
     UNIMPLEMENTED;
     return 0;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] Address -
+ *
+ *  \return ...
+ */
 BOOLEAN
 NTAPI
 MmIsSpecialPoolAddress (
-    IN PVOID P)
+    _In_ PVOID Address)
 {
     UNIMPLEMENTED;
     return 0;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \param [in] Tag -
+ *
+ *  \param [in] PoolType -
+ *
+ *  \param [in] SpecialType -
+ *
+ *  \return ...
+ */
 PVOID
 NTAPI
 MmAllocateSpecialPool (
-    IN SIZE_T NumberOfBytes,
-    IN ULONG Tag,
-    IN POOL_TYPE PoolType,
-    IN ULONG SpecialType)
+    _In_ SIZE_T NumberOfBytes,
+    _In_ ULONG Tag,
+    _In_ POOL_TYPE PoolType,
+    _In_ ULONG SpecialType)
 {
     UNIMPLEMENTED;
     return NULL;
 }
 
+/*! \fn MmFreeSpecialPool
+ *
+ *  \brief ...
+ *
+ *  \param [in] Address -
+ */
 VOID
 NTAPI
 MmFreeSpecialPool (
-    IN PVOID P)
+    _In_ PVOID Address)
 {
     UNIMPLEMENTED;
 }
-
-
 
 }; // extern "C"
 }; // namespace Mm

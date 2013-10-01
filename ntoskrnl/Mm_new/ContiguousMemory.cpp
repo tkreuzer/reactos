@@ -1,12 +1,45 @@
+/*!
+
+    \file ContiguousMemory.cpp
+
+    \brief Implements functions to manage contiguous physical memory
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include "PfnDatabase.hpp"
 #include "Mapping.hpp"
+#include "AddressSpace.hpp"
 
 namespace Mm {
 
 static const PHYSICAL_ADDRESS c_PhysicalAddress0 = {{0,0}};
 
+/*! \fn AllocateContiguousMemory
+ *
+ *  \brief Allocates contiguous physical memory and maps it into the system
+ *      address space.
+ *
+ *  \param [in] NumberOfBytes - Size of the contiguous chunk of physical memory
+ *      in bytes.
+ *
+ *  \param [in] LowestAcceptableAddress - Lowest acceptable start address.
+ *
+ *  \param [in] HighestAcceptableAddress - Highest acceptable end address.
+ *
+ *  \param [in] BoundaryAddressMultiple - Page alignment.
+ *
+ *  \param [in] Protect - Protection to be used to map the memory.
+ *
+ *  \param [in] PreferredNode - Preferred NUMA node to allocate the memory from.
+ *
+ *  \return Pointer to the start of the mapped memory.
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
@@ -82,6 +115,18 @@ AllocateContiguousMemory (
 
 extern "C" {
 
+/*! \fn MmAllocateContiguousMemory
+ *
+ *  \brief Allocates contiguous physical memory and maps it into the system
+ *      address space.
+ *
+ *  \param [in] NumberOfBytes - Size of the contiguous chunk of physical memory
+ *      in bytes.
+ *
+ *  \param [in] HighestAcceptableAddress - Highest acceptable end address.
+ *
+ *  \return Pointer to the start of the mapped memory.
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _When_ (return != NULL, _Post_writable_byte_size_ (NumberOfBytes))
@@ -99,6 +144,24 @@ MmAllocateContiguousMemory (
                                     MM_ANY_NODE_OK);
 }
 
+/*! \fn MmAllocateContiguousMemorySpecifyCache
+ *
+ *  \brief Allocates contiguous physical memory and maps it into the system
+ *      address space.
+ *
+ *  \param [in] NumberOfBytes - Size of the contiguous chunk of physical memory
+ *      in bytes.
+ *
+ *  \param [in] LowestAcceptableAddress - Lowest acceptable start address.
+ *
+ *  \param [in] HighestAcceptableAddress - Highest acceptable end address.
+ *
+ *  \param [in] BoundaryAddressMultiple - Page alignment.
+ *
+ *  \param [in] CachingType -
+ *
+ *  \return Pointer to the start of the mapped memory.
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _When_ (return != NULL, _Post_writable_byte_size_ (NumberOfBytes))
@@ -124,6 +187,27 @@ MmAllocateContiguousMemorySpecifyCache (
                                     MM_ANY_NODE_OK);
 }
 
+/*! \fn MmAllocateContiguousNodeMemory
+ *
+ *  \brief Allocates contiguous physical memory and maps it into the system
+ *      address space.
+ *
+ *  \param [in] NumberOfBytes - Size of the contiguous chunk of physical memory
+ *      in bytes.
+ *
+ *  \param [in] LowestAcceptableAddress - Lowest acceptable start address.
+ *
+ *  \param [in] HighestAcceptableAddress - Highest acceptable end address.
+ *
+ *  \param [in] BoundaryAddressMultiple - Page alignment.
+ *
+ *  \param [in] Win32Protect - Protection to be used to map the memory. One of
+ *      the PAGE_* constants.
+ *
+ *  \param [in] PreferredNode - Preferred NUMA node to allocate the memory from.
+ *
+ *  \return Pointer to the start of the mapped memory.
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
@@ -151,6 +235,26 @@ MmAllocateContiguousNodeMemory (
                                     PreferredNode);
 }
 
+/*! \fn MmAllocateContiguousMemorySpecifyCacheNode
+ *
+ *  \brief Allocates contiguous physical memory and maps it into the system
+ *      address space.
+ *
+ *  \param [in] NumberOfBytes - Size of the contiguous chunk of physical memory
+ *      in bytes.
+ *
+ *  \param [in] LowestAcceptableAddress - Lowest acceptable start address.
+ *
+ *  \param [in] HighestAcceptableAddress - Highest acceptable end address.
+ *
+ *  \param [in] BoundaryAddressMultiple - Page alignment.
+ *
+ *  \param [in] CachingType -
+ *
+ *  \param [in] PreferredNode - Preferred NUMA node to allocate the memory from.
+ *
+ *  \return Pointer to the start of the mapped memory.
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _When_ (return != NULL, _Post_writable_byte_size_ (NumberOfBytes))
@@ -177,6 +281,14 @@ MmAllocateContiguousMemorySpecifyCacheNode (
                                     PreferredNode);
 }
 
+/*! \fn MmFreeContiguousMemory
+ *
+ *  \brief Frees a mapping of contiguous physical memory that was previously
+ *      mapped using one of the MmAllocateContiguousMemory* functions.
+ *
+ *  \param [in] BaseAddress - Pointer to the start of the mapped memory that is
+ *      to be unmapped.
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
@@ -201,9 +313,24 @@ MmFreeContiguousMemory (
 
     Vad->Release();
 #endif
-    UNIMPLEMENTED;
+    UNIMPLEMENTED_DBGBREAK;
 }
 
+/*! \fn MmFreeContiguousMemorySpecifyCache
+ *
+ *  \brief Frees a mapping of contiguous physical memory that was previously
+ *      mapped using one of the MmAllocateContiguousMemory* functions.
+ *
+ *  \param [in] BaseAddress - Pointer to the start of the mapped memory that is
+ *      to be unmapped.
+ *
+ *  \param [in] NumberOfBytes - ignored.
+ *
+ *  \param [in] CachingType - ignored.
+ *
+ *  \remarks The function simply calls MmFreeContiguousMemory, which is the
+ *      same that Windows does.
+ */
 _IRQL_requires_max_ (DISPATCH_LEVEL)
 VOID
 NTAPI
@@ -212,6 +339,7 @@ MmFreeContiguousMemorySpecifyCache (
     _In_ SIZE_T NumberOfBytes,
     _In_ MEMORY_CACHING_TYPE CachingType)
 {
+    /* Ignore NumberOfBytes and CachingType and call the basic function. */
     MmFreeContiguousMemory(BaseAddress);
 }
 

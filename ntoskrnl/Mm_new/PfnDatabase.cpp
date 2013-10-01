@@ -1,4 +1,25 @@
+/*!
 
+    \file PfnDatabase.cpp
+
+    \brief Implements the PFN_DATABASE class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
+
+#include "PfnDatabase.hpp"
+#include "VadTable.hpp"
+#include "KernelVad.hpp"
+#include _ARCH_RELATIVE_(PageTables.hpp)
+#include _ARCH_RELATIVE_(MachineDependent.hpp)
+#include <arc/arc.h>
+#include <limits.h>
+#include <ndk/ketypes.h>
+#include <ndk/pstypes.h>
 
 /*
 
@@ -13,27 +34,14 @@ Concurrency between interlocked page removal and contiguous page allocation:
 
 */
 
-/// \todo Use RTL_BITMAP_EX
-
-#include "PfnDatabase.hpp"
-#include "VadTable.hpp"
-#include "KernelVad.hpp"
-#include _ARCH_RELATIVE_(PageTables.hpp)
-#include _ARCH_RELATIVE_(MachineDependent.hpp)
-#include <arc/arc.h>
-#include <limits.h>
-#include <ndk/ketypes.h>
-#include <ndk/pstypes.h>
-
-
 extern "C" PFN_NUMBER MmLowestPhysicalPage;
 extern "C" PFN_NUMBER MmHighestPhysicalPage;
 extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
 extern "C" PFN_NUMBER MmAvailablePages;
+extern "C" PFN_NUMBER MmBadPagesDetected;
 extern "C" PVOID MmPfnDatabase;
+extern "C" SIZE_T MmSizeOfPfnDatabase;
 extern "C" UCHAR KeNumberNodes;
-
-PFN_NUMBER MmBadPagesDetected;
 
 namespace Mm {
 
@@ -46,6 +54,7 @@ PPHYSICAL_MEMORY_DESCRIPTOR PFN_DATABASE::m_PhysicalMemoryDescriptor;
 PRTL_BITMAP_EX PFN_DATABASE::m_PhysicalMemoryBitmap;
 PFN_ENTRY* PFN_DATABASE::m_PfnArray;
 PULONG_PTR PFN_DATABASE::m_PhysicalBitmapBuffer;
+
 static KERNEL_VAD g_PfnDatabaseVad;
 static KERNEL_VAD g_MappingPtesVad;
 static KEVENT PagesAvailableEvent;
@@ -55,16 +64,15 @@ PPTE DebugPte;
 ULONG NodeShift;
 ULONG NodeMask;
 
-SIZE_T MmSizeOfPfnDatabase;
-
+/* Globals used for initialization */
+ULONG NumberOfPhysicalMemoryRuns;
+ULONG NumberOfMemoryDescriptors;
+PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
 PFN_NUMBER EarlyAllocPageBase;
 PFN_NUMBER EarlyAllocPageCount;
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 PFN_NUMBER EarlyAllocLargePageBase;
 #endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
-ULONG NumberOfPhysicalMemoryRuns;
-ULONG NumberOfMemoryDescriptors;
-PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
 
 
 static const PFN_CACHE_ATTRIBUTE CachingTypeToCacheAttribute[] =
@@ -73,6 +81,12 @@ static const PFN_CACHE_ATTRIBUTE CachingTypeToCacheAttribute[] =
 };
 
 
+/*! \name IsFreeMemory
+ *
+ *  \brief Determines whether a given memory type represents free pages.
+ *
+ *  \return TRUE if the memory type is free, FALSE otherwise.
+ */
 inline
 BOOLEAN
 IsFreeMemory (
@@ -84,11 +98,12 @@ IsFreeMemory (
             (MemoryType == LoaderOsloaderStack));
 }
 
-
 /*! \name EarlyAllocPage
  *
  *  \brief Allocates a single page of physical memory, before the PFN
  *      database is initialized.
+ *
+ *  \return The page frame number of the newly allocated page.
  *
  *  \remarks This function can only used after EarlyAllocPageCount and
  *      EarlyAllocPageBase are set and can not be used after the PFN database
@@ -117,6 +132,8 @@ EarlyAllocPage (
  *  \brief Allocates a single large page of physical memory, before the PFN
  *      database is initialized.
  *
+ *  \return The page frame number of the newly allocated large page.
+ *
  *  \remarks This function can only used after EarlyAllocPageCount and
  *      EarlyAllocPageBase are set and can not be used after the PFN database
  *      was created.
@@ -140,6 +157,23 @@ EarlyAllocLargePage (
 }
 #endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 
+/*! \name EarlyMapPages
+ *
+ *  \brief Maps a range of pages with physical memory.
+ *
+ *  \param [in] StartAddress - The starting address of the memory range to be
+ *      mapped.
+ *
+ *  \param [in] EndAddress - The (inclusive) ending address of the memory range
+ *      to be mapped.
+ *
+ *  \param [in] Protect - One of the MM_* constants describing the protection
+ *      for the memory range.
+ *
+ *  \remarks The function will ensure that the entire specified range is mapped.
+ *      If a page in the range is already mapped, it's protection will not be
+ *      changed!
+ */
 VOID
 INIT_FUNCTION
 EarlyMapPages (
@@ -148,6 +182,7 @@ EarlyMapPages (
     _In_ ULONG Protect)
 {
 #if MI_PAGING_LEVELS >= 4
+    /* Loop all PXEs */
     for (PPXE PxePointer = AddressToPxe(StartAddress);
          PxePointer <= AddressToPxe(EndAddress);
          PxePointer++)
@@ -161,6 +196,7 @@ EarlyMapPages (
     }
 #endif
 #if MI_PAGING_LEVELS >= 3
+    /* Loop all PPEs */
     for (PPPE PpePointer = AddressToPpe(StartAddress);
          PpePointer <= AddressToPpe(EndAddress);
          PpePointer++)
@@ -173,6 +209,7 @@ EarlyMapPages (
         }
     }
 #endif
+    /* Loop all PDEs */
     for (PPDE PdePointer = AddressToPde(StartAddress);
          PdePointer <= AddressToPde(EndAddress);
          PdePointer++)
@@ -184,7 +221,7 @@ EarlyMapPages (
             if (Protect & MM_LARGEPAGE)
             {
                 PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
-                RtlFillMemoryUlongPtr(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
+                RtlFillMemoryUlongPtr(PdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
             }
             else
 #endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
@@ -197,6 +234,7 @@ EarlyMapPages (
 
     if ((Protect & MM_MAPPED) && !(Protect & MM_LARGEPAGE))
     {
+        /* Loop all PTEs */
         for (PPTE PtePointer = AddressToPte(StartAddress);
              PtePointer <= AddressToPte(EndAddress);
              PtePointer++)
@@ -299,6 +337,7 @@ ScanMemoryDescriptors (
     /* Set base page and last page for early page allocations */
     EarlyAllocPageBase = LargestFreeDescriptor->BasePage;
     EarlyAllocPageCount = LargestFreeDescriptor->PageCount;
+
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
     /* Allocate large pages at the upper range of the descriptor */
     EarlyAllocLargePageBase = EarlyAllocPageBase + EarlyAllocPageCount;
@@ -306,6 +345,12 @@ ScanMemoryDescriptors (
 #endif
 }
 
+/*! \name CalculatePageColors
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 static
 VOID
 INIT_FUNCTION
@@ -344,6 +389,18 @@ CalculatePageColors (
     NodeMask = (KeNumberNodes - 1) << NodeShift;
 }
 
+/*! \name GetNextPageColor
+ *
+ *  \brief Returns the next page color on this NUMA node.
+ *
+ *  \param [in] PageColor - The current page color and NUMA node mask.
+ *
+ *  \return The next page color on this node. If the last valid page color was
+ *      passed as the current page color, it wraps to the first color on this
+ *      node.
+ *
+ *  \remarks ...
+ */
 inline
 ULONG
 GetNextPageColor (
@@ -355,6 +412,16 @@ GetNextPageColor (
     return ((PageColor + 1) & CacheColorMask) | (PageColor & NodeMask);
 }
 
+/*! \name GetNextPageColorCycleNodes
+ *
+ *  \brief Returns the next page color on this NUMA node or, if the last page
+ *      color on the current node is reached, switches to the first page color
+ *      on the next NUMA node.
+ *
+ *  \param [in] PageColor - The current page color and NUMA node mask.
+ *
+ *  \remarks ...
+ */
 inline
 ULONG
 GetNextPageColorCycleNodes (
@@ -381,12 +448,26 @@ GetNextPageColorCycleNodes (
 }
 
 
+/*! \name PFN_DATABASE::InitializePfnEntries
+ *
+ *  \brief ...
+ *
+ *  \param [in] BasePage
+ *
+ *  \param [in] PageCount
+ *
+ *  \param [in] MemoryType
+ *
+ *  \remarks ...
+ *
+ *  \todo FIXME: better use PFN_STATE instead of MemoryType?
+ */
 VOID
 INIT_FUNCTION
 PFN_DATABASE::InitializePfnEntries (
     _In_ PFN_NUMBER BasePage,
     _In_ PFN_NUMBER PageCount,
-    _In_ ULONG MemoryType) /// FIXME: better use PFN_STATE?
+    _In_ ULONG MemoryType)
 {
     PFN_ENTRY* PfnEntry;
     ULONG Color;
@@ -454,11 +535,25 @@ PFN_DATABASE::InitializePfnEntries (
     }
 }
 
+/*! \name PFN_DATABASE::InitializePageTablePfn
+ *
+ *  \brief ...
+ *
+ *  \param [n] PageFrameNumber
+ *
+ *  \param [in] ParentDirectoryPfn
+ *
+ *  \param [in] MappedAddress
+ *
+ *  \param [in] PageTableLevel
+ *
+ *  \remarks ...
+ */
 VOID
 INIT_FUNCTION
 PFN_DATABASE::InitializePageTablePfn (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ PFN_NUMBER ParendDirectoryPfn,
+    _In_ PFN_NUMBER ParentDirectoryPfn,
     _In_ PVOID MappedAddress,
     _In_ ULONG PageTableLevel)
 {
@@ -494,14 +589,19 @@ PFN_DATABASE::InitializePageTablePfn (
     if (PageTableLevel < MI_PAGING_LEVELS)
     {
         /* Increment the count of used and valid entries in the parent directory */
-        PfnEntry = &m_PfnArray[ParendDirectoryPfn];
+        PfnEntry = &m_PfnArray[ParentDirectoryPfn];
         NT_ASSERT(PfnEntry->State == PfnPageTable);
         PfnEntry->PageTable.UsedPteCount++;
         PfnEntry->PageTable.ValidPteCount++;
     }
 }
 
-
+/*! \name PFN_DATABASE::InitializePfnEntriesFromPageTables
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 INIT_FUNCTION
 PFN_DATABASE::InitializePfnEntriesFromPageTables (
@@ -666,6 +766,14 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
 #endif
 }
 
+/*! \name PFN_DATABASE::Initialize
+ *
+ *  \brief ...
+ *
+ *  \param [in] LoaderBlock
+ *
+ *  \remarks ...
+ */
 VOID
 INIT_FUNCTION
 PFN_DATABASE::Initialize (
@@ -847,11 +955,22 @@ PFN_DATABASE::Initialize (
 
 /* FUNCTIONS ******************************************************************/
 
+/*! \name ZeroPage
+ *
+ *  \brief Zeroes out a physical page, identified by its page frame number.
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \todo
+ *      - Rename to ZeroPhysicalPage
+ *      - Move to PhysicalMemory.cpp ?
+ *      - Use "ephemeral mapping" and stay at low IRQL?
+ */
 VOID
 ZeroPage (
     _In_ PFN_NUMBER PageFrameNumber)
 {
-    const ULONG Protect = MM_MAPPED | MM_GLOBAL | MM_EXECUTE_READWRITE;
+    const ULONG Protect = MM_MAPPED | MM_GLOBAL | MM_READWRITE;
     PPTE MappingPte;
     KIRQL OldIrql;
 
@@ -869,14 +988,23 @@ ZeroPage (
     RtlFillMemoryUlongPtr(PteToAddress(MappingPte), PAGE_SIZE, 0);
 
     /* Unmap the page */
-    //MappingPte->Erase();
-    *(ULONG64*)MappingPte = 0;
-    __invlpg(PteToAddress(MappingPte));
+    MappingPte->Erase();
+    InvalidateTlbEntry(PteToAddress(MappingPte));
 
     /* Restore IRQL */
     KeLowerIrql(OldIrql);
 }
 
+/*! \name PFN_DATABASE::IsValidPageFrameNumber
+ *
+ *  \brief Determines whether a physical page, identified by its page frame
+ *      number exists.
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \remarks The function does not determine whether the page is usable or
+ *      a bad page or a rom mapping.
+ */
 BOOLEAN
 PFN_DATABASE::IsValidPageFrameNumber (
     _In_ PFN_NUMBER PageFrameNumber)
@@ -894,6 +1022,14 @@ PFN_DATABASE::IsValidPageFrameNumber (
     return (PfnEntry->State != PfnNotPresent);
 }
 
+/*! \name PFN_DATABASE::GetPfnCacheAttribute
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \remarks ...
+ */
 PFN_CACHE_ATTRIBUTE
 PFN_DATABASE::GetPfnCacheAttribute (
     _In_ PFN_NUMBER PageFrameNumber)
@@ -901,6 +1037,18 @@ PFN_DATABASE::GetPfnCacheAttribute (
     return m_PfnArray[PageFrameNumber].CacheAttribute;
 }
 
+/*! \name PFN_DATABASE::MakeActivePfn
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \param [in] PteAddress
+ *
+ *  \param [in] Protect
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::MakeActivePfn (
     _Inout_ PFN_NUMBER PageFrameNumber,
@@ -915,7 +1063,18 @@ PFN_DATABASE::MakeActivePfn (
     PfnEntry->PteAddress = PteAddress;
 }
 
-
+/*! \name PFN_DATABASE::MakeLargePagePfn
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \param [in] PteAddress -
+ *
+ *  \param [in] Protect -
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::MakeLargePagePfn (
     _Inout_ PFN_NUMBER PageFrameNumber,
@@ -925,6 +1084,18 @@ PFN_DATABASE::MakeLargePagePfn (
     //UNIMPLEMENTED;
 }
 
+/*! \name PFN_DATABASE::MakePageTablePfn
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \param [in] PteAddress -
+ *
+ *  \param [in] Protect -
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::MakePageTablePfn (
     _Inout_ PFN_NUMBER PageFrameNumber,
@@ -941,6 +1112,20 @@ PFN_DATABASE::MakePageTablePfn (
     PfnEntry->PageTable.ValidPteCount = 0;
 }
 
+/*! \name PFN_DATABASE::ModifyEntryCount
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \param [in] Addend - Number to add to the count of used and valid PTEs.
+ *      This number can be negative.
+ *
+ *  \return The resulting number of used PTEs.
+ *
+ *  \remarks The caller is responsible to make sure that the resulting counts
+ *      of PTEs never exceed PTE_PER_PAGE and never get below 0.
+ */
 ULONG
 PFN_DATABASE::ModifyEntryCount (
     _In_ PFN_NUMBER PageFrameNumber,
@@ -958,6 +1143,20 @@ PFN_DATABASE::ModifyEntryCount (
     return PfnEntry->PageTable.UsedPteCount;
 }
 
+/*! \name PFN_DATABASE::ModifyUsedCount
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \param [in] Addend - Number to add to the count of used PTEs.
+ *      This number can be negative.
+ *
+ *  \return The resulting number of used PTEs.
+ *
+ *  \remarks The caller is responsible to make sure that the resulting count
+ *      of PTEs never exceeds PTE_PER_PAGE and never gets below 0.
+ */
 ULONG
 PFN_DATABASE::ModifyUsedCount (
     _In_ PFN_NUMBER PageFrameNumber,
@@ -972,6 +1171,20 @@ PFN_DATABASE::ModifyUsedCount (
     return PfnEntry->PageTable.UsedPteCount;
 }
 
+/*! \name PFN_DATABASE::ModifyValidCount
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageFrameNumber - Page frame number of the page in question.
+ *
+ *  \param [in] Addend - Number to add to the count of valid PTEs.
+ *      This number can be negative.
+ *
+ *  \return The resulting number of valid PTEs.
+ *
+ *  \remarks The caller is responsible to make sure that the resulting count
+ *      of PTEs never exceeds PTE_PER_PAGE and never gets below 0.
+ */
 ULONG
 PFN_DATABASE::ModifyValidCount (
     _In_ PFN_NUMBER PageFrameNumber,
@@ -986,6 +1199,12 @@ PFN_DATABASE::ModifyValidCount (
     return PfnEntry->PageTable.ValidPteCount;
 }
 
+/*! \name PFN_DATABASE::AllocatePageLocked
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 PFN_NUMBER
 PFN_DATABASE::AllocatePageLocked (
     _In_ ULONG DesiredPageColor,
@@ -1054,6 +1273,12 @@ PFN_DATABASE::AllocatePageLocked (
     return 0;
 }
 
+/*! \name PFN_DATABASE::AllocatePage
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 PFN_NUMBER
 PFN_DATABASE::AllocatePage (
     _In_ BOOLEAN Zeroed)
@@ -1091,6 +1316,12 @@ PFN_DATABASE::AllocatePage (
     return PageFrameNumber;
 }
 
+/*! \name PFN_DATABASE::FreePageLocked
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::FreePageLocked (
     _Inout_ PFN_NUMBER PageFrameNumber)
@@ -1116,6 +1347,12 @@ PFN_DATABASE::FreePageLocked (
     MmAvailablePages++;
 }
 
+/*! \name PFN_DATABASE::ReleasePage
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::ReleasePage (
     _Inout_ PFN_NUMBER PageFrameNumber)
@@ -1137,6 +1374,12 @@ PFN_DATABASE::ReleasePage (
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
+/*! \name PFN_DATABASE::AllocateMultiplePages
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 NTSTATUS
 PFN_DATABASE::AllocateMultiplePages (
     _Out_ PFN_LIST* PageList,
@@ -1222,7 +1465,12 @@ PFN_DATABASE::AllocateMultiplePages (
     return STATUS_SUCCESS;
 }
 
-
+/*! \name PFN_DATABASE::ReleaseMultiplePages
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::ReleaseMultiplePages (
     _Inout_ PFN_LIST* PageList)
@@ -1241,6 +1489,12 @@ PFN_DATABASE::ReleaseMultiplePages (
     }
 }
 
+/*! \name PFN_DATABASE::AllocateLargePages
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 NTSTATUS
 PFN_DATABASE::AllocateLargePages (
     _Out_ PFN_LIST* LargePageList,
@@ -1276,6 +1530,12 @@ PFN_DATABASE::AllocateLargePages (
     return STATUS_SUCCESS;
 }
 
+/*! \name PFN_DATABASE::ReleaseLargePages
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::ReleaseLargePages (
     _Inout_ PFN_LIST* PageList)
@@ -1299,6 +1559,12 @@ PFN_DATABASE::ReleaseLargePages (
     }
 }
 
+/*! \name PFN_DATABASE::AllocateContiguousPages
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
@@ -1404,6 +1670,12 @@ Done:
     return Status;
 }
 
+/*! \name PFN_DATABASE::FreeContiguousPages
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::FreeContiguousPages (
     _In_ PFN_NUMBER BasePageFrameNumber)
@@ -1431,7 +1703,12 @@ PFN_DATABASE::FreeContiguousPages (
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
 }
 
-
+/*! \name PFN_DATABASE::LockPage
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::LockPage (
     _In_ PFN_NUMBER PageFrameNumber)
@@ -1439,6 +1716,12 @@ PFN_DATABASE::LockPage (
 
 }
 
+/*! \name PFN_DATABASE::UnlockPage
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::UnlockPage (
     _In_ PFN_NUMBER PageFrameNumber)
@@ -1446,6 +1729,12 @@ PFN_DATABASE::UnlockPage (
 
 }
 
+/*! \name PFN_DATABASE::SetPageMapping
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_DATABASE::SetPageMapping (
     _In_ PFN_NUMBER BasePageFrameNumber,
@@ -1472,6 +1761,12 @@ PFN_DATABASE::SetPageMapping (
     UNIMPLEMENTED;
 }
 
+/*! \name PFN_LIST::Initialize
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_LIST::Initialize (
     VOID)
@@ -1480,6 +1775,12 @@ PFN_LIST::Initialize (
     m_ListTail = 0;
 }
 
+/*! \name PFN_LIST::RemovePage
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 PFN_NUMBER
 PFN_LIST::RemovePage (
     VOID)
@@ -1502,6 +1803,12 @@ PFN_LIST::RemovePage (
     return PageFrameNumber;
 }
 
+/*! \name PFN_LIST::AddPage
+ *
+ *  \brief ...
+ *
+ *  \remarks ...
+ */
 VOID
 PFN_LIST::AddPage (
     PFN_NUMBER PageFrameNumber)

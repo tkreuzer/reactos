@@ -1,3 +1,15 @@
+/*!
+
+    \file VadObject.hpp
+
+    \brief Contains the definition of the VAD_OBJECT class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #pragma once
 
@@ -15,15 +27,33 @@ typedef struct VAD_NODE
     ULONG_PTR EndingVpn;
 } VAD_NODE, *PVAD_NODE;
 
-/* The abstract VAD_OBJECT base class */
+typedef struct _VAD_FLAGS
+{
+    BOOLEAN Inserted : 1;
+} VAD_FLAGS;
+
+/* The VAD_OBJECT base class */
 class VAD_OBJECT : private VAD_NODE
 {
 private:
     /* Reference count */
     LONG m_RefCount;
 
+    EX_PUSH_LOCK m_Lock;
+    VAD_FLAGS m_Flags;
+
     /* The type of VAD */
     static const UCHAR m_Dummy;
+
+    inline
+    VOID
+    AcquireLock (
+        VOID);
+
+    inline
+    VOID
+    ReleaseLock (
+        VOID);
 
     /* The VAD table needs to access the VAD_NODE */
     friend class VAD_TABLE;

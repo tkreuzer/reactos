@@ -1,4 +1,15 @@
+/*!
 
+    \file Mapping.cpp
+
+    \brief Implements architecture independent mapping functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "Mapping.hpp"
 #include "PfnDatabase.hpp"
@@ -6,6 +17,46 @@
 #include "AddressSpace.hpp"
 #include _ARCH_RELATIVE_(PageTables.hpp)
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
+
+static const
+USHORT ProtectToWin32Protect[32] =
+{
+    PAGE_NOACCESS, // MM_INVALID
+    PAGE_READONLY, // MM_READONLY
+    PAGE_EXECUTE_READ, // MM_EXECUTE
+    PAGE_EXECUTE_READ, // MM_EXECUTE_READ
+    PAGE_READWRITE, // MM_READWRITE
+    PAGE_WRITECOPY, // MM_WRITECOPY
+    PAGE_EXECUTE_READWRITE, // MM_EXECUTE_READWRITE
+    PAGE_EXECUTE_WRITECOPY, // MM_EXECUTE_WRITECOPY
+
+    PAGE_NOACCESS, // MM_UNCACHED | MM_INVALID
+    PAGE_NOCACHE | PAGE_READONLY, // MM_UNCACHED | MM_READONLY
+    PAGE_NOCACHE | PAGE_EXECUTE_READ, // MM_UNCACHED | MM_EXECUTE
+    PAGE_NOCACHE | PAGE_EXECUTE_READ, // MM_UNCACHED | MM_EXECUTE_READ
+    PAGE_NOCACHE | PAGE_READWRITE, // MM_UNCACHED | MM_READWRITE
+    PAGE_NOCACHE | PAGE_WRITECOPY, // MM_UNCACHED | MM_WRITECOPY
+    PAGE_NOCACHE | PAGE_EXECUTE_READWRITE, // MM_UNCACHED | MM_EXECUTE_READWRITE
+    PAGE_NOCACHE | PAGE_EXECUTE_WRITECOPY, // MM_UNCACHED | MM_EXECUTE_WRITECOPY
+
+    PAGE_NOACCESS, // MM_GUARDPAGE | MM_INVALID
+    PAGE_GUARD | PAGE_READONLY, // MM_GUARDPAGE | MM_READONLY
+    PAGE_GUARD | PAGE_EXECUTE_READ, // MM_GUARDPAGE | MM_EXECUTE
+    PAGE_GUARD | PAGE_EXECUTE_READ, // MM_GUARDPAGE | MM_EXECUTE_READ
+    PAGE_GUARD | PAGE_READWRITE, // MM_GUARDPAGE | MM_READWRITE
+    PAGE_GUARD | PAGE_WRITECOPY, // MM_GUARDPAGE | MM_WRITECOPY
+    PAGE_GUARD | PAGE_EXECUTE_READWRITE, // MM_GUARDPAGE | MM_EXECUTE_READWRITE
+    PAGE_GUARD | PAGE_EXECUTE_WRITECOPY, // MM_GUARDPAGE | MM_EXECUTE_WRITECOPY
+
+    PAGE_NOACCESS, // MM_WRITECOMBINE | MM_INVALID
+    PAGE_WRITECOMBINE | PAGE_READONLY, // MM_WRITECOMBINE | MM_READONLY
+    PAGE_WRITECOMBINE | PAGE_EXECUTE_READ, // MM_WRITECOMBINE | MM_EXECUTE
+    PAGE_WRITECOMBINE | PAGE_EXECUTE_READ, // MM_WRITECOMBINE | MM_EXECUTE_READ
+    PAGE_WRITECOMBINE | PAGE_READWRITE, // MM_WRITECOMBINE | MM_READWRITE
+    PAGE_WRITECOMBINE | PAGE_WRITECOPY, // MM_WRITECOMBINE | MM_WRITECOPY
+    PAGE_WRITECOMBINE | PAGE_EXECUTE_READWRITE, // MM_WRITECOMBINE | MM_EXECUTE_READWRITE
+    PAGE_WRITECOMBINE | PAGE_EXECUTE_WRITECOPY, // MM_WRITECOMBINE | MM_EXECUTE_WRITECOPY
+};
 
 /// HACK HACK HACK HACK
 VOID
@@ -40,17 +91,14 @@ KeFlushProcessTb ()
 
 namespace Mm {
 
-extern ULONG_PTR LowestSystemVpn;
-PFN_NUMBER GlobalZeroPfn;
-
-PVOID
-ReserveKernelMemory (
-    SIZE_T Size);
-
-VOID
-ReleaseKernelMemory (
-    _In_ PVOID BaseAddress);
-
+/*! \fn ConvertProtect
+ *
+ *  \brief ...
+ *
+ *  \param [in] Win32Protect -
+ *
+ *  \return ...
+ */
 ULONG
 ConvertProtect (
     _In_ ULONG Win32Protect)
@@ -75,6 +123,16 @@ ConvertProtect (
     return Protect;
 }
 
+/*! \fn ConvertProtectAndCaching
+ *
+ *  \brief ...
+ *
+ *  \param [in] Win32Protect -
+ *
+ *  \param [in] CachingType -
+ *
+ *  \return ...
+ */
 ULONG
 ConvertProtectAndCaching (
     _In_ ULONG Win32Protect,
@@ -90,39 +148,33 @@ ConvertProtectAndCaching (
     return ConvertProtect(Win32Protect);
 }
 
-const ULONG ProtectToWin32[8] =
-{
-    PAGE_NOACCESS, // MM_INVALID
-    PAGE_READONLY, // MM_READONLY
-    PAGE_EXECUTE, // MM_EXECUTE
-    PAGE_EXECUTE_READ, // MM_EXECUTE_READ
-    PAGE_READWRITE, // MM_READWRITE
-    PAGE_WRITECOPY, // MM_WRITECOPY
-    PAGE_EXECUTE_READWRITE, // MM_EXECUTE_READWRITE
-    PAGE_EXECUTE_WRITECOPY, // MM_EXECUTE_WRITECOPY
-};
-
-const ULONG ProtectToWin32Flags[32] =
-{
-    0, // -
-    PAGE_NOCACHE, // MM_UNCACHED
-    PAGE_GUARD, // MM_GUARDPAGE
-    PAGE_WRITECOMBINE, // MM_WRITECOMBINE
-};
-
+/*! \fn ConvertProtectToWin32
+ *
+ *  \brief ...
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 ULONG
 ConvertProtectToWin32 (
     _In_ ULONG Protect)
 {
-    /* Check for all No-access cases */
-    if ((Protect & 0x7) == MM_INVALID)
-        return PAGE_NOACCESS;
-
-    /* Otherwise use actual protection and flags */
-    return ProtectToWin32[Protect & 0x7] |
-           ProtectToWin32Flags[(Protect >> 3) & 3];
+    /* Convert it to the win32 format */
+    return ProtectToWin32Protect[Protect & MM_PROTECTION_MASK];
 }
 
+/*! \fn CalculateMaximumNumberOfPageTables
+ *
+ *  \brief Calculates the maximum number of physical pages for page tables that
+ *      a mapping of a given VPN range might need.
+ *
+ *  \param [in] StartingVpn - The starting VPN of the range.
+ *
+ *  \param [in] EndingVpn - The (inclusive) ending VPN of the range.
+ *
+ *  \return The maximum number of physical pages for page tables.
+ */
 ULONG_PTR
 CalculateMaximumNumberOfPageTables (
     _In_ ULONG_PTR StartingVpn,
@@ -142,6 +194,26 @@ CalculateMaximumNumberOfPageTables (
     return PageCount;
 }
 
+/*! \fn AllocatePagesForMapping
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] EndingVpn -
+ *
+ *  \param [out] PageList -
+ *
+ *  \param [out] LargePageList -
+ *
+ *  \param [in] ChargeForPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \param [out] PagesCharged -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
 AllocatePagesForMapping (
@@ -218,7 +290,20 @@ AllocatePagesForMapping (
     return STATUS_SUCCESS;
 }
 
-
+/*! \fn ReserveMappingPtes
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] EndingVpn -
+ *
+ *  \param [in] PageList -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 ULONG_PTR
 ReserveMappingPtes (
     _In_ ULONG_PTR StartingVpn,
@@ -362,6 +447,18 @@ ReserveMappingPtes (
     return ActualCharge;
 }
 
+/*! \fn MapVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 NTSTATUS
 MapVirtualMemory (
     _In_ ULONG_PTR StartingVpn,
@@ -509,6 +606,20 @@ MapVirtualMemory (
     return STATUS_SUCCESS;
 }
 
+/*! \fn MapPhysicalMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \param [in] BasePageFrameNumber -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
@@ -597,6 +708,20 @@ MapPhysicalMemory (
     return STATUS_SUCCESS;
 }
 
+/*! \fn MapPfnArray
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \param [in] PfnArray -
+ *
+ *  \return ...
+ */
 NTSTATUS
 MapPfnArray (
     _In_ ULONG_PTR StartingVpn,
@@ -680,6 +805,20 @@ MapPfnArray (
     return STATUS_SUCCESS;
 }
 
+/*! \fn MapPrototypePtes
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \param [in] Prototypes -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
@@ -766,7 +905,16 @@ MapPrototypePtes (
     return STATUS_SUCCESS;
 }
 
-
+/*! \fn UnmapPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] ReleasePages -
+ */
 VOID
 UnmapPages (
     _In_ ULONG_PTR StartingVpn,
@@ -882,6 +1030,20 @@ UnmapPages (
     AddressSpace->ReleaseWorkingSetLock();
 }
 
+/*! \fn ProtectVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \param [out] OutOldProtect -
+ *
+ *  \return ...
+ */
 NTSTATUS
 ProtectVirtualMemory (
     _In_ ULONG_PTR StartingVpn,
@@ -893,6 +1055,16 @@ ProtectVirtualMemory (
     return STATUS_UNSUCCESSFUL;
 }
 
+/*! \fn ProtectVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [out] OutRegionSize -
+ *
+ *  \param [out] OutProtect -
+ */
 VOID
 CheckVirtualMapping (
     _In_ PVOID BaseAddress,
@@ -907,6 +1079,16 @@ CheckVirtualMapping (
 
 extern "C" {
 
+/*! \fn MmAllocateMappingAddress
+ *
+ *  \brief ...
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \param [in] Tag -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(APC_LEVEL)
 _When_ (return != NULL, _Out_writes_bytes_opt_ (NumberOfBytes))
@@ -939,6 +1121,14 @@ MmAllocateMappingAddress (
     return BaseAddress;
 }
 
+/*! \fn MmFreeMappingAddress
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] Tag -
+ */
 _IRQL_requires_max_(APC_LEVEL)
 VOID
 NTAPI
@@ -951,6 +1141,18 @@ MmFreeMappingAddress (
     ReleaseKernelMemory(BaseAddress);
 }
 
+/*! \fn MmMapIoSpace
+ *
+ *  \brief ...
+ *
+ *  \param [in] PhysicalAddress -
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \param [in] CachingType -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Out_writes_bytes_opt_ (NumberOfBytes)
@@ -994,6 +1196,14 @@ MmMapIoSpace (
     return AddToPointer(BaseAddress, PhysicalAddress.LowPart & (PAGE_SIZE - 1));
 }
 
+/*! \fn MmUnmapIoSpace
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] NumberOfBytes -
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
@@ -1013,6 +1223,16 @@ MmUnmapIoSpace (
     ReleaseKernelMemory(ALIGN_DOWN_POINTER_BY(BaseAddress, PAGE_SIZE));
 }
 
+/*! \fn MmMapLockedPages
+ *
+ *  \brief ...
+ *
+ *  \param [inout] MemoryDescriptorList -
+ *
+ *  \param [in] AccessMode -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _When_(AccessMode==KernelMode, _IRQL_requires_max_(DISPATCH_LEVEL))
 _When_(AccessMode==UserMode, _Maybe_raises_SEH_exception_ _IRQL_requires_max_(APC_LEVEL))
@@ -1031,6 +1251,24 @@ MmMapLockedPages (
                                         NormalPagePriority);
 }
 
+/*! \fn MmMapLockedPagesSpecifyCache
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] AccessMode -
+ *
+ *  \param [in] CacheType -
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] BugCheckOnFailure -
+ *
+ *  \param [in] Priority -
+ *
+ *  \return ...
+ */
 _Post_writable_byte_size_(Mdl->ByteCount)
 _When_(AccessMode==KernelMode, _IRQL_requires_max_(DISPATCH_LEVEL))
 _When_(AccessMode==UserMode, _Maybe_raises_SEH_exception_ _IRQL_requires_max_(APC_LEVEL) _Post_notnull_)
@@ -1112,10 +1350,24 @@ Failure:
     return NULL;
 }
 
-_Post_writable_byte_size_(MemoryDescriptorList->ByteCount)
+/*! \fn MmMapLockedPagesWithReservedMapping
+ *
+ *  \brief ...
+ *
+ *  \param [in] MappingAddress -
+ *
+ *  \param [in] PoolTag -
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] CacheType -
+ *
+ *  \return ...
+ */
+_Post_writable_byte_size_(Mdl->ByteCount)
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_At_(MemoryDescriptorList->MappedSystemVa + MemoryDescriptorList->ByteOffset,
-  _Post_writable_byte_size_(MemoryDescriptorList->ByteCount))
+_At_(Mdl->MappedSystemVa + Mdl->ByteOffset,
+  _Post_writable_byte_size_(Mdl->ByteCount))
 _Must_inspect_result_
 _Success_(return != NULL)
 PVOID
@@ -1123,7 +1375,7 @@ NTAPI
 MmMapLockedPagesWithReservedMapping (
     _In_ PVOID MappingAddress,
     _In_ ULONG PoolTag,
-    _Inout_ PMDLX MemoryDescriptorList,
+    _Inout_ PMDLX Mdl,
     _In_ __drv_strictTypeMatch(__drv_typeCond)
         MEMORY_CACHING_TYPE CacheType)
 {
@@ -1133,6 +1385,18 @@ MmMapLockedPagesWithReservedMapping (
     return NULL;
 }
 
+/*! \fn MmUnmapReservedMapping
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] PoolTag -
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] CacheType -
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
@@ -1144,6 +1408,14 @@ MmUnmapReservedMapping (
     UNIMPLEMENTED;
 }
 
+/*! \fn MmUnmapLockedPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [inout] Mdl -
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
@@ -1159,15 +1431,30 @@ MmUnmapLockedPages (
     Mdl->MdlFlags &= ~(MDL_PARTIAL_HAS_BEEN_MAPPED | MDL_MAPPED_TO_SYSTEM_VA);
 }
 
-
+/*! \fn MmMapMemoryDumpMdl
+ *
+ *  \brief ...
+ *
+ *  \param [in] Mdl -
+ *
+ *  \param [in] CacheType -
+ */
 VOID
 NTAPI
 MmMapMemoryDumpMdl (
-    IN PMDL Mdl)
+    _In_ PMDL Mdl)
 {
     UNIMPLEMENTED;
 }
 
+/*! \fn MmGetPhysicalAddress
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \return ...
+ */
 PHYSICAL_ADDRESS
 NTAPI
 MmGetPhysicalAddress(
@@ -1212,6 +1499,16 @@ MmGetPhysicalAddress(
     return PhysicalAddress;
 }
 
+/*! \fn MmSetAddressRangeModified
+ *
+ *  \brief ...
+ *
+ *  \param [in] Address -
+ *
+ *  \param [in] Length -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
 NTAPI
@@ -1223,6 +1520,14 @@ MmSetAddressRangeModified (
     return FALSE;
 }
 
+/*! \fn MmIsAddressValid
+ *
+ *  \brief ...
+ *
+ *  \param [in] VirtualAddress -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 NTAPI
@@ -1242,6 +1547,14 @@ MmIsAddressValid (
          AddressToPte(VirtualAddress)->IsValid()));
 }
 
+/*! \fn MmIsNonPagedSystemAddressValid
+ *
+ *  \brief ...
+ *
+ *  \param [in] VirtualAddress -
+ *
+ *  \return ...
+ */
 BOOLEAN
 NTAPI
 MmIsNonPagedSystemAddressValid (
@@ -1251,6 +1564,18 @@ MmIsNonPagedSystemAddressValid (
     return FALSE;
 }
 
+/*! \fn MmMapUserAddressesToPage
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \param [in] PageAddress -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS

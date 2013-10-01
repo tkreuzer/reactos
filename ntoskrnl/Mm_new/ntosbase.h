@@ -59,6 +59,7 @@
 #define MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 #define MmLowestUserAddress ((PVOID)0x10000)
 #define INIT_FUNCTION
+#define PAGES_PER_LARGE_PAGE (LARGE_PAGE_SIZE / PAGE_SIZE)
 
 
 #ifdef _WIN64

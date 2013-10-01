@@ -1,10 +1,13 @@
 /*!
 
-    @file VadObject.cpp
+    \file VadObject.cpp
 
-    @brief Implements the VAD_OBJECT class
+    \brief Implements the VAD_OBJECT class
 
-    @author Timo Kreuzer
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
 
 */
 
@@ -15,6 +18,20 @@ namespace Mm {
 
 const char VadObjectVadType[] = "VadObject";
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 VAD_OBJECT::CreateInstance (
     _Out_ VAD_OBJECT** OutVadObject,
@@ -35,6 +52,66 @@ VAD_OBJECT::CreateInstance (
     return STATUS_SUCCESS;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
+inline
+VOID
+VAD_OBJECT::AcquireLock (
+    VOID)
+{
+    KeEnterCriticalRegion();
+    //ExAcquirePushLockExclusive(&m_Lock);
+}
+
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
+inline
+VOID
+VAD_OBJECT::ReleaseLock (
+    VOID)
+{
+    KeLeaveCriticalRegion();
+    //ExReleasePushLock(&m_Lock);
+}
+
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 ULONG
 VAD_OBJECT::GetMemoryType (
     VOID)
@@ -42,6 +119,20 @@ VAD_OBJECT::GetMemoryType (
     return MEM_PRIVATE;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 const char*
 VAD_OBJECT::GetVadType (
     VOID) const
@@ -49,6 +140,20 @@ VAD_OBJECT::GetVadType (
     return VadObjectVadType;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 VAD_OBJECT::CommitPages (
     _In_ ULONG_PTR StartingVpn,
@@ -56,6 +161,7 @@ VAD_OBJECT::CommitPages (
     _In_ ULONG Protect)
 {
     ULONG_PTR EndingVpn;
+    NTSTATUS Status;
 
     /* Check parameter */
     EndingVpn = StartingVpn + NumberOfPages - 1;
@@ -70,8 +176,21 @@ VAD_OBJECT::CommitPages (
         return STATUS_UNSUCCESSFUL;
     }
 
+    AcquireLock();
+
+    /* Check if the VAD object is inserted */
+    if (!m_Flags.Inserted)
+    {
+        ReleaseLock();
+        return STATUS_NOT_COMMITTED;
+    }
+
     /* Map the pages */
-    return MapVirtualMemory(StartingVpn, NumberOfPages, Protect);
+    Status = MapVirtualMemory(StartingVpn, NumberOfPages, Protect);
+
+    ReleaseLock();
+
+    return Status;
 }
 
 }; // namespace Mm

@@ -2,9 +2,10 @@
 
     \file Mm/SectionObject.hpp
 
-    \brief Defines the SECTION_OBJECT class
+    \brief Contains the definition of the SECTION_OBJECT class
 
-    \copyright Released under the terms of the GNU GPL v2
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
 
     \author Timo Kreuzer (timo.kreuzer@reactos.org)
 
@@ -80,7 +81,7 @@ public:
         _Out_ PSECTION_BASIC_INFORMATION BasicInformation);
 
     VOID
-    QueryImagenformation (
+    QueryImageInformation (
         _Out_ PSECTION_IMAGE_INFORMATION BasicInformation);
 
 

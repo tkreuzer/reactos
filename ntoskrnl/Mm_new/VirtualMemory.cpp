@@ -1,3 +1,15 @@
+/*!
+
+    \file VirtualMemory.cpp
+
+    \brief Implements virtual memory related functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "VirtualMemory.hpp"
 #include "AddressSpace.hpp"
@@ -6,8 +18,26 @@
 #include <ndk/ketypes.h>
 #include <ndk/pstypes.h>
 
+#define VALID_ALLOCATION_FLAGS (MEM_COMMIT | MEM_RESERVE | MEM_RESET | MEM_PHYSICAL | MEM_TOP_DOWN | MEM_WRITE_WATCH)
+
 namespace Mm {
 
+/*! \fn AllocateVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] ZeroBits -
+ *
+ *  \param [inout] RegionSize -
+ *
+ *  \param [in] AllocationType -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _At_(*BaseAddress, __drv_allocatesMem(Mem))
 __kernel_entry
@@ -25,6 +55,9 @@ AllocateVirtualMemory (
     ULONG_PTR NumberOfPages;
     NTSTATUS Status;
     VAD_OBJECT* VadObject;
+
+    /* Make sure we either reserve or commit */
+    NT_ASSERT(AllocationType & (MEM_RESERVE | MEM_COMMIT));
 
     /* Calculate the end-address and align it to pages granularity */
     EndAddress = AddToPointer(*BaseAddress, *RegionSize);
@@ -55,48 +88,77 @@ AllocateVirtualMemory (
     /* Check if we need to reserve memory */
     if (AllocationType & MEM_RESERVE)
     {
-        /* Reserve memory */
-        Status = AddressSpace->ReserveVirtualMemory(BaseAddress,
-                                                    NumberOfPages,
-                                                    Protect);
+        /* Allocate a VAD object */
+        Status = VAD_OBJECT::CreateInstance(&VadObject, Protect);
         if (!NT_SUCCESS(Status))
         {
-            __debugbreak();
+            ERR("Failed to allocate VAD object: 0x%lx\n", Status);
+            return Status;
+        }
+
+        /* Insert the VAD object into the address space */
+        Status = AddressSpace->InsertVadObject(VadObject,
+                                               BaseAddress,
+                                               NumberOfPages,
+                                               ZeroBits,
+                                               AllocationType);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("Failed to insert VAD object into address space: %x\n", Status);
+            VadObject->Release();
             return Status;
         }
     }
-    //else
+    else
     {
-        /// find VAD for address
+        /* Reference the VAD object for the given address */
         VadObject = AddressSpace->ReferenceVadObjectByAddress(*BaseAddress, FALSE);
         if (VadObject == NULL)
         {
             ERR("Trying to commit memory that was not reserved!");
-            return STATUS_CONFLICTING_ADDRESSES;
+            return STATUS_NOT_COMMITTED;
         }
     }
 
     /* Check if we need to commit memory */
     if (AllocationType & MEM_COMMIT)
     {
-        /// FIXME: we should instead use VadObject->Commit
-        VadObject->CommitPages(AddressToVpn(*BaseAddress), NumberOfPages, Protect);
-        if (!NT_SUCCESS(Status))
+        /* Commit the pages of the reserved region */
+        Status = VadObject->CommitPages(AddressToVpn(*BaseAddress),
+                                        NumberOfPages,
+                                        Protect);
+    }
+
+    /* Release the VAD object */
+    VadObject->Release();
+
+    if (!NT_SUCCESS(Status))
+    {
+        /* Did we also reserve? */
+        if (AllocationType & MEM_RESERVE)
         {
-            /* Did we also reserve? */
-            if (AllocationType & MEM_RESERVE)
-            {
-                /* Release the reserved memory as well */
-                AddressSpace->ReleaseVirtualMemory(*BaseAddress);
-            }
+            /* Release the reserved memory as well */
+            AddressSpace->ReleaseVirtualMemory(*BaseAddress);
         }
     }
 
-    return 0;
+    return STATUS_SUCCESS;
 }
 
 extern "C" {
 
+/*! \fn MmSecureVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] Address -
+ *
+ *  \param [in] Size -
+ *
+ *  \param [in] ProbeMode -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(APC_LEVEL)
 HANDLE
@@ -110,22 +172,43 @@ MmSecureVirtualMemory (
     return 0;
 }
 
+/*! \fn MmUnsecureVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] SecureHandle -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(APC_LEVEL)
 VOID
 NTAPI
 MmUnsecureVirtualMemory (
-  _In_ HANDLE SecureHandle)
+    _In_ HANDLE SecureHandle)
 {
     UNIMPLEMENTED;
 }
 
 
-/*!
-    \param AllocationType -
-        The lowest 5 bits encode the NUMA node, if all 5 bits are 0, the ideal
-        processor's NUMA node is used, otherwise the node number is calculated
-        by masking the lowest 5 bits and subtracting 1.
-*/
+/*! \name NtAllocateVirtualMemory
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] BaseAddress -
+ *
+ *  \param [in] ZeroBits -
+ *
+ *  \param [inout] RegionSize -
+ *
+ *  \param [in] AllocationType -
+ *      The lowest 5 bits encode the NUMA node, if all 5 bits are 0, the ideal
+ *      processor's NUMA node is used, otherwise the node number is calculated
+ *      by masking the lowest 5 bits and subtracting 1.
+ *
+ *  \param [in] Win32Protect -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _At_(*BaseAddress, __drv_allocatesMem(Mem))
 __kernel_entry
@@ -147,9 +230,85 @@ NtAllocateVirtualMemory (
     ULONG Protect;
     NTSTATUS Status;
 
-    // Check parameters
+    /* Check ZeroBits parameter */
+    if (ZeroBits > 21)
+    {
+        ERR("ZeroBits is larger than 21.\n");
+        return STATUS_INVALID_PARAMETER_3;
+    }
 
-    //__debugbreak();
+    /* Check AllocationType parameter */
+    if ((AllocationType & ~VALID_ALLOCATION_FLAGS) ||
+        ((AllocationType & (MEM_COMMIT | MEM_RESERVE | MEM_RESET)) == 0))
+    {
+        ERR("Invalid AllocationType: 0x%lx\n", AllocationType);
+        return STATUS_INVALID_PARAMETER_5;
+    }
+
+    /* MEM_RESET is an exclusive flag, make sure that is valid too */
+    if ((AllocationType & MEM_RESET) && (AllocationType != MEM_RESET))
+    {
+        ERR("MEM_RESET not used exclusively.\n");
+        return STATUS_INVALID_PARAMETER_5;
+    }
+
+    /* Check if large pages are being used */
+    if (AllocationType & MEM_LARGE_PAGES)
+    {
+        /* Large page allocations MUST be committed */
+        if (!(AllocationType & MEM_COMMIT))
+        {
+            ERR("Must supply MEM_COMMIT with MEM_LARGE_PAGES\n");
+            return STATUS_INVALID_PARAMETER_5;
+        }
+
+        /* These flags are not allowed with large page allocations */
+        if (AllocationType & (MEM_PHYSICAL | MEM_RESET | MEM_WRITE_WATCH))
+        {
+            ERR("Using illegal flags with MEM_LARGE_PAGES\n");
+            return STATUS_INVALID_PARAMETER_5;
+        }
+    }
+
+    /* MEM_WRITE_WATCH can only be used if MEM_RESERVE is also used */
+    if ((AllocationType & MEM_WRITE_WATCH) && !(AllocationType & MEM_RESERVE))
+    {
+        ERR("MEM_WRITE_WATCH used without MEM_RESERVE\n");
+        return STATUS_INVALID_PARAMETER_5;
+    }
+
+    /* MEM_PHYSICAL can only be used if MEM_RESERVE is also used */
+    if ((AllocationType & MEM_PHYSICAL) && !(AllocationType & MEM_RESERVE))
+    {
+        ERR("MEM_WRITE_WATCH used without MEM_RESERVE\n");
+        return STATUS_INVALID_PARAMETER_5;
+    }
+
+    /* Check for valid MEM_PHYSICAL usage */
+    if (AllocationType & MEM_PHYSICAL)
+    {
+        /* Only these flags are allowed with MEM_PHYSIAL */
+        if (AllocationType & ~(MEM_RESERVE | MEM_TOP_DOWN | MEM_PHYSICAL))
+        {
+            ERR("Using illegal flags with MEM_PHYSICAL\n");
+            return STATUS_INVALID_PARAMETER_5;
+        }
+
+        /* Then make sure PAGE_READWRITE is used */
+        if (Win32Protect != PAGE_READWRITE)
+        {
+            ERR("MEM_PHYSICAL used without PAGE_READWRITE\n");
+            return STATUS_INVALID_PARAMETER_6;
+        }
+    }
+
+    /* Convert the win32 protection */
+    Protect = ConvertProtect(Win32Protect);
+    if (Protect == -1)
+    {
+        ERR("Invalid page protection: 0x%lx\n", Win32Protect);
+        return STATUS_INVALID_PAGE_PROTECTION;
+    }
 
     /* Get the previous mode and check if this was user mode */
     PreviousMode = ExGetPreviousMode();
@@ -178,10 +337,8 @@ NtAllocateVirtualMemory (
     }
 
     /* Check if the current process is specified */
-    //DbgPrint("NtAllocateVirtualMemory: ProcessHandle = %p\n", ProcessHandle);
     if (ProcessHandle != NtCurrentProcess())
     {
-        //DbgPrint("-- before debugbreak\n");
         /* Reference the process object */
         Status = ObReferenceObjectByHandle(ProcessHandle,
                                            PROCESS_VM_OPERATION,
@@ -191,15 +348,12 @@ NtAllocateVirtualMemory (
                                            NULL);
         if (!NT_SUCCESS(Status))
         {
+            ERR("Invalid ProcessHandle.\n");
             return Status;
         }
 
         /* Attach to it */
         KeStackAttachProcess(&Process->Pcb, &SavedApcState);
-
-        //__debugbreak();
-        //DbgPrint("-- after debugbreak\n");
-        //__debugbreak();
     }
 
     /* Check if address should be chosen automatically */
@@ -208,8 +362,6 @@ NtAllocateVirtualMemory (
         /* This means the caller wants to reserve memory */
         AllocationType |= MEM_RESERVE;
     }
-
-    Protect = ConvertProtect(Win32Protect);
 
     /* Call the internal function */
     Status = AllocateVirtualMemory(&CapturedBaseAddress,
@@ -253,6 +405,20 @@ NtAllocateVirtualMemory (
     return Status;
 }
 
+/*! \fn NtFreeVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] BaseAddress -
+ *
+ *  \param [inout] RegionSize -
+ *
+ *  \param [in] FreeType -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -267,6 +433,20 @@ NtFreeVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtFlushVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] BaseAddress -
+ *
+ *  \param [inout] RegionSize -
+ *
+ *  \param [out] IoStatus -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -281,7 +461,22 @@ NtFlushVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-
+/*! \fn NtProtectVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] NumberOfBytesToProtect -
+ *
+ *  \param [in] NewAccessProtection -
+ *
+ *  \param [out] OutOldAccessProtection -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -432,6 +627,18 @@ NtProtectVirtualMemory (
     return Status;
 }
 
+/*! \fn QueryMemoryBasicInformation
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [out] Information -
+ *
+ *  \param [in] BufferSize -
+ *
+ *  \return ...
+ */
 NTSTATUS
 QueryMemoryBasicInformation (
     _In_ PVOID BaseAddress,
@@ -501,7 +708,20 @@ QueryMemoryBasicInformation (
     return STATUS_SUCCESS;
 }
 
-
+/*! \fn QueryMemorySectionName
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [out] MemorySectionName -
+ *
+ *  \param [in] BufferSize -
+ *
+ *  \param [out] ResultLength -
+ *
+ *  \return ...
+ */
 NTSTATUS
 QueryMemorySectionName (
     _In_ PVOID BaseAddress,
@@ -514,6 +734,24 @@ QueryMemorySectionName (
     return 0;
 }
 
+/*! \fn NtQueryVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] MemoryInformationClass -
+ *
+ *  \param [out] MemoryInformation -
+ *
+ *  \param [in] InfoBufferSize -
+ *
+ *  \param [out] ResultLength -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -662,6 +900,20 @@ NtQueryVirtualMemory (
     return Status;
 }
 
+/*! \fn NtLockVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] BaseAddress -
+ *
+ *  \param [inout] NumberOfBytesToLock -
+ *
+ *  \param [in] MapType -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -676,6 +928,20 @@ NtLockVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtUnlockVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] BaseAddress -
+ *
+ *  \param [inout] NumberOfBytesToUnlock -
+ *
+ *  \param [in] MapType -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -690,6 +956,22 @@ NtUnlockVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtReadVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [out] Buffer -
+ *
+ *  \param [in] NumberOfBytesToRead -
+ *
+ *  \param [out] NumberOfBytesRead -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
@@ -705,6 +987,22 @@ NtReadVirtualMemory (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtWriteVirtualMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] Buffer -
+ *
+ *  \param [in] NumberOfBytesToWrite -
+ *
+ *  \param [out] NumberOfBytesWritten -
+ *
+ *  \return ...
+ */
 __kernel_entry
 _IRQL_requires_max_(PASSIVE_LEVEL)
 NTSTATUS
