@@ -1,3 +1,15 @@
+/*!
+
+    \file ProcessSupport.cpp
+
+    \brief Implements process related functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include <ndk/pstypes.h>
@@ -5,7 +17,6 @@
 #include "SectionObject.hpp"
 #include "VirtualMemory.hpp"
 #include "VadTable.hpp"
-//#include "eal.h"
 #include <ndk/mmfuncs.h>
 #include <ndk/rtlfuncs.h>
 
@@ -33,6 +44,14 @@ ULONG NumberOfProcesses = 1;
 
 // private
 
+/*! \fn MmSetExecuteOptions
+ *
+ *  \brief ...
+ *
+ *  \param [in] ExecuteOptions -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmSetExecuteOptions (
@@ -42,16 +61,35 @@ MmSetExecuteOptions (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmGetExecuteOptions
+ *
+ *  \brief ...
+ *
+ *  \param [out] ExecuteOptions -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmGetExecuteOptions (
-    IN PULONG ExecuteOptions)
+    _Out_ PULONG ExecuteOptions)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
-
+/*! \fn MmCreatePeb
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] InitialPeb -
+ *
+ *  \param [out] BasePeb -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmCreatePeb (
@@ -205,6 +243,20 @@ Cleanup:
     return Status;
 }
 
+/*! \fn MmCreateTeb
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] ClientId -
+ *
+ *  \param [in] InitialTeb -
+ *
+ *  \param [out] BaseTeb -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmCreateTeb (
@@ -282,21 +334,40 @@ Cleanup:
     return Status;
 }
 
+/*! \fn MmDeleteTeb
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] Teb -
+ *
+ *  \return ...
+ */
 VOID
 NTAPI
 MmDeleteTeb (
-    struct _EPROCESS *Process,
-    struct _TEB* Teb)
+    _In_ struct _EPROCESS *Process,
+    _In_ struct _TEB* Teb)
 {
     UNIMPLEMENTED;
 }
 
-
+/*! \fn MmInitializeHandBuiltProcess
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] DirectoryTableBase -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmInitializeHandBuiltProcess (
-    IN PEPROCESS Process,
-    IN PULONG_PTR DirectoryTableBase)
+    _In_ PEPROCESS Process,
+    _In_ PULONG_PTR DirectoryTableBase)
 {
     /* Share the directory base with the idle process */
     DirectoryTableBase[0] = PsGetCurrentProcess()->Pcb.DirectoryTableBase[0];
@@ -319,22 +390,41 @@ MmInitializeHandBuiltProcess (
     return STATUS_SUCCESS;
 }
 
+/*! \fn MmInitializeHandBuiltProcess2
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmInitializeHandBuiltProcess2 (
-    IN PEPROCESS Process)
+    _In_ PEPROCESS Process)
 {
     /* Nothing to do */
     return STATUS_SUCCESS;
 }
 
-
+/*! \fn MmCreateProcessAddressSpace
+ *
+ *  \brief ...
+ *
+ *  \param [in] MinWs -
+ *
+ *  \param [in] NewProcess -
+ *
+ *  \param [in] DirectoryTableBase -
+ *
+ *  \return ...
+ */
 BOOLEAN
 NTAPI
 MmCreateProcessAddressSpace (
-    IN ULONG MinWs,
-    IN PEPROCESS NewProcess,
-    IN PULONG_PTR DirectoryTableBase)
+    _In_ ULONG MinWs,
+    _In_ PEPROCESS NewProcess,
+    _In_ PULONG_PTR DirectoryTableBase)
 {
 #ifdef __linux__
     NTSTATUS Status;
@@ -365,14 +455,30 @@ MmCreateProcessAddressSpace (
 #endif
 }
 
+/*! \fn MmInitializeProcessAddressSpace
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] Clone -
+ *
+ *  \param [in] Section -
+ *
+ *  \param [in] Flags -
+ *
+ *  \param [in] AuditName -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmInitializeProcessAddressSpace (
-    IN PEPROCESS Process,
-    IN PEPROCESS Clone OPTIONAL,
-    IN PVOID Section OPTIONAL,
-    IN OUT PULONG Flags,
-    IN POBJECT_NAME_INFORMATION *AuditName OPTIONAL)
+    _In_ PEPROCESS Process,
+    _In_opt_ PEPROCESS Clone,
+    _In_opt_ PVOID Section,
+    _Inout_ PULONG Flags,
+    _In_opt_ POBJECT_NAME_INFORMATION *AuditName)
 {
     NTSTATUS Status;
     SIZE_T ViewSize = 0;
@@ -499,28 +605,52 @@ MmInitializeProcessAddressSpace (
     return Status;
 }
 
+/*! \fn MmCleanProcessAddressSpace
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ */
 VOID
 NTAPI
 MmCleanProcessAddressSpace (
-    IN PEPROCESS Process)
+    _In_ PEPROCESS Process)
 {
     UNIMPLEMENTED;
 }
 
+/*! \fn MmDeleteProcessAddressSpace
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmDeleteProcessAddressSpace (
-    IN PEPROCESS Process)
+    _In_ PEPROCESS Process)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmSetMemoryPriorityProcess
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] MemoryPriority -
+ *
+ *  \return ...
+ */
 UCHAR
 NTAPI
 MmSetMemoryPriorityProcess (
-    IN PEPROCESS Process,
-    IN UCHAR MemoryPriority)
+    _In_ PEPROCESS Process,
+    _In_ UCHAR MemoryPriority)
 {
     UCHAR OldPriority;
 

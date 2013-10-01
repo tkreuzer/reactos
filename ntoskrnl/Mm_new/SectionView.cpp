@@ -1,3 +1,15 @@
+/*!
+
+    \file SectionView.cpp
+
+    \brief Implements the SECTION_VIEW class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "SectionView.hpp"
 #include "PhysicalSection.hpp"
@@ -37,18 +49,60 @@ enum VA_TYPE
     VaMaximumType,
 };
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 bool
 IsSectionVad(VAD_OBJECT* VadObject)
 {
     return VadObject->GetVadType() == SectionViewVadType;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 const char*
 SECTION_VIEW::GetVadType () const
 {
     return SectionViewVadType;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 SECTION_VIEW::CreateInstance (
     _Out_ SECTION_VIEW** OutSectionView,
@@ -74,6 +128,20 @@ SECTION_VIEW::CreateInstance (
     return STATUS_SUCCESS;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 ULONG
 SECTION_VIEW::GetMemoryType (
     VOID)
@@ -87,6 +155,20 @@ SECTION_VIEW::GetMemoryType (
         return MEM_MAPPED;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 SECTION_VIEW::CommitPages (
     _In_ ULONG_PTR StartingVpn,
@@ -120,6 +202,20 @@ SECTION_VIEW::CommitPages (
     return Status;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 SECTION_VIEW::CreateMapping (
     _In_ ULONG_PTR RelativeStartingVpn,
@@ -156,6 +252,20 @@ SECTION_VIEW::CreateMapping (
     return STATUS_SUCCESS;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MapViewOfSection (
@@ -347,6 +457,20 @@ MapViewOfSection (
     return STATUS_SUCCESS;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 UnmapViewOfSection (
@@ -360,6 +484,20 @@ UnmapViewOfSection (
 extern "C" {
 /** Internal API **************************************************************/
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmGetFileNameForAddress (
@@ -378,6 +516,20 @@ MmGetFileNameForAddress (
 
 /** Exported API **************************************************************/
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS
@@ -401,6 +553,20 @@ MmMapViewInSystemSpace (
                             PAGE_EXECUTE_READWRITE);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS
 NTAPI
@@ -411,6 +577,20 @@ MmUnmapViewInSystemSpace (
     return UnmapViewOfSection(VaSystemSpace, BaseAddress);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS
@@ -434,6 +614,20 @@ MmMapViewInSessionSpace (
                             PAGE_EXECUTE_READWRITE);
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS
 NTAPI
@@ -447,6 +641,20 @@ MmUnmapViewInSessionSpace (
 //MmMapViewInSystemCache
 //MmUnmapViewInSystemCache
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmMapViewOfSection (
@@ -495,6 +703,20 @@ MmMapViewOfSection (
     return Status;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmUnmapViewOfSection (
@@ -528,6 +750,20 @@ MmUnmapViewOfSection (
 
 /** Syscall API ***************************************************************/
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtMapViewOfSection (
@@ -725,6 +961,20 @@ NtMapViewOfSection (
     return Status;
 }
 
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtUnmapViewOfSection (

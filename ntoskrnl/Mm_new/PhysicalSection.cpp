@@ -1,3 +1,15 @@
+/*!
+
+    \file PhysicalSection.cpp
+
+    \brief Implements the PHYSICAL_SECTION class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "PhysicalSection.hpp"
 #include "Segment.hpp"
@@ -13,6 +25,11 @@ const RTL_BITMAP PHYSICAL_SECTION::ImageLoadBitMap =
 UCHAR PHYSICAL_SECTION::DllImageBias;
 extern ULONG RandomNumberSeed;
 
+
+/*! \fn PHYSICAL_SECTION::InitializeClass
+ *
+ *  \brief Static class initialization for the PHYSICAL_SECTION class
+ */
 VOID
 PHYSICAL_SECTION::InitializeClass (
     VOID)
@@ -24,12 +41,20 @@ PHYSICAL_SECTION::InitializeClass (
 
 }
 
+/*! \fn PHYSICAL_SECTION::PHYSICAL_SECTION
+ *
+ *  \brief Constructor for the PHYSICAL_SECTION class
+ */
 PHYSICAL_SECTION::PHYSICAL_SECTION (
     VOID)
 {
     // nothing for now
 }
 
+/*! \fn PHYSICAL_SECTION::~PHYSICAL_SECTION
+ *
+ *  \brief Destructor for the PHYSICAL_SECTION class
+ */
 PHYSICAL_SECTION::~PHYSICAL_SECTION (
     VOID)
 {
@@ -37,6 +62,20 @@ PHYSICAL_SECTION::~PHYSICAL_SECTION (
         m_ControlArea.Segment->Release();
 }
 
+/*! \fn PHYSICAL_SECTION::CreateInstance
+ *
+ *  \brief Creates a new instance of the PHYSICAL_SECTION class.
+ *
+ *  \param [out] OutSection - Pointer to a variable that receives a pointer to
+ *      the new object.
+ *
+ *  \param [in] NumberOfSubsections - Number of subsections in the section.
+ *
+ *  \param [in] NumberOfPages - Size of the section in pages.
+ *
+ *  \return STATUS_SUCCESS on success, STATUS_INSUFFICIENT_RESOURCES when there
+ *      was insufficient free pool memory.
+ */
 NTSTATUS
 PHYSICAL_SECTION::CreateInstance (
     _Out_ PPHYSICAL_SECTION* OutSection,
@@ -49,7 +88,6 @@ PHYSICAL_SECTION::CreateInstance (
     NTSTATUS Status;
 
     /* Calculate the size of the PHYSICAL_SECTION with all SUBSECTIONs */
-    //Size = FIELD_OFFSET(PHYSICAL_SECTION, m_Subsections[NumberOfSubsections]);
     Size = sizeof(PHYSICAL_SECTION) + (NumberOfSubsections - 1) * sizeof(SUBSECTION);
 
     /* Allocate the PHYSICAL_SECTION */
@@ -79,6 +117,20 @@ PHYSICAL_SECTION::CreateInstance (
     return STATUS_SUCCESS;
 }
 
+/*! \fn PHYSICAL_SECTION::CreatePageFileSection
+ *
+ *  \brief ...
+ *
+ *  \param [out] OutSection -
+ *
+ *  \param [in] SizeInBytes -
+ *
+ *  \param [in] SectionPageProtection -
+ *
+ *  \param [in] AllocationAttributes -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::CreatePageFileSection (
     _Out_ PPHYSICAL_SECTION* OutSection,
@@ -134,6 +186,18 @@ PHYSICAL_SECTION::CreatePageFileSection (
     return STATUS_SUCCESS;
 }
 
+/*! \fn PHYSICAL_SECTION::ReferenceOrCreateFileSection
+ *
+ *  \brief ...
+ *
+ *  \param [out] OutPhysicalSection -
+ *
+ *  \param [in] FileObject -
+ *
+ *  \param [in] AllocationAttributes -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::ReferenceOrCreateFileSection (
     _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
@@ -254,7 +318,18 @@ PHYSICAL_SECTION::ReferenceOrCreateFileSection (
     return Status;
 }
 
-
+/*! \fn PHYSICAL_SECTION::CommitPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::CommitPages (
     _In_ ULONG_PTR RelativeStartingVpn,
@@ -279,7 +354,16 @@ PHYSICAL_SECTION::CommitPages (
     return 0;
 }
 
-/// \todo Use binary search
+/*! \fn PHYSICAL_SECTION::RelativeVpnToSubsectionIndex
+ *
+ *  \brief ...
+ *
+ *  \param [in] RelativeVpn -
+ *
+ *  \return ...
+ *
+ *  \todo Use binary search
+ */
 ULONG
 PHYSICAL_SECTION::RelativeVpnToSubsectionIndex (
     _In_ ULONG_PTR RelativeVpn)
@@ -302,6 +386,20 @@ PHYSICAL_SECTION::RelativeVpnToSubsectionIndex (
 #if 1
 // This much simpler variant can be used, if the prototypes are created with
 // a protection according to the subsection protection
+/*! \fn PHYSICAL_SECTION::CreateMapping
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::CreateMapping (
     _In_ PVOID BaseAddress,
@@ -401,6 +499,18 @@ PHYSICAL_SECTION::CreateMapping (
 }
 #endif
 
+/*! \fn PHYSICAL_SECTION::GetMapping
+ *
+ *  \brief ...
+ *
+ *  \param [out] BaseAddress -
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::GetMapping (
     _Out_ PVOID* BaseAddress,
@@ -411,6 +521,14 @@ PHYSICAL_SECTION::GetMapping (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn PHYSICAL_SECTION::RemoveMapping
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] Size -
+ */
 VOID
 PHYSICAL_SECTION::RemoveMapping (
     _In_ PVOID BaseAddress,
@@ -419,6 +537,18 @@ PHYSICAL_SECTION::RemoveMapping (
     UNIMPLEMENTED;
 }
 
+/*! \fn PHYSICAL_SECTION::SetPageContent
+ *
+ *  \brief ...
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Buffer -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::SetPageContent (
     _In_ ULONG_PTR RelativeStartingVpn,
@@ -432,6 +562,16 @@ PHYSICAL_SECTION::SetPageContent (
     return -1;
 }
 
+/*! \fn PHYSICAL_SECTION::PrefetchPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \return ...
+ */
 NTSTATUS
 PHYSICAL_SECTION::PrefetchPages (
     _In_ ULONG_PTR RelativeStartingVpn,
@@ -444,6 +584,16 @@ PHYSICAL_SECTION::PrefetchPages (
 
 extern "C" {
 
+/*! \fn MmCanFileBeTruncated
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionObjectPointer -
+ *
+ *  \param [in] NewFileSize -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
 NTAPI
@@ -456,6 +606,16 @@ MmCanFileBeTruncated (
     return FALSE;
 }
 
+/*! \fn MmForceSectionClosed
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionObjectPointer -
+ *
+ *  \param [in] DelayClose -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_ (APC_LEVEL)
 BOOLEAN
 NTAPI
@@ -467,6 +627,14 @@ MmForceSectionClosed (
     return FALSE;
 }
 
+/*! \fn MmDisableModifiedWriteOfSection
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionObjectPointer -
+ *
+ *  \return ...
+ */
 BOOLEAN
 NTAPI
 MmDisableModifiedWriteOfSection (

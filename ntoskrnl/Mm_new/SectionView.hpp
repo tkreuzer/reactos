@@ -1,3 +1,16 @@
+/*!
+
+    \file SectionView.hpp
+
+    \brief Contains the definition of the SECTION_VIEW class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
+
 #pragma once
 
 #include "ntosbase.h"

@@ -1,4 +1,15 @@
+/*!
 
+    \file Mapping.hpp
+
+    \brief Header for Mapping.cpp
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #pragma once
 
@@ -64,15 +75,5 @@ MapPfnArray (
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PPFN_NUMBER PfnArray);
-
-
-/// FIXME: should go somewhere else
-PVOID
-ReserveKernelMemory (
-    SIZE_T Size);
-
-VOID
-ReleaseKernelMemory (
-    _In_ PVOID BaseAddress);
 
 }; // namespace Mm

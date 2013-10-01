@@ -1,3 +1,15 @@
+/*!
+
+    \file KernelStack.cpp
+
+    \brief Implements kernel stack managing functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 
@@ -10,75 +22,57 @@
 
 namespace Mm {
 
-
-PVOID
-ReserveKernelMemory (
-    SIZE_T Size)
-{
-    KERNEL_VAD* VadObject;
-    NTSTATUS Status;
-
-    Status = KERNEL_VAD::CreateInstance(&VadObject);
-    if (!NT_SUCCESS(Status))
-    {
-        return NULL;
-    }
-
-    Status = g_KernelVadTable.InsertVadObject(VadObject,
-                                              BYTES_TO_PAGES(Size),
-                                              AddressToVpn(MmSystemRangeStart),
-                                              AddressToVpn(MmHighestSystemAddress),
-                                              1,
-                                              TRUE);
-    if (!NT_SUCCESS(Status))
-    {
-        ERR("Failed to insert VAD object into VAD table: %x\n", Status);
-        __debugbreak();
-        VadObject->Release();
-        return NULL;
-    }
-
-    return VadObject->GetBaseAddress();
-}
-
-VOID
-ReleaseKernelMemory (
-    PVOID BaseAddress)
-{
-    PVAD_OBJECT VadObject;
-
-    /* Reference the VAD object */
-    VadObject = g_KernelAddressSpace.ReferenceVadObjectByAddress(BaseAddress, FALSE);
-    NT_ASSERT(VadObject != NULL);
-    NT_ASSERT(VadObject->GetBaseAddress() == BaseAddress);
-
-    /* Remove the VAD object from the table */
-    g_KernelVadTable.RemoveVadObject(VadObject);
-    VadObject->Release();
-}
-
 extern "C" {
 
+/*! \fn MmGrowKernelStackEx
+ *
+ *  \brief Increases the size of a kernel stack by the specified size.
+ *
+ *  \param [in] StackPointer - Pointer to the base of the stack.
+ *
+ *  \param [in] GrowSize -
+ *
+ *  \return STATUS_SUCCESS on success, an appropriate error code otherwise.
+ */
 NTSTATUS
 NTAPI
 MmGrowKernelStackEx (
-    IN PVOID StackPointer,
-    IN ULONG GrowSize)
+    _In_ PVOID StackPointer,
+    _In_ ULONG GrowSize)
 {
-    UNIMPLEMENTED;
+    UNIMPLEMENTED_DBGBREAK;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmGrowKernelStack
+ *
+ *  \brief ...
+ *
+ *  \param [in] StackPointer -
+ *
+ *  \return STATUS_SUCCESS on success, an appropriate error code otherwise.
+ */
 NTSTATUS
 NTAPI
 MmGrowKernelStack (
-    IN PVOID StackPointer)
+    _In_ PVOID StackPointer)
 {
+    /* Pass the request to the extended version */
     return MmGrowKernelStackEx(StackPointer, KERNEL_LARGE_STACK_COMMIT);
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
+/*! \fn MmCreateKernelStack
+ *
+ *  \brief Allocates a new kernel stack.
+ *
+ *  \param [in] GuiStack - Specifies whether a large GUI stack shall be created.
+ *
+ *  \param [in] Node - Not handled yet.
+ *
+ *  \return Base address (top) of the new kernel stack.
+ *
+ *  \todo Handle Node parameter.
+ */
 PVOID
 NTAPI
 MmCreateKernelStack (
@@ -130,11 +124,19 @@ MmCreateKernelStack (
     return StackBase;
 }
 
+/*! \fn MmDeleteKernelStack
+ *
+ *  \brief Deletes a kernel stack
+ *
+ *  \param [in] Stack - Pointer to the base of the stack
+ *
+ *  \param [in] GuiStack - Specifies whether the stack is a large GUI stack.
+ */
 VOID
 NTAPI
 MmDeleteKernelStack (
-    PVOID Stack,
-    BOOLEAN GuiStack)
+    _In_ __drv_freesMem(Mem) PVOID Stack,
+    _In_ BOOLEAN GuiStack)
 {
     UNIMPLEMENTED;
 }

@@ -1,131 +1,155 @@
+/*!
+
+    \file DriverSupport.cpp
+
+    \brief Implements driver management functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 
 extern "C" {
 
-_IRQL_requires_max_ (APC_LEVEL)
-NTSTATUS
-NTAPI
-MmAddVerifierThunks (
-  _In_reads_bytes_ (ThunkBufferSize) PVOID ThunkBuffer,
-  _In_ ULONG ThunkBufferSize)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
+/* Internal functions ********************************************************/
 
-LOGICAL
-NTAPI
-MmIsDriverVerifying (
-  _In_ struct _DRIVER_OBJECT *DriverObject)
-{
-    UNIMPLEMENTED;
-    return 0;
-}
-
-_IRQL_requires_max_ (APC_LEVEL)
-NTSTATUS
-NTAPI
-MmIsVerifierEnabled (
-  _Out_ PULONG VerifierFlags)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-_IRQL_requires_max_(APC_LEVEL)
-PVOID
-NTAPI
-MmPageEntireDriver (
-  _In_ PVOID AddressWithinSection)
-{
-    UNIMPLEMENTED;
-    return NULL;
-}
-
-_IRQL_requires_max_(APC_LEVEL)
-VOID
-NTAPI
-MmResetDriverPaging (
-  _In_ PVOID AddressWithinSection)
-{
-    UNIMPLEMENTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-PVOID
-NTAPI
-MmGetSystemRoutineAddress (
-  _In_ PUNICODE_STRING SystemRoutineName)
-{
-    UNIMPLEMENTED;
-    return NULL;
-}
-
-
-// private
-
+/*! \fn MmLoadSystemImage
+ *
+ *  \brief ...
+ *
+ *  \param [in] FileName -
+ *
+ *  \param [in] NamePrefix -
+ *
+ *  \param [in] LoadedName -
+ *
+ *  \param [in] Flags -
+ *
+ *  \param [in] ModuleObject -
+ *
+ *  \param [in] ImageBaseAddress -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmLoadSystemImage (
-    IN PUNICODE_STRING FileName,
-    IN PUNICODE_STRING NamePrefix OPTIONAL,
-    IN PUNICODE_STRING LoadedName OPTIONAL,
-    IN ULONG Flags,
-    OUT PVOID *ModuleObject,
-    OUT PVOID *ImageBaseAddress)
+    _In_ PUNICODE_STRING FileName,
+    _In_opt_ PUNICODE_STRING NamePrefix,
+    _In_opt_ PUNICODE_STRING LoadedName,
+    _In_ ULONG Flags,
+    _Out_ PVOID *ModuleObject,
+    _Out_ PVOID *ImageBaseAddress)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmUnloadSystemImage
+ *
+ *  \brief ...
+ *
+ *  \param [in] ImageHandle -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmUnloadSystemImage (
-    IN PVOID ImageHandle)
+    _In_ PVOID ImageHandle)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmCheckSystemImage
+ *
+ *  \brief ...
+ *
+ *  \param [in] ImageHandle -
+ *
+ *  \param [in] PurgeSection -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmCheckSystemImage (
-    IN HANDLE ImageHandle,
-    IN BOOLEAN PurgeSection)
+    _In_ HANDLE ImageHandle,
+    _In_ BOOLEAN PurgeSection)
 {
 //    UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MiResolveImageReferences
+ *
+ *  \brief ...
+ *
+ *  \param [in] ImageBase -
+ *
+ *  \param [in] ImageFileDirectory -
+ *
+ *  \param [in] NamePrefix -
+ *
+ *  \param [in] MissingApi -
+ *
+ *  \param [in] MissingDriver -
+ *
+ *  \param [in] LoadImports -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MiResolveImageReferences (
-    IN PVOID ImageBase,
-    IN PUNICODE_STRING ImageFileDirectory,
-    IN PUNICODE_STRING NamePrefix OPTIONAL,
-    OUT PCHAR *MissingApi,
-    OUT PWCHAR *MissingDriver,
-    OUT struct _LOAD_IMPORTS** LoadImports)
+    _In_ PVOID ImageBase,
+    _In_ PUNICODE_STRING ImageFileDirectory,
+    _In_opt_ PUNICODE_STRING NamePrefix,
+    _Out_ PCHAR *MissingApi,
+    _Out_ PWCHAR *MissingDriver,
+    _Out_ struct _LOAD_IMPORTS** LoadImports)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmCallDllInitialize
+ *
+ *  \brief ...
+ *
+ *  \param [in] LdrEntry -
+ *
+ *  \param [in] ListHead -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmCallDllInitialize (
-    IN struct _LDR_DATA_TABLE_ENTRY* LdrEntry,
-    IN PLIST_ENTRY ListHead)
+    _In_ struct _LDR_DATA_TABLE_ENTRY* LdrEntry,
+    _In_ PLIST_ENTRY ListHead)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmFreeDriverInitialization
+ *
+ *  \brief ...
+ *
+ *  \param [in] LdrEntry -
+ *
+ *  \return ...
+ */
 VOID
 NTAPI
 MmFreeDriverInitialization (
-    IN struct _LDR_DATA_TABLE_ENTRY* LdrEntry)
+    _In_ struct _LDR_DATA_TABLE_ENTRY* LdrEntry)
 {
     // find NtHeader
     // loop all sections
@@ -133,5 +157,118 @@ MmFreeDriverInitialization (
             // decommit all pages of that section
     DbgPrint("MmFreeDriverInitialization stub\n");
 }
+
+/* Exported functions ********************************************************/
+
+/*! \fn MmAddVerifierThunks
+ *
+ *  \brief ...
+ *
+ *  \param [in] ThunkBuffer -
+ *
+ *  \param [in] ThunkBufferSize -
+ *
+ *  \return ...
+ */
+_IRQL_requires_max_ (APC_LEVEL)
+NTSTATUS
+NTAPI
+MmAddVerifierThunks (
+    _In_reads_bytes_ (ThunkBufferSize) PVOID ThunkBuffer,
+    _In_ ULONG ThunkBufferSize)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+/*! \fn MmIsDriverVerifying
+ *
+ *  \brief ...
+ *
+ *  \param [in] DriverObject -
+ *
+ *  \return ...
+ */
+LOGICAL
+NTAPI
+MmIsDriverVerifying (
+    _In_ struct _DRIVER_OBJECT *DriverObject)
+{
+    UNIMPLEMENTED;
+    return 0;
+}
+
+/*! \fn MmIsVerifierEnabled
+ *
+ *  \brief ...
+ *
+ *  \param [in] VerifierFlags -
+ *
+ *  \return ...
+ */
+_IRQL_requires_max_ (APC_LEVEL)
+NTSTATUS
+NTAPI
+MmIsVerifierEnabled (
+    _Out_ PULONG VerifierFlags)
+{
+    UNIMPLEMENTED;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+/*! \fn MmPageEntireDriver
+ *
+ *  \brief ...
+ *
+ *  \param [in] AddressWithinSection -
+ *
+ *  \return ...
+ */
+_IRQL_requires_max_(APC_LEVEL)
+PVOID
+NTAPI
+MmPageEntireDriver (
+    _In_ PVOID AddressWithinSection)
+{
+    UNIMPLEMENTED;
+    return NULL;
+}
+
+/*! \fn MmResetDriverPaging
+ *
+ *  \brief ...
+ *
+ *  \param [in] AddressWithinSection -
+ *
+ *  \return ...
+ */
+_IRQL_requires_max_(APC_LEVEL)
+VOID
+NTAPI
+MmResetDriverPaging (
+    _In_ PVOID AddressWithinSection)
+{
+    UNIMPLEMENTED;
+}
+
+/*! \fn MmGetSystemRoutineAddress
+ *
+ *  \brief ...
+ *
+ *  \param [in] SystemRoutineName -
+ *
+ *  \return ...
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID
+NTAPI
+MmGetSystemRoutineAddress (
+    _In_ PUNICODE_STRING SystemRoutineName)
+{
+    UNIMPLEMENTED;
+    return NULL;
+}
+
+
 
 }; // extern "C"

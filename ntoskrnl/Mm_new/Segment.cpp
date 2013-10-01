@@ -1,3 +1,15 @@
+/*!
+
+    \file Segment.cpp
+
+    \brief Implements the SEGMENT class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 
 #include "Segment.hpp"
@@ -5,6 +17,16 @@
 
 namespace Mm {
 
+/*! \fn SEGMENT::CreateInstance
+ *
+ *  \brief ...
+ *
+ *  \param [out] OutSegment -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \return ...
+ */
 NTSTATUS
 SEGMENT::CreateInstance (
     _Out_ PSEGMENT* OutSegment,
@@ -33,6 +55,18 @@ SEGMENT::CreateInstance (
     return STATUS_SUCCESS;
 }
 
+/*! \fn SEGMENT::CommitDemandZeroPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 NTSTATUS
 SEGMENT::CommitDemandZeroPages (
     _In_ ULONG_PTR RelativeStartingVpn,
@@ -67,6 +101,20 @@ SEGMENT::MapPages (
 }
 #endif
 
+/*! \fn SEGMENT::MapPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] RelativeStartingVpn -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [in] Protect -
+ *
+ *  \return ...
+ */
 NTSTATUS
 SEGMENT::MapPages (
     _In_ PVOID BaseAddress,

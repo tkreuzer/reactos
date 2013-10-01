@@ -1,3 +1,15 @@
+/*!
+
+    \file PhysicalMemory.cpp
+
+    \brief Implements physical memory related functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include "PfnDatabase.hpp"
@@ -5,27 +17,24 @@
 namespace Mm {
 extern "C" {
 
-/*!
-
-    \name  MmGetPhysicalMemoryRanges
-
-    \brief Returns an array of PHYSICAL_MEMORY_RANGE, describing the systems
-           physical memory.
-
-    \return Pointer to the newly allocated array of PHYSICAL_MEMORY_RANGE
-            structures. The pool-tag is 'hPmM'
-
-    The array is allocated from non-paged pool and consists or n+1 elements,
-    where n is the number of contiguous memory regions. The last element has
-    the value 0 for both the BaseAddress and NumberOfBytes fields.
-
-    Note that the function uses the PhysicalMemoryDescriptor from the PFN
-    database which is constant after it has been initialized. Therefore we
-    don't require any lock.
-
-    \ref http://www.jungo.com/st/support/tech_docs/td129.html
-
-*/
+/*! \fn MmGetPhysicalMemoryRanges
+ *
+ *  \brief Returns an array of PHYSICAL_MEMORY_RANGE, describing the systems
+ *         physical memory.
+ *
+ *  \return Pointer to the newly allocated array of PHYSICAL_MEMORY_RANGE
+ *          structures. The pool-tag is 'hPmM'
+ *
+ *  The array is allocated from non-paged pool and consists or n+1 elements,
+ *  where n is the number of contiguous memory regions. The last element has
+ *  the value 0 for both the BaseAddress and NumberOfBytes fields.
+ *
+ *  Note that the function uses the PhysicalMemoryDescriptor from the PFN
+ *  database which is constant after it has been initialized. Therefore we
+ *  don't require any lock.
+ *
+ *  \ref http://www.jungo.com/st/support/tech_docs/td129.html
+ */
 _IRQL_requires_max_ (PASSIVE_LEVEL)
 PPHYSICAL_MEMORY_RANGE
 NTAPI
@@ -72,6 +81,16 @@ MmGetPhysicalMemoryRanges (
     return MemoryRanges;
 }
 
+/*! \fn MmAddPhysicalMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartAddress -
+ *
+ *  \param [inout] NumberOfBytes -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_ (PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
@@ -83,6 +102,16 @@ MmAddPhysicalMemory (
     return STATUS_NOT_SUPPORTED;;
 }
 
+/*! \fn MmRemovePhysicalMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartAddress -
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_ (PASSIVE_LEVEL)
 NTSTATUS
 NTAPI
@@ -94,6 +123,14 @@ MmRemovePhysicalMemory (
     return STATUS_NOT_SUPPORTED;
 }
 
+/*! \fn MmAllocateNonCachedMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(APC_LEVEL)
 _Out_writes_bytes_opt_(NumberOfBytes)
@@ -106,6 +143,14 @@ MmAllocateNonCachedMemory (
     return NULL;
 }
 
+/*! \fn MmFreeNonCachedMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] BaseAddress -
+ *
+ *  \param [in] NumberOfBytes -
+ */
 _IRQL_requires_max_(APC_LEVEL)
 VOID
 NTAPI
@@ -116,6 +161,14 @@ MmFreeNonCachedMemory (
     UNIMPLEMENTED;
 }
 
+/*! \fn MmGetVirtualForPhysical
+ *
+ *  \brief ...
+ *
+ *  \param [in] PhysicalAddress -
+ *
+ *  \return ...
+ */
 PVOID
 NTAPI
 MmGetVirtualForPhysical (
@@ -125,11 +178,21 @@ MmGetVirtualForPhysical (
     return NULL;
 }
 
+/*! \fn MmMarkPhysicalMemoryAsBad
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartAddress -
+ *
+ *  \param [inout] NumberOfBytes -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmMarkPhysicalMemoryAsBad (
-    IN PPHYSICAL_ADDRESS StartAddress,
-    IN OUT PLARGE_INTEGER NumberOfBytes)
+    _In_ PPHYSICAL_ADDRESS StartAddress,
+    _Inout_ PLARGE_INTEGER NumberOfBytes)
 {
 #if 0
     PFN_NUMBER StartingPfn, NumberOfPages;
@@ -142,11 +205,21 @@ MmMarkPhysicalMemoryAsBad (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmMarkPhysicalMemoryAsGood
+ *
+ *  \brief ...
+ *
+ *  \param [in] StartAddress -
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmMarkPhysicalMemoryAsGood (
-    IN PPHYSICAL_ADDRESS StartAddress,
-    IN OUT PLARGE_INTEGER NumberOfBytes)
+    _In_ PPHYSICAL_ADDRESS StartAddress,
+    _In_ OUT PLARGE_INTEGER NumberOfBytes)
 {
 #if 0
     PFN_NUMBER StartingPfn, NumberOfPages;
@@ -162,6 +235,18 @@ MmMarkPhysicalMemoryAsGood (
 
 /** Syscall API ***************************************************************/
 
+/*! \fn NtAllocateUserPhysicalPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] NumberOfPages -
+ *
+ *  \param [inout] UserPfnArray -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtAllocateUserPhysicalPages (
@@ -173,6 +258,18 @@ NtAllocateUserPhysicalPages (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtFreeUserPhysicalPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] ProcessHandle -
+ *
+ *  \param [inout] NumberOfPages -
+ *
+ *  \param [inout] UserPfnArray -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtFreeUserPhysicalPages (
@@ -184,6 +281,18 @@ NtFreeUserPhysicalPages (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtMapUserPhysicalPages
+ *
+ *  \brief ...
+ *
+ *  \param [in] VirtualAddresses -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [inout] UserPfnArray -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtMapUserPhysicalPages (
@@ -195,6 +304,18 @@ NtMapUserPhysicalPages (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtMapUserPhysicalPagesScatter
+ *
+ *  \brief ...
+ *
+ *  \param [in] VirtualAddresses -
+ *
+ *  \param [in] NumberOfPages -
+ *
+ *  \param [inout] UserPfnArray -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtMapUserPhysicalPagesScatter (

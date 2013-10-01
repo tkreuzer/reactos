@@ -1,3 +1,15 @@
+/*!
+
+    \file Init.cpp
+
+    \brief Implements initialization functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 
 #include "ntosbase.h"
@@ -12,7 +24,7 @@
 #include <arc/arc.h>
 
 #ifdef _MSC_VER
-// This is to shut up linker warnings about .CRT sections
+/* This is to shut up linker warnings about .CRT sections */
 #pragma comment(linker, "/merge:.CRT=.rdata")
 #endif
 

@@ -1,3 +1,15 @@
+/*!
+
+    \file Mdl.cpp
+
+    \brief Implements MDL related functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 
 #include "Mdl.hpp"
@@ -19,27 +31,65 @@ MmAccessFault (
 namespace Mm {
 extern "C" {
 
+/*! \fn MmSizeOfMdl
+ *
+ *  \brief ...
+ *
+ *  \param [in] Base -
+ *
+ *  \param [in] Length -
+ *
+ *  \return ...
+ */
 SIZE_T
 NTAPI
 MmSizeOfMdl (
-  _In_reads_bytes_opt_ (Length) PVOID Base,
-  _In_ SIZE_T Length)
+    _In_reads_bytes_opt_ (Length) PVOID Base,
+    _In_ SIZE_T Length)
 {
     UNIMPLEMENTED;
     return 0;
 }
 
+/*! \fn MmAdvanceMdl
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] NumberOfBytes -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
 NTAPI
 MmAdvanceMdl (
-  _Inout_ PMDLX Mdl,
-  _In_ ULONG NumberOfBytes)
+    _Inout_ PMDLX Mdl,
+    _In_ ULONG NumberOfBytes)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmAdvanceMdl
+ *
+ *  \brief ...
+ *
+ *  \param [in] LowAddress -
+ *
+ *  \param [in] HighAddress -
+ *
+ *  \param [in] SkipBytes -
+ *
+ *  \param [in] TotalBytes -
+ *
+ *  \param [in] CacheType -
+ *
+ *  \param [in] Flags -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_ (DISPATCH_LEVEL)
 PMDL
@@ -56,6 +106,18 @@ MmAllocatePagesForMdlEx (
     return NULL;
 }
 
+/*! \fn MmAllocatePagesForMdl
+ *
+ *  \brief ...
+ *
+ *  \param [in] LowAddress -
+ *
+ *  \param [in] HighAddress -
+ *
+ *  \param [in] SkipBytes -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 PMDL
@@ -70,21 +132,35 @@ MmAllocatePagesForMdl (
     return NULL;
 }
 
+/*! \fn MmFreePagesFromMdl
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \return ...
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
 MmFreePagesFromMdl (
-  _Inout_ PMDLX MemoryDescriptorList)
+    _Inout_ PMDLX Mdl)
 {
-    if (MemoryDescriptorList->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA)
+    if (Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA)
     {
-        MmUnmapLockedPages(MemoryDescriptorList->MappedSystemVa,
-                           MemoryDescriptorList);
+        MmUnmapLockedPages(Mdl->MappedSystemVa,
+                           Mdl);
     }
     UNIMPLEMENTED;
 }
 
 
+/*! \fn MmBuildMdlForNonPagedPool
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI
@@ -141,11 +217,23 @@ MmBuildMdlForNonPagedPool (
 
 }
 
+/*! \fn MmCreateMdl
+ *
+ *  \brief ...
+ *
+ *  \param [out] Mdl -
+ *
+ *  \param [in] Base -
+ *
+ *  \param [in] Length -
+ *
+ *  \return ...
+ */
 PMDL
 NTAPI
 MmCreateMdl(
     _Out_writes_bytes_opt_ (sizeof (MDL) + (sizeof (PFN_NUMBER) * ADDRESS_AND_SIZE_TO_SPAN_PAGES (Base, Length)))
-        PMDL MemoryDescriptorList,
+        PMDL Mdl,
     _In_reads_bytes_opt_ (Length) PVOID Base,
     _In_ SIZE_T Length)
 {
@@ -153,23 +241,45 @@ MmCreateMdl(
     return NULL;
 }
 
+/*! \fn MmProtectMdlSystemAddress
+ *
+ *  \brief ...
+ *
+ *  \param [in] Mdl -
+ *
+ *  \param [in] NewProtect -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
 NTAPI
 MmProtectMdlSystemAddress (
-    _In_ PMDLX MemoryDescriptorList,
+    _In_ PMDLX Mdl,
     _In_ ULONG NewProtect)
 {
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn MmProbeAndLockProcessPages
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] AccessMode -
+ *
+ *  \param [in] Operation -
+ */
 _IRQL_requires_max_(APC_LEVEL)
 VOID
 NTAPI
 MmProbeAndLockProcessPages (
-    _Inout_ PMDL MemoryDescriptorList,
+    _Inout_ PMDL Mdl,
     _In_ PEPROCESS Process,
     _In_ KPROCESSOR_MODE AccessMode,
     _In_ LOCK_OPERATION Operation)
@@ -189,7 +299,7 @@ MmProbeAndLockProcessPages (
     _SEH2_TRY
     {
         /* Call the function for the current process */
-        MmProbeAndLockPages(MemoryDescriptorList, AccessMode, Operation);
+        MmProbeAndLockPages(Mdl, AccessMode, Operation);
     }
     _SEH2_FINALLY
     {
@@ -202,6 +312,16 @@ MmProbeAndLockProcessPages (
     _SEH2_END;
 }
 
+/*! \fn MmProbeAndLockPages
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] AccessMode -
+ *
+ *  \param [in] Operation -
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(Mdl->StartVa + Mdl->ByteOffset,
   _Field_size_bytes_opt_(Mdl->ByteCount))
@@ -346,10 +466,22 @@ MmProbeAndLockPages (
 
 }
 
+/*! \fn MmProbeAndLockSelectedPages
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ *
+ *  \param [in] SegmentArray -
+ *
+ *  \param [in] AccessMode -
+ *
+ *  \param [in] Operation -
+ */
 VOID
 NTAPI
 MmProbeAndLockSelectedPages (
-    _Inout_ PMDL MemoryDescriptorList,
+    _Inout_ PMDL Mdl,
     _In_ PFILE_SEGMENT_ELEMENT SegmentArray,
     _In_ KPROCESSOR_MODE AccessMode,
     _In_ LOCK_OPERATION Operation)
@@ -358,6 +490,12 @@ MmProbeAndLockSelectedPages (
 }
 
 
+/*! \fn MmUnlockPages
+ *
+ *  \brief ...
+ *
+ *  \param [inout] Mdl -
+ */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID
 NTAPI

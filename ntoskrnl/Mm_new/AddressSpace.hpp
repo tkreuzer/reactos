@@ -1,3 +1,15 @@
+/*!
+
+    \file AddressSpace.hpp
+
+    \brief Contains the definition of the ADDRESS_SPACE class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #pragma once
 
@@ -6,6 +18,7 @@
 
 namespace Mm {
 
+/*! \class ADDRESS_SPACE */
 class ADDRESS_SPACE
 {
 private:
@@ -27,7 +40,6 @@ private:
     inline
     ADDRESS_SPACE_TYPE
     GetAddressSpaceType ();
-
 
     friend class MEMORY_MANAGER;
 
@@ -53,6 +65,14 @@ public:
         KIRQL OldIrql);
 
     NTSTATUS
+    InsertVadObject (
+        _Inout_ class VAD_OBJECT* VadObject,
+        _Inout_ PVOID* BaseAddress,
+        _In_ ULONG_PTR SizeInPages,
+        _In_ ULONG_PTR ZeroBits,
+        _In_ ULONG AllocationType);
+
+    NTSTATUS
     ReserveVirtualMemory (
         _Inout_ PVOID* BaseAddress,
         _In_ ULONG_PTR NumberOfPages,
@@ -73,7 +93,6 @@ typedef ADDRESS_SPACE* PADDRESS_SPACE;
 
 extern PADDRESS_SPACE g_SystemProcessAddressSpace;
 extern ADDRESS_SPACE g_KernelAddressSpace;
-extern VAD_TABLE g_KernelVadTable;
 
 inline
 PADDRESS_SPACE
@@ -105,5 +124,13 @@ GetAddressSpaceForAddress (
     else
         return &g_KernelAddressSpace;
 }
+
+PVOID
+ReserveKernelMemory (
+    SIZE_T Size);
+
+VOID
+ReleaseKernelMemory (
+    PVOID BaseAddress);
 
 }; // namespace Mm

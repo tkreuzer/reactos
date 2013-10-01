@@ -1,7 +1,15 @@
 /*!
- * \file SectionObject.cpp
- * ...
- */
+
+    \file SectionObject.cpp
+
+    \brief Implements the SECTION_OBJECT class
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "SectionObject.hpp"
 #include "PhysicalSection.hpp"
@@ -13,6 +21,10 @@ POBJECT_TYPE MmSectionObjectType;
 #define RTL_CONSTANT_STRING2(s)  { sizeof(s)-sizeof((s)[0]), sizeof(s), (PWCHAR)(s) }
 namespace Mm {
 
+/*! \fn SECTION_OBJECT::InitializeClass
+ *
+ *  \brief ...
+ */
 VOID
 SECTION_OBJECT::InitializeClass (
     VOID)
@@ -59,10 +71,14 @@ SECTION_OBJECT::InitializeClass (
         /// \todo proper bugcheck params
         KeBugCheck(0);
     }
-
-
 }
 
+/*! \fn SECTION_OBJECT::ObDeleteProcedure
+ *
+ *  \brief ...
+ *
+ *  \param [in] Object -
+ */
 VOID
 NTAPI
 SECTION_OBJECT::ObDeleteProcedure (
@@ -72,6 +88,20 @@ SECTION_OBJECT::ObDeleteProcedure (
     //__debugbreak();
 }
 
+/*! \fn SECTION_OBJECT::ObCloseProcedure
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \param [in] Object -
+ *
+ *  \param [in] GrantedAccess -
+ *
+ *  \param [in] ProcessHandleCount -
+ *
+ *  \param [in] SystemHandleCount -
+ */
 VOID
 NTAPI
 SECTION_OBJECT::ObCloseProcedure (
@@ -84,6 +114,12 @@ SECTION_OBJECT::ObCloseProcedure (
     DbgPrint("TODO: SECTION_OBJECT::ObCloseProcedure is UNIMPLEMENTED!\n");
 }
 
+/*! \fn AcquireFileForSectionSynchronization
+ *
+ *  \brief ...
+ *
+ *  \param [in] FileObject -
+ */
 VOID
 AcquireFileForSectionSynchronization (
     PFILE_OBJECT FileObject)
@@ -91,7 +127,24 @@ AcquireFileForSectionSynchronization (
 
 }
 
-
+/*! \fn SECTION_OBJECT::CreateInstance
+ *
+ *  \brief ...
+ *
+ *  \param [out] OutSectionObject -
+ *
+ *  \param [in] ObjectAttributes -
+ *
+ *  \param [in] MaximumSize -
+ *
+ *  \param [in] SectionPageProtection -
+ *
+ *  \param [in] AllocationAttributes -
+ *
+ *  \param [in] FileObject -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 NTSTATUS
 SECTION_OBJECT::CreateInstance (
@@ -152,6 +205,12 @@ SECTION_OBJECT::CreateInstance (
     return STATUS_SUCCESS;
 }
 
+/*! \fn SECTION_OBJECT::ReferenceSection
+ *
+ *  \brief ...
+ *
+ *  \return ...
+ */
 class PHYSICAL_SECTION*
 SECTION_OBJECT::ReferenceSection (
     VOID)
@@ -160,6 +219,12 @@ SECTION_OBJECT::ReferenceSection (
     return m_Section;
 }
 
+/*! \fn SECTION_OBJECT::GetFileObject
+ *
+ *  \brief ...
+ *
+ *  \return ...
+ */
 inline
 PFILE_OBJECT
 SECTION_OBJECT::GetFileObject (
@@ -168,10 +233,60 @@ SECTION_OBJECT::GetFileObject (
     return 0;//m_FileObject;
 }
 
+/*! \fn SECTION_OBJECT::QueryBasicInformation
+ *
+ *  \brief ...
+ *
+ *  \param [out] BasicInformation -
+ */
+VOID
+SECTION_OBJECT::QueryBasicInformation (
+    _Out_ PSECTION_BASIC_INFORMATION BasicInformation)
+{
+    BasicInformation->BaseAddress = m_Section->GetBaseAddress();
+    BasicInformation->Attributes = m_SectionFlags; /// CHECKME
+    BasicInformation->Size.QuadPart = m_SectionSize;
+}
+
+/*! \fn SECTION_OBJECT::QueryImageInformation
+ *
+ *  \brief ...
+ *
+ *  \param [out] ImageInformation -
+ *
+ *  \return ...
+ */
+VOID
+SECTION_OBJECT::QueryImageInformation (
+    _Out_ PSECTION_IMAGE_INFORMATION ImageInformation)
+{
+    PSECTION_IMAGE_INFORMATION_EX ImageInformationEx;
+
+    /* Get the image information */
+    ImageInformationEx = m_Section->GetImageInformation();
+    if (ImageInformationEx != NULL)
+    {
+        RtlCopyMemory(ImageInformation, ImageInformationEx, sizeof(*ImageInformation));
+    }
+    else
+    {
+        //NT_ASSERT((m_SectionFlags & SEC_IMAGE) == 0);
+        RtlZeroMemory(ImageInformation, sizeof(*ImageInformation));
+    }
+}
+
 extern "C" {
 
 /** Internal API **************************************************************/
 
+/*! \fn MmGetFileObjectForSection
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionObject -
+ *
+ *  \return ...
+ */
 PFILE_OBJECT
 NTAPI
 MmGetFileObjectForSection (
@@ -180,6 +295,16 @@ MmGetFileObjectForSection (
     return static_cast<PSECTION_OBJECT>(SectionObject)->GetFileObject();
 }
 
+/*! \fn MmGetFileNameForSection
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionObject -
+ *
+ *  \param [out] ModuleName -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmGetFileNameForSection (
@@ -190,6 +315,14 @@ MmGetFileNameForSection (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn CalculateFileAccess
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageProtection -
+ *
+ *  \return ...
+ */
 ULONG
 CalculateFileAccess (
     _In_ ULONG PageProtection)
@@ -210,6 +343,28 @@ CalculateFileAccess (
 
 /** Exported API **************************************************************/
 
+/*! \fn MmCreateSection
+ *
+ *  \brief ...
+ *
+ *  \param [out] OutSectionObject -
+ *
+ *  \param [in] DesiredAccess -
+ *
+ *  \param [in] ObjectAttributes -
+ *
+ *  \param [in] MaximumSize -
+ *
+ *  \param [in] SectionPageProtection -
+ *
+ *  \param [in] AllocationAttributes -
+ *
+ *  \param [in] FileHandle -
+ *
+ *  \param [in] FileObject -
+ *
+ *  \return ...
+ */
 _Must_inspect_result_
 NTSTATUS
 NTAPI
@@ -283,8 +438,114 @@ MmCreateSection (
     return Status;
 }
 
+/*! \fn MmQuerySectionInformation
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \return ...
+ */
+NTSTATUS
+NTAPI
+MmQuerySectionInformation (
+    _In_ PSECTION_OBJECT SectionObject,
+    _In_ enum _SECTION_INFORMATION_CLASS SectionInformationClass,
+    _Out_ PVOID SectionInformation,
+    _In_ SIZE_T Length,
+    _Out_ PSIZE_T ResultLength)
+{
+    NTSTATUS Status;
+
+    switch (SectionInformationClass)
+    {
+    case SectionBasicInformation:
+
+            if (Length < sizeof(SECTION_BASIC_INFORMATION))
+            {
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            SectionObject->QueryBasicInformation((PSECTION_BASIC_INFORMATION)SectionInformation);
+            Status = STATUS_SUCCESS;
+            break;
+
+    case SectionImageInformation:
+
+            if (Length < sizeof(SECTION_IMAGE_INFORMATION))
+            {
+                return STATUS_INFO_LENGTH_MISMATCH;
+            }
+
+            SectionObject->QueryImageInformation((PSECTION_IMAGE_INFORMATION)SectionInformation);
+            Status = STATUS_SUCCESS;
+            break;
+
+    default:
+        return STATUS_INVALID_INFO_CLASS;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/*! \fn xxxxxxxxxx
+ *
+ *  \brief ...
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \param [in] xxxxxx -
+ *
+ *  \todo This should probably be a Ps function and use MmQuerySectionInformation
+ */
+VOID
+NTAPI
+MmGetImageInformation (
+    _Out_ PSECTION_IMAGE_INFORMATION ImageInformation)
+{
+    PSECTION_OBJECT SectionObject;
+
+    /* Get the section object of this process*/
+    SectionObject = static_cast<PSECTION_OBJECT>(PsGetCurrentProcess()->SectionObject);
+    NT_ASSERT(SectionObject != NULL);
+
+    /* Return the image information */
+    SectionObject->QueryImageInformation(ImageInformation);
+}
+
+
 /** Syscall API ***************************************************************/
 
+/*! \fn NtCreateSection
+ *
+ *  \brief ...
+ *
+ *  \param [out] OutSectionHandle -
+ *
+ *  \param [in] DesiredAccess -
+ *
+ *  \param [in] ObjectAttributes -
+ *
+ *  \param [in] MaximumSize -
+ *
+ *  \param [in] SectionPageProtection -
+ *
+ *  \param [in] AllocationAttributes -
+ *
+ *  \param [in] FileHandle -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtCreateSection (
@@ -392,6 +653,18 @@ NtCreateSection (
     return Status;
 }
 
+/*! \fn NtOpenSection
+ *
+ *  \brief ...
+ *
+ *  \param [out] SectionHandle -
+ *
+ *  \param [in] DesiredAccess -
+ *
+ *  \param [in] ObjectAttributes -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtOpenSection (
@@ -449,92 +722,22 @@ NtOpenSection (
     return Status;
 }
 
-VOID
-SECTION_OBJECT::QueryBasicInformation (
-    _Out_ PSECTION_BASIC_INFORMATION BasicInformation)
-{
-    BasicInformation->BaseAddress = m_Section->GetBaseAddress();
-    BasicInformation->Attributes = m_SectionFlags; /// CHECKME
-    BasicInformation->Size.QuadPart = m_SectionSize;
-}
-
-VOID
-SECTION_OBJECT::QueryImagenformation (
-    _Out_ PSECTION_IMAGE_INFORMATION ImageInformation)
-{
-    PSECTION_IMAGE_INFORMATION_EX ImageInformationEx;
-
-    /* Get the image information */
-    ImageInformationEx = m_Section->GetImageInformation();
-    if (ImageInformationEx != NULL)
-    {
-        RtlCopyMemory(ImageInformation, ImageInformationEx, sizeof(*ImageInformation));
-    }
-    else
-    {
-        //NT_ASSERT((m_SectionFlags & SEC_IMAGE) == 0);
-        RtlZeroMemory(ImageInformation, sizeof(*ImageInformation));
-    }
-}
-
-NTSTATUS
-NTAPI
-MmQuerySectionInformation (
-    _In_ PSECTION_OBJECT SectionObject,
-    _In_ enum _SECTION_INFORMATION_CLASS SectionInformationClass,
-    _Out_ PVOID SectionInformation,
-    _In_ SIZE_T Length,
-    _Out_ PSIZE_T ResultLength)
-{
-    NTSTATUS Status;
-
-    switch (SectionInformationClass)
-    {
-    case SectionBasicInformation:
-
-            if (Length < sizeof(SECTION_BASIC_INFORMATION))
-            {
-                return STATUS_INFO_LENGTH_MISMATCH;
-            }
-
-            SectionObject->QueryBasicInformation((PSECTION_BASIC_INFORMATION)SectionInformation);
-            Status = STATUS_SUCCESS;
-            break;
-
-    case SectionImageInformation:
-
-            if (Length < sizeof(SECTION_IMAGE_INFORMATION))
-            {
-                return STATUS_INFO_LENGTH_MISMATCH;
-            }
-
-            SectionObject->QueryImagenformation((PSECTION_IMAGE_INFORMATION)SectionInformation);
-            Status = STATUS_SUCCESS;
-            break;
-
-    default:
-        return STATUS_INVALID_INFO_CLASS;
-    }
-
-    return STATUS_SUCCESS;
-}
-
-// This should probably be a Ps function and use MmQuerySectionInformation
-VOID
-NTAPI
-MmGetImageInformation (
-    _Out_ PSECTION_IMAGE_INFORMATION ImageInformation)
-{
-    PSECTION_OBJECT SectionObject;
-
-    /* Get the section object of this process*/
-    SectionObject = static_cast<PSECTION_OBJECT>(PsGetCurrentProcess()->SectionObject);
-    NT_ASSERT(SectionObject != NULL);
-
-    /* Return the image information */
-    SectionObject->QueryImagenformation(ImageInformation);
-}
-
+/*! \fn NtQuerySection
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionHandle -
+ *
+ *  \param [in] SectionInformationClass -
+ *
+ *  \param [out] SectionInformation -
+ *
+ *  \param [in] Length -
+ *
+ *  \param [out] ResultLength -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtQuerySection (
@@ -627,7 +830,16 @@ NtQuerySection (
     return Status;
 }
 
-
+/*! \fn NtExtendSection
+ *
+ *  \brief ...
+ *
+ *  \param [in] SectionHandle -
+ *
+ *  \param [in] NewMaximumSize -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtExtendSection (
@@ -638,6 +850,16 @@ NtExtendSection (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+/*! \fn NtAreMappedFilesTheSame
+ *
+ *  \brief ...
+ *
+ *  \param [in] File1MappedAsAnImage -
+ *
+ *  \param [in] File2MappedAsFile -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 NtAreMappedFilesTheSame (
@@ -647,7 +869,6 @@ NtAreMappedFilesTheSame (
     UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
-
 
 
 }; // extern "C"

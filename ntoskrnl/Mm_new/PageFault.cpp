@@ -1,3 +1,15 @@
+/*!
+
+    \file PageFault.cpp
+
+    \brief Implements the page fault handler
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include "PfnDatabase.hpp"
@@ -160,6 +172,22 @@ ResolveCopyOnWriteFault (
     return STATUS_PAGE_FAULT_COPY_ON_WRITE;
 }
 
+/*! \fn ResolveFaultForPte
+ *
+ *  \brief ...
+ *
+ *  \param [inout] PtePointer -
+ *
+ *  \param [in] Mode -
+ *
+ *  \param [in] TrapInformation -
+ *
+ *  \param [in] AccessFlags -
+ *
+ *  \param [in] PageFrameNumber -
+ *
+ *  \return ...
+ */
 static
 NTSTATUS
 ResolveFaultForPte (

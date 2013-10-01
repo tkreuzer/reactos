@@ -1,6 +1,19 @@
+/*!
+
+    \file DebugSupport.cpp
+
+    \brief Implements debugging support functions
+
+    \copyright Distributed under the terms of the GNU GPL v2.
+               http://www.gnu.org/licenses/gpl-2.0.html
+
+    \author Timo Kreuzer
+
+*/
 
 #include "ntosbase.h"
 #include "PfnDatabase.hpp"
+#include <ndk/pstypes.h>
 #include _ARCH_RELATIVE_(PageTables.hpp)
 
 /// HACK!
@@ -16,6 +29,21 @@ static const ULONG MMDBG_COPY_UNCACHED       = 0x00000010;
 static const ULONG MMDBG_COPY_WRITE_COMBINED = 0x00000020;
 extern PPTE DebugPte;
 
+ULONG
+ConvertProtectToWin32 (
+    _In_ ULONG Protect);
+
+
+/*! \fn DbgCopyMapPhysicalMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] PhysicalAddress -
+ *
+ *  \param [in] Flags -
+ *
+ *  \return ...
+ */
 static
 PVOID
 DbgCopyMapPhysicalMemory (
@@ -74,6 +102,20 @@ DbgCopyMapPhysicalMemory (
 
 extern "C" {
 
+/*! \fn MmDbgCopyMemoryEx
+ *
+ *  \brief ...
+ *
+ *  \param [in] Address -
+ *
+ *  \param [in] Buffer -
+ *
+ *  \param [in] Size -
+ *
+ *  \param [in] Flags -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmDbgCopyMemoryEx (
@@ -158,6 +200,20 @@ MmDbgCopyMemoryEx (
     return STATUS_SUCCESS;
 }
 
+/*! \fn MmDbgCopyMemory
+ *
+ *  \brief ...
+ *
+ *  \param [in] Address -
+ *
+ *  \param [in] Buffer -
+ *
+ *  \param [in] Size -
+ *
+ *  \param [in] Flags -
+ *
+ *  \return ...
+ */
 NTSTATUS
 NTAPI
 MmDbgCopyMemory (
@@ -182,54 +238,35 @@ MmDbgCopyMemory (
     return MmDbgCopyMemoryEx(Address, Buffer, Size, Flags);
 }
 
-static const
-USHORT ProtectToWin32Protect[32] =
-{
-    PAGE_NOACCESS, // MM_INVALID
-    PAGE_READONLY, // MM_READONLY
-    PAGE_EXECUTE_READ, // MM_EXECUTE
-    PAGE_EXECUTE_READ, // MM_EXECUTE_READ
-    PAGE_READWRITE, // MM_READWRITE
-    PAGE_WRITECOPY, // MM_WRITECOPY
-    PAGE_EXECUTE_READWRITE, // MM_EXECUTE_READWRITE
-    PAGE_EXECUTE_WRITECOPY, // MM_EXECUTE_WRITECOPY
-
-    PAGE_NOACCESS, // MM_UNCACHED | MM_INVALID
-    PAGE_NOCACHE | PAGE_READONLY, // MM_UNCACHED | MM_READONLY
-    PAGE_NOCACHE | PAGE_EXECUTE_READ, // MM_UNCACHED | MM_EXECUTE
-    PAGE_NOCACHE | PAGE_EXECUTE_READ, // MM_UNCACHED | MM_EXECUTE_READ
-    PAGE_NOCACHE | PAGE_READWRITE, // MM_UNCACHED | MM_READWRITE
-    PAGE_NOCACHE | PAGE_WRITECOPY, // MM_UNCACHED | MM_WRITECOPY
-    PAGE_NOCACHE | PAGE_EXECUTE_READWRITE, // MM_UNCACHED | MM_EXECUTE_READWRITE
-    PAGE_NOCACHE | PAGE_EXECUTE_WRITECOPY, // MM_UNCACHED | MM_EXECUTE_WRITECOPY
-
-    PAGE_NOACCESS, // MM_GUARDPAGE | MM_INVALID
-    PAGE_GUARD | PAGE_READONLY, // MM_GUARDPAGE | MM_READONLY
-    PAGE_GUARD | PAGE_EXECUTE_READ, // MM_GUARDPAGE | MM_EXECUTE
-    PAGE_GUARD | PAGE_EXECUTE_READ, // MM_GUARDPAGE | MM_EXECUTE_READ
-    PAGE_GUARD | PAGE_READWRITE, // MM_GUARDPAGE | MM_READWRITE
-    PAGE_GUARD | PAGE_WRITECOPY, // MM_GUARDPAGE | MM_WRITECOPY
-    PAGE_GUARD | PAGE_EXECUTE_READWRITE, // MM_GUARDPAGE | MM_EXECUTE_READWRITE
-    PAGE_GUARD | PAGE_EXECUTE_WRITECOPY, // MM_GUARDPAGE | MM_EXECUTE_WRITECOPY
-
-    PAGE_NOACCESS, // MM_WRITECOMBINE | MM_INVALID
-    PAGE_WRITECOMBINE | PAGE_READONLY, // MM_WRITECOMBINE | MM_READONLY
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_READ, // MM_WRITECOMBINE | MM_EXECUTE
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_READ, // MM_WRITECOMBINE | MM_EXECUTE_READ
-    PAGE_WRITECOMBINE | PAGE_READWRITE, // MM_WRITECOMBINE | MM_READWRITE
-    PAGE_WRITECOMBINE | PAGE_WRITECOPY, // MM_WRITECOMBINE | MM_WRITECOPY
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_READWRITE, // MM_WRITECOMBINE | MM_EXECUTE_READWRITE
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_WRITECOPY, // MM_WRITECOMBINE | MM_EXECUTE_WRITECOPY
-};
-
-
+/*! \fn MmGetPageProtect
+ *
+ *  \brief Returns the win32 protection value for the page at the given
+ *      address. Can only be used by the debugger, because the function is
+ *      NOT thread safe.
+ *
+ *  \param [in] Process - The process for which the mapping should be evaluated.
+ *
+ *  \param [in] Address - An address inside the page that is to be checked.
+ *
+ *  \return One of the PAGE_* protection constants or a combination.
+ */
 ULONG
 NTAPI
 MmGetPageProtect (
     _In_ PEPROCESS Process,
     _In_ PVOID Address)
 {
+    KAPC_STATE SavedApcState;
     ULONG Protect;
+    BOOLEAN Attached = FALSE;
+
+    /* Check if a different process is requested */
+    if (Process != PsGetCurrentProcess())
+    {
+        /* Attach to the target process */
+        KeStackAttachProcess(&Process->Pcb, &SavedApcState);
+        Attached = TRUE;
+    }
 
     /* First check if the address is valid */
     if (!MmIsAddressValid(Address))
@@ -240,23 +277,40 @@ MmGetPageProtect (
     /* Get the page protection */
     Protect = AddressToPte(Address)->GetProtection();
 
+    /* Did we attach? */
+    if (Attached)
+    {
+        /* Detach from process */
+        KeUnstackDetachProcess(&SavedApcState);
+    }
+
     /* Convert it to the win32 format */
-    return ProtectToWin32Protect[Protect & MM_PROTECTION_MASK];
+    return ConvertProtectToWin32(Protect);
 }
 
-// for GCC, invoked when a pure virtual function is called
+/*! \fn atexit
+ *
+ *  \brief Invoked when static initialization fails
+ */
+void
+atexit ()
+{
+    KeBugCheck(0);
+}
+
+#ifdef __GNUC__
+
+/*! \fn __cxa_pure_virtual
+ *
+ *  \brief For GCC, invoked when a pure virtual function is called
+ */
 void
 __cxa_pure_virtual ()
 {
     KeBugCheck(0);
 }
 
-// for GCC, invoked when static initialization fails
-void
-atexit()
-{
-    KeBugCheck(0);
-}
+#endif // __GNUC__
 
 }; // extern "C"
 }; // namespace Mm
