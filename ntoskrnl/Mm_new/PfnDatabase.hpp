@@ -23,9 +23,13 @@ static const ULONG TAG_MM = '  mM';
 
 static const ULONG MAXIMUM_NUMA_NODES = 16;
 
+#ifdef __GNUC__ // this shit is broken
 /// \todo use enum class, once GCC is fixed.
 /// http://gcc.gnu.org/bugzilla/show_bug.cgi?id=51242
-enum PFN_STATE //: ULONG
+enum PFN_STATE
+#else
+enum PFN_STATE : ULONG
+#endif
 {
     PfnNotPresent = 0,
     PfnKernelReserved,
@@ -40,7 +44,13 @@ enum PFN_STATE //: ULONG
     PfnBad,
 };
 
+#ifdef __GNUC__
+/// \todo use enum class, once GCC is fixed.
+/// http://gcc.gnu.org/bugzilla/show_bug.cgi?id=51242
 enum PFN_CACHE_ATTRIBUTE
+#else
+enum PFN_CACHE_ATTRIBUTE : ULONG
+#endif
 {
     PfnNotMapped     = 0,
     PfnWriteCombined = 1,
@@ -61,12 +71,14 @@ typedef struct PFN_ENTRY
 
     struct
     {
-#ifdef __GNUC__ // this shit is broken
+#ifdef __GNUC__
+/// http://gcc.gnu.org/bugzilla/show_bug.cgi?id=51242
         ULONG State : 4;
+        ULONG CacheAttribute : 2;
 #else
         PFN_STATE State : 4;
-#endif
         PFN_CACHE_ATTRIBUTE CacheAttribute : 2;
+#endif
         ULONG Dirty : 1;
         ULONG ReferenceCount : 25;
     };
@@ -282,19 +294,19 @@ public:
     ULONG
     ModifyEntryCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ LONG Addend);
+        _In_ LONG_PTR Addend);
 
     static
     ULONG
     ModifyUsedCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ LONG Addend);
+        _In_ LONG_PTR Addend);
 
     static
     ULONG
     ModifyValidCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ LONG Addend);
+        _In_ LONG_PTR Addend);
 
     static
     VOID

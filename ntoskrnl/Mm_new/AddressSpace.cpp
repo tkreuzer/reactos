@@ -259,7 +259,7 @@ ADDRESS_SPACE::ReleaseAddressCreationLock (
  *      already reserved range.
  */
 NTSTATUS
-ADDRESS_SPACE::InsertVadObject (
+ADDRESS_SPACE::InsertVadObjectEx (
     _Inout_ PVAD_OBJECT VadObject,
     _Inout_ PVOID* BaseAddress,
     _In_ ULONG_PTR SizeInPages,
@@ -362,6 +362,23 @@ ADDRESS_SPACE::InsertVadObject (
     return STATUS_SUCCESS;
 }
 
+PVOID
+ADDRESS_SPACE::InsertVadObject (
+    _Inout_ PVAD_OBJECT VadObject,
+    _In_ ULONG_PTR SizeInPages)
+{
+    PVOID BaseAddress = NULL;
+    NTSTATUS Status;
+
+    Status = InsertVadObjectEx(VadObject, &BaseAddress, 0, 0, 0);
+    if (!NT_SUCCESS(Status))
+    {
+        return NULL;
+    }
+
+    return BaseAddress;
+}
+
 /*! \fn ADDRESS_SPACE::ReserveVirtualMemory
  *
  *  \brief ...
@@ -400,7 +417,7 @@ ADDRESS_SPACE::ReserveVirtualMemory (
         }
     }
 
-    Status = InsertVadObject(VadObject, BaseAddress, NumberOfPages, 0, 0);
+    Status = InsertVadObjectEx(VadObject, BaseAddress, NumberOfPages, 0, 0);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to insert VAD object into address space: %x\n", Status);
@@ -505,11 +522,12 @@ ADDRESS_SPACE::ReferenceVadObjectByAddress (
  *  \return ...
  */
 PVOID
-ReserveKernelMemory (
-    SIZE_T Size)
+ReserveKernelVaSpace (
+    ULONG_PTR NumberOfPages)
 {
     KERNEL_VAD* VadObject;
     NTSTATUS Status;
+    KIRQL OldIrql;
 
     /* Allocate a new kernel VAD */
     Status = KERNEL_VAD::CreateInstance(&VadObject);
@@ -519,13 +537,19 @@ ReserveKernelMemory (
         return NULL;
     }
 
+    /* Acquire the kernel address creation lock */
+    OldIrql = g_KernelAddressSpace.AcquireAddressCreationLock();
+
     /* Insert the kernel VAD */
     Status = g_KernelVadTable.InsertVadObject(VadObject,
-                                              BYTES_TO_PAGES(Size),
+                                              NumberOfPages,
                                               AddressToVpn(MmSystemRangeStart),
                                               AddressToVpn(MmHighestSystemAddress),
                                               1,
                                               TRUE);
+
+    /* Release address creation lock */
+    g_KernelAddressSpace.ReleaseAddressCreationLock(OldIrql);
 
     if (!NT_SUCCESS(Status))
     {
@@ -546,7 +570,7 @@ ReserveKernelMemory (
  *  \return ...
  */
 VOID
-ReleaseKernelMemory (
+ReleaseKernelVaSpace (
     PVOID BaseAddress)
 {
     PVAD_OBJECT VadObject;
@@ -568,6 +592,16 @@ ReleaseKernelMemory (
 
     VadObject->Release();
 }
+
+BOOLEAN
+CheckAvailableSystemVa (
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ MM_PAGE_PRIORITY Priority)
+{
+    /// FIXME!
+    return TRUE;
+}
+
 
 }; // namespace Mm
 

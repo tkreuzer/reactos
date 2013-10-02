@@ -64,8 +64,13 @@ public:
     ReleaseAddressCreationLock (
         KIRQL OldIrql);
 
-    NTSTATUS
+    PVOID
     InsertVadObject (
+        _Inout_ class VAD_OBJECT* VadObject,
+        _In_ ULONG_PTR SizeInPages);
+
+    NTSTATUS
+    InsertVadObjectEx (
         _Inout_ class VAD_OBJECT* VadObject,
         _Inout_ PVOID* BaseAddress,
         _In_ ULONG_PTR SizeInPages,
@@ -126,11 +131,16 @@ GetAddressSpaceForAddress (
 }
 
 PVOID
-ReserveKernelMemory (
-    SIZE_T Size);
+ReserveKernelVaSpace (
+    _In_ ULONG_PTR NumberOfPages);
 
 VOID
-ReleaseKernelMemory (
+ReleaseKernelVaSpace (
     PVOID BaseAddress);
+
+BOOLEAN
+CheckAvailableSystemVa (
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ MM_PAGE_PRIORITY Priority);
 
 }; // namespace Mm

@@ -490,7 +490,7 @@ MmInitializeProcessAddressSpace (
     //UNICODE_STRING FileName;
     //PWCHAR Source;
     //PCHAR Destination;
-    USHORT Length = 0;
+    //USHORT Length = 0;
     PVOID SharedUserPage = (PVOID)MM_SHARED_USER_DATA_VA;
 
     /* We should have an initialized SwitchBlock */

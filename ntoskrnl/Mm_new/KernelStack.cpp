@@ -79,7 +79,7 @@ MmCreateKernelStack (
     _In_ BOOLEAN GuiStack,
     _In_ UCHAR Node)
 {
-    LONG_PTR ReservedSize, CommitSize;
+    ULONG_PTR ReservedPages, MappedPages;
     PVOID BaseAddress, StackBase;
     ULONG_PTR StartingVpn;
     NTSTATUS Status;
@@ -87,18 +87,18 @@ MmCreateKernelStack (
     if (GuiStack)
     {
         /* Reserve 64 KB stack, but only commit 12 KB */
-        ReservedSize = KERNEL_LARGE_STACK_SIZE;
-        CommitSize = KERNEL_LARGE_STACK_COMMIT;
+        ReservedPages = BYTES_TO_PAGES(KERNEL_LARGE_STACK_SIZE);
+        MappedPages = BYTES_TO_PAGES(KERNEL_LARGE_STACK_COMMIT);
     }
     else
     {
         /* Reserve and commit 12 KB */
-        ReservedSize = KERNEL_STACK_SIZE;
-        CommitSize = KERNEL_STACK_SIZE;
+        ReservedPages = BYTES_TO_PAGES(KERNEL_STACK_SIZE);
+        MappedPages = BYTES_TO_PAGES(KERNEL_STACK_SIZE);
     }
 
-    /* Reserve memory */
-    BaseAddress = ReserveKernelMemory(ReservedSize);
+    /* Reserve mapping range */
+    BaseAddress = ReserveSystemMappingRange(ReservedPages);
     if (BaseAddress == NULL)
     {
         ERR("Failed to reserve kernel memory\n");
@@ -106,17 +106,17 @@ MmCreateKernelStack (
     }
 
     /* Calculate the stack base */
-    StackBase = AddToPointer(BaseAddress, ReservedSize);
+    StackBase = AddToPointer(BaseAddress, ReservedPages * PAGE_SIZE);
 
     /* Map the initial memory */
-    StartingVpn = AddressToVpn(StackBase) - BYTES_TO_PAGES(CommitSize);
-    Status = MapVirtualMemory(StartingVpn,
-                              BYTES_TO_PAGES(CommitSize),
-                              MM_READWRITE | MM_MAPPED | MM_NONPAGED);
+    StartingVpn = AddressToVpn(StackBase) - MappedPages;
+    Status = MapNonPagedMemory(StartingVpn,
+                               MappedPages,
+                               MM_READWRITE | MM_MAPPED | MM_NONPAGED);
     if (!NT_SUCCESS(Status))
     {
-        ERR("Failed to create a mapping: %lx\n", Status);
-        ReleaseKernelMemory(BaseAddress);
+        ERR("Failed to map pages: %lx\n", Status);
+        ReleaseSystemMappingRange(BaseAddress);
         return NULL;
     }
 
@@ -128,17 +128,29 @@ MmCreateKernelStack (
  *
  *  \brief Deletes a kernel stack
  *
- *  \param [in] Stack - Pointer to the base of the stack
+ *  \param [in] StackBase - Pointer to the base of the stack
  *
  *  \param [in] GuiStack - Specifies whether the stack is a large GUI stack.
  */
 VOID
 NTAPI
 MmDeleteKernelStack (
-    _In_ __drv_freesMem(Mem) PVOID Stack,
+    _In_ __drv_freesMem(Mem) PVOID StackBase,
     _In_ BOOLEAN GuiStack)
 {
-    UNIMPLEMENTED;
+    SSIZE_T ReservedSize;
+    PVOID BaseAddress;
+
+    /* Get size of the mapping range */
+    ReservedSize = GuiStack ? KERNEL_LARGE_STACK_SIZE : KERNEL_STACK_SIZE;
+
+    /* Calculate the base address */
+    BaseAddress = AddToPointer(StackBase, -ReservedSize);
+
+    //CleanSystemMappingRange(BaseAddress, BYTES_TO_PAGES(ReservedSize));
+    UNIMPLEMENTED_DBGBREAK;
+
+    ReleaseSystemMappingRange(BaseAddress);
 }
 
 }; // extern "C"

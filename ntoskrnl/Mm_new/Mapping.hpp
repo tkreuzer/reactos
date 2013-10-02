@@ -51,6 +51,12 @@ CheckVirtualMapping (
     _Out_ PSIZE_T OutRegionSize,
     _Out_ PULONG OutProtect);
 
+NTSTATUS
+MapNonPagedMemory (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect);
+
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
@@ -60,20 +66,34 @@ MapPrototypePtes (
     _In_ ULONG Protect,
     _In_ class PTE* Ptototypes);
 
-_Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
-NTSTATUS
+VOID
 MapPhysicalMemory (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PFN_NUMBER BasePageFrameNumber);
 
-NTSTATUS
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID
 MapPfnArray (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PPFN_NUMBER PfnArray);
+
+NTSTATUS
+PrepareSystemMappingRange (
+    _In_ ULONG_PTR StartingVpn,
+    _In_ ULONG_PTR NumberOfPages,
+    _In_ ULONG Protect);
+
+PVOID
+ReserveSystemMappingRange (
+    _In_ ULONG_PTR NumberOfPages);
+
+VOID
+ReleaseSystemMappingRange (
+    _In_ PVOID BaseAddress);
 
 }; // namespace Mm

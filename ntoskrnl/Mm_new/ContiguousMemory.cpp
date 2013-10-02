@@ -78,13 +78,6 @@ AllocateContiguousMemory (
         return NULL;
     }
 
-    /* Reserve virtual memory range */
-    BaseAddress = ReserveKernelMemory(NumberOfPages * PAGE_SIZE);
-    if (BaseAddress == NULL)
-    {
-        return NULL;
-    }
-
     /* Allocate a range of contiguous physical pages */
     Status = g_PfnDatabase.AllocateContiguousPages(&BasePageFrameNumber,
                                                    NumberOfPages,
@@ -94,21 +87,22 @@ AllocateContiguousMemory (
                                                    PreferredNode);
     if (!NT_SUCCESS(Status))
     {
-        ReleaseKernelMemory(BaseAddress);
+        return NULL;
+    }
+
+    /* Reserve a mapping range */
+    BaseAddress = ReserveSystemMappingRange(NumberOfPages);
+    if (BaseAddress == NULL)
+    {
+        g_PfnDatabase.FreeContiguousPages(BasePageFrameNumber);
         return NULL;
     }
 
     /* Map the physical pages */
-    Status = MapPhysicalMemory(AddressToVpn(BaseAddress),
-                               NumberOfPages,
-                               Protect,
-                               BasePageFrameNumber);
-    if (!NT_SUCCESS(Status))
-    {
-        g_PfnDatabase.FreeContiguousPages(BasePageFrameNumber);
-        ReleaseKernelMemory(BaseAddress);
-        return NULL;
-    }
+    MapPhysicalMemory(AddressToVpn(BaseAddress),
+                      NumberOfPages,
+                      Protect,
+                      BasePageFrameNumber);
 
     return BaseAddress;
 }

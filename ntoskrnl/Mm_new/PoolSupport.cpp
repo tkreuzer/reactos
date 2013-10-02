@@ -175,15 +175,19 @@ InitializePoolSupportSingle (
     /* Check for large page mapping */ /// \todo Maybe we can get rid of this
     if (Protect & MM_LARGEPAGE)
     {
-        /* Align to large page boundary */
+        /* Align to next higher large page boundary */
         StartingVpn = ALIGN_UP_BY(StartingVpn, LARGE_PAGE_SIZE / PAGE_SIZE);
         NumberOfPages = ALIGN_DOWN_BY(NumberOfPages, LARGE_PAGE_SIZE / PAGE_SIZE);
     }
 
+    /* Prepare the mapping range */
+    //Status = PrepareSystemMappingRange(StartingVpn, NumberOfPages, Protect);
+    //NT_ASSERT(NT_SUCCESS(Status));
+
     /// \todo this if (...) is all pretty hacky, maybe we can improve this later
 
     /* Check if we shall map the pages */
-    //if (Protect & MM_MAPPED)
+    if (Protect & MM_MAPPED)
     {
         /* Map the pages */
         Status = MapVirtualMemory(StartingVpn, NumberOfPages, Protect);
@@ -440,6 +444,7 @@ MiAllocatePoolPages (
     }
 #endif
 
+    /* Check if this is paged pool */
     if (PoolType == PagedPool)
     {
         /* We need to map the pages */
