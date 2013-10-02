@@ -19,7 +19,6 @@
 #include "VadTable.hpp"
 #include "KernelVad.hpp"
 #include "CommitCharge.hpp"
-#include _ARCH_RELATIVE_(PageTables.hpp)
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
 #include <arc/arc.h>
 

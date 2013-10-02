@@ -22,13 +22,9 @@ const char VadObjectVadType[] = "VadObject";
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] OutVadObject -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] Protect -
  *
  *  \return ...
  */
@@ -55,16 +51,6 @@ VAD_OBJECT::CreateInstance (
 /*! \fn xxxxxxxxxx
  *
  *  \brief ...
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \return ...
  */
 inline
 VOID
@@ -78,16 +64,6 @@ VAD_OBJECT::AcquireLock (
 /*! \fn xxxxxxxxxx
  *
  *  \brief ...
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \return ...
  */
 inline
 VOID
@@ -102,14 +78,6 @@ VAD_OBJECT::ReleaseLock (
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
  *  \return ...
  */
 ULONG
@@ -123,14 +91,6 @@ VAD_OBJECT::GetMemoryType (
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
  *  \return ...
  */
 const char*
@@ -143,14 +103,6 @@ VAD_OBJECT::GetVadType (
 /*! \fn xxxxxxxxxx
  *
  *  \brief ...
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
  *
  *  \return ...
  */

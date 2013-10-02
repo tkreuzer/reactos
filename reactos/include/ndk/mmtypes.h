@@ -26,6 +26,10 @@ Author:
 #include <arch/mmtypes.h>
 #include <extypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // Page-Rounding Macros
 //
@@ -1035,5 +1039,9 @@ extern POBJECT_TYPE NTSYSAPI MmSectionObjectType;
 #endif
 
 #endif // !NTOS_MODE_USER
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // _MMTYPES_H

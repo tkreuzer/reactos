@@ -1034,7 +1034,8 @@ PFN_CACHE_ATTRIBUTE
 PFN_DATABASE::GetPfnCacheAttribute (
     _In_ PFN_NUMBER PageFrameNumber)
 {
-    return m_PfnArray[PageFrameNumber].CacheAttribute;
+    /// HACK: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=51242, remove cast
+    return (PFN_CACHE_ATTRIBUTE)m_PfnArray[PageFrameNumber].CacheAttribute;
 }
 
 /*! \name PFN_DATABASE::MakeActivePfn
@@ -1129,13 +1130,13 @@ PFN_DATABASE::MakePageTablePfn (
 ULONG
 PFN_DATABASE::ModifyEntryCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ LONG Addend)
+    _In_ LONG_PTR Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
-    PfnEntry->PageTable.UsedPteCount += Addend;
-    PfnEntry->PageTable.ValidPteCount += Addend;
+    PfnEntry->PageTable.UsedPteCount += (LONG)Addend;
+    PfnEntry->PageTable.ValidPteCount += (LONG)Addend;
     NT_ASSERT((PfnEntry->PageTable.UsedPteCount >= 0) &&
               (PfnEntry->PageTable.UsedPteCount <= PTE_PER_PAGE)); // HACK
     NT_ASSERT((PfnEntry->PageTable.ValidPteCount >= 0) &&
@@ -1160,12 +1161,12 @@ PFN_DATABASE::ModifyEntryCount (
 ULONG
 PFN_DATABASE::ModifyUsedCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ LONG Addend)
+    _In_ LONG_PTR Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
-    PfnEntry->PageTable.UsedPteCount += Addend;
+    PfnEntry->PageTable.UsedPteCount += (LONG)Addend;
     NT_ASSERT((PfnEntry->PageTable.UsedPteCount >= 0) &&
               (PfnEntry->PageTable.UsedPteCount <= PTE_PER_PAGE)); // HACK
     return PfnEntry->PageTable.UsedPteCount;
@@ -1188,12 +1189,12 @@ PFN_DATABASE::ModifyUsedCount (
 ULONG
 PFN_DATABASE::ModifyValidCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ LONG Addend)
+    _In_ LONG_PTR Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
-    PfnEntry->PageTable.ValidPteCount += Addend;
+    PfnEntry->PageTable.ValidPteCount += (LONG)Addend;
     NT_ASSERT((PfnEntry->PageTable.ValidPteCount >= 0) &&
               (PfnEntry->PageTable.ValidPteCount <= PTE_PER_PAGE)); // HACK
     return PfnEntry->PageTable.ValidPteCount;

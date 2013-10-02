@@ -97,11 +97,11 @@ AllocateVirtualMemory (
         }
 
         /* Insert the VAD object into the address space */
-        Status = AddressSpace->InsertVadObject(VadObject,
-                                               BaseAddress,
-                                               NumberOfPages,
-                                               ZeroBits,
-                                               AllocationType);
+        Status = AddressSpace->InsertVadObjectEx(VadObject,
+                                                 BaseAddress,
+                                                 NumberOfPages,
+                                                 ZeroBits,
+                                                 AllocationType);
         if (!NT_SUCCESS(Status))
         {
             ERR("Failed to insert VAD object into address space: %x\n", Status);
@@ -304,7 +304,7 @@ NtAllocateVirtualMemory (
 
     /* Convert the win32 protection */
     Protect = ConvertProtect(Win32Protect);
-    if (Protect == -1)
+    if (Protect == (ULONG)-1)
     {
         ERR("Invalid page protection: 0x%lx\n", Win32Protect);
         return STATUS_INVALID_PAGE_PROTECTION;
