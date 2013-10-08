@@ -17,54 +17,6 @@ extern "C" {
 
 /* Internal functions ********************************************************/
 
-/*! \fn MmLoadSystemImage
- *
- *  \brief ...
- *
- *  \param [in] FileName -
- *
- *  \param [in] NamePrefix -
- *
- *  \param [in] LoadedName -
- *
- *  \param [in] Flags -
- *
- *  \param [in] ModuleObject -
- *
- *  \param [in] ImageBaseAddress -
- *
- *  \return ...
- */
-NTSTATUS
-NTAPI
-MmLoadSystemImage (
-    _In_ PUNICODE_STRING FileName,
-    _In_opt_ PUNICODE_STRING NamePrefix,
-    _In_opt_ PUNICODE_STRING LoadedName,
-    _In_ ULONG Flags,
-    _Out_ PVOID *ModuleObject,
-    _Out_ PVOID *ImageBaseAddress)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
-
-/*! \fn MmUnloadSystemImage
- *
- *  \brief ...
- *
- *  \param [in] ImageHandle -
- *
- *  \return ...
- */
-NTSTATUS
-NTAPI
-MmUnloadSystemImage (
-    _In_ PVOID ImageHandle)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
 
 /*! \fn MmCheckSystemImage
  *
@@ -86,37 +38,6 @@ MmCheckSystemImage (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/*! \fn MiResolveImageReferences
- *
- *  \brief ...
- *
- *  \param [in] ImageBase -
- *
- *  \param [in] ImageFileDirectory -
- *
- *  \param [in] NamePrefix -
- *
- *  \param [in] MissingApi -
- *
- *  \param [in] MissingDriver -
- *
- *  \param [in] LoadImports -
- *
- *  \return ...
- */
-NTSTATUS
-NTAPI
-MiResolveImageReferences (
-    _In_ PVOID ImageBase,
-    _In_ PUNICODE_STRING ImageFileDirectory,
-    _In_opt_ PUNICODE_STRING NamePrefix,
-    _Out_ PCHAR *MissingApi,
-    _Out_ PWCHAR *MissingDriver,
-    _Out_ struct _LOAD_IMPORTS** LoadImports)
-{
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
-}
 
 /*! \fn MmCallDllInitialize
  *
