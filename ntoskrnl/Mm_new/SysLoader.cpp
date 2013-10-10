@@ -378,6 +378,79 @@ UnloadSystemImageInternal (
 }
 
 static
+PVOID
+FindExportByName (
+    _In_ PVOID DllBase,
+    _In_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
+    _In_ USHORT Hint,
+    _In_ PCHAR Name)
+{
+    PULONG NameTable, ExportTable;
+    PUSHORT OrdinalTable;
+    LONG IndexLow, IndexMid, IndexHigh, Result;
+    USHORT Ordinal;
+
+    /* Get the export tables */
+    NameTable = (PULONG)AddToPointer(DllBase, ExportDirectory->AddressOfNames);
+    OrdinalTable = (PUSHORT)AddToPointer(DllBase, ExportDirectory->AddressOfNameOrdinals);
+    ExportTable = (PULONG)AddToPointer(DllBase, ExportDirectory->AddressOfFunctions);
+
+    /* Check if we got a valid hint */
+    if ((Hint < ExportDirectory->NumberOfNames) &&
+        !strcmp((PCHAR)DllBase + NameTable[Hint], Name))
+    {
+        /* We have a match, get the ordinal number from here */
+        Ordinal = OrdinalTable[Hint];
+    }
+    else
+    {
+        /* Do a binary search */
+        //IndexMid = BinarySearch<ULONG, >(NameTable,
+        //                        ExportDirectory->NumberOfNames,
+        //                        Name);
+        IndexLow = 0;
+        IndexHigh = ExportDirectory->NumberOfNames;
+        while (IndexLow < IndexHigh)
+        {
+            /* Get new middle value */
+            IndexMid = (IndexLow + IndexHigh) / 2;
+
+            /* Compare name */
+            Result = strcmp(Name, (PCHAR)DllBase + NameTable[IndexMid]);
+            if (Result < 0)
+            {
+                /* Update high */
+                IndexHigh = IndexMid;
+            }
+            else if (Result > 0)
+            {
+                /* Update low */
+                IndexLow = IndexMid + 1;
+            }
+            else
+            {
+                /* We got it */
+                break;
+            }
+        }
+
+        /* Check if we couldn't find it */
+        if (IndexHigh <= IndexLow)
+        {
+            return NULL;
+        }
+
+        /* Otherwise, this is the ordinal */
+        Ordinal = OrdinalTable[IndexMid];
+    }
+
+    NT_ASSERT(Ordinal < ExportDirectory->NumberOfFunctions);
+
+    /* Resolve the address and return it */
+    return AddToPointer(DllBase, ExportTable[Ordinal]);
+}
+
+static
 NTSTATUS
 CallDllInitialize (
     _In_ PLDR_DATA_TABLE_ENTRY LdrEntry)
@@ -385,6 +458,100 @@ CallDllInitialize (
     UNIMPLEMENTED_DBGBREAK;
     return STATUS_NOT_IMPLEMENTED;
 }
+
+/// FIXME: make this a template for 32/64 bit
+static
+NTSTATUS
+ProcessImportDescriptor (
+    _In_ PVOID ImageBase,
+    _In_ PIMAGE_IMPORT_DESCRIPTOR ImportDescriptor,
+    _In_ PVOID DllBase)
+{
+    PIMAGE_EXPORT_DIRECTORY ExportDirectory;
+    PIMAGE_THUNK_DATA NameThunk, AddressThunk;
+    PULONG ExportTable;
+    ULONG ExportSize;
+    ULONG_PTR Ordinal;
+    PVOID Function;
+    PIMAGE_IMPORT_BY_NAME NameImport;
+
+    NT_ASSERT(ImportDescriptor->OriginalFirstThunk != 0);
+    NT_ASSERT(ImportDescriptor->FirstThunk != 0);
+
+    /* Get the export directory */
+    ExportDirectory = static_cast<PIMAGE_EXPORT_DIRECTORY>(
+                      RtlImageDirectoryEntryToData(DllBase,
+                                                   TRUE,
+                                                   IMAGE_DIRECTORY_ENTRY_EXPORT,
+                                                   &ExportSize));
+    if (ExportDirectory == NULL)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    /* Get the tables */
+    NameThunk = static_cast<PIMAGE_THUNK_DATA>(
+        AddToPointer(ImageBase, ImportDescriptor->OriginalFirstThunk));
+    AddressThunk = static_cast<PIMAGE_THUNK_DATA>(
+        AddToPointer(ImageBase, ImportDescriptor->FirstThunk));
+    ExportTable = static_cast<PULONG>(
+        AddToPointer(DllBase, ExportDirectory->AddressOfFunctions));
+
+    /* Loop all import thunks */
+    while (NameThunk->u1.Ordinal != 0)
+    {
+        /* Is this an import by ordinal? */
+        if (IMAGE_SNAP_BY_ORDINAL(NameThunk->u1.Ordinal))
+        {
+            /* Calculate the ordinal */
+            Ordinal = IMAGE_ORDINAL(NameThunk->u1.Ordinal) - ExportDirectory->Base;
+
+            /* Check if the ordinal is invalid */
+            if (Ordinal >= ExportDirectory->NumberOfFunctions)
+            {
+                /* Fail */
+                return STATUS_DRIVER_ORDINAL_NOT_FOUND;
+            }
+
+            /* Store the function address */
+            AddressThunk->u1.Function = (ULONG_PTR)DllBase + ExportTable[Ordinal];
+        }
+        else
+        {
+            /* Get the name import data */
+            NameImport = (PIMAGE_IMPORT_BY_NAME)NameThunk->u1.AddressOfData;
+
+            /* Find the export by name or hint */
+            Function = FindExportByName(DllBase,
+                                        ExportDirectory,
+                                        NameImport->Hint,
+                                        (PCHAR)NameImport->Name);
+            if (Function == NULL)
+            {
+                return STATUS_UNSUCCESSFUL;
+            }
+
+            /* Store the function address */
+            AddressThunk->u1.Function = (ULONG_PTR)Function;
+        }
+
+        /* Check if the function is actually a forwarder */
+        if ((AddressThunk->u1.Function > (ULONG_PTR)ExportDirectory) &&
+            (AddressThunk->u1.Function < ((ULONG_PTR)ExportDirectory + ExportSize)))
+        {
+            /* It is, fail */
+            UNIMPLEMENTED_DBGBREAK;
+            return 0;
+        }
+
+        /* Next thunks */
+        NameThunk++;
+        AddressThunk++;
+    }
+
+    return STATUS_SUCCESS;
+}
+
 
 static
 NTSTATUS
@@ -435,6 +602,7 @@ ResolveImageReferences (
             break;
         }
 
+        /* Convert the name to unicode, appending it after the path */
         Status = RtlAnsiStringToUnicodeString(&DllName, &DllNameAnsi, FALSE);
         NT_ASSERT(NT_SUCCESS(Status));
         if (!NT_SUCCESS(Status))
@@ -479,6 +647,12 @@ ResolveImageReferences (
         {
             break;
         }
+
+
+        Status = ProcessImportDescriptor(ImageBase,
+                                         CurrentImport,
+                                         DllLdrEntry->DllBase);
+
     }
 
     if (!NT_SUCCESS(Status))
