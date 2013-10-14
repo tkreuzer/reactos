@@ -167,6 +167,8 @@ extern ULONG ExpNumberOfPagedPools;
 extern POOL_DESCRIPTOR NonPagedPoolDescriptor;
 extern PPOOL_DESCRIPTOR ExpPagedPoolDescriptor[16 + 1];
 extern PPOOL_TRACKER_TABLE PoolTrackTable;
+extern SIZE_T MmMinimumStackCommitInBytes;
+extern ULONG MmCritsectTimeoutSeconds;
 
 //
 // END FIXFIX
