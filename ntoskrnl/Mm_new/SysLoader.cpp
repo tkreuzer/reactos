@@ -11,7 +11,7 @@
 
 */
 
-#include "ntosbase.h"
+#include "SysLoader.hpp"
 #include <ntimage.h>
 #include <ldrtypes.h>
 #include <rtlfuncs.h>
@@ -27,17 +27,6 @@ ERESOURCE PsLoadedModuleResource;
 KMUTANT SystemLoaderLock;
 extern "C" LIST_ENTRY PsLoadedModuleList;
 extern "C" BOOLEAN PsImageNotifyEnabled;
-
-extern "C"
-NTSTATUS
-NTAPI
-MmLoadSystemImage (
-    _In_ PUNICODE_STRING FileName,
-    _Reserved_ PUNICODE_STRING NamePrefix,
-    _In_opt_ PUNICODE_STRING LoadedName,
-    _In_ ULONG Flags,
-    _Out_ PVOID *ModuleObject,
-    _Out_ PVOID *ImageBaseAddress);
 
 VOID
 FORCEINLINE
@@ -192,7 +181,7 @@ CreateLdrEntry (
     return LdrEntry;
 }
 
-
+static
 NTSTATUS
 LoadSystemImageInternal (
     _In_ PUNICODE_STRING FileName,
@@ -252,7 +241,7 @@ LoadSystemImageInternal (
     }
 
     /* Calculate how many bytes we need */
-    NumberOfPages = BYTES_TO_PAGES(SectionSize.QuadPart);
+    NumberOfPages = (ULONG_PTR)BYTES_TO_PAGES(SectionSize.QuadPart);
 
     /* Allocate a mapping range */
     DriverBase = ReserveSystemMappingRange(NumberOfPages);
@@ -573,6 +562,7 @@ ResolveImageReferences (
     RtlInitEmptyUnicodeString(&FullPathName, StringBuffer, sizeof(StringBuffer));
     RtlCopyUnicodeString(&FullPathName, BaseDirectory);
 
+    /* Initialize the DllName string to start after the base directory */
     DllName.Buffer = &StringBuffer[FullPathName.Length / sizeof(WCHAR)];
     DllName.MaximumLength = sizeof(StringBuffer) - FullPathName.Length;
     DllName.Length = 0;
@@ -584,6 +574,7 @@ ResolveImageReferences (
                                                    &ImportSize);
     if (ImportDirectory == NULL)
     {
+        /* No import directory means no work to do. */
         return STATUS_SUCCESS;
     }
 
@@ -613,10 +604,6 @@ ResolveImageReferences (
         /* Create a full path name */
         FullPathName.Length = BaseDirectory->Length + DllName.Length;
 
-        /* Acquire the loader lock. This is needed to
-           synchronize the call to the DLL init routine! */
-        AcquireLoaderLock();
-
         /* Recursively load the DLL */
         Status = MmLoadSystemImage(&FullPathName,
                                    NULL,
@@ -624,29 +611,26 @@ ResolveImageReferences (
                                    LDRP_DRIVER_DEPENDENT_DLL,
                                    (PVOID*)&DllLdrEntry,
                                    &DllBase);
-        if (NT_SUCCESS(Status))
-        {
-            /* Go ahead, since we loaded the image */
-            CurrentImport++;
-
-            /* Check if we still need to call the init routine */
-            if (DllLdrEntry->LoadCount == 1)
-            {
-                /* Call the DLL entry point */
-                Status = CallDllInitialize(DllLdrEntry);
-            }
-
-            DllLdrEntry->Flags |= LDRP_DRIVER_DEPENDENT_DLL;
-        }
-
-        /* Release the loader lock */
-        ReleaseLoaderLock();
-
-        /* Check for failure above */
         if (!NT_SUCCESS(Status))
         {
             break;
         }
+
+        /* Go ahead, since we loaded the image */
+        CurrentImport++;
+
+        /* Check if we still need to call the init routine */
+        if (DllLdrEntry->LoadCount == 1)
+        {
+            /* Call the DLL entry point */
+            Status = CallDllInitialize(DllLdrEntry);
+            if (!NT_SUCCESS(Status))
+            {
+                break;
+            }
+        }
+
+        DllLdrEntry->Flags |= LDRP_DRIVER_DEPENDENT_DLL;
 
 
         Status = ProcessImportDescriptor(ImageBase,
@@ -794,18 +778,6 @@ MmLoadSystemImage (
         return Status;
     }
 
-    /* Resolve imports */
-    Status = ResolveImageReferences(LdrEntry->DllBase, &BaseDirectory);
-    if (!NT_SUCCESS(Status))
-    {
-        ERR("ResolveImageReferences failed with status 0x%x\n", Status);
-        UnloadSystemImageInternal(LdrEntry);
-        return Status;
-    }
-
-    /* Write-protect the system image */
-    WriteProtectSystemImage(LdrEntry->DllBase);
-
     /* Acquire the loader lock */
     AcquireLoaderLock();
 
@@ -819,6 +791,9 @@ MmLoadSystemImage (
         /// call it for already loaded modules (which would be more logical)
         /// but that would mean, we would call it for ntoskrnl/hal as well
 
+        /* Mark the entry as in progress */
+        LdrEntry->Flags |= LDRP_LOAD_IN_PROGRESS;
+
         /* Acquire the module list lock */
         ExAcquireResourceExclusiveLite(&PsLoadedModuleResource, TRUE);
 
@@ -827,10 +802,25 @@ MmLoadSystemImage (
 
         /* Release the module list lock */
         ExReleaseResource(&PsLoadedModuleResource);
+
+        /* Resolve imports */
+        Status = ResolveImageReferences(LdrEntry->DllBase, &BaseDirectory);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("ResolveImageReferences failed with status 0x%x\n", Status);
+            MmUnloadSystemImage(LdrEntry);
+            return Status;
+        }
+
+        /* Loading this image is finished, remove the flag */
+        LdrEntry->Flags &= ~LDRP_LOAD_IN_PROGRESS;
     }
 
     /* Release the loader lock */
     ReleaseLoaderLock();
+
+    /* Write-protect the system image */
+    WriteProtectSystemImage(LdrEntry->DllBase);
 
     /* Did we find an entry? */
     if (FoundLdrEntry != NULL)
@@ -881,14 +871,18 @@ MmUnloadSystemImage (
     /* Acquire the loader lock */
     AcquireLoaderLock();
 
-    /* Remove the entry from the module list */
-    RemoveEntryList(&LdrEntry->InLoadOrderLinks);
+    /* Dereference the loader entry */
+    LdrEntry->LoadCount--;
+    if (LdrEntry->LoadCount == 0)
+    {
+        /* Remove the entry from the module list */
+        RemoveEntryList(&LdrEntry->InLoadOrderLinks);
 
-    UnloadSystemImageInternal(LdrEntry);
+        UnloadSystemImageInternal(LdrEntry);
+    }
 
     /* Release the loader lock */
     ReleaseLoaderLock();
-
 
     return STATUS_SUCCESS;
 }
