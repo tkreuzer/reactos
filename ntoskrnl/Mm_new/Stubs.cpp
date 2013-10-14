@@ -92,6 +92,15 @@ MmSetBankedSection (
 
 NTSTATUS
 NTAPI
+MmCommitSessionMappedView(IN PVOID MappedBase,
+    IN SIZE_T ViewSize)
+{
+    UNIMPLEMENTED_DBGBREAK;
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+NTSTATUS
+NTAPI
 NtGetWriteWatch (
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,

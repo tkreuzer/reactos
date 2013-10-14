@@ -64,8 +64,17 @@ NTAPI
 MmGetSessionId (
     _In_ PEPROCESS Process)
 {
-    UNIMPLEMENTED;
+    UNIMPLEMENTED_DBGBREAK;
     return 0;
+}
+
+ULONG
+NTAPI
+MmGetSessionIdEx (
+    _In_ PEPROCESS Process)
+{
+    UNIMPLEMENTED_DBGBREAK;
+    return -1;
 }
 
 /*! \fn MmGetSessionLocaleId

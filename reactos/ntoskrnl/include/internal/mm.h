@@ -120,6 +120,7 @@ typedef struct _MM_MEMORY_CONSUMER
 
 extern MM_MEMORY_CONSUMER MiMemoryConsumers[];
 
+#define PAGED_POOL_MASK                     1
 
 /* MmDbgCopyMemory Flags */
 #define MMDBG_COPY_WRITE            0x00000001
@@ -180,6 +181,11 @@ MmGetSessionId(
     IN PEPROCESS Process
 );
 
+ULONG
+NTAPI
+MmGetSessionIdEx(
+    IN PEPROCESS Process
+);
 
 /* npool.c *******************************************************************/
 
@@ -392,6 +398,12 @@ MmGetExecuteOptions(IN PULONG ExecuteOptions);
 
 
 /* section.c *****************************************************************/
+
+VOID
+NTAPI
+MmGetImageInformation(
+    OUT PSECTION_IMAGE_INFORMATION ImageInformation
+);
 
 PFILE_OBJECT
 NTAPI
