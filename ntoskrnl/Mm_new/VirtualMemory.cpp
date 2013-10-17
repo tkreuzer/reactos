@@ -142,7 +142,7 @@ AllocateVirtualMemory (
         }
     }
 
-    return STATUS_SUCCESS;
+    return Status;
 }
 
 extern "C" {
