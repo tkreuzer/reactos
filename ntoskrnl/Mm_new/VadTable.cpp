@@ -306,6 +306,7 @@ VAD_TABLE::InsertVadObject (
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->ListEntry));
+    NT_ASSERT(VadObject->m_Flags.Inserted == FALSE);
 
     /* Check parameter */
     if (PageCount > MAXLONG_PTR)
@@ -403,11 +404,18 @@ VAD_TABLE::InsertVadObject (
             /* Insert the VAD *before* the current node, or at the lowest end */
             InsertBefore(CurrentNode, VadObject);
             Status = STATUS_SUCCESS;
-        }
+         }
     }
 
     /* Unlock the table */
     ReleaseTableLock(&LockHandle);
+
+    if (NT_SUCCESS(Status))
+    {
+        /* Add a reference to the VAD object */
+        VadObject->AddRef();
+        VadObject->m_Flags.Inserted = TRUE;
+    }
 
     return Status;
 }
@@ -444,6 +452,7 @@ VAD_TABLE::InsertVadObjectAtVpn (
 
     /* Make sure the VAD was not already inserted */
     NT_ASSERT(IsListEmpty(&VadObject->ListEntry));
+    NT_ASSERT(VadObject->m_Flags.Inserted == FALSE);
 
     /* Calculate ending VPN */
     EndingVpn = StartingVpn + PageCount - 1;
@@ -464,10 +473,11 @@ VAD_TABLE::InsertVadObjectAtVpn (
     {
         InsertBefore(VadNode, VadObject);
         Status = STATUS_SUCCESS;
-    }
 
-    /* Add a reference to the VAD object */
-    VadObject->AddRef();
+        /* Add a reference to the VAD object */
+        VadObject->AddRef();
+        VadObject->m_Flags.Inserted = TRUE;
+    }
 
     /* Unlock the table */
     ReleaseTableLock(&LockHandle);
@@ -523,6 +533,7 @@ VAD_TABLE::RemoveVadObject (
 
     /* Release the VAD object */
     VadObject->Release();
+    VadObject->m_Flags.Inserted = FALSE;
 
     /* Unlock the table */
     ReleaseTableLock(&LockHandle);

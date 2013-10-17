@@ -69,6 +69,7 @@ protected:
     {
         m_RefCount = 1;
         InitializeListHead(&ListEntry);
+        m_Flags.Inserted = FALSE;
     }
 
     virtual
