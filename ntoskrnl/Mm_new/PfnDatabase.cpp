@@ -484,22 +484,13 @@ PFN_DATABASE::InitializePfnEntries (
             /* Mark it as a free entry */
             PfnEntry->State = PfnFree;
             PfnEntry->ReferenceCount = 0;
+            PfnEntry->Zeroed = FALSE;
             PfnEntry->Dirty = TRUE;
 
             /* Insert the page into the dirty list */
             Color = BasePage & KeGetCurrentPrcb()->SecondaryColorMask;
             PfnEntry->Flink = m_FreeLists[Color].m_ListHead;
             m_FreeLists[Color].m_ListHead = BasePage;
-        }
-    }
-    else if (MemoryType == LoaderXIPRom)
-    {
-        /* Loop all pages */
-        for ( ; PageCount-- > 0; PfnEntry++, BasePage++)
-        {
-            /* Mark it as ROM */
-            PfnEntry->State = PfnRom;
-            PfnEntry->Dirty = TRUE;
         }
     }
     else if (MemoryType == LoaderBad)
@@ -509,7 +500,30 @@ PFN_DATABASE::InitializePfnEntries (
         {
             /* Mark it as bad */
             PfnEntry->State = PfnBad;
+            PfnEntry->Zeroed = FALSE;
             PfnEntry->Dirty = TRUE;
+        }
+    }
+    else if (MemoryType == LoaderXIPRom)
+    {
+        /* Loop all pages */
+        for ( ; PageCount-- > 0; PfnEntry++, BasePage++)
+        {
+            /* Mark it as ROM */
+            PfnEntry->State = PfnRom;
+            PfnEntry->Zeroed = FALSE;
+            PfnEntry->Dirty = FALSE;
+        }
+    }
+    else if (MemoryType == LoaderFirmwarePermanent)
+    {
+        /* Loop all pages */
+        for ( ; PageCount-- > 0; PfnEntry++, BasePage++)
+        {
+            /* Mark it as bad */
+            PfnEntry->State = PfnFirmware;
+            PfnEntry->Zeroed = FALSE;
+            PfnEntry->Dirty = FALSE;
         }
     }
     else if (MemoryType == LoaderLargePageFiller)
@@ -520,6 +534,7 @@ PFN_DATABASE::InitializePfnEntries (
             /// \todo Maybe we need to use a special type
             /* Mark it as contiguous memory (large page) */
             PfnEntry->State = PfnContiguous;
+            PfnEntry->Zeroed = FALSE;
             PfnEntry->Dirty = TRUE;
         }
     }
@@ -530,6 +545,7 @@ PFN_DATABASE::InitializePfnEntries (
         {
             /* Mark it as a reserved PFN */
             PfnEntry->State = PfnKernelReserved;
+            PfnEntry->Zeroed = FALSE;
             PfnEntry->Dirty = TRUE;
         }
     }
@@ -571,6 +587,10 @@ PFN_DATABASE::InitializePageTablePfn (
     /* This must not be free memory! */
     NT_ASSERT(PfnEntry->State != PfnFree);
 
+    /* Setup the PFN entry */
+    PfnEntry->CacheAttribute = PfnCached;
+    PfnEntry->PteAddress = AddressToPte(MappedAddress);
+
     /* Is this a page table? */
     if (PageTableLevel > 0)
     {
@@ -579,11 +599,6 @@ PFN_DATABASE::InitializePageTablePfn (
         PfnEntry->PageTable.UsedPteCount = 0;
         PfnEntry->PageTable.ValidPteCount = 0;
     }
-
-    /* Setup the PFN entry */
-    PfnEntry->CacheAttribute = PfnCached;
-
-    PfnEntry->PteAddress = AddressToPte(MappedAddress);
 
     /* Check if this is a child page table */
     if (PageTableLevel < MI_PAGING_LEVELS)
@@ -1085,6 +1100,31 @@ PFN_DATABASE::MakeLargePagePfn (
     //UNIMPLEMENTED;
 }
 
+VOID
+PFN_DATABASE::IncrementMappingCount (
+    _In_ PFN_NUMBER PageFrameNumber,
+    _In_ ULONG Protect)
+{
+    PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+
+    /* Make sure the PFN is in an appropriate state */
+    NT_ASSERT((PfnEntry->State == PfnRom) ||
+              (PfnEntry->State == PfnFirmware) ||
+              (PfnEntry->State == PfnShared) ||
+              (PfnEntry->State == PfnContiguous));
+
+    PfnEntry->Active.ShareCount++;
+
+}
+
+VOID
+PFN_DATABASE::DecrementMappingCount (
+    _In_ PFN_NUMBER PageFrameNumber)
+{
+    //UNIMPLEMENTED;
+}
+
+
 /*! \name PFN_DATABASE::MakePageTablePfn
  *
  *  \brief ...
@@ -1310,7 +1350,7 @@ PFN_DATABASE::AllocatePage (
     {
         /* Zero this page */
         ZeroPage(PageFrameNumber);
-        m_PfnArray[PageFrameNumber].Dirty = FALSE;
+        m_PfnArray[PageFrameNumber].Zeroed = TRUE;
     }
 
     /* Return the new page */
@@ -1338,9 +1378,19 @@ PFN_DATABASE::FreePageLocked (
     /* Mark it as a free entry */
     PfnEntry->State = PfnFree;
 
-    /* Insert the page into the free list */ /// \todo check for Dirty flag
-    PfnEntry->Flink = m_FreeLists[Color].m_ListHead;
-    m_FreeLists[Color].m_ListHead = PageFrameNumber;
+    /* Check if the page is zeroed */
+    if (PfnEntry->Zeroed)
+    {
+        /* Insert the page into the zeroed list */
+        PfnEntry->Flink = m_ZeroedLists[Color].m_ListHead;
+        m_ZeroedLists[Color].m_ListHead = PageFrameNumber;
+    }
+    else
+    {
+        /* Insert the page into the free list */
+        PfnEntry->Flink = m_FreeLists[Color].m_ListHead;
+        m_FreeLists[Color].m_ListHead = PageFrameNumber;
+    }
 
     /* Set the free bit */
     RtlSetBitEx(m_PhysicalMemoryBitmap, PageFrameNumber);
@@ -1450,12 +1500,12 @@ PFN_DATABASE::AllocateMultiplePages (
         PageFrameNumber = PageList->m_ListHead;
         while (PageFrameNumber != 0)
         {
-            /* Check if page is dirty */
-            if (m_PfnArray[PageFrameNumber].Dirty)
+            /* Check if page is zeroed */
+            if (!m_PfnArray[PageFrameNumber].Zeroed)
             {
                 /* Zero this page */
                 ZeroPage(PageFrameNumber);
-                m_PfnArray[PageFrameNumber].Dirty = FALSE;
+                m_PfnArray[PageFrameNumber].Zeroed = TRUE;
             }
 
             /* Get next PFN */
@@ -1562,9 +1612,27 @@ PFN_DATABASE::ReleaseLargePages (
 
 /*! \name PFN_DATABASE::AllocateContiguousPages
  *
- *  \brief ...
+ *  \brief Allocates a physically contiguous range of memory.
+ *
+ *  \param [out] BasePageFrameNumber - Pointer to a variable that receives
+ *      the page frame number of the 1st page in the allocated range.
+ *
+ *  \param [in] NumberOfPages - Number of pages to allocate
+ *
+ *  \param [in] LowestAcceptablePfn - The lowest PFN that the caller accepts
+ *
+ *  \param [in] HighestAcceptablePfn - The highest PFN that the caller accepts
+ *
+ *  \param [in] BoundaryPageMultiple - If this value is not 0, it specifies
+ *      a boundary in pages that the allocation must not cross. This value
+ *      must be a power of 2.
+ *
+ *  \param [in] PreferredNode - Specifies the preferred NUMA node to take
+ *      the pages from.
  *
  *  \remarks ...
+ *
+ *  \todo Handle PreferredNode parameter
  */
 _Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1577,7 +1645,7 @@ PFN_DATABASE::AllocateContiguousPages (
     _In_opt_ PFN_NUMBER BoundaryPageMultiple,
     _In_ NODE_REQUIREMENT PreferredNode)
 {
-    PFN_NUMBER PageNumber, BasePage, EndPage, PageCount;
+    PFN_NUMBER PageNumber, BasePage, EndPage, PageCount, BoundaryPageMask;
     KIRQL OldIrql;
     RTL_BITMAP_EX Bitmap;
     PPHYSICAL_MEMORY_RUN Run;
@@ -1585,9 +1653,24 @@ PFN_DATABASE::AllocateContiguousPages (
     PULONG_PTR Buffer;
     NTSTATUS Status;
 
-    /* Fix up boundary page multiple */
-    if (BoundaryPageMultiple == 0)
-        BoundaryPageMultiple = 1;
+    /* Did the caller specify a boundary? */
+    if (BoundaryPageMultiple != 0)
+    {
+        /* Check if the boundary is a power of 2 */
+        if ((BoundaryPageMultiple & (BoundaryPageMultiple - 1)) != 0)
+        {
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        /* Check if the range is too large to fit within the bounds */
+        if (NumberOfPages > BoundaryPageMultiple)
+        {
+            return STATUS_NO_MEMORY;
+        }
+
+        /* Calculate a mask of higher bits */
+        BoundaryPageMask = ~(BoundaryPageMultiple - 1);
+    }
 
     /* Acquire the PFN database lock */
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
@@ -1595,19 +1678,21 @@ PFN_DATABASE::AllocateContiguousPages (
     /* Loop all physical memory runs */
     for (ULONG i = 0; i < m_PhysicalMemoryDescriptor->NumberOfRuns; i++)
     {
-        /* Check if this memory run is suitable */
+        /* Get the memory run */
         Run = &m_PhysicalMemoryDescriptor->Run[i];
-        if ((Run->BasePage < LowestAcceptablePfn) ||
-            (Run->BasePage + NumberOfPages > HighestAcceptablePfn))
-        {
-            /* There are no suitable pages in this physical run */
-            continue;
-        }
 
         /* Calculate the base and end page page */
         BasePage = max(Run->BasePage, LowestAcceptablePfn);
         EndPage = min(Run->BasePage + Run->PageCount, HighestAcceptablePfn + 1);
 
+        /* Check if this memory run is suitable */
+        if ((BasePage > EndPage) || ((EndPage - BasePage) < NumberOfPages))
+        {
+            /* This run doesn't have a suitable range */
+            continue;
+        }
+
+        /* Loop until we find a suitable range */
         for (;;)
         {
             /* Align the base page and calculate the page count for the bitmap */
@@ -1624,36 +1709,47 @@ PFN_DATABASE::AllocateContiguousPages (
             Index = RtlFindSetBitsEx(&Bitmap, NumberOfPages, HintIndex);
             if (Index == MAXULONG_PTR)
             {
+                /* No more pages available in this run */
                 break;
             }
 
-            /* Calculate the page number, aligned as required */
-            PageNumber = ALIGN_UP_BY(BasePage + Index, BoundaryPageMultiple);
+            /* Get the page where the allocation starts */
+            PageNumber = BasePage + Index;
 
-            /* Check range */
-            if (((PageNumber + NumberOfPages) > EndPage) ||
-                ((PageNumber + NumberOfPages) <= BasePage))
+            /* Check if the allocation crosses an address boundary */
+            if ((BoundaryPageMultiple != 0) &&
+                (PageNumber & BoundaryPageMask) !=
+                ((PageNumber + NumberOfPages - 1) & BoundaryPageMask))
             {
-                break;
+                /* Align the page number up to the next boundary */
+                PageNumber = ALIGN_UP_BY(PageNumber, BoundaryPageMultiple);
+
+                /* Check if the aligned range exceeds the memory run */
+                if (((PageNumber + NumberOfPages) > EndPage) ||
+                    ((PageNumber + NumberOfPages) <= BasePage))
+                {
+                    /* Stop searching this run */
+                    break;
+                }
+
+                /* Check if the aligned bits are set */
+                Index = PageNumber - BasePage;
+                if (!RtlAreBitsSetEx(&Bitmap, Index, NumberOfPages))
+                {
+                    /* Continue from the aligned address */
+                    BasePage = PageNumber;
+                    continue;
+                }
             }
 
-            /* Check if the aligned bits are set */
-            Index = PageNumber - BasePage;
-            if (RtlAreBitsSetEx(&Bitmap, Index, NumberOfPages))
-            {
-                /* Mark it as a contiguous allocation */
-                m_PfnArray[PageNumber].State = PfnContiguous;
-                m_PfnArray[PageNumber].ReferenceCount = 1;
-                m_PfnArray[PageNumber].Contiguous.NumberOfPages = NumberOfPages;
+            /* Clear the free bits */
+            RtlClearBitsEx(&Bitmap, Index, NumberOfPages);
 
-                /* Clear the free bits */
-                RtlClearBitsEx(&Bitmap, Index, NumberOfPages);
-                Status = STATUS_SUCCESS;
-                goto Done;
-            }
+            /* Adjust available page count */
+            MmAvailablePages -= NumberOfPages;
 
-            /* Update start index and try again */
-            BasePage += NumberOfPages - 1;
+            Status = STATUS_SUCCESS;
+            goto Done;
         }
     }
 
@@ -1662,10 +1758,24 @@ PFN_DATABASE::AllocateContiguousPages (
 
 Done:
 
-    MmAvailablePages -= NumberOfPages;
-
     /* Release the PFN database lock */
     KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
+    /* Check if we had success */
+    if (NT_SUCCESS(Status))
+    {
+        /* Loop all pages in the allocated range */
+        for (ULONG i = 0; i < NumberOfPages; i++)
+        {
+            NT_ASSERT(m_PfnArray[PageNumber + i].State == PfnFree);
+            NT_ASSERT(m_PfnArray[PageNumber + i].ReferenceCount == 0);
+            m_PfnArray[PageNumber + i].State = PfnContiguous;
+            m_PfnArray[PageNumber + i].ReferenceCount = 1;
+        }
+
+        /* Store the number of allocated pages in the 1st PFN entry */
+        m_PfnArray[PageNumber].Contiguous.NumberOfPages = NumberOfPages;
+    }
 
     *BasePageFrameNumber = PageNumber;
     return Status;
@@ -1717,6 +1827,20 @@ PFN_DATABASE::LockPage (
 
 }
 
+VOID
+PFN_DATABASE::LockMultiplePages (
+    _In_ PPFN_NUMBER PfnArray,
+    _In_ ULONG NumberOfPfns)
+{
+    /// Acquire the LockPfnMutex to synchronize PFN-access for PFNs of shared
+    /// mappings!
+    while (NumberOfPfns-- > 0)
+    {
+        LockPage(*PfnArray++);
+    }
+}
+
+
 /*! \name PFN_DATABASE::UnlockPage
  *
  *  \brief ...
@@ -1728,6 +1852,19 @@ PFN_DATABASE::UnlockPage (
     _In_ PFN_NUMBER PageFrameNumber)
 {
 
+}
+
+VOID
+PFN_DATABASE::UnlockMultiplePages (
+    _In_ PPFN_NUMBER PfnArray,
+    _In_ ULONG NumberOfPfns)
+{
+    /// Acquire the LockPfnMutex to synchronize PFN-access for PFNs of shared
+    /// mappings!
+    while (NumberOfPfns-- > 0)
+    {
+        PFN_DATABASE::UnlockPage(*PfnArray++);
+    }
 }
 
 /*! \name PFN_DATABASE::SetPageMapping
@@ -1760,6 +1897,77 @@ PFN_DATABASE::SetPageMapping (
         // set caching type, if not yet mapped
         // increment mapping count
     UNIMPLEMENTED;
+}
+
+ULONG
+PFN_DATABASE::UpdateCaching (
+    _In_ PFN_NUMBER PageFrameNumber,
+    _In_ ULONG Protect)
+{
+    PFN_ENTRY* PfnEntry;
+    PFN_CACHE_ATTRIBUTE CacheAttribute;
+
+    PfnEntry = &m_PfnArray[PageFrameNumber];
+
+    /* Make sure the protection is valid */
+    NT_ASSERT((Protect & 7) != MM_INVALID);
+
+    /* Translate protection to cache attribute */
+    CacheAttribute = ProtectToCacheAttribute(Protect);
+
+    /* Check if the page is already mapped */
+    if (PfnEntry->CacheAttribute == PfnNotMapped)
+    {
+        /* The page is not mapped. This is either a page from an MDL, that was
+           allocated using MmAllocatePagesForMdl, in which case we own the PFN
+           exclusively, or it is part of a contiguous allocation, which is also
+           owned exclusively, or it is physical memory (firmware / ROM), in
+           which case we are holding the PhysicalMemoryLock. */
+        NT_ASSERT(PfnEntry->ReferenceCount == 1);
+        NT_ASSERT((PfnEntry->State == PfnAllocated) ||
+                  (PfnEntry->State == PfnContiguous) ||
+                  (PfnEntry->State == PfnRom) ||
+                  (PfnEntry->State == PfnFirmware));
+
+        /* Set the new cache attribute */
+        PfnEntry->CacheAttribute = CacheAttribute;
+        return Protect;
+    }
+    else
+    {
+        /* Make sure the PFN is in an appropriate state */
+        NT_ASSERT(PfnEntry->ReferenceCount >= 1);
+        NT_ASSERT((PfnEntry->State == PfnAllocated) ||
+                  (PfnEntry->State == PfnContiguous) ||
+                  (PfnEntry->State == PfnRom) ||
+                  (PfnEntry->State == PfnFirmware) ||
+                  (PfnEntry->State == PfnPrivate) ||
+                  (PfnEntry->State == PfnShared));
+
+        /* Check if the current caching matches */
+        if (PfnEntry->CacheAttribute == CacheAttribute)
+        {
+            /* All is well, return the original protection */
+            return Protect;
+        }
+
+        /* We need to update the protection */
+        if (PfnEntry->CacheAttribute == PfnNonCached)
+        {
+            /* Change protection to uncached */
+            return (Protect & ~MM_CACHE_ATTRIBUTE) | MM_UNCACHED;
+        }
+        else if (PfnEntry->CacheAttribute == PfnWriteCombined)
+        {
+            /* Change protection to writecombine */
+            return (Protect & ~MM_CACHE_ATTRIBUTE) | MM_WRITECOMBINE;
+        }
+        else // PfnCached
+        {
+            /* Change protection to cached */
+            return Protect & ~MM_CACHE_ATTRIBUTE;
+        }
+    }
 }
 
 /*! \name PFN_LIST::Initialize

@@ -32,16 +32,22 @@ enum PFN_STATE : ULONG
 #endif
 {
     PfnNotPresent = 0,
-    PfnKernelReserved,
+    PfnBad,
+    PfnRom,
+    PfnFirmware,
+
+    PfnFree,
     PfnZeroed,
+    PfnTransition,
+
+    PfnAllocated,
+
     PfnPrivate,
     PfnShared,
     PfnContiguous,
     PfnPageTable,
-    PfnTransition,
-    PfnRom,
-    PfnFree,
-    PfnBad,
+
+    PfnKernelReserved,
 };
 
 #ifdef __GNUC__
@@ -59,9 +65,9 @@ enum PFN_CACHE_ATTRIBUTE : ULONG
 };
 
 #define ProtectToCacheAttribute(Protect) ((PFN_CACHE_ATTRIBUTE)((((Protect) >> 3) - 2) & 3))
-//static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
-//static_assert(ProtectToCacheAttribute(MM_UNCACHED) == PfnNonCached, "");
-//static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
+static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
+static_assert(ProtectToCacheAttribute(MM_UNCACHED) == PfnNonCached, "");
+static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
 
 
 typedef struct PFN_ENTRY
@@ -79,8 +85,9 @@ typedef struct PFN_ENTRY
         PFN_STATE State : 4;
         PFN_CACHE_ATTRIBUTE CacheAttribute : 2;
 #endif
+        ULONG Zeroed : 1;
         ULONG Dirty : 1;
-        ULONG ReferenceCount : 25;
+        ULONG ReferenceCount : 24;
     };
 
     union
@@ -90,8 +97,8 @@ typedef struct PFN_ENTRY
         } Free;
         struct
         {
-            ULONG UsedPteCount : 10;
-            ULONG ValidPteCount : 10;
+            ULONG UsedPteCount : 11;
+            ULONG ValidPteCount : 11;
         } PageTable;
         struct
         {
@@ -100,6 +107,7 @@ typedef struct PFN_ENTRY
         } Active;
         struct
         {
+            ULONG ShareCount;
             ULONG NumberOfPages;
         } Contiguous;
     };
@@ -272,23 +280,34 @@ public:
     static
     VOID
     MakeActivePfn (
-        _Inout_ PFN_NUMBER PageFrameNumber,
+        _In_ PFN_NUMBER PageFrameNumber,
         _In_ PVOID PteAddress,
         _In_ ULONG Protect);
 
     static
     VOID
     MakeLargePagePfn (
-        _Inout_ PFN_NUMBER PageFrameNumber,
+        _In_ PFN_NUMBER PageFrameNumber,
         _In_ PVOID PteAddress,
         _In_ ULONG Protect);
 
     static
     VOID
     MakePageTablePfn (
-        _Inout_ PFN_NUMBER PageFrameNumber,
+        _In_ PFN_NUMBER PageFrameNumber,
         _In_ PVOID PteAddress,
         _In_ ULONG Protect);
+
+    static
+    VOID
+    IncrementMappingCount (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect);
+
+    static
+    VOID
+    DecrementMappingCount (
+        _In_ PFN_NUMBER PageFrameNumber);
 
     static
     ULONG
@@ -315,8 +334,20 @@ public:
 
     static
     VOID
+    LockMultiplePages (
+        _In_ PPFN_NUMBER PfnArray,
+        _In_ ULONG NumberOfPfns);
+
+    static
+    VOID
     UnlockPage (
         _In_ PFN_NUMBER PageFrameNumber);
+
+    static
+    VOID
+    UnlockMultiplePages (
+        _In_ PPFN_NUMBER PfnArray,
+        _In_ ULONG NumberOfPfns);
 
     static
     BOOLEAN
@@ -376,6 +407,11 @@ public:
         _In_ PFN_COUNT NumberOfPages,
         _In_ MEMORY_CACHING_TYPE CachingType);
 
+    static
+    ULONG
+    UpdateCaching (
+        _In_ PFN_NUMBER PageFrameNumber,
+        _In_ ULONG Protect);
 };
 
 extern PFN_DATABASE g_PfnDatabase;
