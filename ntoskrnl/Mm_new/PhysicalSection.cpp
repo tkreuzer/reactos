@@ -25,6 +25,91 @@ const RTL_BITMAP PHYSICAL_SECTION::ImageLoadBitMap =
 UCHAR PHYSICAL_SECTION::DllImageBias;
 extern ULONG RandomNumberSeed;
 
+/*! \fn AcquireFileForNtCreateSection
+ *
+ *  \brief ...
+ *
+ *  \param [in] FileObject -
+ */
+static
+BOOLEAN
+AcquireFileForNtCreateSection (
+    _Inout_ PFILE_OBJECT FileObject)
+{
+    PDEVICE_OBJECT FsDeviceObject;
+    PFAST_IO_DISPATCH FastIoDispatch;
+    PFSRTL_COMMON_FCB_HEADER FcbHeader;
+
+    /* Get the fast I/O dispatch routines */
+    FsDeviceObject = IoGetBaseFileSystemDeviceObject(FileObject);
+    FastIoDispatch = FsDeviceObject->DriverObject->FastIoDispatch;
+
+    /* Check if we have fast I/O acquire/release routines */
+    if ((FastIoDispatch != NULL) &&
+        (FastIoDispatch->AcquireFileForNtCreateSection != NULL) &&
+        (FastIoDispatch->ReleaseFileForNtCreateSection != NULL))
+    {
+        /* Call the fast I/O acquire routine */
+        KeEnterCriticalRegion();
+        FastIoDispatch->AcquireFileForNtCreateSection(FileObject);
+        return TRUE;
+    }
+
+    /* Otherwise get the FCB header and check if we can use the resource */
+    FcbHeader = static_cast<PFSRTL_COMMON_FCB_HEADER>(FileObject->FsContext);
+    if ((FcbHeader != NULL) && (FcbHeader->Resource != NULL))
+    {
+        /* Acquire the FCB resource exclusively */
+        KeEnterCriticalRegion();
+        ExAcquireResourceExclusiveLite(FcbHeader->Resource, TRUE);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/*! \fn ReleaseFileForNtCreateSection
+ *
+ *  \brief ...
+ *
+ *  \param [in] FileObject -
+ */
+static
+VOID
+ReleaseFileForNtCreateSection (
+    _Inout_ PFILE_OBJECT FileObject)
+{
+    PDEVICE_OBJECT FsDeviceObject;
+    PFAST_IO_DISPATCH FastIoDispatch;
+    PFSRTL_COMMON_FCB_HEADER FcbHeader;
+
+    /* Get the fast I/O dispatch routines */
+    FsDeviceObject = IoGetBaseFileSystemDeviceObject(FileObject);
+    FastIoDispatch = FsDeviceObject->DriverObject->FastIoDispatch;
+
+    /* Check if we have fast I/O acquire/release routines */
+    if ((FastIoDispatch != NULL) &&
+        (FastIoDispatch->AcquireFileForNtCreateSection != NULL) &&
+        (FastIoDispatch->ReleaseFileForNtCreateSection != NULL))
+    {
+        /* Call the fast I/O release routine */
+        FastIoDispatch->ReleaseFileForNtCreateSection(FileObject);
+        KeLeaveCriticalRegion();
+        return;
+    }
+
+    /* Otherwise get the FCB header and check if we can use the resource */
+    FcbHeader = static_cast<PFSRTL_COMMON_FCB_HEADER>(FileObject->FsContext);
+    if ((FcbHeader != NULL) && (FcbHeader->Resource != NULL))
+    {
+        /* Release the FCB resource */
+        ExReleaseResourceLite(FcbHeader->Resource);
+        KeLeaveCriticalRegion();
+        return;
+    }
+
+    NT_ASSERT(FALSE);
+}
 
 /*! \fn PHYSICAL_SECTION::InitializeClass
  *
@@ -133,7 +218,7 @@ PHYSICAL_SECTION::CreateInstance (
  */
 NTSTATUS
 PHYSICAL_SECTION::CreatePageFileSection (
-    _Out_ PPHYSICAL_SECTION* OutSection,
+    _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
     _In_ ULONG64 SizeInBytes,
     _In_ ULONG SectionPageProtection,
     _In_ ULONG AllocationAttributes)
@@ -182,9 +267,19 @@ PHYSICAL_SECTION::CreatePageFileSection (
         }
     }
 
-    *OutSection = Section;
+    *OutPhysicalSection = Section;
     return STATUS_SUCCESS;
 }
+
+NTSTATUS
+PHYSICAL_SECTION::CreateDataFileSection (
+    _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
+    _In_ PFILE_OBJECT FileObject)
+{
+    __debugbreak();
+    return 0;
+}
+
 
 /*! \fn PHYSICAL_SECTION::ReferenceOrCreateFileSection
  *
@@ -202,14 +297,12 @@ NTSTATUS
 PHYSICAL_SECTION::ReferenceOrCreateFileSection (
     _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
     _Inout_ PFILE_OBJECT FileObject,
-    _In_ ULONG AllocationAttributes)
+    _In_ ULONG AllocationAttributes,
+    _In_ BOOLEAN NeedLock)
 {
     PSECTION_OBJECT_POINTERS SectionObjectPointers;
-    PVOID* SectionPointer;
-    PVOID Previous;
-    PPHYSICAL_SECTION PhysicalSection;//, PrevSection;
+    PPHYSICAL_SECTION PhysicalSection;
     NTSTATUS Status;
-    SECTION_WAIT_BLOCK WaitBlock, *WaitBlockPointer;
 
     /* Check if we have section pointers */
     SectionObjectPointers = FileObject->SectionObjectPointer;
@@ -218,99 +311,61 @@ PHYSICAL_SECTION::ReferenceOrCreateFileSection (
         return STATUS_INVALID_FILE_FOR_SECTION;
     }
 
+    /* Do we need to lock the FCB? */
+    if (NeedLock)
+    {
+        /* Acquire the FCB exclusively */
+        if (!AcquireFileForNtCreateSection(FileObject))
+        {
+            return STATUS_INVALID_FILE_FOR_SECTION;
+        }
+    }
+
+    /* Check if an image section was requested */
     if (AllocationAttributes & SEC_IMAGE)
     {
-        SectionPointer = &SectionObjectPointers->ImageSectionObject;
+        /* Get the image section */
+        PhysicalSection = static_cast<PPHYSICAL_SECTION>(
+                                SectionObjectPointers->ImageSectionObject);
     }
     else
     {
-        SectionPointer = &SectionObjectPointers->DataSectionObject;
+        /* Get the data section */
+        PhysicalSection = static_cast<PPHYSICAL_SECTION>(
+                                SectionObjectPointers->DataSectionObject);
     }
 
-    /* Start looping */
-    for (;;)
+    /* Check if the section exists already */
+    if (PhysicalSection != NULL)
     {
-        /* Get the current value of the pointer and check what we have */
-        PhysicalSection = static_cast<PPHYSICAL_SECTION>(*SectionPointer);
-        if (PhysicalSection == NULL)
+        /* The physical section exists, reference it */
+        PhysicalSection->AddRef();
+        Status = STATUS_SUCCESS;
+    }
+    else
+    {
+        /* Check if an image section was requested */
+        if (AllocationAttributes & SEC_IMAGE)
         {
-            /* There is no section yet and noone is creating it currently.
-               Mark the pointer to express that creation is in progress. */
-            Previous = InterlockedCompareExchangePointer(SectionPointer,
-                                                            NULL,
-                                                            (PVOID)1);
-            if (Previous != NULL)
-            {
-                continue;
-            }
-
-            PhysicalSection = NULL;
-
-            /* Check if we need an image section or data section */
-            if (AllocationAttributes & SEC_IMAGE)
-            {
-                /* Create an image section */
-                Status = PHYSICAL_SECTION::CreateImageFileSection(&PhysicalSection,
-                                                                  FileObject);
-            }
-            else
-            {
-                /* Create a data section */
-            }
-
-            /* Exchange with the newly created section and check for waiters */
-            Previous = InterlockedExchangePointer(SectionPointer, PhysicalSection);
-            WaitBlockPointer = static_cast<PSECTION_WAIT_BLOCK>(ClearPointerMask(Previous, 1));
-
-            /* Loop while we have waiters */
-            while (WaitBlockPointer != NULL)
-            {
-                /* Wake up the waiter */
-                KeSignalGateBoostPriority(&WaitBlockPointer->Gate);
-                WaitBlockPointer = WaitBlockPointer->Next;
-            }
-
-            break;
-        }
-        else if (reinterpret_cast<ULONG_PTR>(PhysicalSection) & 1)
-        {
-            /* Section creation is in progress, enqueue a wait block */
-            WaitBlock.Next = static_cast<PSECTION_WAIT_BLOCK>(ClearPointerMask(PhysicalSection, 1));
-            Previous = InterlockedCompareExchangePointer(SectionPointer,
-                                                            PhysicalSection,
-                                                            SetPointerMask(&WaitBlock, 1));
-            if (Previous == PhysicalSection)
-            {
-                /* Exchange succeeded, wait on the wait block */
-                KeWaitForGate(&WaitBlock.Gate, Executive, KernelMode);
-            }
-        }
-        else if (reinterpret_cast<ULONG_PTR>(PhysicalSection) & 2)
-        {
-            /* There is a section, but it is locked, spin until it get's released */
-            KIRQL OldIrql = KfRaiseIrql(DISPATCH_LEVEL);
-
-            while (reinterpret_cast<ULONG_PTR>(*SectionPointer) & 2)
-                YieldProcessor();
-
-            KeLowerIrql(OldIrql);
+            /* Create an image file section */
+            Status = PHYSICAL_SECTION::CreateImageFileSection(&PhysicalSection,
+                                                              FileObject);
+            SectionObjectPointers->ImageSectionObject = PhysicalSection;
         }
         else
         {
-            /* There is a section. We need to acquire a spinlock to synchronize
-               with section deletion */
-            Previous = InterlockedCompareExchangePointer(SectionPointer,
-                                                            PhysicalSection,
-                                                            SetPointerMask(PhysicalSection, 2));
-            if (Previous == PhysicalSection)
-            {
-                /* Exchange succeeded, reference the section */
-                PhysicalSection->AddRef();
-                InterlockedExchangePointer(SectionPointer, Previous);
-                Status = STATUS_SUCCESS;
-                break;
-            }
+            /* Create a data file section */
+            Status = PHYSICAL_SECTION::CreateDataFileSection(&PhysicalSection,
+                                                             FileObject);
+            SectionObjectPointers->DataSectionObject = PhysicalSection;
         }
+    }
+
+    /* Did we acquire the FCB */
+    if (NeedLock)
+    {
+        /* Release the FCB */
+        ReleaseFileForNtCreateSection(FileObject);
     }
 
     /* Return the result */

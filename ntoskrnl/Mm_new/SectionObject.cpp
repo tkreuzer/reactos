@@ -18,8 +18,36 @@
 
 POBJECT_TYPE MmSectionObjectType;
 
-#define RTL_CONSTANT_STRING2(s)  { sizeof(s)-sizeof((s)[0]), sizeof(s), (PWCHAR)(s) }
+#undef RTL_CONSTANT_STRING
+#define RTL_CONSTANT_STRING(s)  { sizeof(s)-sizeof((s)[0]), sizeof(s), (PWCHAR)(s) }
+
 namespace Mm {
+
+/*! \fn CalculateFileAccess
+ *
+ *  \brief ...
+ *
+ *  \param [in] PageProtection -
+ *
+ *  \return ...
+ */
+ULONG
+CalculateFileAccess (
+    _In_ ULONG PageProtection)
+{
+    switch (PageProtection & 0xFF)
+    {
+        case PAGE_NOACCESS: return FILE_READ_DATA;
+        case PAGE_READONLY: return FILE_READ_DATA;
+        case PAGE_READWRITE: return FILE_READ_DATA | FILE_WRITE_DATA;
+        case PAGE_WRITECOPY: return FILE_READ_DATA;
+        case PAGE_EXECUTE: return FILE_EXECUTE;
+        case PAGE_EXECUTE_READ: return FILE_EXECUTE | FILE_READ_DATA;
+        case PAGE_EXECUTE_READWRITE: return FILE_EXECUTE | FILE_READ_DATA | FILE_WRITE_DATA;
+    }
+
+    return FILE_EXECUTE | FILE_READ_DATA | FILE_WRITE_DATA;
+}
 
 /*! \fn SECTION_OBJECT::InitializeClass
  *
@@ -29,7 +57,7 @@ VOID
 SECTION_OBJECT::InitializeClass (
     VOID)
 {
-    static const UNICODE_STRING ObjectName = RTL_CONSTANT_STRING2(L"Section");
+    static const UNICODE_STRING ObjectName = RTL_CONSTANT_STRING(L"Section");
     static const GENERIC_MAPPING GenericMapping =
     {
         STANDARD_RIGHTS_READ | SECTION_MAP_READ | SECTION_QUERY,
@@ -114,19 +142,6 @@ SECTION_OBJECT::ObCloseProcedure (
     DbgPrint("TODO: SECTION_OBJECT::ObCloseProcedure is UNIMPLEMENTED!\n");
 }
 
-/*! \fn AcquireFileForSectionSynchronization
- *
- *  \brief ...
- *
- *  \param [in] FileObject -
- */
-VOID
-AcquireFileForSectionSynchronization (
-    PFILE_OBJECT FileObject)
-{
-
-}
-
 /*! \fn SECTION_OBJECT::CreateInstance
  *
  *  \brief ...
@@ -149,37 +164,15 @@ _Must_inspect_result_
 NTSTATUS
 SECTION_OBJECT::CreateInstance (
     _Out_ SECTION_OBJECT** OutSectionObject,
+    _In_ PPHYSICAL_SECTION PhysicalSection,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG64 MaximumSize,
     _In_ ULONG SectionPageProtection,
-    _In_ ULONG AllocationAttributes,
-    _In_opt_ PFILE_OBJECT FileObject)
+    _In_ ULONG AllocationAttributes)
 {
     PVOID Object;
     PSECTION_OBJECT SectionObject;
-    PPHYSICAL_SECTION Section;
     NTSTATUS Status;
-
-    /* Check if this is a file backed section */
-    if (FileObject == NULL)
-    {
-        /* No backing file, so create a new page-file backed SECTION */
-        Status = PHYSICAL_SECTION::CreatePageFileSection(&Section,
-                                                         MaximumSize,
-                                                         SectionPageProtection,
-                                                         AllocationAttributes);
-        if (!NT_SUCCESS(Status))
-        {
-            ERR("Failed to create SECTION: 0x%lx\n", Status);
-            return Status;
-        }
-    }
-    else
-    {
-        Status = PHYSICAL_SECTION::ReferenceOrCreateFileSection(&Section,
-                                                                FileObject,
-                                                                AllocationAttributes);
-    }
 
     /* Allocate a section object with the object manager */
     Status = Ob::OBJECT::CreateObject(&Object,
@@ -188,13 +181,12 @@ SECTION_OBJECT::CreateInstance (
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to create a section object: 0x%lx\n", Status);
-        Section->Release();
         return Status;
     }
 
     /* Initialize the object */
     SectionObject = new(Object) SECTION_OBJECT;
-    SectionObject->m_Section = Section;
+    SectionObject->m_Section = PhysicalSection;
     SectionObject->m_SectionSize = MaximumSize;
     SectionObject->m_SectionFlags = 0;
     SectionObject->m_PageProtection = SectionPageProtection;
@@ -315,31 +307,6 @@ MmGetFileNameForSection (
     return STATUS_NOT_IMPLEMENTED;
 }
 
-/*! \fn CalculateFileAccess
- *
- *  \brief ...
- *
- *  \param [in] PageProtection -
- *
- *  \return ...
- */
-ULONG
-CalculateFileAccess (
-    _In_ ULONG PageProtection)
-{
-    switch (PageProtection & 0xFF)
-    {
-        case PAGE_NOACCESS: return FILE_READ_DATA;
-        case PAGE_READONLY: return FILE_READ_DATA;
-        case PAGE_READWRITE: return FILE_READ_DATA | FILE_WRITE_DATA;
-        case PAGE_WRITECOPY: return FILE_READ_DATA;
-        case PAGE_EXECUTE: return FILE_EXECUTE;
-        case PAGE_EXECUTE_READ: return FILE_EXECUTE | FILE_READ_DATA;
-        case PAGE_EXECUTE_READWRITE: return FILE_EXECUTE | FILE_READ_DATA | FILE_WRITE_DATA;
-    }
-
-    return FILE_EXECUTE | FILE_READ_DATA | FILE_WRITE_DATA;
-}
 
 /** Exported API **************************************************************/
 
@@ -378,8 +345,10 @@ MmCreateSection (
     _In_opt_ HANDLE FileHandle,
     _In_opt_ PFILE_OBJECT FileObject)
 {
+    PPHYSICAL_SECTION PhysicalSection;
     SECTION_OBJECT* SectionObject;
     ACCESS_MASK FileAccess;
+    BOOLEAN NeedLock;
     NTSTATUS Status;
 
     /* This is not used here */
@@ -390,16 +359,15 @@ MmCreateSection (
     {
         /* In this case, ignore the file handle */
         FileHandle = NULL;
+
+        /* This path is used by CcInitializeCacheMap that already has the FCB
+           acquired shared, which synchronizes with the path that uses a file
+           handle, and additionally takes an exclusive lock on the shared cache
+           map, which synchronizes with other calls to CcInitializeCacheMap. */
+        NeedLock = FALSE;
     }
     else if (FileHandle != NULL)
     {
-        /* Reference the file handle */
-#if 0
-        Status = FILE_OBJECT::ReferenceByHandle(FileHandle,
-                                                DesiredAccess,
-                                                ExGetPreviousMode(),
-                                                &FileObject);
-#endif
         /* Calculate access mask */
         FileAccess = CalculateFileAccess(SectionPageProtection);
 
@@ -412,28 +380,60 @@ MmCreateSection (
                                            NULL);
         if (!NT_SUCCESS(Status))
         {
-            //ERR();
+            ERR("Failed to reference the file handle: 0x%lx\n", Status);
             return Status;
         }
+
+        /* In this case we need to acquire the FCB */
+        NeedLock = TRUE;
+    }
+
+    /* Check if we have a file object */
+    if (FileObject != NULL)
+    {
+        /* Reference the physical section or create a new one */
+        Status = PHYSICAL_SECTION::ReferenceOrCreateFileSection(&PhysicalSection,
+                                                                FileObject,
+                                                                AllocationAttributes,
+                                                                NeedLock);
+
+        /* Did we use a file handle? */
+        if (FileHandle != NULL)
+        {
+            /* Cleanup the file object reference */
+            ObDereferenceObject(FileObject);
+        }
+    }
+    else
+    {
+        /* No backing file, so create a new page-file backed section */
+        Status = PHYSICAL_SECTION::CreatePageFileSection(&PhysicalSection,
+                                                         MaximumSize->QuadPart,
+                                                         SectionPageProtection,
+                                                         AllocationAttributes);
+    }
+
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to create the physical section: 0x%lx\n", Status);
+        return Status;
     }
 
     /* Create the section object */
     Status = SECTION_OBJECT::CreateInstance(&SectionObject,
+                                            PhysicalSection,
                                             ObjectAttributes,
                                             MaximumSize->QuadPart,
                                             SectionPageProtection,
-                                            AllocationAttributes,
-                                            FileObject);
-
+                                            AllocationAttributes);
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to create the section object: 0x%lx\n", Status);
+        PhysicalSection->Release();
+        return Status;
+    }
 
     *OutSectionObject = static_cast<PVOID>(SectionObject);
-
-    /* Did we take a reference on the file object? */
-    if (FileHandle != NULL)
-    {
-        /* Cleanup the reference */
-        ObDereferenceObject(FileObject);
-    }
 
     return Status;
 }
@@ -442,13 +442,15 @@ MmCreateSection (
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionInformationClass -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionInformation -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] Length -
+ *
+ *  \param [in] ResultLength -
  *
  *  \return ...
  */
@@ -465,8 +467,9 @@ MmQuerySectionInformation (
 
     switch (SectionInformationClass)
     {
-    case SectionBasicInformation:
+        case SectionBasicInformation:
 
+            *ResultLength = sizeof(SECTION_BASIC_INFORMATION);
             if (Length < sizeof(SECTION_BASIC_INFORMATION))
             {
                 return STATUS_INFO_LENGTH_MISMATCH;
@@ -476,8 +479,9 @@ MmQuerySectionInformation (
             Status = STATUS_SUCCESS;
             break;
 
-    case SectionImageInformation:
+        case SectionImageInformation:
 
+            *ResultLength = sizeof(SECTION_IMAGE_INFORMATION);
             if (Length < sizeof(SECTION_IMAGE_INFORMATION))
             {
                 return STATUS_INFO_LENGTH_MISMATCH;
@@ -487,24 +491,18 @@ MmQuerySectionInformation (
             Status = STATUS_SUCCESS;
             break;
 
-    default:
-        return STATUS_INVALID_INFO_CLASS;
+        default:
+            return STATUS_INVALID_INFO_CLASS;
     }
 
     return STATUS_SUCCESS;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmGetImageInformation
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] ImageInformation -
  *
  *  \todo This should probably be a Ps function and use MmQuerySectionInformation
  */

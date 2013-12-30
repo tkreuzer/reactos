@@ -62,11 +62,11 @@ public:
     NTSTATUS
     CreateInstance (
         _Out_ SECTION_OBJECT** OutSection,
+        _In_ class PHYSICAL_SECTION* PhysicalSection,
         _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
         _In_ ULONG64 MaximumSize,
         _In_ ULONG SectionPageProtection,
-        _In_ ULONG AllocationAttributes,
-        _In_opt_ PFILE_OBJECT FileObject);
+        _In_ ULONG AllocationAttributes);
 
     class PHYSICAL_SECTION*
     ReferenceSection (

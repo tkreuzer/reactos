@@ -162,7 +162,8 @@ public:
     ReferenceOrCreateFileSection (
         _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
         _Inout_ PFILE_OBJECT FileObject,
-        _In_ ULONG AllocationAttributes);
+        _In_ ULONG AllocationAttributes,
+        _In_ BOOLEAN NeedLock);
 
     inline
     PVOID
