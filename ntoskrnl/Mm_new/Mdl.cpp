@@ -148,8 +148,7 @@ MmFreePagesFromMdl (
 {
     if (Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA)
     {
-        MmUnmapLockedPages(Mdl->MappedSystemVa,
-                           Mdl);
+        MmUnmapLockedPages(Mdl->MappedSystemVa, Mdl);
     }
     UNIMPLEMENTED;
 }
@@ -167,7 +166,7 @@ NTAPI
 MmBuildMdlForNonPagedPool (
     _Inout_ PMDLX Mdl)
 {
-    PPFN_NUMBER CurrentPfnNumber;
+    PPFN_NUMBER CurrentPfn;
     ULONG_PTR NumberOfPages;
     PVOID BaseAddress;
     PPTE CurrentPte;
@@ -184,9 +183,8 @@ MmBuildMdlForNonPagedPool (
     /* Calculate the size in pages */
     NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Mdl->ByteCount);
 
-    CurrentPfnNumber = MmGetMdlPfnArray(Mdl);
+    CurrentPfn = MmGetMdlPfnArray(Mdl);
     CurrentPte = AddressToPte(Mdl->StartVa);
-    CurrentPde = AddressToPde(Mdl->StartVa);
 
     do
     {
@@ -197,17 +195,18 @@ MmBuildMdlForNonPagedPool (
         if (CurrentPde->IsLargePage())
         {
             /* Get the relative PFN from the large page PDE */
-            *CurrentPfnNumber = CurrentPde->GetPageFrameNumber();
-            *CurrentPfnNumber += CurrentPte - PdeToPte(CurrentPde);
+            *CurrentPfn = CurrentPde->GetPageFrameNumber();
+            *CurrentPfn += CurrentPte - PdeToPte(CurrentPde);
         }
         else
         {
             /* Get the PFN from the PTE */
-            *CurrentPfnNumber = CurrentPte->GetPageFrameNumber();
+            *CurrentPfn = CurrentPte->GetPageFrameNumber();
         }
 
-        /* Next PTE */
+        /* Next PTE and PFN */
         CurrentPte++;
+        CurrentPfn++;
     }
     while (--NumberOfPages > 0);
 
@@ -231,7 +230,7 @@ MmBuildMdlForNonPagedPool (
  */
 PMDL
 NTAPI
-MmCreateMdl(
+MmCreateMdl (
     _Out_writes_bytes_opt_ (sizeof (MDL) + (sizeof (PFN_NUMBER) * ADDRESS_AND_SIZE_TO_SPAN_PAGES (Base, Length)))
         PMDL Mdl,
     _In_reads_bytes_opt_ (Length) PVOID Base,
@@ -332,16 +331,22 @@ MmProbeAndLockPages (
     _In_ KPROCESSOR_MODE AccessMode,
     _In_ LOCK_OPERATION Operation)
 {
-    PPFN_NUMBER CurrentPfnNumber;
+    PPFN_NUMBER CurrentPfn, NextPfnToLock;
+    PFN_COUNT PfnCount;
     PVOID StartVa, EndVa, CurrentVa;
     PADDRESS_SPACE AddressSpace;
     PPTE CurrentPte;
     PPDE CurrentPde;
+    UCHAR AccessFlags;
+    NTSTATUS Status;
 
 //__debugbreak();
+    /// not handled yet
+    if (KeGetCurrentIrql() == DISPATCH_LEVEL) __debugbreak();
 
-    CurrentPfnNumber = MmGetMdlPfnArray(Mdl);
-    *CurrentPfnNumber = MAXULONG_PTR;
+    CurrentPfn = MmGetMdlPfnArray(Mdl);
+    NextPfnToLock = CurrentPfn;
+    *CurrentPfn = MAXULONG_PTR;
     Mdl->Process = NULL;
 
     /* Get start and end of the VA range */
@@ -361,9 +366,9 @@ MmProbeAndLockPages (
     CurrentVa = ALIGN_DOWN_POINTER_BY(StartVa, PAGE_SIZE);
     do
     {
+#if 1
         /* Access the page to make it resident */
         *(volatile CHAR*)CurrentVa;
-        //Status = MmAccessFault(0, CurrentVa, AccessMode, NULL);
 
         /* Check if this is write access */
         if (Operation != IoReadAccess)
@@ -371,7 +376,17 @@ MmProbeAndLockPages (
             /* Do a write as well */
             *(volatile CHAR*)CurrentVa = *(volatile CHAR*)CurrentVa;
         }
-
+#else
+        /// This code is problematic, since it requires checking the PDE and PTE
+        /// without holding the WS lock. possible solution: lock the WS here, too
+        /* Invoke the fault handler to page in the page */
+        Status = MmAccessFault(AccessFlags, CurrentVa, AccessMode, NULL);
+        if (!NT_SUCCESS(Status))
+        {
+            RtlRaiseStatus(Status);
+            // RaiseAccessViolation(CurrentVa, Operation);
+        }
+#endif
         /* Go to the next page */
         CurrentVa = AddToPointer(CurrentVa, PAGE_SIZE);
     }
@@ -380,8 +395,11 @@ MmProbeAndLockPages (
     /* Get the address space */
     AddressSpace = GetAddressSpaceForAddress(StartVa);
 
+    /* Calculate the access flags based on the operation type */
+    AccessFlags = (Operation != IoReadAccess) ? PFEC_WRITE : 0;
+
     /* Lock the working set */
-    AddressSpace->AcquireWorkingSetLock();
+    AddressSpace->AcquireWorkingSetLock(); /// hmm, we might be at DISPATCH_LEVEL, ...
 
     /* Loop again. This time we can't throw an exception, since we check
        if the PTE is valid before accessing anything */
@@ -389,17 +407,14 @@ MmProbeAndLockPages (
     CurrentPte = AddressToPte(CurrentVa);
     do
     {
-        /* Get the PDE */
-        CurrentPde = AddressToPde(CurrentVa);
-
         /* Check if this is a large page PDE */
-        /// FIXME: not safe
+        CurrentPde = AddressToPde(CurrentVa);
         if (CurrentPde->IsValid() && CurrentPde->IsLargePage())
         {
 
             ULONG_PTR RelativePage = CurrentPte - PdeToPte(CurrentPde);
 
-            *CurrentPfnNumber = CurrentPde->GetPageFrameNumber() + RelativePage;
+            *CurrentPfn = CurrentPde->GetPageFrameNumber() + RelativePage;
         }
         else
         {
@@ -407,21 +422,25 @@ MmProbeAndLockPages (
             while (!MmIsAddressValid(CurrentVa) ||
                    ((Operation != IoReadAccess) && !CurrentPte->IsWritable()))
             {
-                UCHAR AccessFlags;
-                NTSTATUS Status;
+                /// Lock all pages we gathered so far, while holding the
+                /// LockPagesMutex
+                PfnCount = CurrentPfn - NextPfnToLock;
+                PFN_DATABASE::LockMultiplePages(NextPfnToLock, PfnCount);
+                NextPfnToLock = CurrentPfn;
 
                 /* Unlock the working set */
                 AddressSpace->ReleaseWorkingSetLock();
 
-                AccessFlags = (Operation != IoReadAccess) ? PFEC_WRITE : 0;
+                /* Invoke the fault handler to page in the page */
                 Status = MmAccessFault(AccessFlags, CurrentVa, AccessMode, NULL);
                 if (!NT_SUCCESS(Status))
                 {
                     NT_ASSERT(FALSE); /// Do we need to do anything else with the MDL?
 
-                    /* Mark The end of the PFN array */
-                    *CurrentPfnNumber = MAXULONG_PTR;
+                    /* Mark the end of the PFN array */
+                    *CurrentPfn = MAXULONG_PTR;
 
+                    /* Unlock the pages processed so far and raise status */
                     MmUnlockPages(Mdl);
                     RtlRaiseStatus(Status);
                 }
@@ -430,17 +449,20 @@ MmProbeAndLockPages (
                 AddressSpace->AcquireWorkingSetLock();
             }
 
-            /* Get the page frame number from the PTE and lock it */
-            *CurrentPfnNumber = CurrentPte->GetPageFrameNumber();
-            g_PfnDatabase.LockPage(*CurrentPfnNumber);
+            /* Page is resident, get the page frame number from the PTE */
+            *CurrentPfn = CurrentPte->GetPageFrameNumber();
         }
 
         /* Go to the next page */
         CurrentVa = AddToPointer(CurrentVa, PAGE_SIZE);
         CurrentPte++;
-        CurrentPfnNumber++;
+        CurrentPfn++;
     }
     while (CurrentVa < EndVa);
+
+    /* Lock all remaining PFNs */
+    PfnCount = CurrentPfn - NextPfnToLock;
+    PFN_DATABASE::LockMultiplePages(NextPfnToLock, PfnCount);
 
     /* Unlock the working set */
     AddressSpace->ReleaseWorkingSetLock();
@@ -455,7 +477,7 @@ MmProbeAndLockPages (
         Mdl->MdlFlags &= ~(MDL_WRITE_OPERATION);
     }
 
-    if (StartVa <= MmHighestUserAddress)
+    if (StartVa < MmHighestUserAddress)
     {
         Mdl->Process = PsGetCurrentProcess();
     }
@@ -516,6 +538,8 @@ MmUnlockPages (
     /* Check if the MDL has a process */
     if (Mdl->Process != NULL)
     {
+        __debugbreak(); /// this won't work with the furure address space concept!
+        /// we probably only need to hold the LockPagesMutex anyway
         /* Use the related process address space */
         AddressSpace = GetProcessAddressSpace(Mdl->Process);
     }
@@ -533,6 +557,12 @@ MmUnlockPages (
     PageFrameNumber = MmGetMdlPfnArray(Mdl);
     do
     {
+        /* Check if the array was terminated */
+        if (*PageFrameNumber == MAXULONG_PTR)
+        {
+            break;
+        }
+
         /* Unlock this page */
         g_PfnDatabase.UnlockPage(*PageFrameNumber);
         PageFrameNumber++;
