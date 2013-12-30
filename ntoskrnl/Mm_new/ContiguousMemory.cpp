@@ -289,25 +289,29 @@ NTAPI
 MmFreeContiguousMemory (
     _In_ PVOID BaseAddress)
 {
-#if 0
-    NON_PAGED_KERNEL_VAD* Vad;
-    NTSTATUS Status;
-    PMDL Mdl;
+    PHYSICAL_ADDRESS PhysicalAddress;
+    PFN_NUMBER BasePageFrameNumber;
 
-    Vad = g_KernelAddressSpace.VadTable.FindVadByAddress(BaseAddress);
-    NT_ASSERT(Vad != NULL);
+    /* Get the PFN of the first mapped page */
+    PhysicalAddress = MmGetPhysicalAddress(BaseAddress);
+    BasePageFrameNumber = (PFN_NUMBER)(PhysicalAddress.QuadPart >> PAGE_SHIFT);
+    NT_ASSERT(BasePageFrameNumber != 0);
 
-    Status = g_KernelAddressSpace.VadTable.RemoveVad(Vad);
-    NT_ASSERT(NT_SUCCESS(Status));
+    //UnmapPages
 
-    Mdl = Vad->GetMdl();
-    NT_ASSERT(Mdl != NULL);
+    /* Release the contiguous physical pages */
+    g_PfnDatabase.FreeContiguousPages(BasePageFrameNumber);
 
-    g_PfnDatabase.FreeContiguousPages(Mdl);
+    if (KeGetCurrentIrql() >= DISPATCH_LEVEL)
+    {
+        /// \todo queue a workitem to release the mapping
+        NT_ASSERT(FALSE);
+    }
+    else
+    {
+        ReleaseSystemMappingRange(BaseAddress);
+    }
 
-    Vad->Release();
-#endif
-    UNIMPLEMENTED_DBGBREAK;
 }
 
 /*! \fn MmFreeContiguousMemorySpecifyCache

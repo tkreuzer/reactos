@@ -167,11 +167,13 @@ enum MM_PROTECT
     MM_WRITECOPY          = 5,
     MM_EXECUTE_READWRITE  = 6,
     MM_EXECUTE_WRITECOPY  = 7,
+    MM_BASE_PROTECTION    = 7,
 
     /* Flags */
     MM_UNCACHED           = 0x08,
     MM_GUARDPAGE          = 0x10,
     MM_WRITECOMBINE       = 0x18,
+    MM_CACHE_ATTRIBUTE    = 0x18,
 
     /* Special cases */
     MM_DECOMMIT           = MM_GUARDPAGE | MM_INVALID,
