@@ -15,154 +15,12 @@
 #include "PfnDatabase.hpp"
 #include "CommitCharge.hpp"
 #include "AddressSpace.hpp"
+#include "VadObject.hpp"
+#include "Utilities.hpp"
 #include _ARCH_RELATIVE_(PageTables.hpp)
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
 
-static const
-USHORT ProtectToWin32Protect[32] =
-{
-    PAGE_NOACCESS, // MM_INVALID
-    PAGE_READONLY, // MM_READONLY
-    PAGE_EXECUTE_READ, // MM_EXECUTE
-    PAGE_EXECUTE_READ, // MM_EXECUTE_READ
-    PAGE_READWRITE, // MM_READWRITE
-    PAGE_WRITECOPY, // MM_WRITECOPY
-    PAGE_EXECUTE_READWRITE, // MM_EXECUTE_READWRITE
-    PAGE_EXECUTE_WRITECOPY, // MM_EXECUTE_WRITECOPY
-
-    PAGE_NOACCESS, // MM_UNCACHED | MM_INVALID
-    PAGE_NOCACHE | PAGE_READONLY, // MM_UNCACHED | MM_READONLY
-    PAGE_NOCACHE | PAGE_EXECUTE_READ, // MM_UNCACHED | MM_EXECUTE
-    PAGE_NOCACHE | PAGE_EXECUTE_READ, // MM_UNCACHED | MM_EXECUTE_READ
-    PAGE_NOCACHE | PAGE_READWRITE, // MM_UNCACHED | MM_READWRITE
-    PAGE_NOCACHE | PAGE_WRITECOPY, // MM_UNCACHED | MM_WRITECOPY
-    PAGE_NOCACHE | PAGE_EXECUTE_READWRITE, // MM_UNCACHED | MM_EXECUTE_READWRITE
-    PAGE_NOCACHE | PAGE_EXECUTE_WRITECOPY, // MM_UNCACHED | MM_EXECUTE_WRITECOPY
-
-    PAGE_NOACCESS, // MM_GUARDPAGE | MM_INVALID
-    PAGE_GUARD | PAGE_READONLY, // MM_GUARDPAGE | MM_READONLY
-    PAGE_GUARD | PAGE_EXECUTE_READ, // MM_GUARDPAGE | MM_EXECUTE
-    PAGE_GUARD | PAGE_EXECUTE_READ, // MM_GUARDPAGE | MM_EXECUTE_READ
-    PAGE_GUARD | PAGE_READWRITE, // MM_GUARDPAGE | MM_READWRITE
-    PAGE_GUARD | PAGE_WRITECOPY, // MM_GUARDPAGE | MM_WRITECOPY
-    PAGE_GUARD | PAGE_EXECUTE_READWRITE, // MM_GUARDPAGE | MM_EXECUTE_READWRITE
-    PAGE_GUARD | PAGE_EXECUTE_WRITECOPY, // MM_GUARDPAGE | MM_EXECUTE_WRITECOPY
-
-    PAGE_NOACCESS, // MM_WRITECOMBINE | MM_INVALID
-    PAGE_WRITECOMBINE | PAGE_READONLY, // MM_WRITECOMBINE | MM_READONLY
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_READ, // MM_WRITECOMBINE | MM_EXECUTE
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_READ, // MM_WRITECOMBINE | MM_EXECUTE_READ
-    PAGE_WRITECOMBINE | PAGE_READWRITE, // MM_WRITECOMBINE | MM_READWRITE
-    PAGE_WRITECOMBINE | PAGE_WRITECOPY, // MM_WRITECOMBINE | MM_WRITECOPY
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_READWRITE, // MM_WRITECOMBINE | MM_EXECUTE_READWRITE
-    PAGE_WRITECOMBINE | PAGE_EXECUTE_WRITECOPY, // MM_WRITECOMBINE | MM_EXECUTE_WRITECOPY
-};
-
-/// HACK HACK HACK HACK
-VOID
-KeFlushMultipleTb (
-    _In_ PVOID* AddressArray,
-    _In_ ULONG AddressCount)
-{
-    while (AddressCount--)
-    {
-        __invlpg(AddressArray[AddressCount]);
-    }
-}
-
-VOID
-KeFlushRangeTb (
-    _In_ PVOID BaseAddress,
-    _In_ ULONG_PTR NumberOfPages)
-{
-    while (NumberOfPages--)
-    {
-        __invlpg(BaseAddress);
-        BaseAddress = AddToPointer(BaseAddress, PAGE_SIZE);
-    }
-}
-
-VOID
-KeFlushProcessTb ()
-{
-    __writecr3(__readcr3());
-}
-
-
 namespace Mm {
-
-/*! \fn ConvertProtect
- *
- *  \brief ...
- *
- *  \param [in] Win32Protect -
- *
- *  \return ...
- */
-ULONG
-ConvertProtect (
-    _In_ ULONG Win32Protect)
-{
-    ULONG Protect = MM_INVALID;
-
-    if (Win32Protect & PAGE_IS_WRITECOPY)
-        Protect = MM_WRITECOPY;
-    else if (Win32Protect & PAGE_IS_WRITABLE)
-        Protect = MM_READWRITE;
-    else if (Win32Protect & PAGE_IS_READABLE)
-        Protect = MM_READONLY;
-
-    if (Win32Protect & PAGE_IS_EXECUTABLE)
-        Protect |= MM_EXECUTE;
-
-    if (Win32Protect & PAGE_WRITECOMBINE)
-        Protect |= MM_WRITECOMBINE;
-    else if (Win32Protect & PAGE_NOCACHE)
-        Protect |= MM_UNCACHED;
-
-    return Protect;
-}
-
-/*! \fn ConvertProtectAndCaching
- *
- *  \brief ...
- *
- *  \param [in] Win32Protect -
- *
- *  \param [in] CachingType -
- *
- *  \return ...
- */
-ULONG
-ConvertProtectAndCaching (
-    _In_ ULONG Win32Protect,
-    _In_ MEMORY_CACHING_TYPE CachingType)
-{
-    /* Set caching type */
-    Win32Protect &= ~(PAGE_NOCACHE | PAGE_WRITECOMBINE);
-    if ((CachingType == MmNonCached) || (CachingType == MmNonCachedUnordered))
-        Win32Protect |= PAGE_NOCACHE;
-    else if (CachingType == MmWriteCombined)
-        Win32Protect |= PAGE_WRITECOMBINE;
-
-    return ConvertProtect(Win32Protect);
-}
-
-/*! \fn ConvertProtectToWin32
- *
- *  \brief ...
- *
- *  \param [in] Protect -
- *
- *  \return ...
- */
-ULONG
-ConvertProtectToWin32 (
-    _In_ ULONG Protect)
-{
-    /* Convert it to the win32 format */
-    return ProtectToWin32Protect[Protect & MM_PROTECTION_MASK];
-}
 
 /*! \fn CalculateMaximumNumberOfPageTables
  *
@@ -449,7 +307,7 @@ AllocatePageTables (
     return ActualCharge;
 }
 
-/*! \fn PrepareSystemPtes
+/*! \fn PrepareSystemMappingRange
  *
  *  \brief ...
  *
@@ -471,7 +329,6 @@ AllocatePageTables (
  *        exclusively owned by the calling thread and all PTEs must be empty.
  *      - Since all mapped page tables have a valid-count > 0, they can not be
  *        paged out
-
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
@@ -502,6 +359,7 @@ PrepareSystemMappingRange (
 
     /* Lock the kernel address space */
     /// \todo use systemlock queued spinlock?
+    // g_AddressSpaces[SystemMappingSpace].AcquireWorkingsetLock();
 
     /* Allocate the page tables for the mapping */
     PagesUsed = AllocatePageTables(StartingVpn, EndingVpn, &PageList, Protect);
@@ -514,8 +372,7 @@ PrepareSystemMappingRange (
     if (CurrentPde == LastPde)
     {
         /* Simply add all pages to the count of valid PTEs */
-        PageCount = EndingVpn + 1 - StartingVpn;
-        g_PfnDatabase.ModifyEntryCount(CurrentPde->GetPageFrameNumber(), PageCount);
+        g_PfnDatabase.ModifyEntryCount(CurrentPde->GetPageFrameNumber(), NumberOfPages);
     }
     else
     {
@@ -530,7 +387,7 @@ PrepareSystemMappingRange (
             g_PfnDatabase.ModifyEntryCount(CurrentPde->GetPageFrameNumber(), PTE_PER_PAGE);
         }
 
-        /* Finally update the count for the last PTE */
+        /* Finally update the count for the last PT */
         PageCount = VpnToPte(EndingVpn + 1) - PdeToPte(CurrentPde);;
         g_PfnDatabase.ModifyEntryCount(CurrentPde->GetPageFrameNumber(), PageCount);
     }
@@ -561,7 +418,7 @@ ReserveSystemMappingRange (
         return NULL;
     }
 
-    /* Prepare the system PTEs */
+    /* Prepare the mapping PTEs */
     Status = PrepareSystemMappingRange(AddressToVpn(BaseAddress),
                                        NumberOfPages,
                                        MM_EXECUTE_READWRITE);
@@ -577,10 +434,24 @@ ReserveSystemMappingRange (
 }
 
 VOID
+CleanupSystemMappingRange (
+    _In_ PVOID BaseAddress)
+{
+
+}
+
+VOID
 ReleaseSystemMappingRange (
     _In_ PVOID BaseAddress)
 {
-    UNIMPLEMENTED_DBGBREAK;
+    VAD_OBJECT* Vad;
+    ULONG_PTR EndingVpn;
+
+    Vad = g_KernelAddressSpace.ReferenceVadObjectByAddress(BaseAddress, FALSE);
+    NT_ASSERT(Vad != NULL);
+
+    EndingVpn = Vad->GetEndingVpn();
+
 }
 
 BOOLEAN
@@ -589,7 +460,7 @@ CheckReservedMapping (
     _In_ ULONG Tag,
     _In_ ULONG_PTR NumberOfPages)
 {
-    /// Bugcheck when something's wrong!
+    /// Check if the tag is correct and the mapping is large enough
     UNIMPLEMENTED;
     return TRUE;
 }
@@ -617,25 +488,30 @@ MapPhysicalMemory (
     _In_ PFN_NUMBER BasePageFrameNumber)
 {
     PFN_NUMBER PageFrameNumber;
+    ULONG CurrentProtect;
     PTE TemplatePte;
     PPTE CurrentPte;
+
+    /// FIXME: we need to hold the PhysicalMemoryMutex (Spinlock)
 
     NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
     NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
 
-    /* Prepare a template PTE */
-    TemplatePte.MakeValidPte(0, Protect);
-
     /* Start with the first PFN */
     PageFrameNumber = BasePageFrameNumber;
 
-    /* Loop all reserved PTEs */
+    /* Loop all PTEs */
     CurrentPte = VpnToPte(StartingVpn);
     do
     {
         /* Make sure the PTE is empty */
         NT_ASSERT(CurrentPte->IsEmpty());
-        TemplatePte.SetPageFrameNumber(PageFrameNumber);
+
+        /* Update the caching */
+        CurrentProtect = g_PfnDatabase.UpdateCaching(PageFrameNumber, Protect);
+
+        /* Map the page */
+        TemplatePte.MakeValidPte(PageFrameNumber, CurrentProtect);
         CurrentPte->WriteValidPte(TemplatePte);
 
         /* Next PTE and next PFN */
@@ -669,12 +545,10 @@ MapPfnArray (
 {
     PTE TemplatePte;
     PPTE CurrentPte;
+    ULONG CurrentProtect;
 
     NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
     NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
-
-    /* Prepare a template PTE */
-    TemplatePte.MakeValidPte(0, Protect);
 
     /* Loop all reserved PTEs */
     CurrentPte = VpnToPte(StartingVpn);
@@ -682,7 +556,12 @@ MapPfnArray (
     {
         /* Make sure the PTE is empty */
         NT_ASSERT(CurrentPte->IsEmpty());
-        TemplatePte.SetPageFrameNumber(*PfnArray);
+
+        /* Update the caching */
+        CurrentProtect = g_PfnDatabase.UpdateCaching(*PfnArray, Protect);
+
+        /* Map the page */
+        TemplatePte.MakeValidPte(*PfnArray, CurrentProtect);
         CurrentPte->WriteValidPte(TemplatePte);
 
         /* Next PTE and next PFN array element */
@@ -744,9 +623,14 @@ MapNonPagedMemory (
         /* Make sure the PTE is empty */
         NT_ASSERT(CurrentPte->IsEmpty());
 
-        /* Remove a page from the list and map it */
+        /* Remove a page from the list */
         PageFrameNumber = PfnList.RemovePage();
         NT_ASSERT(PageFrameNumber != 0);
+
+        /* Make it into a private PFN */
+        //g_PfnDatabase.MakePrivatePfn(PageFrameNumber, Protect);
+
+        /* Map the page */
         TemplatePte.SetPageFrameNumber(PageFrameNumber);
         CurrentPte->WriteValidPte(TemplatePte);
 
@@ -1092,7 +976,7 @@ UnmapPages (
                 NumberOfInvalidatedPtes++;
             }
 
-            *(ULONG64*)CurrentPte = 0; /// FIXME
+            CurrentPte->Erase();
             NumberOfDeletedPtes++;
         }
 
@@ -1107,10 +991,11 @@ UnmapPages (
             g_PfnDatabase.ModifyValidCount(PfnOfPt, -NumberOfInvalidatedPtes);
             if (g_PfnDatabase.ModifyUsedCount(PfnOfPt, -NumberOfDeletedPtes) == 0)
             {
-                /// FIXME: unmap the üage table
+                /// FIXME: unmap the page table
                 __debugbreak();
             }
 
+            NumberOfInvalidatedPtes = 0;
             NumberOfDeletedPtes = 0;
             CurrentPde++;
         }
@@ -1242,6 +1127,15 @@ MmFreeMappingAddress (
     _In_ PVOID BaseAddress,
     _In_ ULONG Tag)
 {
+    /* Check if the reserved mapping is ok */
+    if (!CheckReservedMapping(BaseAddress, Tag, 1))
+    {
+        ERR("Invalid mapping address: %p\n", BaseAddress);
+        NT_ASSERT(FALSE);
+        KeBugCheck(0);
+        return;
+    }
+
     ReleaseSystemMappingRange(BaseAddress);
 }
 
@@ -1526,6 +1420,20 @@ MmUnmapReservedMapping (
     _In_ ULONG PoolTag,
     _Inout_ PMDLX Mdl)
 {
+    ULONG_PTR NumberOfPages;
+
+    /* Calculate the size in pages */
+    NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(BaseAddress, Mdl->ByteCount);
+
+    /* Check if the reserved mapping is ok */
+    if (!CheckReservedMapping(BaseAddress, PoolTag, NumberOfPages))
+    {
+        ERR("Invalid mapping address: %p\n", BaseAddress);
+        NT_ASSERT(FALSE);
+        KeBugCheck(0);
+        return;
+    }
+
     UNIMPLEMENTED_DBGBREAK;
 }
 
