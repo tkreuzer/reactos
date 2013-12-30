@@ -14,23 +14,11 @@
 #pragma once
 
 #include "ntosbase.h"
+#include "Utilities.hpp"
 
 namespace Mm {
 
 class PTE;
-
-ULONG
-ConvertProtect (
-    _In_ ULONG Win32Protect);
-
-ULONG
-ConvertProtectAndCaching (
-    _In_ ULONG Win32Protect,
-    _In_ MEMORY_CACHING_TYPE CachingType);
-
-ULONG
-ConvertProtectToWin32 (
-    _In_ ULONG Protect);
 
 NTSTATUS
 MapVirtualMemory (
