@@ -27,51 +27,6 @@ CcGetLsnForFileObject (
     return Result;
 }
 
-
-VOID
-NTAPI
-CcInitializeCacheMap (
-    _In_ PFILE_OBJECT FileObject,
-    _In_ PCC_FILE_SIZES FileSizes,
-    _In_ BOOLEAN PinAccess,
-    _In_ PCACHE_MANAGER_CALLBACKS Callbacks,
-    _In_ PVOID LazyWriteContext)
-{
-    // get section object pointers
-    // check if it has a shared cache map
-
-    UNIMPLEMENTED;
-}
-
-BOOLEAN
-NTAPI
-CcUninitializeCacheMap (
-    _In_ PFILE_OBJECT FileObject,
-    _In_opt_ PLARGE_INTEGER TruncateSize,
-    _In_opt_ PCACHE_UNINITIALIZE_EVENT UninitializeCompleteEvent)
-{
-    // call CcPurgeCacheSection to purge any cached data that is no longer part of the file.
-    // Enqueue the Event in the SharedCacheMap
-    UNIMPLEMENTED;
-    return FALSE;
-}
-
-
-
-VOID
-NTAPI
-CcSetFileSizes (
-    _In_ PFILE_OBJECT FileObject,
-    _In_ PCC_FILE_SIZES FileSizes)
-{
-    //LARGE_INTEGER AllocationSize;
-    //LARGE_INTEGER FileSize;
-    //LARGE_INTEGER ValidDataLength;
-
-    UNIMPLEMENTED;
-}
-
-
 VOID
 NTAPI
 CcSetDirtyPageThreshold (
@@ -89,8 +44,7 @@ CcSetDirtyPageThreshold (
     /* If we have a shared cache map, set the value */
     if (SharedCacheMap != NULL)
     {
-        // SharedCacheMap->SetDirtyPageThreshold(DirtyPageThreshold);
-        SharedCacheMap->DirtyPageThreshold = DirtyPageThreshold;
+        SharedCacheMap->SetDirtyPageThreshold(DirtyPageThreshold);
     }
 
     /* Get the FCB header */
