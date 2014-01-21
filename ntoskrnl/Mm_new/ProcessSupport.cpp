@@ -493,8 +493,10 @@ MmInitializeProcessAddressSpace (
     //USHORT Length = 0;
     PVOID SharedUserPage = (PVOID)MM_SHARED_USER_DATA_VA;
 
+#ifdef __linux__
     /* We should have an initialized SwitchBlock */
     ASSERT(Process->Pcb.DirectoryTableBase[0] == (ULONG)&Process->Pcb.DirectoryTableBase[0]);
+#endif
 
     /* Attach to the process */
     KeAttachProcess(&Process->Pcb);
