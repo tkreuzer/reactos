@@ -111,7 +111,7 @@ IsFreeMemory (
  */
 PFN_NUMBER
 INIT_FUNCTION
-EarlyAllocPage (
+PFN_DATABASE::EarlyAllocPage (
     VOID)
 {
     /* Sanity check, that there is a page available */
@@ -140,7 +140,7 @@ EarlyAllocPage (
  */
 PFN_NUMBER
 INIT_FUNCTION
-EarlyAllocLargePage (
+PFN_DATABASE::EarlyAllocLargePage (
     VOID)
 {
     /* Sanity check, that there is a page available */
@@ -176,7 +176,7 @@ EarlyAllocLargePage (
  */
 VOID
 INIT_FUNCTION
-EarlyMapPages (
+PFN_DATABASE::EarlyMapPages (
     _In_ PVOID StartAddress,
     _In_ PVOID EndAddress,
     _In_ ULONG Protect)
@@ -341,6 +341,7 @@ ScanMemoryDescriptors (
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
     /* Allocate large pages at the upper range of the descriptor */
     EarlyAllocLargePageBase = EarlyAllocPageBase + EarlyAllocPageCount;
+    EarlyAllocPageCount -= (EarlyAllocLargePageBase & LARGE_PAGE_MASK);
     EarlyAllocLargePageBase &= LARGE_PAGE_MASK;
 #endif
 }
@@ -584,17 +585,23 @@ PFN_DATABASE::InitializePageTablePfn (
     /* Get the PFN entry for this page */
     PfnEntry = &m_PfnArray[PageFrameNumber];
 
-    /* This must not be free memory! */
-    NT_ASSERT(PfnEntry->State != PfnFree);
+    /* Make sure it is a valid kind of memory! */
+    NT_ASSERT((PfnEntry->State == PfnPageTable) ||
+              (PfnEntry->State == PfnRom) ||
+              (PfnEntry->State == PfnFirmware) ||
+              (PfnEntry->State == PfnContiguous) ||
+              (PfnEntry->State == PfnKernelReserved));
 
     /* Setup the PFN entry */
     PfnEntry->CacheAttribute = PfnCached;
     PfnEntry->PteAddress = AddressToPte(MappedAddress);
+    PfnEntry->ReferenceCount++;
 
     /* Is this a page table? */
     if (PageTableLevel > 0)
     {
         /// \todo Check if we can set this based on loader block descriptors
+        NT_ASSERT(PfnEntry->State == PfnKernelReserved);
         PfnEntry->State = PfnPageTable;
         PfnEntry->PageTable.UsedPteCount = 0;
         PfnEntry->PageTable.ValidPteCount = 0;
@@ -738,8 +745,10 @@ PFN_DATABASE::InitializePfnEntriesFromPageTables (
                 {
                     for (l = 0; l < PTE_PER_PAGE; l++)
                     {
+                        m_PfnArray[PfnForPde + l].State = PfnContiguous;
                         m_PfnArray[PfnForPde + l].CacheAttribute = PfnCached;
                         m_PfnArray[PfnForPde + l].PteAddress = PdePointer;
+                        m_PfnArray[PfnForPde + l].ReferenceCount = 1;
                     }
 
                     ModifyEntryCount(PfnForPpe, 1);
@@ -985,7 +994,6 @@ VOID
 ZeroPage (
     _In_ PFN_NUMBER PageFrameNumber)
 {
-    const ULONG Protect = MM_MAPPED | MM_GLOBAL | MM_READWRITE;
     PPTE MappingPte;
     KIRQL OldIrql;
 
@@ -997,9 +1005,9 @@ ZeroPage (
     NT_ASSERT(MappingPte->IsValid() == FALSE);
 
     /* Map the PFN */
-    MappingPte->MakeValidPte(PageFrameNumber, Protect);
+    MappingPte->MakeValidPte(PageFrameNumber, MM_READWRITE);
 
-    /* zero the page */
+    /* Zero the page */
     RtlFillMemoryUlongPtr(PteToAddress(MappingPte), PAGE_SIZE, 0);
 
     /* Unmap the page */
@@ -1097,6 +1105,14 @@ PFN_DATABASE::MakeLargePagePfn (
     _In_ PVOID PteAddress,
     _In_ ULONG Protect)
 {
+    //PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
+
+    NT_ASSERT((PageFrameNumber & ~LARGE_PAGE_MASK) == 0);
+    if (PageFrameNumber == 0xb800)
+    {
+        __debugbreak();
+        DbgPrint("\n");
+    }
     //UNIMPLEMENTED;
 }
 
@@ -1326,17 +1342,19 @@ PFN_DATABASE::AllocatePage (
 {
     PFN_NUMBER PageFrameNumber;
     PEPROCESS Process;
-    ULONG PageColor;
+    ULONG PageColor, NextPageColor;
     BOOLEAN WasZeroed;
     KIRQL OldIrql;
 
     /* Get the current process and the next page color */
     Process = PsGetCurrentProcess();
     PageColor = Process->NextPageColor;
-    Process->NextPageColor = static_cast<USHORT>(GetNextPageColor(PageColor));
+    NextPageColor = GetNextPageColor(PageColor);
 
     /* Acquire the PFN database lock */
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+    Process->NextPageColor = static_cast<USHORT>(NextPageColor);
 
     /* Allocate a page from the appropriate list */
     WasZeroed = Zeroed;

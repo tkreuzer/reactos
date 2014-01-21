@@ -69,7 +69,22 @@ static_assert(ProtectToCacheAttribute(MM_READONLY) == PfnCached, "");
 static_assert(ProtectToCacheAttribute(MM_UNCACHED) == PfnNonCached, "");
 static_assert(ProtectToCacheAttribute(MM_WRITECOMBINE) == PfnWriteCombined, "");
 
+/*
 
+                Free    Alloc   P'Tbl   Private Shared
+--------------------------------------------------------------------------------
+Flink           +       +       +       +       +
+Blink           ?               -
+ReferenceCount  -       -       +
+ShareCount      -               ?       -       +
+LockCount       -       -       +       +       +
+PteAddress      -               +       +       +
+UsedPteCount    -       -       +       -       -
+ValidPteCount   -       -       +       -       -
+ProcessId       -               ?
+
+
+ */
 typedef struct PFN_ENTRY
 {
     ULONG_PTR Flink;
@@ -87,7 +102,8 @@ typedef struct PFN_ENTRY
 #endif
         ULONG Zeroed : 1;
         ULONG Dirty : 1;
-        ULONG ReferenceCount : 24;
+        ULONG IsPageable : 1;
+        ULONG ReferenceCount : 23;
     };
 
     union
@@ -196,7 +212,28 @@ class PFN_DATABASE
     static PULONG_PTR m_PhysicalBitmapBuffer;
 
     static
+    PFN_NUMBER
+    INIT_FUNCTION
+    EarlyAllocPage (
+        VOID);
+
+    static
+    PFN_NUMBER
+    INIT_FUNCTION
+    EarlyAllocLargePage (
+        VOID);
+
+    static
     VOID
+    INIT_FUNCTION
+    EarlyMapPages (
+        _In_ PVOID StartAddress,
+        _In_ PVOID EndAddress,
+        _In_ ULONG Protect);
+
+    static
+    VOID
+    INIT_FUNCTION
     InitializePfnEntries (
         _In_ PFN_NUMBER BasePage,
         _In_ PFN_NUMBER PageCount,
@@ -204,6 +241,7 @@ class PFN_DATABASE
 
     static
     VOID
+    INIT_FUNCTION
     InitializePageTablePfn (
         _In_ PFN_NUMBER PageFrameNumber,
         _In_ PFN_NUMBER ParendDirectoryPfn,
@@ -212,6 +250,7 @@ class PFN_DATABASE
 
     static
     VOID
+    INIT_FUNCTION
     InitializePfnEntriesFromPageTables (
         VOID);
 
