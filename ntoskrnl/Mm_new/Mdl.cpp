@@ -320,6 +320,9 @@ MmProbeAndLockProcessPages (
  *  \param [in] AccessMode -
  *
  *  \param [in] Operation -
+ *
+ *  \todo Check how Windows behaves when accessing pageable or not mapped memory
+ *      while at DISPATCH_LEVEL.
  */
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _At_(Mdl->StartVa + Mdl->ByteOffset,
@@ -338,16 +341,10 @@ MmProbeAndLockPages (
     PPTE CurrentPte;
     PPDE CurrentPde;
     UCHAR AccessFlags;
+    KIRQL CurrentIrql;
     NTSTATUS Status;
 
-//__debugbreak();
-    /// not handled yet
-    if (KeGetCurrentIrql() == DISPATCH_LEVEL) __debugbreak();
-
-    CurrentPfn = MmGetMdlPfnArray(Mdl);
-    NextPfnToLock = CurrentPfn;
-    *CurrentPfn = MAXULONG_PTR;
-    Mdl->Process = NULL;
+    /// \todo charge system commit
 
     /* Get start and end of the VA range */
     StartVa = AddToPointer(Mdl->StartVa, Mdl->ByteOffset);
@@ -361,6 +358,21 @@ MmProbeAndLockPages (
         /* This is not allowed, raise access violation */
         RtlRaiseStatus(STATUS_ACCESS_VIOLATION);
     }
+
+    /* Check for user mode addresses */
+    if (StartVa < MmHighestUserAddress)
+    {
+        /* Set the MDL process */
+        Mdl->Process = PsGetCurrentProcess();
+    }
+    else
+    {
+        /* Set MDL process to NULL */
+        Mdl->Process = NULL;
+    }
+
+    /* Calculate the access flags based on the operation type */
+    AccessFlags = (Operation != IoReadAccess) ? PFEC_WRITE : 0;
 
     /* First loop to make the pages resident */
     CurrentVa = ALIGN_DOWN_POINTER_BY(StartVa, PAGE_SIZE);
@@ -392,38 +404,55 @@ MmProbeAndLockPages (
     }
     while (CurrentVa < EndVa);
 
-    /* Get the address space */
-    AddressSpace = GetAddressSpaceForAddress(StartVa);
+    CurrentPfn = MmGetMdlPfnArray(Mdl);
+    NextPfnToLock = CurrentPfn;
+    *CurrentPfn = MAXULONG_PTR;
 
-    /* Calculate the access flags based on the operation type */
-    AccessFlags = (Operation != IoReadAccess) ? PFEC_WRITE : 0;
+    /* Check if we are below DISPATCH_LEVEL */
+    CurrentIrql = KeGetCurrentIrql();
+    NT_ASSERT(CurrentIrql <= DISPATCH_LEVEL);
+    if (CurrentIrql < DISPATCH_LEVEL)
+    {
+        /* Get the address space */
+        AddressSpace = GetAddressSpaceForAddress(StartVa);
 
-    /* Lock the working set */
-    AddressSpace->AcquireWorkingSetLock(); /// hmm, we might be at DISPATCH_LEVEL, ...
+        /* Lock the working set to prevent paging out */
+        AddressSpace->AcquireWorkingSetLock();
+    }
 
-    /* Loop again. This time we can't throw an exception, since we check
-       if the PTE is valid before accessing anything */
+    /* Note that we don't use SEH, since if we are below DISPATCH_LEVEL, we own
+       the WS lock preventing paging out, so that no exception can happen.
+       If we are at DISPATCH_LEVEL accessing pageable memory is illegal. */
+
+    /* Start looping */
     CurrentVa = ALIGN_DOWN_POINTER_BY(StartVa, PAGE_SIZE);
     CurrentPte = AddressToPte(CurrentVa);
     do
     {
-        /* Check if this is a large page PDE */
+        /* Get the current PDE */
         CurrentPde = AddressToPde(CurrentVa);
-        if (CurrentPde->IsValid() && CurrentPde->IsLargePage())
-        {
 
-            ULONG_PTR RelativePage = CurrentPte - PdeToPte(CurrentPde);
-
-            *CurrentPfn = CurrentPde->GetPageFrameNumber() + RelativePage;
-        }
-        else
+        /* Check if any paging level is invalid. For pageable addresses
+           we must be below DISPATCH_LEVEL and own the WS lock. */
+        if (
+#if (MI_PAGING_LEVELS == 4)
+            (!AddressToPxe(Address)->IsValid()) ||
+#endif
+#if (MI_PAGING_LEVELS >= 3)
+            (!AddressToPpe(Address)->IsValid()) ||
+#endif
+            (!CurrentPde->IsValid()) ||
+///           We probably don't need this
+//            (CurrentPde->IsLargePage() &&
+//                (Operation != IoReadAccess) && !CurrentPde->IsWritable()) ||
+            (!CurrentPde->IsLargePage() &&
+                (!CurrentPte->IsValid() ||
+                ((Operation != IoReadAccess) && !CurrentPte->IsWritable()))))
         {
-            /* If the page got paged out, we need to make it resident again */
-            while (!MmIsAddressValid(CurrentVa) ||
-                   ((Operation != IoReadAccess) && !CurrentPte->IsWritable()))
+            /* Check if we are below DISPATCH_LEVEL */
+            if (CurrentIrql < DISPATCH_LEVEL)
             {
-                /// Lock all pages we gathered so far, while holding the
-                /// LockPagesMutex
+                /* Lock all pages we gathered so far */
                 PfnCount = CurrentPfn - NextPfnToLock;
                 PFN_DATABASE::LockMultiplePages(NextPfnToLock, PfnCount);
                 NextPfnToLock = CurrentPfn;
@@ -433,24 +462,47 @@ MmProbeAndLockPages (
 
                 /* Invoke the fault handler to page in the page */
                 Status = MmAccessFault(AccessFlags, CurrentVa, AccessMode, NULL);
-                if (!NT_SUCCESS(Status))
-                {
-                    NT_ASSERT(FALSE); /// Do we need to do anything else with the MDL?
-
-                    /* Mark the end of the PFN array */
-                    *CurrentPfn = MAXULONG_PTR;
-
-                    /* Unlock the pages processed so far and raise status */
-                    MmUnlockPages(Mdl);
-                    RtlRaiseStatus(Status);
-                }
-
-                /* Lock the working set again */
-                AddressSpace->AcquireWorkingSetLock();
+            }
+            else
+            {
+                /* We are at DISPATCH_LEVEL, this is not allowed */
+                Status = STATUS_ACCESS_VIOLATION;
             }
 
-            /* Page is resident, get the page frame number from the PTE */
+            if (!NT_SUCCESS(Status))
+            {
+                NT_ASSERT(FALSE); /// Do we need to do anything else with the MDL?
+
+                /* Mark the end of the PFN array */
+                *NextPfnToLock = MAXULONG_PTR;
+
+                /* Unlock the pages processed so far and raise status */
+                MmUnlockPages(Mdl);
+                RtlRaiseStatus(Status);
+            }
+
+            /* Lock the working set again */
+            AddressSpace->AcquireWorkingSetLock();
+
+            /* Try again */
+            continue;
+        }
+
+        /* Check if this is a large page PDE */
+        if (CurrentPde->IsLargePage())
+        {
+            /* Calculate the PFN from the base page and relative page */
+            ULONG_PTR RelativePage = CurrentPte - PdeToPte(CurrentPde);
+            *CurrentPfn = CurrentPde->GetPageFrameNumber() + RelativePage;
+        }
+        else
+        {
+            /* Normal page, get the page frame number from the PTE */
             *CurrentPfn = CurrentPte->GetPageFrameNumber();
+
+            /* Sanity check */
+//            NT_ASSERT((CurrentIrql < DISPATCH_LEVEL) ||
+//                      !g_PfnDatabase.IsPageable(*CurrentPfn));
         }
 
         /* Go to the next page */
@@ -467,6 +519,7 @@ MmProbeAndLockPages (
     /* Unlock the working set */
     AddressSpace->ReleaseWorkingSetLock();
 
+    /* Update the MDL flags */
     Mdl->MdlFlags |= MDL_PAGES_LOCKED;
     if (Operation != IoReadAccess)
     {
@@ -477,14 +530,6 @@ MmProbeAndLockPages (
         Mdl->MdlFlags &= ~(MDL_WRITE_OPERATION);
     }
 
-    if (StartVa < MmHighestUserAddress)
-    {
-        Mdl->Process = PsGetCurrentProcess();
-    }
-    else
-    {
-        Mdl->Process = NULL;
-    }
 
 }
 
