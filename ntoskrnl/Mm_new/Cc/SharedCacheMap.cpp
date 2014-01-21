@@ -79,19 +79,6 @@ SHARED_CACHE_MAP::Initialize (
     /* Get volume cache map (find existing or create new) */
     //m_VolumeCacheMap = g_CacheManager.GetVolumeCacheMap(FileObject);
 
-    /* Create the section */
-    m_Status = MmCreateSection(&m_Section,
-                               SECTION_ALL_ACCESS,
-                               &g_DefaultKernelObjectAttributes,
-                               &m_SectionSize,
-                               PAGE_READWRITE,
-                               0,
-                               NULL,
-                               FileObject);
-    if (!NT_SUCCESS(m_Status))
-    {
-        return m_Status;
-    }
 
 
 #if 0
@@ -182,6 +169,24 @@ VOID
 SHARED_CACHE_MAP::SetFileSizes (
     _In_ PCC_FILE_SIZES FileSizes)
 {
+#if 0
+    if (m_Section == NULL)
+    {
+        /* Create the section */
+        m_Status = MmCreateSection(&m_Section,
+                                   SECTION_ALL_ACCESS,
+                                   &g_DefaultKernelObjectAttributes,
+                                   &m_SectionSize,
+                                   PAGE_READWRITE,
+                                   0,
+                                   NULL,
+                                   FileObject);
+        if (!NT_SUCCESS(m_Status))
+        {
+            return m_Status;
+        }
+    }
+#endif
 }
 
 #if 0
