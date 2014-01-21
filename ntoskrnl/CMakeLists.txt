@@ -280,7 +280,10 @@ list(APPEND SOURCE
     Mm_New/VadObject.cpp
     Mm_New/SysLoader.cpp
     Mm_New/Stubs.cpp
+    Mm_New/Utilities.cpp
     Mm_New/Cc/Stubs.cpp
+    Mm_New/Cc/SharedCacheMap.cpp
+    Mm_New/Cc/PrivateCacheMap.cpp
 #########################
     ob/obdir.c
     ob/obhandle.c

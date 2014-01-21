@@ -790,13 +790,13 @@
 @ stdcall MmLockPagableDataSection(ptr) MmLockPageableDataSection
 @ stdcall MmLockPagableImageSection(ptr) MmLockPageableDataSection
 @ stdcall MmLockPagableSectionByHandle(ptr) MmLockPageableSectionByHandle
-@ stdcall MmMapIoSpace(long long long long)
+@ stdcall MmMapIoSpace(int64 long long)
 @ stdcall MmMapLockedPages(ptr long)
 @ stdcall MmMapLockedPagesSpecifyCache(ptr long long ptr long long)
 @ stdcall MmMapLockedPagesWithReservedMapping(ptr long ptr long)
 @ stdcall MmMapMemoryDumpMdl(ptr)
 @ stdcall MmMapUserAddressesToPage(ptr long ptr)
-@ stdcall MmMapVideoDisplay(long long long long) MmMapIoSpace
+@ stdcall MmMapVideoDisplay(int64 long long) MmMapIoSpace
 @ stdcall MmMapViewInSessionSpace(ptr ptr ptr)
 @ stdcall MmMapViewInSystemSpace(ptr ptr ptr)
 @ stdcall MmMapViewOfSection(ptr ptr ptr long long ptr ptr long long long)
