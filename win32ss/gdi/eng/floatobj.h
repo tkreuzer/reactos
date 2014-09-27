@@ -97,6 +97,60 @@ extern const FLOATOBJ gef16;
 #define FLOATOBJ_Set0(fo) do { (fo)->ul1 = 0; (fo)->ul2 = 0; } while (0)
 #define FLOATOBJ_Set1(fo) do { (fo)->ul1 = 0x40000000; (fo)->ul2 = 2; } while (0)
 
+#ifdef __cplusplus
+
+class EFLOAT : private _FLOATOBJ
+{
+private:
+    union
+    {
+        FLOATOBJ _fo;
+        EFLOAT_S _s;
+        struct
+        {
+            LONG _lMant;
+            LONG _lExp;
+        };
+    };
+public:
+    inline operator long()
+    {
+        return FLOATOBJ_GetLong(&this->_fo);
+    }
+
+    inline const EFLOAT& operator=(LONG l)
+    {
+        FLOATOBJ_SetLong(&this->_fo, l);
+        return *this;
+    }
+
+    inline const EFLOAT& operator=(const EFLOAT& ef2)
+    {
+        this->_lMant = ef2._lMant;
+        this->_lExp = ef2._lExp;
+        return *this;
+    }
+
+    inline bool operator==(const EFLOAT& ef2)
+    {
+        return ((this->_lMant == ef2._lMant) && (this->_lExp == ef2._lExp));
+    }
+
+    inline
+    bool
+    bIsLong()
+    {
+        ULONG ulShift = this->_lExp;
+        if (ulShift < 32)
+            return ((this->_lMant << ulShift) == 0);
+        else
+            return (ulShift == 32);
+    }
+
+};
+
+#endif /* __cplusplus */
+
 #else
 
 #define FLOATOBJ_bConvertToLong(pf, pl) (*pl = (LONG)*pf, TRUE)
