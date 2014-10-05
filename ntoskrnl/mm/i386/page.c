@@ -109,10 +109,13 @@ ULONG MmProtectToValue[32] =
 
 /* FUNCTIONS ***************************************************************/
 
-NTSTATUS
+
+VOID
 NTAPI
-MiFillSystemPageDirectory(IN PVOID Base,
-                          IN SIZE_T NumberOfBytes);
+MiFillSystemPageDirectory(
+    IN PVOID Base,
+    IN SIZE_T NumberOfBytes,
+    ULONG_PTR Charged);
 
 static
 BOOLEAN

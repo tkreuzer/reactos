@@ -662,6 +662,7 @@ MiResolveDemandZeroFault(IN PVOID Address,
     if (Process == HYDRA_PROCESS) MI_SET_PROCESS2("Hydra");
     else if (Process) MI_SET_PROCESS2(Process->ImageFileName);
     else MI_SET_PROCESS2("Kernel Demand 0");
+    MI_SET_COMMIT(1); // this page is already accounted for!
 
     /* Do we need a zero page? */
     if (Color != 0xFFFFFFFF)
@@ -756,6 +757,7 @@ MiResolveDemandZeroFault(IN PVOID Address,
     // It's all good now
     //
     DPRINT("Demand zero page has now been paged in\n");
+    MI_CHECK_COMMIT();
     return STATUS_PAGE_FAULT_DEMAND_ZERO;
 }
 
@@ -2408,6 +2410,7 @@ UserFault:
 
             /* Lock the PFN database since we're going to grab a page */
             OldIrql = MiAcquirePfnLock();
+            MI_SET_COMMIT(1); // page is already charged
 
             /* Make sure we have enough pages */
             ASSERT(MmAvailablePages >= 32);

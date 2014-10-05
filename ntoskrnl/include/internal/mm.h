@@ -1,5 +1,7 @@
 #pragma once
 
+#define MI_TRACE_PFNS 1
+
 #include <internal/arch/mm.h>
 
 #ifdef __cplusplus
@@ -260,6 +262,7 @@ typedef struct _MEMORY_AREA
         PMM_SECTION_SEGMENT Segment;
         LIST_ENTRY RegionListHead;
     } SectionData;
+    ULONG_PTR CommitCharge;
 } MEMORY_AREA, *PMEMORY_AREA;
 
 typedef struct _MM_RMAP_ENTRY
@@ -317,6 +320,17 @@ MI_SET_PROCESS_USTR(PUNICODE_STRING ustr)
 #define MI_SET_USAGE(x)
 #define MI_SET_PROCESS(x)
 #define MI_SET_PROCESS2(x)
+#endif
+
+#if DBG
+extern ULONG_PTR MiDbgCurrentCharge;
+#define MI_SET_COMMIT(x)    MiDbgCurrentCharge = x
+#define MI_GET_COMMIT()     MiDbgCurrentCharge
+#define MI_CHECK_COMMIT()   NT_ASSERT(MiDbgCurrentCharge == 0);
+#else
+#define MI_SET_COMMIT(x)
+#define MI_GET_COMMIT() 0
+#define MI_CHECK_COMMIT()
 #endif
 
 typedef enum _MI_PFN_USAGES
@@ -1727,3 +1741,28 @@ using MiPfnLockGuard = const KiQueuedSpinLockGuard<LockQueuePfnLock>;
 } // namespace ntoskrnl
 
 #endif
+ULONG_PTR
+NTAPI
+MiCalculatePageTableCharge(
+    _In_ PVOID StartingVa,
+    _In_ SIZE_T NumberOfBytes);
+
+ULONG_PTR
+NTAPI
+MiCalculateMaxPageTableCharge(
+    _In_ SIZE_T SizeInBytes);
+
+BOOLEAN
+NTAPI
+MiChargeCommitment(
+    _In_ ULONG_PTR NumberOfPages);
+
+VOID
+NTAPI
+MiReturnCommitment(
+    _In_ ULONG_PTR NumberOfPages);
+
+BOOLEAN
+NTAPI
+MiAddVadCharges(
+    _In_ PMMVAD Vad);

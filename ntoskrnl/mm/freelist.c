@@ -27,14 +27,6 @@ PFN_NUMBER MmAvailablePages;
 PFN_NUMBER MmResidentAvailablePages;
 PFN_NUMBER MmResidentAvailableAtInit;
 
-SIZE_T MmTotalCommittedPages;
-SIZE_T MmSharedCommit;
-SIZE_T MmDriverCommit;
-SIZE_T MmProcessCommit;
-SIZE_T MmPagedPoolCommit;
-SIZE_T MmPeakCommitment;
-SIZE_T MmtotalCommitLimitMaximum;
-
 PMMPFN FirstUserLRUPfn;
 PMMPFN LastUserLRUPfn;
 
@@ -604,7 +596,17 @@ MmAllocPage(ULONG Type)
     PMMPFN Pfn1;
     KIRQL OldIrql;
 
+    if (Type != MC_SYSTEM)
+    {
+        if (!MiChargeCommitment(1))
+        {
+            DPRINT1("MmAllocPage(): Out of memory\n");
+            return 0;
+        }
+    }
+
     OldIrql = MiAcquirePfnLock();
+    MI_SET_COMMIT(1);
 
 #if MI_TRACE_PFNS
     switch(Type)
@@ -647,6 +649,7 @@ MmAllocPage(ULONG Type)
         MmInsertLRULastUserPage(PfnOffset);
     }
 
+    MI_CHECK_COMMIT();
     MiReleasePfnLock(OldIrql);
     return PfnOffset;
 }

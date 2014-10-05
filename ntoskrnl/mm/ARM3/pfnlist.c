@@ -63,6 +63,11 @@ PMMPFNLIST MmPageLocationList[] =
 ULONG MI_PFN_CURRENT_USAGE;
 CHAR MI_PFN_CURRENT_PROCESS_NAME[16] = "None yet";
 
+#if DBG
+/* This is used to keep track of PFN charges */
+ULONG_PTR MiDbgCurrentCharge;
+#endif
+
 /* FUNCTIONS ******************************************************************/
 static
 VOID
@@ -71,6 +76,10 @@ MiIncrementAvailablePages(
 {
     /* Increment available pages */
     MmAvailablePages++;
+
+#if DBG
+    //MiDbgCurrentCharge++;
+#endif
 
     /* Check if we've reached the configured low memory threshold */
     if (MmAvailablePages == MmLowMemoryThreshold)
@@ -91,6 +100,10 @@ MiDecrementAvailablePages(
     VOID)
 {
     ASSERT(MmAvailablePages > 0);
+#if DBG
+    NT_ASSERT(MiDbgCurrentCharge > 0);
+    MiDbgCurrentCharge--;
+#endif
 
     /* See if we hit any thresholds */
     if (MmAvailablePages == MmHighMemoryThreshold)

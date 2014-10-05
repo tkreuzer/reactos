@@ -313,7 +313,7 @@ MiInsertInSystemSpace(IN PMMSESSION Session,
     PAGED_CODE();
 
     /* Stay within 4GB */
-    ASSERT(Buckets < MI_SYSTEM_VIEW_BUCKET_SIZE);
+    ASSERT(Buckets < MI_SYSTEM_VIEW_BUCKET_SIZE); /// LOL WTF???
 
     /* Lock system space */
     KeAcquireGuardedMutex(Session->SystemSpaceViewLockPointer);
@@ -477,8 +477,10 @@ MiAddMappedPtes(IN PMMPTE FirstPte,
 
 VOID
 NTAPI
-MiFillSystemPageDirectory(IN PVOID Base,
-                          IN SIZE_T NumberOfBytes)
+MiFillSystemPageDirectory(
+    IN PVOID Base,
+    IN SIZE_T NumberOfBytes,
+    ULONG_PTR Charged)
 {
     PMMPDE PointerPde, LastPde, SystemMapPde;
     MMPDE TempPde;
@@ -504,6 +506,7 @@ MiFillSystemPageDirectory(IN PVOID Base,
     {
         /* Lock the PFN database */
         OldIrql = MiAcquirePfnLock();
+        MI_SET_COMMIT(Charged); // charged for page tables in
 
         /* Check if we don't already have this PDE mapped */
         if (SystemMapPde->u.Hard.Valid == 0)
@@ -537,6 +540,7 @@ MiFillSystemPageDirectory(IN PVOID Base,
         }
 
         /* Release the lock and keep going with the next PDE */
+        Charged = MI_GET_COMMIT();
         MiReleasePfnLock(OldIrql);
         SystemMapPde++;
         PointerPde++;
@@ -1067,6 +1071,7 @@ MiMapViewInSystemSpace(
     ULONG Buckets;
     LONGLONG SectionSize;
     NTSTATUS Status;
+    ULONG_PTR CommitCharge;
     PAGED_CODE();
 
     /* Get the control area, check for any flags ARM3 doesn't yet support */
@@ -1127,6 +1132,17 @@ MiMapViewInSystemSpace(
         return STATUS_INVALID_VIEW_SIZE;
     }
 
+    /* Calculate the maximum number of page tables needed and charge for them */
+    CommitCharge = MiCalculateMaxPageTableCharge(Buckets * MI_SYSTEM_VIEW_BUCKET_SIZE);
+
+    CommitCharge += Buckets * MI_SYSTEM_VIEW_BUCKET_SIZE / PAGE_SIZE;
+    if (!MiChargeCommitment(CommitCharge))
+    {
+        /* Out of space, fail */
+        DPRINT1("Out of available pages.\n");
+        return STATUS_NO_MEMORY;
+    }
+
     /* Insert this view into system space and get a base address for it */
     Base = MiInsertInSystemSpace(Session, Buckets, ControlArea);
     if (!Base)
@@ -1134,6 +1150,7 @@ MiMapViewInSystemSpace(
         /* Fail */
         DPRINT1("Out of system space\n");
         MiDereferenceControlArea(ControlArea);
+        MiReturnCommitment(CommitCharge);
         return STATUS_NO_MEMORY;
     }
 
@@ -1141,7 +1158,7 @@ MiMapViewInSystemSpace(
     if (Session == &MmSession)
     {
         /* Create the PDEs needed for this mapping, and double-map them if needed */
-        MiFillSystemPageDirectory(Base, Buckets * MI_SYSTEM_VIEW_BUCKET_SIZE);
+        MiFillSystemPageDirectory(Base, Buckets * MI_SYSTEM_VIEW_BUCKET_SIZE, CommitCharge);
         Status = STATUS_SUCCESS;
     }
     else
@@ -1388,8 +1405,13 @@ MiMapViewOfDataSection(IN PCONTROL_AREA ControlArea,
     /* Compute how much commit space the segment will take */
     if ((CommitSize) && (Segment->NumberOfCommittedPages < Segment->TotalNumberOfPtes))
     {
-        /* Charge for the maximum pages */
+        /* Charge for the maximum pages (we will return excess charge later) */
         QuotaCharge = BYTES_TO_PAGES(CommitSize);
+        if (!MiChargeCommitment(QuotaCharge))
+        {
+            MiDereferenceControlArea(ControlArea);
+            return STATUS_COMMITMENT_LIMIT;
+        }
     }
 
     /* ARM3 does not currently support large pages */
@@ -1469,6 +1491,7 @@ MiMapViewOfDataSection(IN PCONTROL_AREA ControlArea,
         QuotaCharge -= QuotaExcess;
         Segment->NumberOfCommittedPages += QuotaCharge;
         ASSERT(Segment->NumberOfCommittedPages <= Segment->TotalNumberOfPtes);
+        MiReturnCommitment(QuotaExcess);
 
         /* Now that we're done, release the lock */
         KeReleaseGuardedMutex(&MmSectionCommitMutex);
@@ -2399,6 +2422,7 @@ MiRemoveFromSystemSpace(IN PMMSESSION Session,
 {
     ULONG Hash, Size, Count = 0;
     ULONG_PTR Entry;
+    ULONG_PTR CommitCharge;
     PAGED_CODE();
 
     /* Compute the hash for this entry and loop trying to find it */
@@ -2429,6 +2453,9 @@ MiRemoveFromSystemSpace(IN PMMSESSION Session,
     /* Extract the size and clear the entry */
     Size = Session->SystemSpaceViewTable[Hash].Entry & 0xFFFF;
     Session->SystemSpaceViewTable[Hash].Entry = 0;
+
+    CommitCharge = MiCalculateMaxPageTableCharge(Size * MI_SYSTEM_VIEW_BUCKET_SIZE);
+    MiReturnCommitment(CommitCharge);
 
     /* Return the control area and the size */
     *ControlArea = Session->SystemSpaceViewTable[Hash].ControlArea;

@@ -1884,6 +1884,7 @@ MiBuildPagedPool(VOID)
     /* Allocate a page and map the first paged pool PDE */
     MI_SET_USAGE(MI_USAGE_PAGED_POOL);
     MI_SET_PROCESS2("Kernel");
+    MI_SET_COMMIT(1); // just ignore it, we have some pages left ;-)
     PageFrameIndex = MiRemoveZeroPage(0);
     TempPde.u.Hard.PageFrameNumber = PageFrameIndex;
     MI_WRITE_VALID_PDE(PointerPde, TempPde);
@@ -1908,6 +1909,7 @@ MiBuildPagedPool(VOID)
     //
     // Release the PFN database lock
     //
+    MI_CHECK_COMMIT();
     MiReleasePfnLock(OldIrql);
 
     //
@@ -2226,10 +2228,6 @@ MmArmInitSystem(IN ULONG Phase,
         /* Initialize the working set lock */
         ExInitializePushLock(&MmSystemCacheWs.WorkingSetMutex);
 
-        /* Set commit limit */
-        MmTotalCommitLimit = (2 * _1GB) >> PAGE_SHIFT;
-        MmTotalCommitLimitMaximum = MmTotalCommitLimit;
-
         /* Has the allocation fragment been setup? */
         if (!MmAllocationFragment)
         {
@@ -2536,13 +2534,13 @@ MmArmInitSystem(IN ULONG Phase,
         /* Initialize the system cache */
         //MiInitializeSystemCache(MmSystemCacheWsMinimum, MmAvailablePages);
 
-        /* Update the commit limit */
-        MmTotalCommitLimit = MmAvailablePages;
-        if (MmTotalCommitLimit > 1024) MmTotalCommitLimit -= 1024;
-        MmTotalCommitLimitMaximum = MmTotalCommitLimit;
-
         /* Size up paged pool and build the shadow system page directory */
         MiBuildPagedPool();
+
+        /* Update the commit limit */
+        ASSERT(MmAvailablePages > MmSystemCommitReserve);
+        MmTotalCommitLimit = MmAvailablePages;
+        MmTotalCommitLimitMaximum = MmTotalCommitLimit;
 
         /* Debugger physical memory support is now ready to be used */
         MmDebugPte = MiAddressToPte(MiDebugMapping);

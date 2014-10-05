@@ -435,6 +435,8 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
     PMMPFN Pfn1;
     PVOID BaseVa, BaseVaStart;
     PMMFREE_POOL_ENTRY FreeEntry;
+    ULONG_PTR CommitCharge;
+    PKSPIN_LOCK_QUEUE LockQueue;
 
     //
     // Figure out how big the allocation is in pages
@@ -467,6 +469,16 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
         }
 
         //
+        // We need to commit a new page, charge it
+        //
+        if (!MiChargeCommitment(SizeInPages))
+        {
+            DPRINT1("Failed to allocate pool %lu pages due to commit limit\n",
+                    SizeInPages);
+            return NULL;
+        }
+
+        //
         // Lock the paged pool mutex
         //
         KeAcquireGuardedMutex(&MmPagedPoolMutex);
@@ -486,7 +498,7 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
             DPRINT("Paged pool expansion: %lu %x\n", i, SizeInPages);
 
             //
-            // Check if there is enougn paged pool expansion space left
+            // Check if there is enough paged pool expansion space left
             //
             if (MmPagedPoolInfo.NextPdeForPagedPoolExpansion >
                 (PMMPDE)MiAddressToPte(MmPagedPoolInfo.LastPteForPagedPool))
@@ -495,6 +507,7 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
                 // Out of memory!
                 //
                 DPRINT1("FAILED to allocate %Iu bytes from paged pool\n", SizeInBytes);
+                MiReturnCommitment(SizeInPages);
                 KeReleaseGuardedMutex(&MmPagedPoolMutex);
                 return NULL;
             }
@@ -533,6 +546,18 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
             PointerPde = MmPagedPoolInfo.NextPdeForPagedPoolExpansion;
             BaseVa = MiPdeToPte(PointerPde);
             BaseVaStart = BaseVa;
+
+            //
+            // Charge for page tables
+            //
+            CommitCharge = MiCalculatePageTableCharge(BaseVa, i * PAGE_SIZE);
+            if (!MiChargeCommitment(CommitCharge))
+            {
+                DPRINT1("Commit limit exceeded for paged pool expansion!\n");
+                MiReturnCommitment(SizeInPages);
+                KeReleaseGuardedMutex(&MmPagedPoolMutex);
+                return NULL;
+            }
 
             //
             // Lock the PFN database and loop pages
@@ -960,6 +985,11 @@ MiFreePoolPages(IN PVOID StartingVa)
         PointerPte = MmPagedPoolInfo.FirstPteForPagedPool + i;
         FreePages = MiDeleteSystemPageableVm(PointerPte, NumberOfPages, 0, NULL);
         ASSERT(FreePages == NumberOfPages);
+
+        //
+        // Return page commitment
+        //
+        MiReturnCommitment(NumberOfPages);
 
         //
         // Acquire the paged pool lock

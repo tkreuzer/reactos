@@ -494,6 +494,7 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     /* Allocate a page for hyperspace and create it */
     MI_SET_USAGE(MI_USAGE_PAGE_TABLE);
     MI_SET_PROCESS2("Kernel");
+    MI_SET_COMMIT(1); // we are before the init of the commit limit
     PageFrameIndex = MiRemoveAnyPage(0);
     TempPde = ValidKernelPdeLocal;
     TempPde.u.Hard.PageFrameNumber = PageFrameIndex;
@@ -504,6 +505,7 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     KeFlushCurrentTb();
 
     /* Release the lock */
+    MI_CHECK_COMMIT();
     MiReleasePfnLock(OldIrql);
 
     //
@@ -545,6 +547,7 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     /* Get a page for the working set list */
     MI_SET_USAGE(MI_USAGE_PAGE_TABLE);
     MI_SET_PROCESS2("Kernel WS List");
+    MI_SET_COMMIT(1); // we are before the init of the commit limit
     PageFrameIndex = MiRemoveAnyPage(0);
     TempPte = ValidKernelPteLocal;
     TempPte.u.Hard.PageFrameNumber = PageFrameIndex;
@@ -568,6 +571,7 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 
     /* Release the lock */
+    MI_CHECK_COMMIT();
     MiReleasePfnLock(OldIrql);
 
     /* Initialize the bogus address space */

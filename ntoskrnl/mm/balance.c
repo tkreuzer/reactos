@@ -74,6 +74,12 @@ MmReleasePageMemoryConsumer(ULONG Consumer, PFN_NUMBER Page)
 {
     KIRQL OldIrql;
 
+    if (Consumer)
+    {
+        /* Return the page commitment */
+        MiReturnCommitment(1);
+    }
+
     if (Page == 0)
     {
         DPRINT1("Tried to release page zero.\n");
@@ -84,7 +90,7 @@ MmReleasePageMemoryConsumer(ULONG Consumer, PFN_NUMBER Page)
 
     OldIrql = MiAcquirePfnLock();
 
-    MmDereferencePage(Page);
+    MmDereferencePage(Page); 
 
     MiReleasePfnLock(OldIrql);
 
@@ -282,6 +288,12 @@ MmRequestPageMemoryConsumer(ULONG Consumer, BOOLEAN CanWait,
 {
     PFN_NUMBER Page;
 
+    /* Account for the pages we use */
+    if (!MiChargeCommitment(1))
+    {
+        return STATUS_COMMITMENT_LIMIT;
+    }
+
     /* Update the target */
     InterlockedIncrementUL(&MiMemoryConsumers[Consumer].PagesUsed);
 
@@ -291,7 +303,7 @@ MmRequestPageMemoryConsumer(ULONG Consumer, BOOLEAN CanWait,
     Page = MmAllocPage(Consumer);
     if (Page == 0)
     {
-        KeBugCheck(NO_PAGES_AVAILABLE);
+        return STATUS_NO_MEMORY;
     }
     *AllocatedPage = Page;
 

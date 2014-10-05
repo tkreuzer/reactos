@@ -976,6 +976,8 @@ CcRosInternalFreeVacb (
 
     RtlFillMemory(Vacb, sizeof(*Vacb), 0xfd);
     ExFreeToNPagedLookasideList(&VacbLookasideList, Vacb);
+
+    MiReturnCommitment(BYTES_TO_PAGES(VACB_MAPPING_GRANULARITY));
     return STATUS_SUCCESS;
 }
 

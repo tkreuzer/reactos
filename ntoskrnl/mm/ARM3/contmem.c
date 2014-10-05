@@ -33,6 +33,16 @@ MiFindContiguousPages(IN PFN_NUMBER LowestPfn,
     ASSERT(SizeInPages != 0);
 
     //
+    // Account for the physical pages
+    //
+    if (!MiChargeCommitment(SizeInPages))
+    {
+        DPRINT1("Failed to allocate contiguous pages (%lu pages needed).\n",
+                SizeInPages);
+        return 0;
+    }
+
+    //
     // Convert the boundary PFN into an alignment mask
     //
     BoundaryMask = ~(BoundaryPfn - 1);
@@ -110,6 +120,7 @@ MiFindContiguousPages(IN PFN_NUMBER LowestPfn,
                 // Acquire the PFN lock
                 //
                 OldIrql = MiAcquirePfnLock();
+                MI_SET_COMMIT(SizeInPages);
                 do
                 {
                     //
@@ -164,6 +175,7 @@ MiFindContiguousPages(IN PFN_NUMBER LowestPfn,
                         //
                         // Now it's safe to let go of the PFN lock
                         //
+                        MI_CHECK_COMMIT();
                         MiReleasePfnLock(OldIrql);
 
                         //
@@ -562,6 +574,8 @@ MiFreeContiguousMemory(IN PVOID BaseAddress)
     // Release the PFN lock
     //
     MiReleasePfnLock(OldIrql);
+
+    MiReturnCommitment(PageCount);
 }
 
 /* PUBLIC FUNCTIONS ***********************************************************/
