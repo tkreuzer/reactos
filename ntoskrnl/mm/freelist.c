@@ -27,14 +27,6 @@ PFN_NUMBER MmAvailablePages;
 PFN_NUMBER MmResidentAvailablePages;
 PFN_NUMBER MmResidentAvailableAtInit;
 
-SIZE_T MmTotalCommittedPages;
-SIZE_T MmSharedCommit;
-SIZE_T MmDriverCommit;
-SIZE_T MmProcessCommit;
-SIZE_T MmPagedPoolCommit;
-SIZE_T MmPeakCommitment;
-SIZE_T MmtotalCommitLimitMaximum;
-
 static RTL_BITMAP MiUserPfnBitMap;
 
 /* FUNCTIONS *************************************************************/
@@ -572,7 +564,17 @@ MmAllocPage(ULONG Type)
     PMMPFN Pfn1;
     KIRQL OldIrql;
 
+    if (Type != MC_SYSTEM)
+    {
+        if (!MiChargeCommitment(1))
+        {
+            DPRINT1("MmAllocPage(): Out of memory\n");
+            return 0;
+        }
+    }
+
     OldIrql = MiAcquirePfnLock();
+    MI_SET_COMMIT(1);
 
     PfnOffset = MiRemoveZeroPage(MI_GET_NEXT_COLOR());
     if (!PfnOffset)
@@ -592,6 +594,7 @@ MmAllocPage(ULONG Type)
     Pfn1->u1.SwapEntry = 0;
     Pfn1->RmapListHead = NULL;
 
+    MI_CHECK_COMMIT();
     MiReleasePfnLock(OldIrql);
     return PfnOffset;
 }

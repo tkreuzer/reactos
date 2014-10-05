@@ -200,10 +200,12 @@ MiDispatchFault(IN ULONG FaultCode,
                 IN PVOID TrapInformation,
                 IN PVOID Vad);
 
-NTSTATUS
+VOID
 NTAPI
-MiFillSystemPageDirectory(IN PVOID Base,
-                          IN SIZE_T NumberOfBytes);
+MiFillSystemPageDirectory(
+    IN PVOID Base,
+    IN SIZE_T NumberOfBytes,
+    ULONG_PTR Charged);
 
 static PULONG
 MmGetPageTableForProcess(PEPROCESS Process, PVOID Address, BOOLEAN Create)
@@ -290,7 +292,10 @@ MmGetPageTableForProcess(PEPROCESS Process, PVOID Address, BOOLEAN Create)
             /* PDE (still) not valid, let ARM3 allocate one if asked */
             if(Create == FALSE)
                 return NULL;
-            MiFillSystemPageDirectory(Address, PAGE_SIZE);
+
+            if (!MiChargeCommitment(1))
+                return NULL;
+            MiFillSystemPageDirectory(Address, PAGE_SIZE, 1);
         }
     }
     return Pt;

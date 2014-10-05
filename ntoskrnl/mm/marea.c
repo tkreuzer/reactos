@@ -368,6 +368,8 @@ MmFreeMemoryArea(
         {
             MiRemoveNode((PMMADDRESS_NODE)&MemoryArea->VadNode, &MiRosKernelVadRoot);
         }
+
+        MiReturnCommitment(MemoryArea->CommitCharge);
     }
 
 #if DBG
@@ -419,12 +421,19 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
     ULONG_PTR tmpLength;
     PMEMORY_AREA MemoryArea;
     ULONG_PTR EndingAddress;
+    ULONG_PTR CommitCharge;
 
     DPRINT("MmCreateMemoryArea(Type 0x%lx, BaseAddress %p, "
            "*BaseAddress %p, Length %p, AllocationFlags %x, "
            "Result %p)\n",
            Type, BaseAddress, *BaseAddress, Length, AllocationFlags,
            Result);
+
+    CommitCharge = MiCalculateMaxPageTableCharge(Length);
+    if (!MiChargeCommitment(CommitCharge))
+    {
+        return STATUS_COMMITMENT_LIMIT;
+    }
 
     /* Is this a static memory area? */
     if (Type & MEMORY_AREA_STATIC)
@@ -444,6 +453,7 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
     if (!MemoryArea)
     {
         DPRINT1("Not enough memory.\n");
+        MiReturnCommitment(CommitCharge);
         return STATUS_NO_MEMORY;
     }
 
@@ -464,6 +474,7 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
         if ((*BaseAddress) == 0)
         {
             DPRINT("No suitable gap\n");
+            MiReturnCommitment(CommitCharge);
             if (!(Type & MEMORY_AREA_STATIC)) ExFreePoolWithTag(MemoryArea, TAG_MAREA);
             return STATUS_NO_MEMORY;
         }
@@ -482,6 +493,7 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
         {
             ASSERT(FALSE);
             if (!(Type & MEMORY_AREA_STATIC)) ExFreePoolWithTag(MemoryArea, TAG_MAREA);
+            MiReturnCommitment(CommitCharge);
             return STATUS_ACCESS_VIOLATION;
         }
 
@@ -489,6 +501,7 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
                 (ULONG_PTR)(*BaseAddress) + tmpLength > (ULONG_PTR)MmSystemRangeStart)
         {
             DPRINT("Memory area for user mode address space exceeds MmSystemRangeStart\n");
+            MiReturnCommitment(CommitCharge);
             if (!(Type & MEMORY_AREA_STATIC)) ExFreePoolWithTag(MemoryArea, TAG_MAREA);
             return STATUS_ACCESS_VIOLATION;
         }
@@ -501,6 +514,7 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
                                            tmpLength) != NULL)
             {
                 DPRINT("Memory area already occupied\n");
+                MiReturnCommitment(CommitCharge);
                 if (!(Type & MEMORY_AREA_STATIC)) ExFreePoolWithTag(MemoryArea, TAG_MAREA);
                 return STATUS_CONFLICTING_ADDRESSES;
             }

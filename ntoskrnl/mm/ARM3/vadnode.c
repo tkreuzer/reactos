@@ -178,6 +178,49 @@ MiInsertNode(IN PMM_AVL_TABLE Table,
     }
 }
 
+BOOLEAN
+NTAPI
+MiAddVadCharges(
+    _In_ PMMVAD Vad)
+{
+    PVOID StartingVa;
+    ULONG_PTR PageCount, CommitCharge;
+
+    StartingVa = (PVOID)(Vad->StartingVpn << PAGE_SHIFT);
+    PageCount = Vad->EndingVpn - Vad->StartingVpn + 1;
+
+    /* Calculate the charge for page tables (we might overcharge here) and
+       the committed pages */
+    CommitCharge = MiCalculatePageTableCharge(StartingVa, PageCount);
+    CommitCharge += Vad->u.VadFlags.CommitCharge;
+
+
+    if (!MiChargeCommitment(CommitCharge))
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID
+NTAPI
+MiReleaseVadCharges(
+    _In_ PMMVAD Vad)
+{
+    PVOID StartingVa;
+    ULONG_PTR PageCount, CommitCharge;
+
+    StartingVa = (PVOID)(Vad->StartingVpn << PAGE_SHIFT);
+    PageCount = Vad->EndingVpn - Vad->StartingVpn + 1;
+
+    /* Calculate the amount of pages that were charged for this VAD */
+    CommitCharge = MiCalculatePageTableCharge(StartingVa, PageCount);
+    CommitCharge += Vad->u.VadFlags.CommitCharge;
+
+    MiReturnCommitment(CommitCharge))
+}
+
 VOID
 NTAPI
 MiInsertVad(IN PMMVAD Vad,
@@ -194,6 +237,13 @@ MiInsertVad(IN PMMVAD Vad,
     Result = RtlpFindAvlTableNodeOrParent(VadRoot, (PVOID)Vad->StartingVpn, &Parent);
     ASSERT(Result != TableFoundNode);
     ASSERT((Parent != NULL) || (Result == TableEmptyTree));
+
+    /* Handle the charges for this VAD */
+    if (!MiAddVadCharges(Vad))
+    {
+        ASSERT(FALSE);
+        return;
+    }
 
     /* Do the actual insert operation */
     MiInsertNode(VadRoot, (PVOID)Vad, Parent, Result);
@@ -276,7 +326,7 @@ MiInsertVadEx(
     {
         /* Calculate the starting and ending address */
         StartingAddress = ALIGN_DOWN_BY(*BaseAddress, Alignment);
-        EndingAddress = StartingAddress + ViewSize - 1;
+        EndingAddress = StartingAddress + ViewSize  - 1;
 
         /* Make sure it doesn't conflict with an existing allocation */
         Result = MiCheckForConflictingNode(StartingAddress >> PAGE_SHIFT,
@@ -313,6 +363,13 @@ MiInsertVadEx(
         /* Yeah this is retarded, I didn't invent it! */
         ((PMMVAD_LONG)Vad)->u3.Secured.StartVpn = StartingAddress;
         ((PMMVAD_LONG)Vad)->u3.Secured.EndVpn = EndingAddress;
+    }
+
+    /* Handle the charges for this VAD */
+    if (!MiAddVadCharges(Vad))
+    {
+        KeReleaseGuardedMutex(&CurrentProcess->AddressCreationLock);
+        return STATUS_COMMITMENT_LIMIT;
     }
 
     /* Lock the working set */

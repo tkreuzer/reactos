@@ -636,7 +636,7 @@ CcRosMapVacbInKernelSpace(
     ULONG_PTR NumberOfPages;
     PVOID BaseAddress = NULL;
 
-    /* Create a memory area. */
+    /* Create a memory area. This will already charge for the page tables */
     MmLockAddressSpace(MmGetKernelAddressSpace());
     Status = MmCreateMemoryArea(MmGetKernelAddressSpace(),
                                 0, // nothing checks for VACB mareas, so set to 0
@@ -660,7 +660,20 @@ CcRosMapVacbInKernelSpace(
     ASSERT((ULONG_PTR)Vacb->BaseAddress + VACB_MAPPING_GRANULARITY - 1 > (ULONG_PTR)MmSystemRangeStart);
 
     /* Create a virtual mapping for this memory area */
+
+    /* We already charged for the page tables, now charge for the actual pages */
     NumberOfPages = BYTES_TO_PAGES(VACB_MAPPING_GRANULARITY);
+    if (!MiChargeCommitment(NumberOfPages))
+    {
+        /* Delete the memory area */
+        MmFreeMemoryArea(MmGetKernelAddressSpace(),
+                         Vacb->MemoryArea,
+                         NULL,
+                         NULL);
+        Vacb->MemoryArea = NULL;
+        return STATUS_COMMITMENT_LIMIT;
+    }
+
     for (i = 0; i < NumberOfPages; i++)
     {
         PFN_NUMBER PageFrameNumber;
@@ -1077,6 +1090,8 @@ CcRosInternalFreeVacb (
     ASSERT(IsListEmpty(&Vacb->VacbLruListEntry));
     RtlFillMemory(Vacb, sizeof(*Vacb), 0xfd);
     ExFreeToNPagedLookasideList(&VacbLookasideList, Vacb);
+
+    MiReturnCommitment(BYTES_TO_PAGES(VACB_MAPPING_GRANULARITY));
     return STATUS_SUCCESS;
 }
 

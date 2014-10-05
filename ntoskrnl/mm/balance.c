@@ -96,6 +96,12 @@ NTSTATUS
 NTAPI
 MmReleasePageMemoryConsumer(ULONG Consumer, PFN_NUMBER Page)
 {
+    if (Consumer)
+    {
+        /* Return the page commitment */
+        MiReturnCommitment(1);
+    }
+
     if (Page == 0)
     {
         DPRINT1("Tried to release page zero.\n");
@@ -106,9 +112,9 @@ MmReleasePageMemoryConsumer(ULONG Consumer, PFN_NUMBER Page)
     {
         if(Consumer == MC_USER) MmRemoveLRUUserPage(Page);
         (void)InterlockedDecrementUL(&MiMemoryConsumers[Consumer].PagesUsed);
-    }
+        }
 
-    MmDereferencePage(Page);
+        MmDereferencePage(Page);
 
     return(STATUS_SUCCESS);
 }
@@ -232,6 +238,12 @@ MmRequestPageMemoryConsumer(ULONG Consumer, BOOLEAN CanWait,
     ULONG PagesUsed;
     PFN_NUMBER Page;
 
+    /* Account for the pages we use */
+    if (!MiChargeCommitment(1))
+    {
+        return STATUS_COMMITMENT_LIMIT;
+    }
+
     /*
      * Make sure we don't exceed our individual target.
      */
@@ -310,7 +322,7 @@ MmRequestPageMemoryConsumer(ULONG Consumer, BOOLEAN CanWait,
     Page = MmAllocPage(Consumer);
     if (Page == 0)
     {
-        KeBugCheck(NO_PAGES_AVAILABLE);
+        return STATUS_NO_MEMORY;
     }
     if(Consumer == MC_USER) MmInsertLRULastUserPage(Page);
     *AllocatedPage = Page;
