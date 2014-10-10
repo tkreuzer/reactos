@@ -207,7 +207,17 @@ MmAccessFault(IN ULONG FaultCode,
               IN KPROCESSOR_MODE Mode,
               IN PVOID TrapInformation)
 {
+    PMMSUPPORT AddressSpace;
     PMEMORY_AREA MemoryArea = NULL;
+
+    /* We need to handle the following cases:
+       1. Shared user page -> ARM3
+       2. User mode VAD -> ARM3
+       3. User mode, no VAD -> ARM3
+       4. User mode memory area -> RosMm
+       5. Kernel mode memory area owned by ARM3 -> ARM3
+       6. Kernel mode memory area owned by RosMm -> RosMm
+    */
 
     /* Cute little hack for ROS */
     if ((ULONG_PTR)Address >= (ULONG_PTR)MmSystemRangeStart)
@@ -226,33 +236,38 @@ MmAccessFault(IN ULONG FaultCode,
     if (PAGE_ALIGN(Address) == (PVOID)MM_SHARED_USER_DATA_VA)
     {
         /* This is an ARM3 fault */
-        DPRINT("ARM3 fault %p\n", MemoryArea);
+        DPRINT("Fault on shared user page\n");
         return MmArmAccessFault(FaultCode, Address, Mode, TrapInformation);
     }
 
     /* Is there a ReactOS address space yet? */
-    if (MmGetKernelAddressSpace())
+    if (!MmGetKernelAddressSpace())
     {
-        /* Check if this is an ARM3 memory area */
-        MemoryArea = MmLocateMemoryAreaByAddress(MmGetKernelAddressSpace(), Address);
-        if (!(MemoryArea) && (Address <= MM_HIGHEST_USER_ADDRESS))
-        {
-            /* Could this be a VAD fault from user-mode? */
-            MemoryArea = MmLocateMemoryAreaByAddress(MmGetCurrentAddressSpace(), Address);
-        }
+        /* No RosMm address space yet, use ARM3 */
+        DPRINT("No RosMm address space yet, use ARM3\n");
+        return MmArmAccessFault(StoreInstruction, Address, Mode, TrapInformation);
     }
 
+    /* Get the address space and lock it */
+    AddressSpace = (Address <= MM_HIGHEST_USER_ADDRESS) ?
+        MmGetCurrentAddressSpace() : MmGetKernelAddressSpace();
+    MmLockAddressSpace(AddressSpace);
+
+    /* Check if this is a RosMm memory area */
+    MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, Address);
+
     /* Is this an ARM3 memory area, or is there no address space yet? */
-    if (((MemoryArea) && (MemoryArea->Type == MEMORY_AREA_OWNED_BY_ARM3)) ||
-            (!(MemoryArea) && ((ULONG_PTR)Address >= (ULONG_PTR)MmPagedPoolStart)) ||
-            (!MmGetKernelAddressSpace()))
+    if ((MemoryArea == NULL) || (MemoryArea->Type == MEMORY_AREA_OWNED_BY_ARM3))
     {
         /* This is an ARM3 fault */
         DPRINT("ARM3 fault %p\n", MemoryArea);
+        MmUnlockAddressSpace(AddressSpace);
         return MmArmAccessFault(FaultCode, Address, Mode, TrapInformation);
     }
 
-    /* Keep same old ReactOS Behaviour */
+    MmUnlockAddressSpace(AddressSpace);
+
+    /* Keep same old ReactOS Behavior */
     if (!MI_IS_NOT_PRESENT_FAULT(FaultCode))
     {
         /* Call access fault */
