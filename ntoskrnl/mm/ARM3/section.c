@@ -818,7 +818,6 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
                      IN PVOID BaseAddress,
                      IN ULONG Flags)
 {
-    PMEMORY_AREA MemoryArea;
     BOOLEAN Attached = FALSE;
     KAPC_STATE ApcState;
     PMMVAD Vad;
@@ -828,14 +827,6 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
     PETHREAD CurrentThread = PsGetCurrentThread();
     PEPROCESS CurrentProcess = PsGetCurrentProcess();
     PAGED_CODE();
-
-    /* Check for Mm Region */
-    MemoryArea = MmLocateMemoryAreaByAddress(&Process->Vm, BaseAddress);
-    if ((MemoryArea) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
-    {
-        /* Call Mm API */
-        return MiRosUnmapViewOfSection(Process, BaseAddress, Process->ProcessExiting);
-    }
 
     /* Check if we should attach to the process */
     if (CurrentProcess != Process)
@@ -860,6 +851,17 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
 
     /* Find the VAD for the address and make sure it's a section VAD */
     Vad = MiLocateAddress(BaseAddress);
+
+    /* Handle RosMm first */
+    if (Vad->u.VadFlags.Spare != 0)
+    {
+        /* Call RosMm API */
+        if (!Flags) MmUnlockAddressSpace(&Process->Vm);
+        Status = MiRosUnmapViewOfSection(Process, BaseAddress, Process->ProcessExiting);
+        goto Quickie;
+    }
+
+    /* Find the VAD for the address and make sure it's a section VAD */
     if (!(Vad) || (Vad->u.VadFlags.PrivateMemory))
     {
         /* Couldn't find it, or invalid VAD, fail */
