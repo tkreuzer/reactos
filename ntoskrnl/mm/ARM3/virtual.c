@@ -1893,13 +1893,14 @@ MiQueryMemoryBasicInformation(IN HANDLE ProcessHandle,
         MemoryInfo.Type = MEM_MAPPED;
     }
 
-    /* Find the memory area the specified address belongs to */
-    MemoryArea = MmLocateMemoryAreaByAddress(&TargetProcess->Vm, BaseAddress);
-    ASSERT(MemoryArea != NULL);
-
-    /* Determine information dependent on the memory area type */
-    if (MemoryArea->Type == MEMORY_AREA_SECTION_VIEW)
+    /* Check if this is a RosMm memory area */
+    if (Vad->u.VadFlags.Spare != 0)
     {
+        MemoryArea = (PMEMORY_AREA)Vad;
+
+        /* This can only be a section view, cache views are in kernel */
+        ASSERT(MemoryArea->Type == MEMORY_AREA_SECTION_VIEW);
+
         Status = MmQuerySectionView(MemoryArea, BaseAddress, &MemoryInfo, &ResultLength);
         if (!NT_SUCCESS(Status))
         {
@@ -4486,7 +4487,6 @@ NtAllocateVirtualMemory(IN HANDLE ProcessHandle,
                         IN ULONG Protect)
 {
     PEPROCESS Process;
-    PMEMORY_AREA MemoryArea;
     PMMVAD Vad = NULL, FoundVad;
     NTSTATUS Status;
     PMMSUPPORT AddressSpace;
@@ -4900,9 +4900,7 @@ NtAllocateVirtualMemory(IN HANDLE ProcessHandle,
     //
     // Make sure this is an ARM3 section
     //
-    MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, (PVOID)PAGE_ROUND_DOWN(PBaseAddress));
-    ASSERT(MemoryArea != NULL);
-    if (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3)
+    if (FoundVad->u.VadFlags.Spare != 0)
     {
         DPRINT1("Illegal commit of non-ARM3 section!\n");
         Status = STATUS_ALREADY_COMMITTED;
@@ -5215,7 +5213,6 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
                     IN PSIZE_T URegionSize,
                     IN ULONG FreeType)
 {
-    PMEMORY_AREA MemoryArea;
     SIZE_T PRegionSize;
     PVOID PBaseAddress;
     LONG_PTR AlreadyDecommitted, CommitReduction = 0;
@@ -5377,13 +5374,10 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     ASSERT(Vad->u.VadFlags.NoChange == 0);
 
     //
-    // Finally, make sure there is a ReactOS Mm MEMORY_AREA for this allocation
-    // and that is is an ARM3 memory area, and not a section view, as we currently
-    // don't support freeing those though this interface.
+    // Finally, make sure this is an ARM3 memory area, and not a section view,
+    // as we currently don't support freeing those though this interface.
     //
-    MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, (PVOID)StartingAddress);
-    ASSERT(MemoryArea);
-    ASSERT(MemoryArea->Type == MEMORY_AREA_OWNED_BY_ARM3);
+    ASSERT(Vad->u.VadFlags.Spare == 0);
 
     //
     //  Now we can try the operation. First check if this is a RELEASE or a DECOMMIT
@@ -5509,11 +5503,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
                                                                 Vad,
                                                                 Process);
                     Vad->u.VadFlags.CommitCharge -= CommitReduction;
-                    // For ReactOS: shrink the corresponding memory area
-                    ASSERT(Vad->StartingVpn == MemoryArea->VadNode.StartingVpn);
-                    ASSERT(Vad->EndingVpn == MemoryArea->VadNode.EndingVpn);
                     Vad->EndingVpn = (StartingAddress - 1) >> PAGE_SHIFT;
-                    MemoryArea->VadNode.EndingVpn = Vad->EndingVpn;
                 }
                 else
                 {
