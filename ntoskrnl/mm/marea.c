@@ -251,8 +251,7 @@ MmFreeMemoryArea(
         PEPROCESS CurrentProcess = PsGetCurrentProcess();
         PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
 
-        if (Process != NULL &&
-                Process != CurrentProcess)
+        if ((Process != NULL) && (Process != CurrentProcess))
         {
             KeAttachProcess(&Process->Pcb);
         }
@@ -527,7 +526,6 @@ MmDeleteProcessAddressSpace(PEPROCESS Process)
 {
 #ifndef _M_AMD64
     KIRQL OldIrql;
-    PVOID Address;
 #endif
 
     DPRINT("MmDeleteProcessAddressSpace(Process %p (%s))\n", Process,
@@ -547,6 +545,8 @@ MmDeleteProcessAddressSpace(PEPROCESS Process)
     {
         KIRQL OldIrql;
         PMMPDE pointerPde;
+        PVOID Address;
+
         /* Attach to Process */
         KeAttachProcess(&Process->Pcb);
 
@@ -554,8 +554,8 @@ MmDeleteProcessAddressSpace(PEPROCESS Process)
         OldIrql = MiAcquirePfnLock();
 
         for (Address = MI_LOWEST_VAD_ADDRESS;
-                Address < MM_HIGHEST_VAD_ADDRESS;
-                Address =(PVOID)((ULONG_PTR)Address + (PAGE_SIZE * PTE_COUNT)))
+             Address < MM_HIGHEST_VAD_ADDRESS;
+             Address =(PVOID)((ULONG_PTR)Address + (PAGE_SIZE * PTE_COUNT)))
         {
             /* At this point all references should be dead */
             if (MiQueryPageTableReferences(Address) != 0)
