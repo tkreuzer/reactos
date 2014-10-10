@@ -256,8 +256,7 @@ MmFreeMemoryArea(
         PEPROCESS CurrentProcess = PsGetCurrentProcess();
         PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
 
-        if (Process != NULL &&
-                Process != CurrentProcess)
+        if ((Process != NULL) && (Process != CurrentProcess))
         {
             KeAttachProcess(&Process->Pcb);
         }
