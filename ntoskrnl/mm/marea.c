@@ -54,68 +54,58 @@ ULONG MiStaticMemoryAreaCount;
 MM_AVL_TABLE MiRosKernelVadRoot;
 BOOLEAN MiRosKernelVadRootInitialized;
 
+VOID
+NTAPI
+MiInsertVad(IN PMMVAD Vad,
+            IN PMM_AVL_TABLE VadRoot);
+
+VOID
+NTAPI
+MiRemoveNode(IN PMMADDRESS_NODE Node,
+             IN PMM_AVL_TABLE Table);
+
+ULONG
+NTAPI
+MiMakeProtectionMask(
+    IN ULONG Protect
+);
+
+VOID
+NTAPI
+MmDeleteProcessAddressSpace2(IN PEPROCESS Process);
+
+VOID
+NTAPI
+MiDeletePte(IN PMMPTE PointerPte,
+            IN PVOID VirtualAddress,
+            IN PEPROCESS CurrentProcess,
+            IN PMMPTE PrototypePte);
+
 /* FUNCTIONS *****************************************************************/
 
-PMEMORY_AREA NTAPI
+PMEMORY_AREA
+NTAPI
 MmLocateMemoryAreaByAddress(
     PMMSUPPORT AddressSpace,
-    PVOID Address_)
+    PVOID Address)
 {
-    ULONG_PTR StartVpn = (ULONG_PTR)Address_ / PAGE_SIZE;
-    PEPROCESS Process;
-    PMM_AVL_TABLE Table;
-    PMMADDRESS_NODE Node;
-    PMEMORY_AREA MemoryArea;
-    TABLE_SEARCH_RESULT Result;
-    PMMVAD_LONG Vad;
-
-    Process = MmGetAddressSpaceOwner(AddressSpace);
-    Table = (Process != NULL) ? &Process->VadRoot : &MiRosKernelVadRoot;
-
-    Result = MiCheckForConflictingNode(StartVpn, StartVpn, Table, &Node);
-    if (Result != TableFoundNode)
-    {
-        return NULL;
-    }
-
-    Vad = (PMMVAD_LONG)Node;
-    if (Vad->u.VadFlags.Spare == 0)
-    {
-        /* Check if this is VM VAD */
-        if (Vad->ControlArea == NULL)
-        {
-            /* We store the reactos MEMORY_AREA here */
-            MemoryArea = (PMEMORY_AREA)Vad->FirstPrototypePte;
-        }
-        else
-        {
-            /* This is a section VAD. Store the MAREA here for now */
-            MemoryArea = (PMEMORY_AREA)Vad->u4.Banked;
-        }
-    }
-    else
-    {
-        MemoryArea = (PMEMORY_AREA)Node;
-    }
-
-    return MemoryArea;
+    /* Do it the simple way */
+    return MmLocateMemoryAreaByRegion(AddressSpace, Address, 1);
 }
 
 PMEMORY_AREA
 NTAPI
 MmLocateMemoryAreaByRegion(
     PMMSUPPORT AddressSpace,
-    PVOID Address_,
+    PVOID Address,
     ULONG_PTR Length)
 {
-    ULONG_PTR StartVpn = (ULONG_PTR)Address_ / PAGE_SIZE;
-    ULONG_PTR EndVpn = ((ULONG_PTR)Address_ + Length - 1) / PAGE_SIZE;
+    ULONG_PTR StartVpn = (ULONG_PTR)Address / PAGE_SIZE;
+    ULONG_PTR EndVpn = ((ULONG_PTR)Address + Length - 1) / PAGE_SIZE;
     PEPROCESS Process;
     PMM_AVL_TABLE Table;
     PMMADDRESS_NODE Node;
-    PMEMORY_AREA MemoryArea;
     TABLE_SEARCH_RESULT Result;
-    PMMVAD_LONG Vad;
 
     Process = MmGetAddressSpaceOwner(AddressSpace);
     Table = (Process != NULL) ? &Process->VadRoot : &MiRosKernelVadRoot;
@@ -126,41 +116,16 @@ MmLocateMemoryAreaByRegion(
         return NULL;
     }
 
-    Vad = (PMMVAD_LONG)Node;
-    if (Vad->u.VadFlags.Spare == 0)
+    /* Check for ARM3 VADs */
+    if (((PMMVAD_LONG)Node)->u.VadFlags.Spare == 0)
     {
-        /* Check if this is VM VAD */
-        if (Vad->ControlArea == NULL)
-        {
-            /* We store the reactos MEMORY_AREA here */
-            MemoryArea = (PMEMORY_AREA)Vad->FirstPrototypePte;
-        }
-        else
-        {
-            /* This is a section VAD. Store the MAREA here for now */
-            MemoryArea = (PMEMORY_AREA)Vad->u4.Banked;
-        }
-    }
-    else
-    {
-        MemoryArea = (PMEMORY_AREA)Node;
+        /* This is an ARM3 VAD, we do not return it! */
+        return NULL;
     }
 
-    ASSERT(MemoryArea != NULL);
-    return MemoryArea;
+    ASSERT(Node != NULL);
+    return (PMEMORY_AREA)Node;
 }
-
-VOID
-NTAPI
-MiInsertVad(IN PMMVAD Vad,
-            IN PMM_AVL_TABLE VadRoot);
-
-ULONG
-NTAPI
-MiMakeProtectionMask(
-    IN ULONG Protect
-);
-
 
 static VOID
 MmInsertMemoryArea(
@@ -253,12 +218,6 @@ MmFindGap(
 
     return (PVOID)StartingAddress;
 }
-
-VOID
-NTAPI
-MiRemoveNode(IN PMMADDRESS_NODE Node,
-             IN PMM_AVL_TABLE Table);
-
 
 /**
  * @name MmFreeMemoryArea
@@ -486,9 +445,12 @@ MmCreateMemoryArea(PMMSUPPORT AddressSpace,
         /* No need to check ARM3 owned memory areas, the range MUST be free */
         if (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3)
         {
-            if (MmLocateMemoryAreaByRegion(AddressSpace,
-                                           *BaseAddress,
-                                           tmpLength) != NULL)
+            PMMADDRESS_NODE Node;
+
+            if (MiCheckForConflictingNode((ULONG_PTR)*BaseAddress >> PAGE_SHIFT,
+                                          EndingAddress >> PAGE_SHIFT,
+                                          MmGetAddressSpaceVadTable(AddressSpace),
+                                          &Node) == TableFoundNode)
             {
                 DPRINT("Memory area already occupied\n");
                 if (!(Type & MEMORY_AREA_STATIC)) ExFreePoolWithTag(MemoryArea, TAG_MAREA);

@@ -3961,6 +3961,7 @@ MmMapViewOfSection(IN PVOID SectionObject,
         SIZE_T ImageSize;
         PMM_IMAGE_SECTION_OBJECT ImageSectionObject;
         PMM_SECTION_SEGMENT SectionSegments;
+        PMMADDRESS_NODE Node;
 
         ImageSectionObject = ((PMM_IMAGE_SECTION_OBJECT)Section->Segment);
         SectionSegments = ImageSectionObject->Segments;
@@ -4002,8 +4003,10 @@ MmMapViewOfSection(IN PVOID SectionObject,
         }
 
         /* Check there is enough space to map the section at that point. */
-        if (MmLocateMemoryAreaByRegion(AddressSpace, (PVOID)ImageBase,
-                                       PAGE_ROUND_UP(ImageSize)) != NULL)
+        if (MiCheckForConflictingNode(ImageBase >> PAGE_SHIFT,
+                                      (ImageBase + ImageSize - 1) >> PAGE_SHIFT,
+                                      MmGetAddressSpaceVadTable(AddressSpace),
+                                      &Node) == TableFoundNode)
         {
             /* Fail if the user requested a fixed base address. */
             if ((*BaseAddress) != NULL)

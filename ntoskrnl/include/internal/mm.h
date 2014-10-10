@@ -1650,6 +1650,15 @@ MmGetAddressSpaceOwner(IN PMMSUPPORT AddressSpace)
 }
 
 FORCEINLINE
+PMM_AVL_TABLE
+MmGetAddressSpaceVadTable(PMMSUPPORT AddressSpace)
+{
+    extern MM_AVL_TABLE MiRosKernelVadRoot;
+    if (AddressSpace == MmKernelAddressSpace) return &MiRosKernelVadRoot;
+    return &(CONTAINING_RECORD(AddressSpace, EPROCESS, Vm)->VadRoot);
+}
+
+FORCEINLINE
 PMMSUPPORT
 MmGetCurrentAddressSpace(VOID)
 {
