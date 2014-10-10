@@ -822,7 +822,6 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
                      IN PVOID BaseAddress,
                      IN ULONG Flags)
 {
-    PMEMORY_AREA MemoryArea;
     BOOLEAN Attached = FALSE;
     KAPC_STATE ApcState;
     PMMVAD Vad;
@@ -835,16 +834,6 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
 
     /* Check if we need to lock the address space */
     if (!Flags) MmLockAddressSpace(&Process->Vm);
-
-    /* Check for Mm Region */
-    MemoryArea = MmLocateMemoryAreaByAddress(&Process->Vm, BaseAddress);
-    if ((MemoryArea) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
-    {
-        /* Call Mm API */
-        NTSTATUS Status = MiRosUnmapViewOfSection(Process, BaseAddress, Process->ProcessExiting);
-        if (!Flags) MmUnlockAddressSpace(&Process->Vm);
-        return Status;
-    }
 
     /* Check if we should attach to the process */
     if (CurrentProcess != Process)
@@ -866,6 +855,17 @@ MiUnmapViewOfSection(IN PEPROCESS Process,
 
     /* Find the VAD for the address and make sure it's a section VAD */
     Vad = MiLocateAddress(BaseAddress);
+
+    /* Handle RosMm first */
+    if (Vad->u.VadFlags.Spare != 0)
+    {
+        /* Call RosMm API */
+        Status = MiRosUnmapViewOfSection(Process, BaseAddress, Process->ProcessExiting);
+        if (!Flags) MmUnlockAddressSpace(&Process->Vm);
+        goto Quickie;
+    }
+
+    /* Find the VAD for the address and make sure it's a section VAD */
     if (!(Vad) || (Vad->u.VadFlags.PrivateMemory))
     {
         /* Couldn't find it, or invalid VAD, fail */
@@ -1876,10 +1876,10 @@ MmGetFileNameForSection(IN PVOID Section,
     /* Make sure it's an image section */
     if (SectionObject->u.Flags.Image == 0)
     {
-        /* It's not, fail */
-        DPRINT1("Not an image section\n");
-        return STATUS_SECTION_NOT_IMAGE;
-    }
+            /* It's not, fail */
+            DPRINT1("Not an image section\n");
+            return STATUS_SECTION_NOT_IMAGE;
+        }
 
     /* Get the file object */
     FileObject = MmGetFileObjectForSection(Section);
@@ -2958,7 +2958,7 @@ MmMapViewOfArm3Section(IN PVOID SectionObject,
     if (!(*ViewSize))
     {
         /* Compute it for the caller */
-        CalculatedViewSize = Section->SizeOfSection.QuadPart -
+        CalculatedViewSize = Section->SizeOfSection.QuadPart - 
                              SectionOffset->QuadPart;
 
         /* Check if it's larger than 4GB or overflows into kernel-mode */
@@ -3926,16 +3926,16 @@ NtExtendSection(IN HANDLE SectionHandle,
 
     if (NT_SUCCESS(Status))
     {
-        _SEH2_TRY
-        {
-            /* Write back the new size */
-            *NewMaximumSize = SafeNewMaximumSize;
-        }
-        _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-        {
+    _SEH2_TRY
+    {
+        /* Write back the new size */
+        *NewMaximumSize = SafeNewMaximumSize;
+    }
+    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+    {
             Status = _SEH2_GetExceptionCode();
-        }
-        _SEH2_END;
+    }
+    _SEH2_END;
     }
 
     /* Return the status */
