@@ -142,20 +142,17 @@ MmInsertMemoryArea(
     if (marea->VadNode.EndingVpn + 1 < (ULONG_PTR)MmSystemRangeStart >> PAGE_SHIFT)
     {
         ASSERT(Process != NULL);
-        if (marea->Type != MEMORY_AREA_OWNED_BY_ARM3)
-        {
 #ifdef NEWCC
-            ASSERT(marea->Type == MEMORY_AREA_SECTION_VIEW || marea->Type == MEMORY_AREA_CACHE);
+        ASSERT((marea->Type == MEMORY_AREA_SECTION_VIEW) || (marea->Type == MEMORY_AREA_CACHE));
 #else
-            ASSERT(marea->Type == MEMORY_AREA_SECTION_VIEW);
+        ASSERT(marea->Type == MEMORY_AREA_SECTION_VIEW);
 #endif
 
-            /* Insert the VAD */
-            MiLockProcessWorkingSetUnsafe(PsGetCurrentProcess(), PsGetCurrentThread());
-            MiInsertVad(&marea->VadNode, &Process->VadRoot);
-            MiUnlockProcessWorkingSetUnsafe(PsGetCurrentProcess(), PsGetCurrentThread());
-            marea->Vad = &marea->VadNode;
-        }
+        /* Insert the VAD */
+        MiLockProcessWorkingSetUnsafe(PsGetCurrentProcess(), PsGetCurrentThread());
+        MiInsertVad(&marea->VadNode, &Process->VadRoot);
+        MiUnlockProcessWorkingSetUnsafe(PsGetCurrentProcess(), PsGetCurrentThread());
+        marea->Vad = &marea->VadNode;
     }
     else
     {

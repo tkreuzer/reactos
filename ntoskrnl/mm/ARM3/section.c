@@ -3136,7 +3136,9 @@ MmUnmapViewInSystemSpace(IN PVOID MappedBase)
     /* Was this mapped by RosMm? */
     MmLockAddressSpace(MmGetKernelAddressSpace());
     MemoryArea = MmLocateMemoryAreaByAddress(MmGetKernelAddressSpace(), MappedBase);
-    if ((MemoryArea) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
+
+    /* Was this mapped by RosMm? */
+    if (MemoryArea != NULL)
     {
         NTSTATUS Status = MiRosUnmapViewInSystemSpace(MappedBase);
         MmUnlockAddressSpace(MmGetKernelAddressSpace());
