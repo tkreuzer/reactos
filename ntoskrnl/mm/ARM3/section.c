@@ -3073,7 +3073,7 @@ MmUnmapViewInSystemSpace(IN PVOID MappedBase)
     MemoryArea = MmLocateMemoryAreaByAddress(MmGetKernelAddressSpace(), MappedBase);
 
     /* Was this mapped by RosMm? */
-    if ((MemoryArea != NULL) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
+    if (MemoryArea != NULL)
     {
         MmUnlockAddressSpace(MmGetKernelAddressSpace());
         return MiRosUnmapViewInSystemSpace(MappedBase);
