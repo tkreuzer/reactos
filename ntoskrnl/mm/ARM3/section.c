@@ -1896,6 +1896,7 @@ MmGetFileNameForAddress(IN PVOID Address,
     NTSTATUS Status;
     PMMVAD Vad;
     PFILE_OBJECT FileObject = NULL;
+    ASSERT(Address <= MM_HIGHEST_USER_ADDRESS);
 
     /* Lock address space */
     AddressSpace = MmGetCurrentAddressSpace();
@@ -1962,6 +1963,7 @@ MiQueryMemorySectionName(IN HANDLE ProcessHandle,
     UNICODE_STRING ModuleFileName;
     PMEMORY_SECTION_NAME SectionName = NULL;
     KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    ASSERT(BaseAddress <= MM_HIGHEST_USER_ADDRESS);
 
     Status = ObReferenceObjectByHandle(ProcessHandle,
                                        PROCESS_QUERY_INFORMATION,
