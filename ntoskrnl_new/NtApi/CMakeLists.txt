@@ -1,0 +1,45 @@
+
+add_library(ntos_ntapi
+    Alpc.cpp
+    Apc.cpp
+    Atom.cpp
+    Audit.cpp
+    BootConfig.cpp
+    Debug.cpp
+    Directory.cpp
+    Event.cpp
+    EventPair.cpp
+    File.cpp
+    IoCompletion.cpp
+    Job.cpp
+    KeyedEvent.cpp
+    Lpc.cpp
+    Misc.cpp
+    Mutant.cpp
+    NameSpace.cpp
+    Nls.cpp
+    NtCmApi.cpp
+    NtPoApi.cpp
+    NtTmApi.cpp
+    PerfCounter.cpp
+    PhysicalPages.cpp
+    Process.cpp
+    Profile.cpp
+    Section.cpp
+    Semaphore.cpp
+    Session.cpp
+    SymLink.cpp
+    SystemInformation.cpp
+    Thread.cpp
+    Timer.cpp
+    Token.cpp
+    Trace.cpp
+    VirtualMemory.cpp
+    Wait.cpp
+    WnfState.cpp
+    WorkerFactory.cpp
+    WriteWatch.cpp
+    Zw.S
+)
+
+add_dependencies(ntos_ntapi psdk)

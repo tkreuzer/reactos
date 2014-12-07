@@ -374,6 +374,7 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
     add_subdirectory(media)
     add_subdirectory(modules)
     add_subdirectory(ntoskrnl)
+    add_subdirectory(ntoskrnl_new)
     add_subdirectory(subsystems)
     add_subdirectory(sdk/tools/wpp)
     add_subdirectory(win32ss)
