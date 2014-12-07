@@ -1,0 +1,39 @@
+
+add_library(ntos_ke
+    Apc.cpp
+    Affinity.cpp
+    BoundCallback.cpp
+    BugCheck.cpp
+    Callback.cpp
+    Callout.cpp
+    Clock.cpp
+    Cpu.cpp
+    CrashDump.cpp
+    DeviceQueue.cpp
+    Dpc.cpp
+    Efi.cpp
+    Event.cpp
+    Exception.cpp
+    #Gate.cpp
+    GuardedMutex.cpp
+    Interrupt.cpp
+    Irql.cpp
+    Mutant.cpp
+    PerfCounter.cpp
+    Process.cpp
+    Queue.cpp
+    QueuedSpinLock.cpp
+    Semaphore.cpp
+    SmpSupport.cpp
+    SpinLock.cpp
+    Stack.cpp
+    Startup.cpp
+    SystemService.cpp
+    Thread.cpp
+    Timer.cpp
+    Wait.cpp
+    Stubs.c
+    Timer.cpp
+)
+
+add_dependencies(ntos_ke psdk bugcodes asm)
