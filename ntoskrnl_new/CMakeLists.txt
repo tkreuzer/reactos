@@ -43,6 +43,7 @@ add_subdirectory(Pcw)
 add_subdirectory(Po)
 add_subdirectory(Ps)
 add_subdirectory(Rtl)
+add_subdirectory(Se)
 add_subdirectory(Tm)
 add_subdirectory(Vf)
 add_subdirectory(Wmi)
@@ -93,6 +94,7 @@ target_link_libraries(ntoskrnl_new
     ntos_po
     ntos_ps
     ntos_rtl
+    ntos_se
     ntos_tm
     ntos_vf
     ntos_wmi

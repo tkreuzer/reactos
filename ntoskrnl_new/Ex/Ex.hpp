@@ -174,9 +174,58 @@ _When_((PoolType & (NonPagedPoolMustSucceed |
 _Post_writable_byte_size_(NumberOfBytes)
 NTKERNELAPI
 PVOID
+NTAPI
 ExAllocatePool (
     __drv_strictTypeMatch(__drv_typeExpr) _In_ POOL_TYPE PoolType,
     _In_ SIZE_T NumberOfBytes);
+
+VOID
+FASTCALL
+ExfAcquirePushLockExclusive(
+    _Inout_ PEX_PUSH_LOCK PushLock);
+#define ExAcquirePushLockExclusive ExfAcquirePushLockExclusive
+
+VOID
+FASTCALL
+ExfAcquirePushLockShared(
+    _Inout_ PEX_PUSH_LOCK PushLock);
+#define ExAcquirePushLockShared ExfAcquirePushLockShared
+
+VOID
+FASTCALL
+ExfReleasePushLock(
+    _Inout_ PEX_PUSH_LOCK PushLock);
+#define ExReleasePushLock ExfReleasePushLock
+
+VOID
+FASTCALL
+ExfReleasePushLockExclusive(
+    _Inout_ PEX_PUSH_LOCK PushLock);
+#define ExReleasePushLockExclusive ExfReleasePushLockExclusive
+
+VOID
+FASTCALL
+ExfReleasePushLockShared(
+    _Inout_ PEX_PUSH_LOCK PushLock);
+#define ExReleasePushLockShared ExfReleasePushLockShared
+
+#define InterlockedDecrementUL(Addend) \
+    (ULONG)InterlockedDecrement((PLONG)(Addend))
+
+#define InterlockedIncrementUL(Addend) \
+    (ULONG)InterlockedIncrement((PLONG)(Addend))
+
+#define InterlockedExchangeUL(Target, Value) \
+    (ULONG)InterlockedExchange((PLONG)(Target), (LONG)(Value))
+
+#define InterlockedExchangeAddUL(Addend, Value) \
+    (ULONG)InterlockedExchangeAdd((PLONG)(Addend), (LONG)(Value))
+
+#define InterlockedCompareExchangeUL(Destination, Exchange, Comperand) \
+    (ULONG)InterlockedCompareExchange((PLONG)(Destination), (LONG)(Exchange), (LONG)(Comperand))
+
+#define ExfInterlockedCompareExchange64UL(Destination, Exchange, Comperand) \
+    (ULONGLONG)ExfInterlockedCompareExchange64((PLONGLONG)(Destination), (PLONGLONG)(Exchange), (PLONGLONG)(Comperand))
 
 // reactos: ntddk_ex.h
 // http://dennisdarland.com/my_sw_projects/doxy/NARS2000_APL/html/d2/dc3/winternl_8h_source.html#l02360
