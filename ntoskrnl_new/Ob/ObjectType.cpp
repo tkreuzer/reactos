@@ -36,7 +36,7 @@ OBJECT_TYPE::InitializeClass (
     TypeInitializer.GenericMapping.GenericWrite = READ_CONTROL;
     TypeInitializer.GenericMapping.GenericExecute = READ_CONTROL;
     TypeInitializer.GenericMapping.GenericAll = STANDARD_RIGHTS_REQUIRED|1;
-    TypeInitializer.ValidAccessMask = STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|1;
+    TypeInitializer.ValidAccessMask = STANDARD_RIGHTS_ALL|1;
     TypeInitializer.RetainAccess = 0;
     TypeInitializer.PoolType = NonPagedPool;
     TypeInitializer.DefaultPagedPoolCharge = 0;
@@ -53,7 +53,7 @@ OBJECT_TYPE::InitializeClass (
     TypeInitializer.WaitObjectFlagOffset = 0;
     TypeInitializer.WaitObjectPointerOffset = 0;
 
-    /* Allocate the type object type */
+    /* Create the type object type */
     ObpTypeObjectType = new OBJECT_TYPE(&TypeInitializer);
     if (ObpTypeObjectType == NULL)
     {
@@ -209,7 +209,6 @@ ObCreateObjectType (
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    /// set ObpTypeObjectType as type
     /// set type name
 
     /* Insert it into the Type object directory */

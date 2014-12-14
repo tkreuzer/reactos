@@ -15,8 +15,10 @@ ObInitSystem(
     /* Initialize the OBJECT_TYPE class */
     OBJECT_TYPE::InitializeClass();
 
-    __debugbreak();
-    return FALSE;
+    /* Initialize the OBJECT_DIRECTORY class */
+    OBJECT_DIRECTORY::InitializeClass();
+
+    return TRUE;
 }
 
 

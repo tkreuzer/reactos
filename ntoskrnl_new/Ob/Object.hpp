@@ -75,7 +75,7 @@ protected: /// FIXME: can we make these private?
 
     typedef struct _OBJECT_HEADER_NAME_INFO
     {
-        struct _OBJECT_DIRECTORY* Directory;
+        class OBJECT_DIRECTORY* Directory;
         UNICODE_STRING Name;
         LONG ReferenceCount;
     } OBJECT_HEADER_NAME_INFO, *POBJECT_HEADER_NAME_INFO;

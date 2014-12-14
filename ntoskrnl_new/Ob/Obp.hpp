@@ -9,13 +9,11 @@
 #include "Ob.hpp"
 #include "Object.hpp"
 #include "ObjectType.hpp"
+#include "Directory.hpp"
 
-FORCEINLINE
-VOID
-_ExInitializePushLock(
-    _Out_ PEX_PUSH_LOCK Lock)
-{
-    *(PULONG_PTR)Lock = 0;
-}
-#define ExInitializePushLock _ExInitializePushLock
+extern "C"
+ULONG
+NTAPI
+MmGetSessionId (
+    _In_ PEPROCESS Process);
 

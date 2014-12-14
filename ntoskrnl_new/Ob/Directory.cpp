@@ -3,11 +3,17 @@
 
 #include "Rtl/Rtl.hpp"
 
+namespace Ob {
+
 extern "C" {
 
-POBJECT_TYPE ObpRootDirectoryObject;
+POBJECT_TYPE ObpDirectoryObjectType;
+POBJECT_DIRECTORY ObpRootDirectoryObject;
+POBJECT_DIRECTORY ObpTypeDirectoryObject;
 
 };
+
+UCHAR OBJECT_DIRECTORY::DirectoryObjectTypeIndex;
 
 /*!
     \brief String hash based on FNV hash
@@ -31,18 +37,193 @@ CalculateStringHash (
     return Hash;
 }
 
-#if 0
+
+VOID
+OBJECT_DIRECTORY::InitializeClass (
+    VOID)
+{
+    OBJECT_TYPE_INITIALIZER TypeInitializer;
+    ULONG PoolCharge;
+    NTSTATUS Status;
+
+    /* Calculate the full size for the directory object */
+    PoolCharge = sizeof(OBJECT_DIRECTORY) +
+                 sizeof(OBJECT_HEADER) +
+                 sizeof(OBJECT_HEADER_CREATOR_INFO) +
+                 sizeof(OBJECT_HEADER_NAME_INFO);
+
+    /* Setup the type initializer */
+    TypeInitializer.Length = sizeof(OBJECT_TYPE_INITIALIZER);
+    TypeInitializer.ObjectTypeFlags = 0;
+    TypeInitializer.CaseInsensitive = 1;
+    TypeInitializer.UseDefaultObject = 1;
+    TypeInitializer.SecurityRequired = 1;
+    TypeInitializer.ObjectTypeCode = 0;
+    TypeInitializer.InvalidAttributes = 0x100;
+    TypeInitializer.GenericMapping.GenericRead =
+        READ_CONTROL | DIRECTORY_TRAVERSE | DIRECTORY_QUERY;
+    TypeInitializer.GenericMapping.GenericWrite =
+        READ_CONTROL | DIRECTORY_CREATE_SUBDIRECTORY | DIRECTORY_CREATE_OBJECT;
+    TypeInitializer.GenericMapping.GenericExecute =
+        READ_CONTROL | DIRECTORY_TRAVERSE | DIRECTORY_QUERY;
+    TypeInitializer.GenericMapping.GenericAll = DIRECTORY_ALL_ACCESS;
+    TypeInitializer.ValidAccessMask = DIRECTORY_ALL_ACCESS;
+    TypeInitializer.RetainAccess = 0;
+    TypeInitializer.PoolType = PagedPool;
+    TypeInitializer.DefaultPagedPoolCharge = PoolCharge;//0x58;
+    TypeInitializer.DefaultNonPagedPoolCharge = 0x150;
+    TypeInitializer.DumpProcedure = NULL;
+    TypeInitializer.OpenProcedure = NULL;
+    TypeInitializer.CloseProcedure = CloseProcedure;
+    TypeInitializer.DeleteProcedure = NULL;
+    TypeInitializer.ParseProcedure = NULL;
+    TypeInitializer.SecurityProcedure = SeDefaultObjectMethodEx;
+    TypeInitializer.QueryNameProcedure = NULL;
+    TypeInitializer.OkayToCloseProcedure = NULL;
+    TypeInitializer.WaitObjectFlagMask = 0;
+    TypeInitializer.WaitObjectFlagOffset = 0;
+    TypeInitializer.WaitObjectPointerOffset = 0;
+
+    /* Create the directory object type */
+    ObpDirectoryObjectType = new OBJECT_TYPE(&TypeInitializer);
+    if (ObpDirectoryObjectType == NULL)
+    {
+        NT_ASSERT(FALSE);
+    }
+
+    /* Insert the directory object type into the type list */
+    ObpTypeObjectType->InsertObject(ObpDirectoryObjectType);
+
+    /* Create the root directory */
+    ObpRootDirectoryObject = new OBJECT_DIRECTORY();
+    if (ObpTypeObjectType == NULL)
+    {
+        NT_ASSERT(FALSE);
+    }
+
+    /* Create the object type directory */
+    ObpTypeDirectoryObject = new OBJECT_DIRECTORY();
+    if (ObpTypeDirectoryObject == NULL)
+    {
+        NT_ASSERT(FALSE);
+    }
+
+    /* Insert the object type directory into the root directory */
+    Status = ObpRootDirectoryObject->InsertObject(ObpTypeDirectoryObject);
+    if (!NT_SUCCESS(Status))
+    {
+        NT_ASSERT(FALSE);
+    }
+
+    /* Insert the type object type into the root directory */
+    Status = ObpRootDirectoryObject->InsertObject(ObpTypeObjectType);
+    if (!NT_SUCCESS(Status))
+    {
+        NT_ASSERT(FALSE);
+    }
+
+    /* Insert the type directory object type into the root directory */
+    Status = ObpRootDirectoryObject->InsertObject(ObpDirectoryObjectType);
+    if (!NT_SUCCESS(Status))
+    {
+        NT_ASSERT(FALSE);
+    }
+
+}
+
+void*
+OBJECT_DIRECTORY::operator new (
+    _In_ size_t Size)
+{
+    return OBJECT::operator new(Size,
+                                PagedPool,
+                                'iDbO',
+                                OBJECT::CREATOR_INFO_MASK | OBJECT::NAME_INFO_MASK);
+}
+
+OBJECT_DIRECTORY::OBJECT_DIRECTORY (
+    VOID)
+        : OBJECT(ObpTypeObjectType->GetIndex())
+{
+    RtlZeroMemory(_HashBuckets, sizeof(_HashBuckets));
+    ExInitializePushLock(&_Lock);
+    _DeviceMap = NULL;
+    _SessionId = MmGetSessionId(PsGetCurrentProcess());
+    _NamespaceEntry = NULL;
+    _Flags = 0;
+}
+
+OBJECT_DIRECTORY::~OBJECT_DIRECTORY (
+    VOID)
+{
+}
+
+VOID
+NTAPI
+OBJECT_DIRECTORY::CloseProcedure (
+    _In_opt_ PEPROCESS Process,
+    _In_ PVOID Object,
+    _In_ ULONG_PTR ProcessHandleCount,
+    _In_ ULONG_PTR SystemHandleCount)
+{
+    __debugbreak();
+}
+
+BOOLEAN
+OBJECT_DIRECTORY::FindChainLink (
+    _In_ PUNICODE_STRING ObjectName,
+    _In_ ULONG HashValue,
+    _Outptr_ PDIRECTORY_ENTRY** OutChainLink)
+{
+    PDIRECTORY_ENTRY CurrentEntry, *Bucket, *ChainLink;
+    POBJECT_HEADER_NAME_INFO NameInfo;
+
+    /* Get the hash bucket for the new entry */
+    Bucket = &_HashBuckets[HashValue % NUMBER_HASH_BUCKETS];
+
+    /* Loop all ChainLinks in this bucket */
+    for (ChainLink = Bucket;
+         *ChainLink != NULL;
+         ChainLink = &(*ChainLink)->ChainLink)
+    {
+        /* Check if we are beyond the given hash value */
+        CurrentEntry = *ChainLink;
+        if (CurrentEntry->HashValue > HashValue)
+        {
+            /* Not found */
+            break;
+        }
+
+        /* Check if the hash value matches */
+        if (CurrentEntry->HashValue == HashValue)
+        {
+            /* Compare the full object name */
+            NameInfo = CurrentEntry->Object->GetNameInfo();
+            if (RtlEqualUnicodeString(&NameInfo->Name, ObjectName, TRUE))
+            {
+                /* Name matches, found the entry */
+                *OutChainLink = ChainLink;
+                return TRUE;
+            }
+        }
+    }
+
+    /* Not found */
+    *OutChainLink = ChainLink;
+    return FALSE;
+}
+
 NTSTATUS
 OBJECT_DIRECTORY::InsertObject (
-    POBJECT Object)
+    _In_ POBJECT Object)
 {
-    PDIRECTORY_ENTRY NewEntry, *Bucket;
+    PDIRECTORY_ENTRY NewEntry, *ChainLink;
     POBJECT_HEADER_NAME_INFO NameInfo;
     ULONG HashValue;
 
     /* Get the name header and make sure the object is not inserted */
     NameInfo = Object->GetNameInfo();
-    if (NameInfo->Directory != NULL)
+    if ((NameInfo == NULL) || (NameInfo->Directory != NULL))
     {
         NT_ASSERT(NameInfo->Directory == NULL);
         return STATUS_UNSUCCESSFUL;
@@ -55,9 +236,6 @@ OBJECT_DIRECTORY::InsertObject (
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    /* Set the parent directory for the object */
-    NameInfo->Directory = this;
-
     /* Calculate the hash value for the name */
     HashValue = CalculateStringHash(&NameInfo->Name);
 
@@ -65,18 +243,80 @@ OBJECT_DIRECTORY::InsertObject (
     NewEntry->HashValue = HashValue;
     NewEntry->Object = Object;
 
-    /* Get the hash bucket for the new entry */
-    Bucket = &_HashBuckets[HashValue % NUMBER_HASH_BUCKETS];
-
-    // FIXME: prevent from inserting an object with the same name twice
-
-    /* Lock the directory and insert the new entry */
+    /* Lock the directory */
     ExAcquirePushLockExclusive(&_Lock);
-    NewEntry->ChainLink = *Bucket;
-    *Bucket = NewEntry;
+
+    /* Check for conflicting name and search for a location to insert */
+    if (FindChainLink(&NameInfo->Name, HashValue, &ChainLink) != FALSE)
+    {
+        /* Name conflict, fail */
+        ExReleasePushLockExclusive(&_Lock);
+        delete NewEntry;
+        return STATUS_DUPLICATE_NAME;
+    }
+
+    /* Set this as the directory for the object */
+    NameInfo->Directory = this;
+
+    /* Insert the new entry */
+    NewEntry->ChainLink = *ChainLink;
+    *ChainLink = NewEntry;
+
+    /* Release the directory lock */
     ExReleasePushLockExclusive(&_Lock);
 
     return STATUS_SUCCESS;
 }
-#endif
 
+NTSTATUS
+OBJECT_DIRECTORY::RemoveObject (
+    _In_ POBJECT Object)
+{
+    PDIRECTORY_ENTRY CurrentEntry, *Bucket, *ChainLink;
+    POBJECT_HEADER_NAME_INFO NameInfo;
+    ULONG HashValue;
+    NTSTATUS Status;
+
+    /* Get the name header and make sure the object is inserted */
+    NameInfo = Object->GetNameInfo();
+    if ((NameInfo == NULL) || (NameInfo->Directory == NULL))
+    {
+        NT_ASSERT(NameInfo->Directory != NULL);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    /* Calculate the hash value for the name */
+    HashValue = CalculateStringHash(&NameInfo->Name);
+
+    /* Lock the directory */
+    ExAcquirePushLockExclusive(&_Lock);
+
+    /* Get the hash bucket for the new entry */
+    Bucket = &_HashBuckets[HashValue % NUMBER_HASH_BUCKETS];
+
+    /* Default to failure */
+    Status = STATUS_UNSUCCESSFUL;
+
+    /* Loop all ChainLinks in this bucket */
+    for (ChainLink = Bucket;
+         *ChainLink != NULL;
+         ChainLink = &(*ChainLink)->ChainLink)
+    {
+        CurrentEntry = *ChainLink;
+        if (CurrentEntry->Object == Object)
+        {
+            /* Found the object, remove it */
+            *ChainLink = CurrentEntry->ChainLink;
+            delete CurrentEntry;
+            Status = STATUS_SUCCESS;
+            break;
+        }
+    }
+
+    /* Release the directory lock */
+    ExReleasePushLockExclusive(&_Lock);
+
+    return Status;
+}
+
+}; // namespace Ob

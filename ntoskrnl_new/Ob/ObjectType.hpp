@@ -2,6 +2,7 @@
 namespace Ob {
 
 typedef class OBJECT_TYPE *POBJECT_TYPE;
+extern "C" POBJECT_TYPE ObpTypeObjectType;
 
 class OBJECT_TYPE : public OBJECT
 {
@@ -49,6 +50,14 @@ public:
     VOID
     RemoveObject (
         _In_ POBJECT Object);
+
+    inline
+    UCHAR
+    GetIndex (
+        VOID)
+    {
+        return _Index;
+    }
 
 };
 
