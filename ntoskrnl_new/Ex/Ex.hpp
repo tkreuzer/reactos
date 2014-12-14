@@ -179,6 +179,15 @@ ExAllocatePool (
     __drv_strictTypeMatch(__drv_typeExpr) _In_ POOL_TYPE PoolType,
     _In_ SIZE_T NumberOfBytes);
 
+FORCEINLINE
+VOID
+_ExInitializePushLock(
+    _Out_ PEX_PUSH_LOCK Lock)
+{
+    *(PULONG_PTR)Lock = 0;
+}
+#define ExInitializePushLock _ExInitializePushLock
+
 VOID
 FASTCALL
 ExfAcquirePushLockExclusive(
