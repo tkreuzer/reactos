@@ -7,25 +7,38 @@
  *                  Timo Kreuzer
  */
 
-#define DISKREADBUFFER HEX(8E000)
-
 /*
+ * Memory layout:
+ *
+ * 00000000 - 000003FF Real mode interrupt vector table
+ * 00000400 - 000004FF BIOS Data Area
+ * 00000500 - 00000FFF Free
+ * 00001000 - 00004FFF FAT Entry buffer (16 KiB)
+ * 00005000 - 00007BDF Bootsector stack
+ * 00007BE0 - 00007BFF Bootsector data area
+ * 00007C00 - 00007DFF Bootsector code
+ * 00007E00 - 0000F7FF Free (ca 30 KiB)
+ * 0000F800 - 00087FFF Reserved for FreeLoader code (482 KiB)
+ * 00088000 - 0008FFFF Directory buffer (32 KiB)
+ * 00090000 - 0009FFFF Possibly free
+ * 000A0000 - 000FFFFF Video memory and ROM
+ *
  * Layout of a FAT volume:
  *
- * |---------------------------------------------------------
- * | * BootSector                         |
- * | * FS Information Sector (FAT32 only) | ReservedSectors
- * | * ... more reserved sectors ...      |
- * |--------------------------------------------------------
- * | * FAT 1                              | NumberOfFats
- * | * FAT 2                              |      *
- * | * [more FATs]                        | SectorsPerFat
- * |---------------------------------------------------------
- * | * Root Directory (FAT12/FAT16 only)  | MaxRootEntries / 16
- * |---------------------------------------------------------
- * | * File data                          |
- * | ....                                 |
- * |----------------------------------------
+ * |------------------------------------------------------------|
+ * | * BootSector                         |                     |
+ * | * FS Information Sector (FAT32 only) |   ReservedSectors   |
+ * | * ... more reserved sectors ...      |                     |
+ * |------------------------------------------------------------|
+ * | * FAT 1                              |    NumberOfFats     |
+ * | * FAT 2                              |         *           |
+ * | * [more FATs]                        |    SectorsPerFat    |
+ * |------------------------------------------------------------|
+ * | * Root Directory (FAT12/FAT16 only)  | MaxRootEntries / 16 |
+ * |------------------------------------------------------------|
+ * | * File data                          |                     |
+ * | ....                                 |                     |
+ * |------------------------------------------------------------|
  */
 
 /* INCLUDES ******************************************************************/
@@ -33,7 +46,8 @@
 #include <asm.inc>
 #include <freeldr/include/arch/pc/x86common.h>
 
-#define ADDRESS_FOR_DIRENTRIES HEX(10000)
+#define ADDRESS_FOR_FATENTRIES HEX(1000) // 16 KiB
+#define ADDRESS_FOR_DIRENTRIES HEX(88000) // 32 KiB
 
 SizeOfDataArea        = 32
 
@@ -42,14 +56,7 @@ BootSectorStackTop    = (HEX(7c00) - SizeOfDataArea)
 
 /* Data area offsets for uninitialized data */
 DataAreaStart         = BootSectorStackTop + 0  /* dword */
-#ifndef FAT32
-RootDirStartSector    = BootSectorStackTop + 4  /* dword */
-#endif
 BiosCHSDriveSize      = BootSectorStackTop + 8  /* dword */
-LBASectorsRead        = BootSectorStackTop + 12 /* dword */
-ReadSectorsOffset     = BootSectorStackTop + 16 /* word */
-ReadClusterOffset     = BootSectorStackTop + 18 /* word */
-PutCharsOffset        = BootSectorStackTop + 20 /* word */
 
 /* Macro for bp relative memory access to reduce code size */
 #define BP_REL(x) ss:[bp + x - BootSectorStackTop]
@@ -126,21 +133,11 @@ SerialNumber:
 VolumeLabel:
     .ascii "NO NAME    "
 FileSystem:
-    .ascii "FATxx   "
-
-
-/******************************************************************************
- *                             String data                                    *
- ******************************************************************************/
-
-filename:
-    .ascii "FREELDR SYS"
-
-msgBootFailure:
-    .ascii "Load failed!", CR, LF, NUL
-
-msgAnyKey:
-    .ascii "Press any key to reboot...", NUL
+#ifdef FAT32
+    .ascii "FAT32   "
+#else
+    .ascii "FAT     "
+#endif
 
 
 /******************************************************************************
@@ -148,6 +145,7 @@ msgAnyKey:
  * Input: DL = Boot drive                                                     *
  ******************************************************************************/
 main:
+
     /* First setup the segment registers */
     xor ax, ax
     mov ds, ax
@@ -160,21 +158,10 @@ main:
        size, when used with 32 bit instructions */
     mov bp, sp
 
-    /* Load the boot drive from the BPB into al */
-    mov al, byte ptr ds:[BootDrive]
-
-    /* Check if it's valid */
-    cmp al, HEX(0ff)
-    je .SaveBootDrive
-
-    /* Copy it into dl */
-    mov dl, al
-
-.SaveBootDrive:
     /* Save the bootdrive in the BPB */
     mov byte ptr ds:[BootDrive], dl
 
-
+#if 0
 /******************************************************************************
  *                        Get drive parameters                                *
  ******************************************************************************/
@@ -220,18 +207,18 @@ main:
     mul ecx                 // Multiply heads with the sectors per track, result in edx:eax
     mul ebx                 // Multiply the cylinders with (heads * sectors) [stored in edx:eax already]
 
-    // We now have the total number of sectors as reported
-    // by the bios in eax, so store it in our variable
+    /* We now have the total number of sectors as reported
+       by the bios in eax, so store it in our variable */
     mov dword ptr BP_REL(BiosCHSDriveSize), eax
-
+#endif
 
 /******************************************************************************
- *                             Load the FAT                                   *
+ *                 Get root directory / data area start                       *
  ******************************************************************************/
 
-    /* Load the number of first sector of the FAT into eax */
-    movzx eax, word ptr BP_REL(ReservedSectors)
-    add eax, dword ptr BP_REL(HiddenSectors)
+    /* Load the number of first sector of the FAT into ebx */
+    movzx ebx, word ptr BP_REL(ReservedSectors)
+    add ebx, dword ptr BP_REL(HiddenSectors)
 
     /* Load sector count into ecx */
 #ifdef FAT32
@@ -240,29 +227,6 @@ main:
     movzx ecx, word ptr BP_REL(SectorsPerFat)
 #endif
 
-    /* Save FAT sector and size for later use */
-    pushad
-
-    /* Point ES:DI to the memory that is later the disk read buffer for freeldr.
-       This way we cannot overwrite our FAT with freeldr data */
-    mov bx, DISKREADBUFFER / 16
-    mov es,bx
-    xor di, di
-
-    /* Read the sectors */
-    call ReadSectors
-
-    /* Restore FAT sector and size */
-    popad
-
-
-/******************************************************************************
- *                 Get root directory / data area start                       *
- ******************************************************************************/
-
-    /* Copy reserved + hidden sectors to EBX */
-    mov ebx, eax
-
     /* Calculate (NumberOfFats * SectorsPerFat) */
     movzx eax, byte ptr BP_REL(NumberOfFats)
     mul ecx
@@ -270,9 +234,14 @@ main:
     /* Add reserved sectors and hidden sectors */
     add eax, ebx
 
-#ifndef FAT32
+#ifdef FAT32
+    mov dword ptr BP_REL(DataAreaStart), eax
+
+    /* On FAT32 volumes the root dir start cluster is stored in the BPB */
+    mov eax, dword ptr BP_REL(RootDirStartCluster)
+#else
     /* Save the starting sector of the root directory */
-    mov dword ptr BP_REL(RootDirStartSector), eax
+    //mov dword ptr BP_REL(RootDirStartSector), eax
 
     /* Calculate number of sectors for the root dir:
        sectors = MaxRootEntries * 32 / 512 (rounded up!) */
@@ -283,11 +252,6 @@ main:
     /* Add the root dir start sector and save it as DataAreaStart */
     add ebx, eax
     mov dword ptr BP_REL(DataAreaStart), ebx
-#else
-    mov dword ptr BP_REL(DataAreaStart), eax
-
-    /* On FAT32 volumes the root dir start cluster is stored in the BPB */
-    mov eax, dword ptr BP_REL(RootDirStartCluster)
 #endif
 
 
@@ -296,18 +260,15 @@ main:
  ******************************************************************************/
 .SearchForFreeldr:
 
-    /* Load ES with the segment where we put the dir entries */
-    mov bx, ADDRESS_FOR_DIRENTRIES / 16
-    mov es, bx
-
-    /* Set the address offset to 0 */
-    xor di, di
+    /* Load ES and DI with the segment where we put the dir entries */
+    mov di, ADDRESS_FOR_DIRENTRIES / 16
+    mov es, di
 
 #ifdef FAT32
     /* Read the dir cluster. This loads the next cluster into EAX */
     call ReadCluster
 
-    /* Calculate the numer of dir entries in this cluster:
+    /* Calculate the number of dir entries in this cluster:
        dx = SectorsPerCluster * 512 / 32 */
     movzx dx, byte ptr ds:[SectorsPerCluster]
     shl dx, 4
@@ -316,21 +277,17 @@ main:
     xor cx, cx
     inc cx
 
-    /* Read the sector, but preserve ES */
-    push es
+    /* Read the sector */
     call ReadSectors
-    pop es
 
     /* Set entry count to entries per sector */
     mov dx, (512 / 32)
 #endif
 
-    /* Load the start offset of the dir entries into ebx */
-    xor bx, bx
+    /* Load the start offset of the dir entries into edi */
+    xor di, di
 
 .CheckDirEntry:
-    /* Load the address of the name into di */
-    mov di, bx
 
     /* If the first byte of the entry is 0 then we have reached the end */
     cmp byte ptr es:[di], ch
@@ -345,7 +302,8 @@ main:
     jz .FoundFreeLoader
 
     /* File didn't match, go to next entry */
-    add bx, 32
+    or di, 31
+    inc di
 
     /* Decrement entry count and check if we reached the end */
     dec dx
@@ -358,7 +316,7 @@ main:
 #endif
 
     /* Repeat the search process with the next sector / cluster.
-       eax is already incremented in ReadSectors / ReadCluster */
+       EAX is already adjusted in ReadSectors / ReadCluster */
     jmp .SearchForFreeldr
 
 
@@ -369,19 +327,19 @@ main:
 
     /* Load the cluster number of freeldr into eax */
 #ifdef FAT32
-#error unsupported
+    mov eax, dword ptr es:[di - 11 + HEX(12)]
+    mov ax, word ptr es:[di - 11 + HEX(1A)]
 #else
-    movzx eax, word ptr es:[bx + HEX(1A)]
+    movzx eax, word ptr es:[di - 11 + HEX(1A)]
 #endif
 
-    /* Load es:di with the freeldr start address */
-    mov dx, FREELDR_BASE / 16
-    mov es, dx
-    xor di, di
+    /* Load DI with the freeldr base segment address */
+    mov di, FREELDR_BASE / 16
 
 .LoadNextCluster:
+
     /* Load the cluster to the current address. EAX is adjusted to the next
-       cluster and ES is adjusted for the next read */
+       cluster and DI is adjusted for the next read */
     call ReadCluster
 
     /* Check if this is the last cluster in the chain */
@@ -398,43 +356,45 @@ main:
     mov  dl, byte ptr ds:[BootDrive]
     mov  dh, byte ptr ds:[BootPartition]
 
-    /* Now the complete freeldr imag is loaded.
+    /* Now the complete freeldr image is loaded.
        Jump to the realmode entry point. */
     ljmp16 0, FREELDR_BASE
 
 
 
 BootFailure:
-    mov  si, offset msgBootFailure
-    call PutChars
-
+    mov si, offset msgBootFailure
+    jmp short Reboot2
 
 Reboot:
     /* Output "Press any key to reboot" message */
-    mov  si, offset msgAnyKey
+    mov si, offset msgAnyKey
+
+Reboot2:
     call PutChars
 
     /* Wait for a keypress */
-    xor  ax, ax
-    int  HEX(16)
+    xor ax, ax
+    int HEX(16)
 
     /* Reboot */
-    int  HEX(19)
+    int HEX(19)
 
 
 /******************************************************************************
  * PROCEDURE ReadCluster                                                      *
- * Input: EAX = Cluster number, ES:DI = Target                                *
- * Modifies: EAX (next cluster number), BX, DX (undefined)                    *
+ * Input: EAX = Cluster number, DI = Target segment address                   *
+ * Modifies: EAX (next cluster), EBX, ECX, EDX (undefined), DI (adjusted)     *
  ******************************************************************************/
 ReadCluster:
 
-    pushad
+    /* Copy the cluster number to EBX */
+    mov ebx, eax
 
     // StartSector = ((Cluster - 2) * SectorsPerCluster) + SectorsForFat + ReservedSectors + HiddenSectors
     // StartSector = ((Cluster - 2) * SectorsPerCluster) + DataAreaStart
 
-    /* Substract 2 */
+    /* Subtract 2 */
     dec eax
     dec eax
 
@@ -445,64 +405,99 @@ ReadCluster:
     /* Add DataAreaStart */
     add eax, dword ptr BP_REL(DataAreaStart)
 
-    /* Call ReadSectors. EAX = SectorNumber, ECX = SectorsPerCluster */
+    /* Read the cluster. EAX = SectorNumber, ECX = SectorsPerCluster */
     call ReadSectors
 
-    /* Restore the cluster number */
-    popad
+    /* Adjust DI to point to the next cluster's target segment address */
+    shl cx, 5
+    add di, cx
 
-    /* Save ES */
-    push es
+/******************************************************************************
+ * Read the FAT range for this cluster into the FAT buffer (if required)      *
+ ******************************************************************************/
 
-#if defined(FAT32)
-#error FAT32 not implemented
-#elif defined(FAT12)
-#error FAT12 not implemented
+    /* Restore the cluster number in EAX */
+    mov eax, ebx
+
+    /* Calculate the index for a 16 KiB range of FAT entries: */
+#ifdef FAT32
+    /* 16 KiB = 4096 FAT32 entries = 2 ^ 12 FAT32 entries */
+    shr eax, 12
 #else
-    /* DX:AX = AX * 2 (since FAT16 entries are 2 bytes) */
-    mov bx, 2
-    mul bx
-
-    /* Shift DX, so that it is the segment offset: DX = DX * (64K / 16) */
-    shl dx, 12
-
-    /* Put segment address of FAT into ES */
-    add dx, DISKREADBUFFER / 16
-    mov es, dx
-
-    /* Put the FAT entry offset into EBX for indirect mov */
-    mov bx, ax
-
-    /* Put the content of the FAT entry into AX */
-    mov ax, es:[bx]
+    /* 16 KiB = 8192 FAT16 entries = 2 ^ 13 FAT16 entries */
+    shr eax, 13
 #endif
 
-    /* Restore ES and return */
-    pop  es
+    /* Check if the requested cluster is already in the FAT buffer.
+       Note: this value always fits into 16 bits. */
+    cmp ax, word ptr ds:[FirstLoadedFatEntry]
+    je .FatIsLoaded
+
+    /* Save the start cluster of the new FAT entry range */
+    mov word ptr ds:[FirstLoadedFatEntry], ax
+
+    /* Save registers */
+    pushad
+
+    /* Calculate sector offset for the 16 KiB range */
+    shl eax, 5
+
+    /* Load the number of the first sector of the FAT into ECX */
+    movzx ecx, word ptr BP_REL(ReservedSectors)
+    add ecx, dword ptr BP_REL(HiddenSectors)
+
+    /* Calculate the first sector of the FAT entry range in EAX */
+    add eax, ecx
+
+    /* Put segment address of the FAT buffer into DI */
+    mov di, ADDRESS_FOR_FATENTRIES / 16
+
+    /* Put sector count (for 16 KiB) into ecx */
+    mov cx, HEX(4000) / 512
+
+    /* Read the sectors */
+    call ReadSectors
+
+    /* Restore registers */
+    popad
+
+.FatIsLoaded:
+
+#ifdef FAT32
+    /* EBX contains the cluster number, calculate the index into the FAT range */
+    and bx, HEX(FFF)
+    shl bx, 2
+
+    /* Put the content of the FAT entry into EAX */
+    mov eax, dword ptr ds:[ADDRESS_FOR_FATENTRIES + bx]
+#else
+    /* EBX contains the cluster number, calculate the index into the FAT range */
+    and bx, HEX(1FFF)
+    add bx, bx
+
+    /* Put the content of the FAT entry into EAX */
+    movzx eax, word ptr ds:[ADDRESS_FOR_FATENTRIES + bx]
+#endif
+
+    /* Return */
     ret
 
 
 /******************************************************************************
  * PROCEDURE ReadSectors                                                      *
- * Input: EAX = Sector start number, ECX = number of sectors, ES:DI = Target  *
- * Modifies: EAX (incremented by sector count), CX = 0, ES (incremented),     *
- *           EBX undefined                                                    *
+ * Input: EAX = Sector start number, CX = number of sectors, DI = Target seg  *
+ * Modifies: EAX (incremented by sector count)                                *
+ *                                                                            *
  ******************************************************************************/
 ReadSectors:
     /* We could possibly also implement CHS, but it's currently unimplemented */
-//jmp $
-ReadSectorsLBA:
 
-    /* Copy number of sectors to ebx */
-    movzx ebx, cx
+ReadSectorsLBA:
 
     /* Since the LBA calls only support 0x7F sectors at a time,
        we will limit ourselves to 64 */
-    cmp bx, 64
-    jbe .ReadSectorsLBA2
-    mov bx, 64
-
-.ReadSectorsLBA2:
+    cmp cx, 64
+    ja BootFailure
 
     /* Save logical sector number & sector count */
     pushad
@@ -511,9 +506,9 @@ ReadSectorsLBA:
     .byte HEX(66) // size overwrite prefix for next push
     push 0    // Put 64-bit logical block address (high part) on stack
     push eax  // Put 64-bit logical block address (low part) on stack
-    push es   // Put transfer segment on stack
-    push di   // Put transfer offset on stack
-    push bx   // Set transfer count (for this round)
+    push di   // Put transfer segment on stack
+    push 0    // Put transfer offset on stack
+    push cx   // Set transfer count
     push 16   // Set size of packet to 16
 
     /* Point si to the disk address packet on stack */
@@ -521,35 +516,25 @@ ReadSectorsLBA:
 
     /* Set the drive number */
     mov dl, byte ptr ds:[BootDrive]
-//jmp $
+
     /* Call INT 13h, AH = 42h - Extended Read
        Input: ...
        Modifies: ... */
     mov ah, HEX(42)
     int HEX(13)
-//jmp $
+
     /* Check for failure */
     jc BootFailure
 
     /* Remove disk address packet from stack */
     add sp, 16
 
-    /* Adjust ES to point to the next sector */
-    shl bx, 5
-    mov ax, es
-    add ax, bx
-    mov es, ax
-
     /* Restore sector count & logical sector number */
     popad
 
     /* Adjust the sector number to the next sector we need to read
        by adding the number of sectors that we read */
-    add eax, ebx
-
-    /* Adjust remaining sectors */
-    sub cx, bx
-    jnz ReadSectorsLBA
+    add eax, ecx
 
     /* return */
     ret
@@ -571,6 +556,22 @@ PutChars:
     jnz short PutChars2
     ret
 
+
+/******************************************************************************
+ *                             String data                                    *
+ ******************************************************************************/
+
+filename:
+    .ascii "FREELDR SYS"
+
+msgBootFailure:
+    .ascii "Load failed!", CR, LF
+
+msgAnyKey:
+    .ascii "Press key to reboot...", NUL
+
+FirstLoadedFatEntry:
+    .word -1
 
 /******************************************************************************
  *               Padding and boot sector signature                            *
