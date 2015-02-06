@@ -738,6 +738,30 @@ C_ASSERT(sizeof(PARTITION_SECTOR) == SECTORSIZE);
                   FIELD_OFFSET(PARTITION_SECTOR, Signature)
                   /* Length of partition table */);
 
+    NewBootSector->HiddenSectors = PartitionList->CurrentDisk->SectorsPerTrack;
+#if 0
+    NewBootSector->BytesPerSector = PartitionList->CurrentDisk->BytesPerSector;
+    NewBootSector->SectorsPerCluster = PartitionList->CurrentDisk->BytesPerSector;
+    NewBootSector->ReservedSectors = PartitionList->CurrentDisk->BytesPerSector;
+    NewBootSector->NumberOfFats = 2;
+    NewBootSector->RootDirEntries = ???;
+    NewBootSector->TotalSectors = 0;
+    NewBootSector->MediaDescriptor = 0xf8;
+    NewBootSector->SectorsPerFat = PartitionList->CurrentDisk->BytesPerSector;
+    NewBootSector->SectorsPerTrack = BiosDiskEntry->Int13DiskData.SectorsPerTrack;
+    NewBootSector->NumberOfHeads = BiosDiskEntry->Int13DiskData.MaxHeads;
+    NewBootSector->HiddenSectors = PartitionList->CurrentDisk->SectorsPerTrack;
+    NewBootSector->TotalSectorsBig = PartitionList->CurrentDisk->SectorCount.LowPart;
+    NewBootSector->DriveNumber = PartitionList->CurrentDisk->BiosDiskNumber;
+    NewBootSector->Reserved1 = 0;
+    NewBootSector->BootSignature = 0x29;
+    NewBootSector->VolumeSerialNumber = PartitionList->CurrentDisk->BytesPerSector;
+
+PartitionList->CurrentPartition->HiddenSectors;
+PartitionList->CurrentPartition->PartitionIndex
+PartitionList->CurrentDisk->LayoutBuffer.PartitionEntry[PartitionList->CurrentPartition->PartitionIndex].
+#endif
+
     /* Free the original bootsector */
     FreeBootCode(&OrigBootSector);
 

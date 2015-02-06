@@ -1503,7 +1503,7 @@ IsDiskSizeValid(PPARTENTRY PartEntry)
     {
         /* Partition is too small so ask for another one */
         DPRINT1("Partition is too small (size: %I64u MB), required disk space is %lu MB\n", size, USetupData.RequiredPartitionDiskSpace);
-        return FALSE;
+        return TRUE;//FALSE;
     }
     else
     {
