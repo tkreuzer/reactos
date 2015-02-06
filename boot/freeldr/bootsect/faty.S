@@ -161,7 +161,40 @@ main:
     /* Save the bootdrive in the BPB */
     mov byte ptr ds:[BootDrive], dl
 
-#if 0
+
+/******************************************************************************
+ *                        Check for INT 13h extensions                        *
+ ******************************************************************************/
+
+    /* Call INT 13h, AH = 41h - INT 13 extensions installation check
+        AH = 41h
+        BX = 55AAh
+        DL = drive */
+    mov  ah, HEX(41)
+    mov  bx, HEX(55AA)
+    int  HEX(13)
+
+    /* Return from INT 13h:
+        CF set on error
+            AH = 01h (invalid function)
+        CF clear if successful
+            AH = major version of extensions
+            BX = AA55h if installed
+            AL = internal use
+            CX = API subset support bitmap
+                Bit 0, extended disk access functions
+            DH = extension version */
+
+    /* Use CHS if extensions are not supported */
+    jc NoInt13Ext
+    cmp bx, HEX(0aa55)
+    jne NoInt13Ext
+
+    /* Save API support bits */
+    mov byte ptr [Int13APISupportBits], cl
+
+NoInt13Ext:
+jmp $
 /******************************************************************************
  *                        Get drive parameters                                *
  ******************************************************************************/
@@ -188,6 +221,11 @@ main:
     /* Check for failure */
     jc BootFailure
 
+    shr dx, 8
+    inc dx
+    mov word ptr [NumberOfHeads], dx
+
+#if 0
 
 /******************************************************************************
  *                         Calculate drive size                               *
@@ -269,7 +307,7 @@ main:
     call ReadCluster
 
     /* Calculate the number of dir entries in this cluster:
-       dx = SectorsPerCluster * 512 / 32 */
+       DX = SectorsPerCluster * 512 / 32 */
     movzx dx, byte ptr ds:[SectorsPerCluster]
     shl dx, 4
 #else
@@ -284,7 +322,7 @@ main:
     mov dx, (512 / 32)
 #endif
 
-    /* Load the start offset of the dir entries into edi */
+    /* Load the start offset of the dir entries into DI */
     xor di, di
 
 .CheckDirEntry:
@@ -353,8 +391,8 @@ main:
     jb .LoadNextCluster
 
     /* Load boot drive into DL, boot partition into DH */
-    mov  dl, byte ptr ds:[BootDrive]
-    mov  dh, byte ptr ds:[BootPartition]
+    mov dl, byte ptr ds:[BootDrive]
+    mov dh, byte ptr ds:[BootPartition]
 
     /* Now the complete freeldr image is loaded.
        Jump to the realmode entry point. */
@@ -407,10 +445,6 @@ ReadCluster:
 
     /* Read the cluster. EAX = SectorNumber, ECX = SectorsPerCluster */
     call ReadSectors
-
-    /* Adjust DI to point to the next cluster's target segment address */
-    shl cx, 5
-    add di, cx
 
 /******************************************************************************
  * Read the FAT range for this cluster into the FAT buffer (if required)      *
@@ -486,18 +520,22 @@ ReadCluster:
 /******************************************************************************
  * PROCEDURE ReadSectors                                                      *
  * Input: EAX = Sector start number, CX = number of sectors, DI = Target seg  *
- * Modifies: EAX (incremented by sector count)                                *
+ * Modifies: EAX (incremented by sector count), DI (adjusted)                 *
  *                                                                            *
  ******************************************************************************/
 ReadSectors:
-    /* We could possibly also implement CHS, but it's currently unimplemented */
-
-ReadSectorsLBA:
-
+#if DBG
     /* Since the LBA calls only support 0x7F sectors at a time,
        we will limit ourselves to 64 */
     cmp cx, 64
     ja BootFailure
+#endif
+jmp $
+    test byte ptr [Int13APISupportBits], 1
+    //jz ReadSectorsCHS
+    jmp ReadSectorsCHS
+
+ReadSectorsLBA:
 
     /* Save logical sector number & sector count */
     pushad
@@ -518,10 +556,16 @@ ReadSectorsLBA:
     mov dl, byte ptr ds:[BootDrive]
 
     /* Call INT 13h, AH = 42h - Extended Read
-       Input: ...
-       Modifies: ... */
+        DL = drive number
+        DS:SI -> disk address packet */
     mov ah, HEX(42)
     int HEX(13)
+
+    /* Return from INT 13h:
+        CF clear if successful / AH = 00h
+        CF set on error / AH = error code
+        Disk address packet's block count field set to number of blocks
+        successfully transferred */
 
     /* Check for failure */
     jc BootFailure
@@ -532,13 +576,80 @@ ReadSectorsLBA:
     /* Restore sector count & logical sector number */
     popad
 
-    /* Adjust the sector number to the next sector we need to read
+    /* Adjust the sector number in EAX to the next sector we need to read
        by adding the number of sectors that we read */
     add eax, ecx
+
+    /* Adjust DI to point to the next cluster's target segment address */
+    shl cx, 5
+    add di, cx
 
     /* return */
     ret
 
+ReadSectorsCHS:
+
+    /* Save all registers */
+    pushad
+
+    /* Divide logical sector number by SectorsPerTrack */
+    shld edx, eax, 16
+    div word ptr BP_REL(SectorsPerTrack)
+
+    /* Copy remainder (sector number) into CL and make it 1 based */
+    mov cx, dx
+    inc cx
+
+    /* Divide logical track number by number of heads */
+    shld edx, eax, 16
+    div word ptr BP_REL(NumberOfHeads)
+
+    /* Copy remainder (head number) into DH */
+    mov dh, dl
+
+    /* Copy low 8 bits of cylinder number to CH */
+    mov ch, al
+
+    /* Add high 2 bits of cylinder number into bits 6-7 of CL */
+    shl ah, 6
+    or cl, ah
+
+    /* Load boot drive into DL */
+    mov dl, byte ptr BP_REL(BootDrive)
+
+    /* Load target segment into ES and set offset in BX to 0 */
+    mov es, di
+    xor bx, bx
+
+    /* Call INT 13h, AH = 02h - Read disk sectors
+        AH = 02h
+        AL = number of sectors to read (must be nonzero)
+        CH = low eight bits of cylinder number
+        CL = sector number 1-63 (bits 0-5)
+             high two bits of cylinder (bits 6-7, hard disk only)
+        DH = head number
+        DL = drive number (bit 7 set for hard disk)
+        ES:BX -> data buffer */
+    mov ax, HEX(0201)
+    int HEX(13)
+
+    /* Check for failure */
+    jc BootFailure
+
+    /* Restore all registers */
+    popad
+
+    /* Next sector */
+    inc eax
+
+    /* Adjust buffer segment address */
+    add di, 32
+
+    /* Loop until all sectors are read */
+    loop ReadSectorsCHS
+
+    /* return */
+    ret
 
 
 /******************************************************************************
@@ -572,6 +683,9 @@ msgAnyKey:
 
 FirstLoadedFatEntry:
     .word -1
+
+Int13APISupportBits:
+    .byte 0
 
 /******************************************************************************
  *               Padding and boot sector signature                            *
