@@ -10,6 +10,7 @@
 #include "Object.hpp"
 #include "ObjectType.hpp"
 #include "Directory.hpp"
+#include "FastRef.hpp"
 
 extern "C"
 ULONG

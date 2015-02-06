@@ -91,9 +91,6 @@ OBJECT_DIRECTORY::InitializeClass (
         NT_ASSERT(FALSE);
     }
 
-    /* Insert the directory object type into the type list */
-    ObpTypeObjectType->InsertObject(ObpDirectoryObjectType);
-
     /* Create the root directory */
     ObpRootDirectoryObject = new OBJECT_DIRECTORY();
     if (ObpTypeObjectType == NULL)
@@ -115,15 +112,15 @@ OBJECT_DIRECTORY::InitializeClass (
         NT_ASSERT(FALSE);
     }
 
-    /* Insert the type object type into the root directory */
-    Status = ObpRootDirectoryObject->InsertObject(ObpTypeObjectType);
+    /* Insert the type object type into the object type directory */
+    Status = ObpTypeDirectoryObject->InsertObject(ObpTypeObjectType);
     if (!NT_SUCCESS(Status))
     {
         NT_ASSERT(FALSE);
     }
 
-    /* Insert the type directory object type into the root directory */
-    Status = ObpRootDirectoryObject->InsertObject(ObpDirectoryObjectType);
+    /* Insert the directory object type into the object type directory */
+    Status = ObpTypeDirectoryObject->InsertObject(ObpDirectoryObjectType);
     if (!NT_SUCCESS(Status))
     {
         NT_ASSERT(FALSE);
@@ -135,15 +132,23 @@ void*
 OBJECT_DIRECTORY::operator new (
     _In_ size_t Size)
 {
-    return OBJECT::operator new(Size,
-                                PagedPool,
-                                'iDbO',
-                                OBJECT::CREATOR_INFO_MASK | OBJECT::NAME_INFO_MASK);
+    NTSTATUS Status;
+    PVOID Object;
+
+    Status = ObpDirectoryObjectType->CreateObject(&Object,
+                                                  Size,
+                                                  0, // PagedPoolCharge,
+                                                  0); // NonPagedPoolCharge
+    if (!NT_SUCCESS(Status))
+    {
+        return NULL;
+    }
+
+    return Object;
 }
 
 OBJECT_DIRECTORY::OBJECT_DIRECTORY (
     VOID)
-        : OBJECT(ObpTypeObjectType->GetIndex())
 {
     RtlZeroMemory(_HashBuckets, sizeof(_HashBuckets));
     ExInitializePushLock(&_Lock);
@@ -302,10 +307,11 @@ OBJECT_DIRECTORY::RemoveObject (
          *ChainLink != NULL;
          ChainLink = &(*ChainLink)->ChainLink)
     {
+        /* Get the directory entry and check if it's the one we want */
         CurrentEntry = *ChainLink;
         if (CurrentEntry->Object == Object)
         {
-            /* Found the object, remove it */
+            /* Found the directory entry, remove it */
             *ChainLink = CurrentEntry->ChainLink;
             delete CurrentEntry;
             Status = STATUS_SUCCESS;

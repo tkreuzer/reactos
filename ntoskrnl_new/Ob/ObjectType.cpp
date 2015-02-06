@@ -70,15 +70,15 @@ void*
 OBJECT_TYPE::operator new (
     _In_ size_t Size)
 {
-    return OBJECT::operator new(Size,
-                                NonPagedPool,
-                                'TjbO',
-                                OBJECT::CREATOR_INFO_MASK | OBJECT::NAME_INFO_MASK);
+    return OBJECT::Allocate(NonPagedPool,
+                            Size,
+                            'TjbO',
+                            TypeObjectTypeIndex,
+                            OBJECT::CREATOR_INFO_MASK | OBJECT::NAME_INFO_MASK);
 }
 
 OBJECT_TYPE::OBJECT_TYPE (
     POBJECT_TYPE_INITIALIZER TypeInitializer)
-        : OBJECT(TypeObjectTypeIndex)
 {
     POBJECT_HEADER_NAME_INFO NameInfo;
     PUNICODE_STRING TypeName;
@@ -108,10 +108,17 @@ OBJECT_TYPE::OBJECT_TYPE (
 
     /* Get a type index */
     _Index = InterlockedIncrement(&NextObjectIndex);
-    ASSERT(_Index < MAX_OBJECT_TYPES);
+    NT_ASSERT(_Index < MAX_OBJECT_TYPES);
 
     /* Set the global object type table entry */
     ObjectTypeTable[_Index] = this;
+
+    /* Check if the type object type is already created */
+    if (ObpTypeObjectType != NULL)
+    {
+        /* Insert the type object into the type list */
+        ObpTypeObjectType->InsertObject(this);
+    }
 
 }
 
@@ -123,6 +130,47 @@ OBJECT_TYPE::~OBJECT_TYPE (
 }
 
 NTSTATUS
+OBJECT_TYPE::CreateObject (
+    _Out_ PVOID *OutObject,
+    _In_ SIZE_T ObjectSize,
+    _In_opt_ SIZE_T PagedPoolCharge,
+    _In_opt_ SIZE_T NonPagedPoolCharge)
+{
+    UCHAR InfoMask;
+    POBJECT Object;
+
+    InfoMask = 0;
+    if ((PagedPoolCharge != 0) || (NonPagedPoolCharge != 0))
+    {
+        InfoMask |= QUOTA_INFO_MASK;
+    }
+
+    /// \todo Handle PagedPoolCharge and NonPagedPoolCharge
+
+    /* Allocate the object */
+    Object = OBJECT::Allocate(_TypeInfo.PoolType,
+                              ObjectSize,
+                              _Key,
+                              _Index,
+                              InfoMask);
+    if (Object == NULL)
+    {
+        *OutObject = NULL;
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    /* Check if a type list is to be maintained */
+    if (_TypeInfo.MaintainTypeList)
+    {
+        /* Insert the header into the type's list */
+        InsertObject(Object);
+    }
+
+    *OutObject = Object;
+    return STATUS_SUCCESS;
+}
+
+VOID
 OBJECT_TYPE::InsertObject (
     _In_ POBJECT Object)
 {
@@ -130,10 +178,7 @@ OBJECT_TYPE::InsertObject (
 
     /* Get the object's creator info header */
     CreatorInfo = Object->GetCreatorInfo();
-    if (CreatorInfo == NULL)
-    {
-        return STATUS_UNSUCCESSFUL;
-    }
+    NT_ASSERT(CreatorInfo != NULL);
 
     /* Lock the object type */
     ExAcquirePushLockExclusive(&_TypeLock);
@@ -150,8 +195,6 @@ OBJECT_TYPE::InsertObject (
 
     /* Unlock the object type */
     ExReleasePushLockExclusive(&_TypeLock);
-
-    return STATUS_SUCCESS;
 }
 
 VOID

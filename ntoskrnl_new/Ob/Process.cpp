@@ -7,6 +7,9 @@ NTAPI
 ObGetProcessHandleCount(
     IN PEPROCESS Process)
 {
+    //Ps::PPROCESS ProcessObject = reinterpret_cast<Ps::PPROCESS>(Process);
+    //HandleTable = ProcessObject->GetHandleTable();
+    //return HandleTable ? HandleTable->GetHandleCount() : 0;
     __debugbreak();
     return 0;
 }
