@@ -157,33 +157,11 @@ private:
 
 protected:
 
-    OBJECT (
-        _In_ UCHAR TypeIndex);
-
     ~OBJECT (
         VOID);
 
 
 public:
-
-    void*
-    operator new (
-        _In_ size_t DefaultSize,
-        _In_ POOL_TYPE PoolType,
-        _In_ SIZE_T ObjectSize,
-        _In_ ULONG PoolTag,
-        _In_ UCHAR InfoMask);
-
-    inline
-    void*
-    operator new (
-        _In_ size_t Size,
-        _In_ POOL_TYPE PoolType,
-        _In_ ULONG PoolTag,
-        _In_ UCHAR InfoMask)
-    {
-        return operator new(Size, PoolType, Size, PoolTag, InfoMask);
-    }
 
     void
     operator delete (
@@ -193,6 +171,15 @@ public:
     VOID
     InitializeClass (
         VOID);
+
+    static
+    POBJECT
+    Allocate (
+        _In_ POOL_TYPE PoolType,
+        _In_ SIZE_T ObjectSize,
+        _In_ ULONG PoolTag,
+        _In_ UCHAR TypeIndex,
+        _In_ UCHAR InfoMask);
 
     inline
     POBJECT_HEADER
@@ -252,10 +239,37 @@ public:
             GetHeaderInfo(HANDLE_INFO));
     }
 
-    void
+    inline
+    VOID
+    AddRef (
+        _In_ LONG Increment)
+    {
+        NT_ASSERT(Increment > 0);
+        POBJECT_HEADER ObjectHeader = GetObjectHeader();
+        InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount, Increment);
+    }
+
+    inline
+    VOID
+    AddRef (
+        VOID)
+    {
+        AddRef(1);
+    }
+
+    VOID
+    Release (
+        _In_ LONG Decrement)
+    {
+        __debugbreak();
+    }
+
+    inline
+    VOID
     Release (
         VOID)
     {
+        Release(1);
     }
 
 };

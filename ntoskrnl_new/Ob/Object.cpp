@@ -31,15 +31,21 @@ OBJECT::InitializeClass (
     }
 }
 
-void*
-OBJECT::operator new (
-    _In_ size_t DefaultSize,
+OBJECT::~OBJECT (
+    VOID)
+{
+}
+
+POBJECT
+OBJECT::Allocate (
     _In_ POOL_TYPE PoolType,
     _In_ SIZE_T ObjectSize,
     _In_ ULONG PoolTag,
+    _In_ UCHAR TypeIndex,
     _In_ UCHAR InfoMask)
 {
     POBJECT_HEADER ObjectHeader;
+    POBJECT Object;
     SIZE_T HeaderSize;
     PVOID Base;
 
@@ -54,55 +60,38 @@ OBJECT::operator new (
         return NULL;
     }
 
-    /// This is pretty hacky, but works...
+    /* Calculate the start of the object header */
     ObjectHeader = reinterpret_cast<POBJECT_HEADER>(
         reinterpret_cast<PUCHAR>(Base) + HeaderInfoSize[InfoMask]);
-    ObjectHeader->InfoMask = InfoMask;
-
-    /* Return the pointer to the object body! */
-    return reinterpret_cast<void*>(reinterpret_cast<PUCHAR>(Base) + HeaderSize);
-}
-
-OBJECT::OBJECT (
-    _In_ UCHAR TypeIndex)
-{
-    POBJECT_HEADER ObjectHeader;
 
     /* Initialize the object header */
-    ObjectHeader = GetObjectHeader();
     ExInitializePushLock(&ObjectHeader->Lock);
     ObjectHeader->PointerCount = 0;
     ObjectHeader->HandleCount = 0;
     ObjectHeader->TypeIndex = TypeIndex;
     ObjectHeader->TraceFlags = 0;
+    ObjectHeader->InfoMask = InfoMask;
     ObjectHeader->Flags = 0;
-    //ObjectHeader->InfoMask = InfoMask; /// currently set by operator new
+    ObjectHeader->InfoMask = InfoMask;
     ObjectHeader->ObjectCreateInfo = NULL;
     ObjectHeader->SecurityDescriptor = NULL;
+
+    /* Get a pointer to the object */
+    Object = reinterpret_cast<POBJECT>(&ObjectHeader->Body);
 
     /* Check if there is a creator info */
     if (ObjectHeader->InfoMask & CREATOR_INFO_MASK)
     {
-        POBJECT_HEADER_CREATOR_INFO CreatorInfo = GetCreatorInfo();
+        POBJECT_HEADER_CREATOR_INFO CreatorInfo = Object->GetCreatorInfo();
         CreatorInfo->CreatorUniqueProcess = 0;
         CreatorInfo->CreatorBackTraceIndex = 0;
         InitializeListHead(&CreatorInfo->TypeList);
-#if 0
-        /* Check if a type list is to be maintained */
-        if (ObjectType->TypeInfo.MaintainTypeList)
-        {
-            /* Insert the header into the object type's list */
-            ExAcquirePushLockExclusive(&ObjectType->TypeLock);
-            InsertTailList(&ObjectType->TypeList, &CreatorInfo->TypeList);
-            ExReleasePushLockExclusive(&ObjectType->TypeLock);
-        }
-#endif
     }
 
     /* Check if there is a name info */
     if (ObjectHeader->InfoMask & NAME_INFO_MASK)
     {
-        POBJECT_HEADER_NAME_INFO NameInfo = GetNameInfo();
+        POBJECT_HEADER_NAME_INFO NameInfo = Object->GetNameInfo();
         NameInfo->Directory = NULL;
         NameInfo->ReferenceCount = 0;
         NameInfo->Name.Buffer = NULL;
@@ -128,11 +117,8 @@ OBJECT::OBJECT (
         __debugbreak();
     }
 
-}
-
-OBJECT::~OBJECT (
-    VOID)
-{
+    /* Return the pointer to the object body! */
+    return Object;
 }
 
 PVOID
@@ -197,8 +183,29 @@ ObCreateObject (
     _In_ ULONG NonPagedPoolCharge,
     _Outptr_ PVOID *Object)
 {
+    NTSTATUS Status;
+
     __debugbreak();
+
+    // Capture object attributes
+
+
+    Status = ObjectType->CreateObject(Object,
+                                      ObjectSize,
+                                      PagedPoolCharge,
+                                      NonPagedPoolCharge);
+
     return STATUS_NOT_IMPLEMENTED;
+}
+
+extern "C"
+PVOID
+NTAPI
+ObQueryNameInfo (
+    _In_ PVOID ObjectPtr)
+{
+    POBJECT Object = static_cast<POBJECT>(ObjectPtr);
+    return Object->GetNameInfo();
 }
 
 extern "C"

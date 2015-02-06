@@ -44,6 +44,13 @@ public:
         VOID);
 
     NTSTATUS
+    CreateObject (
+        _Out_ PVOID *Object,
+        _In_ SIZE_T ObjectSize,
+        _In_opt_ SIZE_T PagedPoolCharge,
+        _In_opt_ SIZE_T NonPagedPoolCharge);
+
+    VOID
     InsertObject (
         _In_ POBJECT Object);
 

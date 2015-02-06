@@ -35,6 +35,7 @@ private:
     } DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
 
     static const ULONG NUMBER_HASH_BUCKETS = 37;
+    static UCHAR DirectoryObjectTypeIndex;
 
     PDIRECTORY_ENTRY _HashBuckets[NUMBER_HASH_BUCKETS];
     EX_PUSH_LOCK _Lock;
@@ -61,8 +62,6 @@ private:
         _In_ PUNICODE_STRING ObjectName,
         _In_ ULONG HashValue,
         _Outptr_ PDIRECTORY_ENTRY** OutChainLink);
-
-    static UCHAR DirectoryObjectTypeIndex;
 
 public:
 
