@@ -9,7 +9,7 @@ POBJECT_TYPE ObpTypeObjectType;
 
 } // extern "C"
 
-LONG OBJECT_TYPE::NextObjectIndex = 0;
+LONG OBJECT_TYPE::NextObjectIndex = -1;
 POBJECT_TYPE OBJECT_TYPE::ObjectTypeTable[MAX_OBJECT_TYPES];
 
 INIT_FUNCTION
@@ -17,6 +17,7 @@ VOID
 OBJECT_TYPE::InitializeClass (
     VOID)
 {
+    static const UNICODE_STRING TypeName = RTL_CONSTANT_STRING(L"Type");
     OBJECT_TYPE_INITIALIZER TypeInitializer;
     ULONG PoolCharge;
 
@@ -27,17 +28,15 @@ OBJECT_TYPE::InitializeClass (
                  sizeof(OBJECT_HEADER_NAME_INFO);
 
     /* Setup the type initializer */
-    TypeInitializer.Length = sizeof(OBJECT_TYPE_INITIALIZER);
-    TypeInitializer.ObjectTypeFlags = 0;
+    RtlZeroMemory(&TypeInitializer, sizeof(TypeInitializer));
+    TypeInitializer.Length = sizeof(TypeInitializer);
     TypeInitializer.MaintainTypeList = 1;
-    TypeInitializer.ObjectTypeCode = 0;
     TypeInitializer.InvalidAttributes = 0x100;
     TypeInitializer.GenericMapping.GenericRead = READ_CONTROL;
     TypeInitializer.GenericMapping.GenericWrite = READ_CONTROL;
     TypeInitializer.GenericMapping.GenericExecute = READ_CONTROL;
     TypeInitializer.GenericMapping.GenericAll = STANDARD_RIGHTS_REQUIRED|1;
     TypeInitializer.ValidAccessMask = STANDARD_RIGHTS_ALL|1;
-    TypeInitializer.RetainAccess = 0;
     TypeInitializer.PoolType = NonPagedPool;
     TypeInitializer.DefaultPagedPoolCharge = 0;
     TypeInitializer.DefaultNonPagedPoolCharge = PoolCharge;
@@ -49,12 +48,9 @@ OBJECT_TYPE::InitializeClass (
     TypeInitializer.SecurityProcedure = SeDefaultObjectMethodEx;
     TypeInitializer.QueryNameProcedure = NULL;
     TypeInitializer.OkayToCloseProcedure = NULL;
-    TypeInitializer.WaitObjectFlagMask = 0;
-    TypeInitializer.WaitObjectFlagOffset = 0;
-    TypeInitializer.WaitObjectPointerOffset = 0;
 
     /* Create the type object type */
-    ObpTypeObjectType = new OBJECT_TYPE(&TypeInitializer);
+    ObpTypeObjectType = new OBJECT_TYPE(&TypeName, &TypeInitializer);
     if (ObpTypeObjectType == NULL)
     {
         NT_ASSERT(FALSE);
@@ -68,29 +64,28 @@ OBJECT_TYPE::InitializeClass (
 
 void*
 OBJECT_TYPE::operator new (
-    _In_ size_t Size)
+    _In_ size_t Size) throw()
 {
     return OBJECT::Allocate(NonPagedPool,
                             Size,
                             'TjbO',
                             TypeObjectTypeIndex,
-                            OBJECT::CREATOR_INFO_MASK | OBJECT::NAME_INFO_MASK);
+                            CREATOR_INFO_MASK | NAME_INFO_MASK);
 }
 
 OBJECT_TYPE::OBJECT_TYPE (
-    POBJECT_TYPE_INITIALIZER TypeInitializer)
+    _In_ PCUNICODE_STRING TypeName,
+    _In_ POBJECT_TYPE_INITIALIZER TypeInitializer)
+        : OBJECT(TypeName)
 {
-    POBJECT_HEADER_NAME_INFO NameInfo;
-    PUNICODE_STRING TypeName;
-
-    NameInfo = GetNameInfo();
-    TypeName = &NameInfo->Name;
+    PCHAR KeyString;
 
     /* Construct a key / pooltag from the type name */
-    ((PCHAR)&_Key)[0] = (TypeName->Length >= 2) ? (CHAR)TypeName->Buffer[0] : ' ';
-    ((PCHAR)&_Key)[1] = (TypeName->Length >= 4) ? (CHAR)TypeName->Buffer[1] : ' ';
-    ((PCHAR)&_Key)[2] = (TypeName->Length >= 6) ? (CHAR)TypeName->Buffer[2] : ' ';
-    ((PCHAR)&_Key)[3] = (TypeName->Length >= 8) ? (CHAR)TypeName->Buffer[3] : ' ';
+    KeyString = (PCHAR)&_Key;
+    KeyString[0] = (TypeName->Length >= 2) ? (CHAR)TypeName->Buffer[0] : ' ';
+    KeyString[1] = (TypeName->Length >= 4) ? (CHAR)TypeName->Buffer[1] : ' ';
+    KeyString[2] = (TypeName->Length >= 6) ? (CHAR)TypeName->Buffer[2] : ' ';
+    KeyString[3] = (TypeName->Length >= 8) ? (CHAR)TypeName->Buffer[3] : ' ';
 
     /* Initialize the basic type fields */
     InitializeListHead(&_TypeList);
@@ -112,14 +107,6 @@ OBJECT_TYPE::OBJECT_TYPE (
 
     /* Set the global object type table entry */
     ObjectTypeTable[_Index] = this;
-
-    /* Check if the type object type is already created */
-    if (ObpTypeObjectType != NULL)
-    {
-        /* Insert the type object into the type list */
-        ObpTypeObjectType->InsertObject(this);
-    }
-
 }
 
 OBJECT_TYPE::~OBJECT_TYPE (
@@ -133,6 +120,7 @@ NTSTATUS
 OBJECT_TYPE::CreateObject (
     _Out_ PVOID *OutObject,
     _In_ SIZE_T ObjectSize,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_opt_ SIZE_T PagedPoolCharge,
     _In_opt_ SIZE_T NonPagedPoolCharge)
 {
@@ -145,10 +133,20 @@ OBJECT_TYPE::CreateObject (
         InfoMask |= QUOTA_INFO_MASK;
     }
 
+    if (ObjectAttributes->ObjectName->Length != 0)
+    {
+        InfoMask |= NAME_INFO_MASK;
+    }
+
     /// \todo Handle PagedPoolCharge and NonPagedPoolCharge
 
+    if (_TypeInfo.MaintainTypeList)
+    {
+        InfoMask |= CREATOR_INFO_MASK;
+    }
+
     /* Allocate the object */
-    Object = OBJECT::Allocate(_TypeInfo.PoolType,
+    Object = (POBJECT)OBJECT::Allocate(_TypeInfo.PoolType,
                               ObjectSize,
                               _Key,
                               _Index,
@@ -239,13 +237,20 @@ ObCreateObjectType (
     _In_ PUNICODE_STRING TypeName,
     _In_ POBJECT_TYPE_INITIALIZER ObjectTypeInitializer,
     _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
-    _Outptr_ POBJECT_TYPE *ObjectType)
+    _Outptr_ POBJECT_TYPE *OutObjectType)
 {
     POBJECT_TYPE ObjectType;
     NTSTATUS Status;
+__debugbreak();
+
+    Status = ObpTypeObjectType->CreateObject((PVOID*)&ObjectType,
+                                             sizeof(OBJECT_TYPE),
+                                             NULL, //ObjectAttributes,
+                                             0, //PagedPoolCharge,
+                                             0); //NonPagedPoolCharge)
 
     /* Allocate a type object */
-    ObjectType = new OBJECT_TYPE(ObjectTypeInitializer);
+    ObjectType = new OBJECT_TYPE(TypeName, ObjectTypeInitializer);
     if (ObjectType == NULL)
     {
         *OutObjectType = NULL;
@@ -255,7 +260,7 @@ ObCreateObjectType (
     /// set type name
 
     /* Insert it into the Type object directory */
-    Status = 0;// TypeDirectoryObject->InsertEntry(ObjectType);
+    Status = STATUS_SUCCESS;// TypeDirectoryObject->InsertEntry(ObjectType);
     if (!NT_SUCCESS(Status))
     {
         /* Delete the type object and return failure status */

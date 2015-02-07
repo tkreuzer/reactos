@@ -68,7 +68,7 @@ protected: /// FIXME: can we make these private?
     {
         union
         {
-            struct _OBJECT_HANDLE_COUNT_DATABASE* HandleCountDataBase;
+            POBJECT_HANDLE_COUNT_DATABASE HandleCountDataBase;
             OBJECT_HANDLE_COUNT_ENTRY SingleEntry;
         };
     } OBJECT_HEADER_HANDLE_INFO, *POBJECT_HEADER_HANDLE_INFO;
@@ -157,6 +157,9 @@ private:
 
 protected:
 
+    OBJECT (
+        _In_ PCUNICODE_STRING ObjectName);
+
     ~OBJECT (
         VOID);
 
@@ -173,7 +176,7 @@ public:
         VOID);
 
     static
-    POBJECT
+    PVOID
     Allocate (
         _In_ POOL_TYPE PoolType,
         _In_ SIZE_T ObjectSize,

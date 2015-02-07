@@ -2,6 +2,7 @@
 #include "Obp.hpp"
 
 #include "Rtl/Rtl.hpp"
+#include "FastRef.hpp"
 
 namespace Ob {
 
@@ -42,6 +43,9 @@ VOID
 OBJECT_DIRECTORY::InitializeClass (
     VOID)
 {
+    static const UNICODE_STRING DirTypeName = RTL_CONSTANT_STRING(L"Directory");
+    static const UNICODE_STRING RootDirName = RTL_CONSTANT_STRING(L"");
+    static const UNICODE_STRING TypeDirName = RTL_CONSTANT_STRING(L"Types");
     OBJECT_TYPE_INITIALIZER TypeInitializer;
     ULONG PoolCharge;
     NTSTATUS Status;
@@ -53,12 +57,11 @@ OBJECT_DIRECTORY::InitializeClass (
                  sizeof(OBJECT_HEADER_NAME_INFO);
 
     /* Setup the type initializer */
+    RtlZeroMemory(&TypeInitializer, sizeof(TypeInitializer));
     TypeInitializer.Length = sizeof(OBJECT_TYPE_INITIALIZER);
-    TypeInitializer.ObjectTypeFlags = 0;
     TypeInitializer.CaseInsensitive = 1;
     TypeInitializer.UseDefaultObject = 1;
     TypeInitializer.SecurityRequired = 1;
-    TypeInitializer.ObjectTypeCode = 0;
     TypeInitializer.InvalidAttributes = 0x100;
     TypeInitializer.GenericMapping.GenericRead =
         READ_CONTROL | DIRECTORY_TRAVERSE | DIRECTORY_QUERY;
@@ -68,7 +71,6 @@ OBJECT_DIRECTORY::InitializeClass (
         READ_CONTROL | DIRECTORY_TRAVERSE | DIRECTORY_QUERY;
     TypeInitializer.GenericMapping.GenericAll = DIRECTORY_ALL_ACCESS;
     TypeInitializer.ValidAccessMask = DIRECTORY_ALL_ACCESS;
-    TypeInitializer.RetainAccess = 0;
     TypeInitializer.PoolType = PagedPool;
     TypeInitializer.DefaultPagedPoolCharge = PoolCharge;//0x58;
     TypeInitializer.DefaultNonPagedPoolCharge = 0x150;
@@ -80,32 +82,29 @@ OBJECT_DIRECTORY::InitializeClass (
     TypeInitializer.SecurityProcedure = SeDefaultObjectMethodEx;
     TypeInitializer.QueryNameProcedure = NULL;
     TypeInitializer.OkayToCloseProcedure = NULL;
-    TypeInitializer.WaitObjectFlagMask = 0;
-    TypeInitializer.WaitObjectFlagOffset = 0;
-    TypeInitializer.WaitObjectPointerOffset = 0;
 
     /* Create the directory object type */
-    ObpDirectoryObjectType = new OBJECT_TYPE(&TypeInitializer);
+    ObpDirectoryObjectType = new OBJECT_TYPE(&DirTypeName, &TypeInitializer);
     if (ObpDirectoryObjectType == NULL)
     {
         NT_ASSERT(FALSE);
     }
 
     /* Create the root directory */
-    ObpRootDirectoryObject = new OBJECT_DIRECTORY();
-    if (ObpTypeObjectType == NULL)
+    ObpRootDirectoryObject = new OBJECT_DIRECTORY(&RootDirName);
+    if (ObpRootDirectoryObject == NULL)
     {
         NT_ASSERT(FALSE);
     }
 
-    /* Create the object type directory */
-    ObpTypeDirectoryObject = new OBJECT_DIRECTORY();
+    /* Create the '\Types' directory */
+    ObpTypeDirectoryObject = new OBJECT_DIRECTORY(&TypeDirName);
     if (ObpTypeDirectoryObject == NULL)
     {
         NT_ASSERT(FALSE);
     }
 
-    /* Insert the object type directory into the root directory */
+    /* Insert the Types directory into the root directory */
     Status = ObpRootDirectoryObject->InsertObject(ObpTypeDirectoryObject);
     if (!NT_SUCCESS(Status))
     {
@@ -130,13 +129,14 @@ OBJECT_DIRECTORY::InitializeClass (
 
 void*
 OBJECT_DIRECTORY::operator new (
-    _In_ size_t Size)
+    _In_ size_t Size) throw()
 {
     NTSTATUS Status;
     PVOID Object;
 
     Status = ObpDirectoryObjectType->CreateObject(&Object,
                                                   Size,
+                                                  NULL,
                                                   0, // PagedPoolCharge,
                                                   0); // NonPagedPoolCharge
     if (!NT_SUCCESS(Status))
@@ -148,8 +148,12 @@ OBJECT_DIRECTORY::operator new (
 }
 
 OBJECT_DIRECTORY::OBJECT_DIRECTORY (
-    VOID)
+    _In_ PCUNICODE_STRING Name)
+    : OBJECT(Name)
 {
+    /* Copy the type name to the object */
+    GetNameInfo()->Name = *Name; /// \todo Think about using an OBJECT constructor
+
     RtlZeroMemory(_HashBuckets, sizeof(_HashBuckets));
     ExInitializePushLock(&_Lock);
     _DeviceMap = NULL;
