@@ -38,7 +38,8 @@ public:
         _In_ size_t Size) throw();
 
     OBJECT_TYPE (
-        POBJECT_TYPE_INITIALIZER TypeInitializer);
+        _In_ PCUNICODE_STRING TypeName,
+        _In_ POBJECT_TYPE_INITIALIZER TypeInitializer);
 
     ~OBJECT_TYPE (
         VOID);
@@ -47,6 +48,7 @@ public:
     CreateObject (
         _Out_ PVOID *Object,
         _In_ SIZE_T ObjectSize,
+        _In_ POBJECT_ATTRIBUTES ObjectAttributes,
         _In_opt_ SIZE_T PagedPoolCharge,
         _In_opt_ SIZE_T NonPagedPoolCharge);
 
@@ -64,6 +66,14 @@ public:
         VOID)
     {
         return _Index;
+    }
+
+    inline
+    POBJECT_TYPE
+    GetObjectType (
+        VOID)
+    {
+        return ObjectTypeTable[_Index];
     }
 
 };

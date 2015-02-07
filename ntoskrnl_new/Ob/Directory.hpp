@@ -2,6 +2,7 @@
 #pragma once
 
 #include <Ex/Ex.hpp>
+#include "FastRef.hpp"
 
 namespace Ob {
 
@@ -17,6 +18,7 @@ private:
         POBJECT Object;
         ULONG HashValue;
 
+        /// FIXME: inherit from POOL_OBJECT / PAGED_POOL_OBJECT<Tag>
         inline
         void*
         operator new (
@@ -48,6 +50,8 @@ private:
     PVOID _NamespaceEntry;
     ULONG _Flags;
 
+    FAST_REF _FastRef;
+
     static
     VOID
     NTAPI
@@ -75,7 +79,7 @@ public:
         _In_ size_t Size) throw();
 
     OBJECT_DIRECTORY (
-        VOID);
+        _In_ PCUNICODE_STRING Name);
 
     ~OBJECT_DIRECTORY (
         VOID);

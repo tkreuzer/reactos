@@ -1,4 +1,4 @@
-
+replace_compile_flags("/Ob0 /Od" "/Ox")
 add_library(ntos_ob
     DeviceMap.cpp
     Directory.cpp
