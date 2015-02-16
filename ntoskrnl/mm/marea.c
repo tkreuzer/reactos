@@ -168,6 +168,44 @@ MmInsertMemoryArea(
     PMEMORY_AREA marea,
     ULONG Protect)
 {
+#if 0
+    static BOOLEAN KernelVadRootInitialized = FALSE;
+    MM_AVL_TABLE *VadRoot;
+    PEPROCESS Process;
+
+    ASSERT(marea->Type != MEMORY_AREA_OWNED_BY_ARM3);
+
+    if (!KernelVadRootInitialized)
+    {
+        MiRosInitializeKernelVadRoot():
+    }
+
+    if (AddressSpace == MmKernelAddressSpace)
+    {
+        ASSERT(MA_GetEndingAddress(marea) >= (ULONG_PTR)MmSystemRangeStart);
+        // HACK!
+        if (MA_GetEndingAddress(marea) >= (ULONG_PTR)MmSystemRangeStart)
+        {
+            VadRoot = &MiRosKernelVadRoot[1];
+        }
+        else
+        {
+            VadRoot = &MiRosKernelVadRoot[0];
+        }
+
+
+    }
+    else
+    {
+        ASSERT(MA_GetEndingAddress(marea) < (ULONG_PTR)MmSystemRangeStart);
+        Process = CONTAINING_RECORD(AddressSpace, EPROCESS, Vm);
+        VadRoot = &Process->VadRoot;
+    }
+
+#else
+    PMEMORY_AREA Node;
+    PMEMORY_AREA PreviousNode;
+    ULONG Depth = 0;
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
 
     marea->VadNode.u.VadFlags.Spare = 1;
@@ -185,14 +223,66 @@ MmInsertMemoryArea(
             ASSERT(marea->Type == MEMORY_AREA_SECTION_VIEW);
 #endif
 
-            /* Insert the VAD */
-            MiLockProcessWorkingSetUnsafe(PsGetCurrentProcess(), PsGetCurrentThread());
-            MiInsertVad(&marea->VadNode, &Process->VadRoot);
-            MiUnlockProcessWorkingSetUnsafe(PsGetCurrentProcess(), PsGetCurrentThread());
-            marea->Vad = &marea->VadNode;
+        /* Insert the VAD */
+        MiInsertVad(Vad, &Process->VadRoot);
+        marea->Vad = Vad;
+    }
+    else
+    {
+        marea->Vad = NULL;
+    }
+
+    if (AddressSpace->WorkingSetExpansionLinks.Flink == NULL)
+    {
+        AddressSpace->WorkingSetExpansionLinks.Flink = (PVOID)marea;
+        marea->LeftChild = marea->RightChild = marea->Parent = NULL;
+        return;
+    }
+
+    Node = (PMEMORY_AREA)AddressSpace->WorkingSetExpansionLinks.Flink;
+    do
+    {
+        DPRINT("MA_GetEndingAddress(marea): %p Node->StartingAddress: %p\n",
+               MA_GetEndingAddress(marea), MA_GetStartingAddress(Node));
+        DPRINT("marea->StartingAddress: %p MA_GetEndingAddress(Node): %p\n",
+               MA_GetStartingAddress(marea), MA_GetEndingAddress(Node));
+        ASSERT(MA_GetEndingAddress(marea) <= MA_GetStartingAddress(Node) ||
+               MA_GetStartingAddress(marea) >= MA_GetEndingAddress(Node));
+        ASSERT(MA_GetStartingAddress(marea) != MA_GetStartingAddress(Node));
+
+        PreviousNode = Node;
+
+        if (MA_GetStartingAddress(marea) < MA_GetStartingAddress(Node))
+            Node = Node->LeftChild;
+        else
+            Node = Node->RightChild;
+
+        if (Node)
+        {
+            Depth++;
+            if (Depth == 22)
+            {
+                MmRebalanceTree(AddressSpace);
+                PreviousNode = Node->Parent;
+            }
         }
     }
     else
+        PreviousNode->RightChild = marea;
+#endif
+}
+
+static PVOID
+MmFindGapBottomUp(
+    PMMSUPPORT AddressSpace,
+    ULONG_PTR Length,
+    ULONG_PTR Granularity)
+{
+    ULONG_PTR LowestAddress, HighestAddress, Candidate;
+    PMEMORY_AREA Root, Node;
+
+    /* Get the margins of the address space */
+    if (MmGetAddressSpaceOwner(AddressSpace) != NULL)
     {
         ASSERT(Process == NULL);
 
@@ -396,9 +486,88 @@ MmFreeMemoryArea(
  *
  * @remarks Lock the address space before calling this function.
  */
+NTSTATUS
+NTAPI
+MmCreateMemoryArea(PMMSUPPORT AddressSpace,
+                   ULONG Type,
+                   PVOID *BaseAddress,
+                   ULONG_PTR Length,
+                   ULONG Protect,
+                   PMEMORY_AREA *Result,
+                   BOOLEAN FixedAddress,
+                   ULONG AllocationFlags,
+                   ULONG Granularity)
+{
+    PEPROCESS Process;
+    PMEMORY_AREA MemoryArea;
+    ULONG_PTR StartingAddress, EndingAddress;
+    MM_AVL_TABLE VadRoot;
+
+    Process = MmGetAddressSpaceOwner(AddressSpace);
+
+    if (Process == NULL)
+    {
+        if (*BaseAddress == NULL)
+        {
+            InsertBase = 0;
+        }
+        else if (*BaseAddress < MmSystemRangeStart)
+        {
+            __debugbreak();
+            return STATUS_ACCESS_VIOLATION;
+        }
+        else
+        {
+            InsertBase = (ULONG_PTR)*BaseAddress - (ULONG_PTR)MmSystemRangeStart;
+        }
+
+        VadRoot = &MiRosKernelVadRoot;
+    }
+    else
+    {
+        if (*BaseAddress > MmHighestVadAddress)
+        {
+            __debugbreak();
+            return STATUS_ACCESS_VIOLATION;
+        }
+
+        VadRoot = &Process->VadRoot;
+        InsertBase = (ULONG_PTR)*BaseAddress;
+    }
+
+
+    if ((*BaseAddress) == 0 && !FixedAddress)
+    {
+        tmpLength = (ULONG_PTR)MM_ROUND_UP(Length, PAGE_SIZE);
+
+    }
+    else
+    {
+        EndingAddress = ((ULONG_PTR)*BaseAddress + Length - 1) | (PAGE_SIZE - 1);
+        *BaseAddress = ALIGN_DOWN_POINTER_BY(*BaseAddress, Granularity);
+        tmpLength = EndingAddress + 1 - (ULONG_PTR)*BaseAddress;
+
+        EndingAddress = ((ULONG_PTR)*BaseAddress + Length - 1) | (PAGE_SIZE - 1);
+        tmpLength = EndingAddress + 1 - ROUND_DOWN((ULONG_PTR)*BaseAddress, Granularity);
+        StartingAddress = (ULONG_PTR)*BaseAddress;
+    }
+
+    Status = MiInsertVadEx(&MemoryArea->Vad,
+                           &StartingAddress,
+                           RegionSize,
+                           HighestAddress,
+                           MM_VIRTMEM_GRANULARITY,
+                           AllocationType);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("Failed to insert the VAD!\n");
+        goto FailPathNoLock;
+    }
+
+}
 
 NTSTATUS NTAPI
-MmCreateMemoryArea(PMMSUPPORT AddressSpace,
+MmCreateMemoryArea_(PMMSUPPORT AddressSpace,
                    ULONG Type,
                    PVOID *BaseAddress,
                    ULONG_PTR Length,
