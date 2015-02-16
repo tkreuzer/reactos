@@ -505,4 +505,45 @@ MiRosCleanupMemoryArea(
     /* Make sure this worked! */
     ASSERT(NT_SUCCESS(Status));
 }
+
+VOID
+NTAPI
+MiRosDeletePdes(
+    PEPROCESS Process,
+    ULONG_PTR StartingAddress,
+    ULONG_PTR EndingAddress)
+{
+    KIRQL OldIrql;
+    PMMPDE PointerPde;
+
+    /* Attach to Process */
+    KeAttachProcess(&Process->Pcb);
+
+    /* Acquire PFN lock */
+    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+    /* Loop all PDEs for this region */
+    for (PointerPde = MiAddressToPde((PVOID)StartingAddress);
+         PointerPde <= MiAddressToPde((PVOID)EndingAddress);
+         PointerPde++)
+    {
+        /* At this point all references should be dead */
+        PVOID Address = MiPdeToAddress(PointerPde);
+        if (MiQueryPageTableReferences(Address) == 0)
+        {
+            /* Unlike in ARM3, we don't necesarily free the page table as soon as
+             * reference reaches 0, so we must clean up a bit when process closes */
+            if (PointerPde->u.Hard.Valid)
+                MiDeletePte(PointerPde, MiPdeToPte(PointerPde), Process, NULL);
+            ASSERT(PointerPde->u.Hard.Valid == 0);
+        }
+    }
+
+    /* Release lock */
+    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
+    /* Detach */
+    KeDetachProcess();
+}
+
 /* EOF */
