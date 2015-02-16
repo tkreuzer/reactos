@@ -352,6 +352,87 @@ MmFreeMemoryArea(
  *
  * @remarks Lock the address space before calling this function.
  */
+#if 0
+NTSTATUS
+NTAPI
+MmCreateMemoryArea(PMMSUPPORT AddressSpace,
+                   ULONG Type,
+                   PVOID *BaseAddress,
+                   ULONG_PTR Length,
+                   ULONG Protect,
+                   PMEMORY_AREA *Result,
+                   BOOLEAN FixedAddress,
+                   ULONG AllocationFlags,
+                   ULONG Granularity)
+{
+    PEPROCESS Process;
+    PMEMORY_AREA MemoryArea;
+    ULONG_PTR StartingAddress, EndingAddress;
+    MM_AVL_TABLE VadRoot;
+
+    Process = MmGetAddressSpaceOwner(AddressSpace);
+
+    if (Process == NULL)
+    {
+        if (*BaseAddress == NULL)
+        {
+            InsertBase = 0;
+        }
+        else if (*BaseAddress < MmSystemRangeStart)
+        {
+            __debugbreak();
+            return STATUS_ACCESS_VIOLATION;
+        }
+        else
+        {
+            InsertBase = (ULONG_PTR)*BaseAddress - (ULONG_PTR)MmSystemRangeStart;
+        }
+
+        VadRoot = &MiRosKernelVadRoot;
+    }
+    else
+    {
+        if (*BaseAddress > MmHighestVadAddress)
+        {
+            __debugbreak();
+            return STATUS_ACCESS_VIOLATION;
+        }
+
+        VadRoot = &Process->VadRoot;
+        InsertBase = (ULONG_PTR)*BaseAddress;
+    }
+
+
+    if ((*BaseAddress) == 0 && !FixedAddress)
+    {
+        tmpLength = (ULONG_PTR)MM_ROUND_UP(Length, PAGE_SIZE);
+
+    }
+    else
+    {
+        EndingAddress = ((ULONG_PTR)*BaseAddress + Length - 1) | (PAGE_SIZE - 1);
+        *BaseAddress = ALIGN_DOWN_POINTER_BY(*BaseAddress, Granularity);
+        tmpLength = EndingAddress + 1 - (ULONG_PTR)*BaseAddress;
+
+        EndingAddress = ((ULONG_PTR)*BaseAddress + Length - 1) | (PAGE_SIZE - 1);
+        tmpLength = EndingAddress + 1 - ROUND_DOWN((ULONG_PTR)*BaseAddress, Granularity);
+        StartingAddress = (ULONG_PTR)*BaseAddress;
+    }
+
+    Status = MiInsertVadEx(&MemoryArea->Vad,
+                           &StartingAddress,
+                           RegionSize,
+                           HighestAddress,
+                           MM_VIRTMEM_GRANULARITY,
+                           AllocationType);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("Failed to insert the VAD!\n");
+        goto FailPathNoLock;
+    }
+
+}
+#endif
 
 NTSTATUS NTAPI
 MmCreateMemoryArea(PMMSUPPORT AddressSpace,
