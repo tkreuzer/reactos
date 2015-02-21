@@ -111,6 +111,7 @@ list(APPEND SOURCE
     user/ntuser/console.c
     user/ntuser/csr.c
     user/ntuser/cursoricon.c
+    user/ntuser/dce.c
     user/ntuser/dde.c
     user/ntuser/defwnd.c
     user/ntuser/desktop.c
@@ -149,7 +150,7 @@ list(APPEND SOURCE
     user/ntuser/useratom.c
     user/ntuser/usrheap.c
     user/ntuser/vis.c
-    user/ntuser/windc.c
+    #user/ntuser/windc.c
     user/ntuser/window.c
     user/ntuser/winpos.c
     user/ntuser/winsta.c
