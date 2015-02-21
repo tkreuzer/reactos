@@ -9,6 +9,22 @@
 #include <win32k.h>
 DBG_DEFAULT_CHANNEL(UserDce);
 
+typedef struct tagDCE
+{
+    LIST_ENTRY leListLink; // Windows uses struct tagDCE* pdceNext;
+    HDC hdc;
+    PWND pwndOrg;
+    PWND pwndClip;
+    PWND pwndRedirect;
+    HRGN hrgnClip;
+    HRGN hrgnClipPublic;
+    HRGN hrgnSavedVis;
+    ULONG DCX_flags;
+    PTHREADINFO ptiOwner;
+    PPROCESSINFO ppiOwner;
+    struct tagMONITOR* pMonitor;
+} DCE;
+
 LIST_ENTRY liUsedDceListHead;
 LIST_ENTRY liCachedDceListHead;
 
@@ -23,17 +39,17 @@ InitDCEImpl(VOID)
 }
 
 PDCE
-FASTCALL
+NTAPI
 DceAllocDCE(
     _In_opt_ PWND pwnd,
-    DCE_TYPE dceType)
+    _In_ DCE_TYPE dceType)
 {
     __debugbreak();
     return 0;
 }
 
 VOID
-FASTCALL
+NTAPI
 DceFreeThreadDCE(
     _Inout_ PTHREADINFO pti)
 {
@@ -41,15 +57,15 @@ DceFreeThreadDCE(
 }
 
 VOID
-FASTCALL
+NTAPI
 DceFreeClassDCE(
-    _In_ HDC hdc)
+    _In_ PDCE pdce)
 {
     __debugbreak();
 }
 
 VOID
-FASTCALL
+NTAPI
 DceFreeWindowDCE(
     PWND pwnd)
 {
@@ -57,7 +73,7 @@ DceFreeWindowDCE(
 }
 
 VOID
-FASTCALL
+NTAPI
 DceResetActiveDCEs(
     PWND pwnd)
 {
@@ -65,7 +81,7 @@ DceResetActiveDCEs(
 }
 
 HWND
-FASTCALL
+NTAPI
 UserGethWnd(
     HDC hdc,
     PWNDOBJ *pwndo)
@@ -75,18 +91,18 @@ UserGethWnd(
 }
 
 HDC
-FASTCALL
+NTAPI
 UserGetDCEx(
     _In_opt_ PWND pwnd,
     _In_ HANDLE prgnClip,
-    ULONG fl)
+    _In_ ULONG flags)
 {
     __debugbreak();
     return 0;
 }
 
 HDC
-FASTCALL
+NTAPI
 UserGetWindowDC(
     _In_ PWND pwnd)
 {
@@ -94,7 +110,7 @@ UserGetWindowDC(
 }
 
 INT
-FASTCALL
+NTAPI
 UserReleaseDC(
     _Inout_ PWND pwnd,
     _In_ HDC hdc,
@@ -106,7 +122,7 @@ UserReleaseDC(
 
 
 HWND
-FASTCALL
+NTAPI
 IntWindowFromDC(
     _In_ HDC hdc)
 {

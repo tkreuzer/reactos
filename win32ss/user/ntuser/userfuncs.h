@@ -70,9 +70,9 @@ HWND FASTCALL co_UserSetFocus(PWND Window);
 
 /*************** WINDC.C ***************/
 
-INT FASTCALL UserReleaseDC(PWND Window, HDC hDc, BOOL EndPaint);
-HDC FASTCALL UserGetDCEx(PWND Window OPTIONAL, HANDLE ClipRegion, ULONG Flags);
-HDC FASTCALL UserGetWindowDC(PWND Wnd);
+INT NTAPI UserReleaseDC(PWND Window, HDC hDc, BOOL EndPaint);
+HDC NTAPI UserGetDCEx(PWND Window OPTIONAL, HANDLE ClipRegion, ULONG Flags);
+HDC NTAPI UserGetWindowDC(PWND Wnd);
 
 /*************** SESSION.C ***************/
 
@@ -127,7 +127,6 @@ BOOL FASTCALL UserPostMessage(HWND Wnd,UINT Msg, WPARAM wParam, LPARAM lParam);
 PWND FASTCALL UserGetWindowObject(HWND hWnd);
 VOID FASTCALL co_DestroyThreadWindows(struct _ETHREAD *Thread);
 HWND FASTCALL UserGetShellWindow(VOID);
-HDC FASTCALL UserGetDCEx(PWND Window OPTIONAL, HANDLE ClipRegion, ULONG Flags);
 BOOLEAN co_UserDestroyWindow(PVOID Object);
 PWND FASTCALL UserGetAncestor(PWND Wnd, UINT Type);
 BOOL APIENTRY DefSetText(PWND Wnd, PCWSTR WindowText);
