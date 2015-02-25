@@ -716,7 +716,7 @@ LRESULT co_UserFreeWindow(PWND Window,
       Window->SystemMenu = (HMENU)0;
    }
 
-   DceFreeWindowDCE(Window);    /* Always do this to catch orphaned DCs */
+   DceFreeOwnedDCE(Window);    /* Always do this to catch orphaned DCs */
 
    IntUnlinkWindow(Window);
 
@@ -2156,10 +2156,19 @@ PWND FASTCALL IntCreateWindow(CREATESTRUCTW* Cs,
    if ( (pWnd->pcls->style & CS_CLASSDC) && !(pWnd->pcls->pdce) )
    {  /* One DCE per class to have CLASS. */
       pWnd->pcls->pdce = DceAllocDCE( pWnd, DCE_CLASS_DC );
+      if (pWnd->pcls->pdce == NULL)
+      {
+         ERR("Failed to allocate class DCE\n");
+         goto AllocError;
+      }
    }
    else if ( pWnd->pcls->style & CS_OWNDC)
    {  /* Allocate a DCE for this window. */
-      DceAllocDCE(pWnd, DCE_WINDOW_DC);
+      if (!DceAllocDCE(pWnd, DCE_WINDOW_DC))
+      {
+         ERR("Failed to allocate owned DCE\n");
+         goto AllocError;
+      }
    }
 
    return pWnd;

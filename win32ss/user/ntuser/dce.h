@@ -9,7 +9,7 @@
 
 typedef enum
 {
-    DCE_CACHE_DC,   /* This is a cached DC (allocated by USER) */
+    //DCE_CACHE_DC,   /* This is a cached DC (allocated by USER) */
     DCE_CLASS_DC,   /* This is a class DC (style CS_CLASSDC) */
     DCE_WINDOW_DC   /* This is a window DC (style CS_OWNDC) */
 } DCE_TYPE, *PDCE_TYPE;
@@ -34,7 +34,7 @@ void NTAPI DceEmptyCache(void);
 VOID NTAPI DceResetActiveDCEs(PWND Window);
 void NTAPI DceFreeClassDCE(PDCE);
 HWND NTAPI UserGethWnd(HDC,PWNDOBJ*);
-void NTAPI DceFreeWindowDCE(PWND);
+void NTAPI DceFreeOwnedDCE(PWND);
 void NTAPI DceFreeThreadDCE(PTHREADINFO);
 VOID NTAPI DceUpdateVisRgn(PDCE pdce, PWND Window, ULONG Flags);
 PDCE NTAPI DceGetDceFromDC(HDC hdc);
