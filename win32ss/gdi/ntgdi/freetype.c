@@ -2151,7 +2151,9 @@ IntFreeFontNames(FONT_NAMES *Names)
  *
  */
 INT FASTCALL
-IntGetOutlineTextMetrics(PFONTGDI FontGDI,
+IntGetOutlineTextMetrics(PDC dc,
+                         PTEXTOBJ TextObj,
+                         PFONTGDI FontGDI,
                          UINT Size,
                          OUTLINETEXTMETRICW *Otm)
 {
@@ -2198,6 +2200,17 @@ IntGetOutlineTextMetrics(PFONTGDI FontGDI,
     YScale = Face->size->metrics.y_scale;
 
     IntLockFreeType();
+
+    if (TextObj && dc)
+    {
+        FT_Set_Pixel_Sizes(Face,
+                           abs(TextObj->logfont.elfEnumLogfontEx.elfLogFont.lfWidth),
+        /* FIXME: Should set character height if neg */
+                           (TextObj->logfont.elfEnumLogfontEx.elfLogFont.lfHeight == 0 ?
+                            dc->ppdev->devinfo.lfDefaultFont.lfHeight : abs(TextObj->logfont.elfEnumLogfontEx.elfLogFont.lfHeight)));
+
+        FtSetCoordinateTransform(Face, DC_pmxWorldToDevice(dc));
+    }
 
     pOS2 = FT_Get_Sfnt_Table(Face, FT_SFNT_OS2);
     if (NULL == pOS2)
@@ -2549,13 +2562,13 @@ FontFamilyFillInfo(PFONTFAMILYINFO Info, LPCWSTR FaceName,
 
     RtlInitUnicodeString(&NameW, NULL);
     RtlZeroMemory(Info, sizeof(FONTFAMILYINFO));
-    Size = IntGetOutlineTextMetrics(FontGDI, 0, NULL);
+    Size = IntGetOutlineTextMetrics(NULL, NULL, FontGDI, 0, NULL);
     Otm = ExAllocatePoolWithTag(PagedPool, Size, GDITAG_TEXT);
     if (!Otm)
     {
         return;
     }
-    Size = IntGetOutlineTextMetrics(FontGDI, Size, Otm);
+    Size = IntGetOutlineTextMetrics(NULL, NULL, FontGDI, Size, Otm);
     if (!Size)
     {
         ExFreePoolWithTag(Otm, GDITAG_TEXT);
@@ -3515,7 +3528,7 @@ ftGdiGetGlyphOutline(
     aveWidth = FT_IS_SCALABLE(ft_face) ? abs(plf->lfWidth) : 0;
     orientation = FT_IS_SCALABLE(ft_face) ? plf->lfOrientation : 0;
 
-    Size = IntGetOutlineTextMetrics(FontGDI, 0, NULL);
+    Size = IntGetOutlineTextMetrics(dc, TextObj, FontGDI, 0, NULL);
     potm = ExAllocatePoolWithTag(PagedPool, Size, GDITAG_TEXT);
     if (!potm)
     {
@@ -3523,7 +3536,7 @@ ftGdiGetGlyphOutline(
         TEXTOBJ_UnlockText(TextObj);
         return GDI_ERROR;
     }
-    Size = IntGetOutlineTextMetrics(FontGDI, Size, potm);
+    Size = IntGetOutlineTextMetrics(dc, TextObj, FontGDI, Size, potm);
     if (!Size)
     {
         /* FIXME: last error? */
@@ -4292,10 +4305,9 @@ ftGdiGetTextMetricsW(
         IntLockFreeType();
         Error = IntRequestFontSize(dc, FontGDI, plf->lfWidth, plf->lfHeight);
         FtSetCoordinateTransform(Face, DC_pmxWorldToDevice(dc));
-        IntUnLockFreeType();
-
         if (0 != Error)
         {
+            IntUnLockFreeType();
             DPRINT1("Error in setting pixel sizes: %u\n", Error);
             Status = STATUS_UNSUCCESSFUL;
         }
@@ -4304,7 +4316,6 @@ ftGdiGetTextMetricsW(
             FT_Face Face = FontGDI->SharedFace->Face;
             Status = STATUS_SUCCESS;
 
-            IntLockFreeType();
             pOS2 = FT_Get_Sfnt_Table(Face, ft_sfnt_os2);
             if (NULL == pOS2)
             {
@@ -6913,14 +6924,13 @@ NtGdiGetGlyphIndicesW(
     pdcattr = dc->pdcattr;
     hFont = pdcattr->hlfntNew;
     TextObj = RealizeFontInit(hFont);
-    DC_UnlockDc(dc);
     if (!TextObj)
     {
         DPRINT1("!TextObj\n");
+        DC_UnlockDc(dc);
         return GDI_ERROR;
     }
     FontGDI = ObjToGDI(TextObj->Font, FONT);
-    TEXTOBJ_UnlockText(TextObj);
 
     if (cwc == 0)
     {
@@ -6940,6 +6950,8 @@ NtGdiGetGlyphIndicesW(
     if (!Buffer)
     {
         DPRINT1("ExAllocatePoolWithTag\n");
+        DC_UnlockDc(dc);
+        TEXTOBJ_UnlockText(TextObj);
         return GDI_ERROR;
     }
 
@@ -6960,7 +6972,7 @@ NtGdiGetGlyphIndicesW(
         }
         else
         {
-            Size = IntGetOutlineTextMetrics(FontGDI, 0, NULL);
+            Size = IntGetOutlineTextMetrics(dc, TextObj, FontGDI, 0, NULL);
             if (!Size)
             {
                 Status = STATUS_UNSUCCESSFUL;
@@ -6974,12 +6986,15 @@ NtGdiGetGlyphIndicesW(
                 DPRINT1("!potm\n");
                 goto ErrorRet;
             }
-            Size = IntGetOutlineTextMetrics(FontGDI, Size, potm);
+            Size = IntGetOutlineTextMetrics(dc, TextObj, FontGDI, Size, potm);
             if (Size)
                 DefChar = potm->otmTextMetrics.tmDefaultChar;
             ExFreePoolWithTag(potm, GDITAG_TEXT);
         }
     }
+
+    DC_UnlockDc(dc);
+    TEXTOBJ_UnlockText(TextObj);
 
     /* Allocate for Safepwc */
     pwcSize = cwc * sizeof(WCHAR);
@@ -7046,5 +7061,6 @@ ErrorRet:
 
     return GDI_ERROR;
 }
+
 
 /* EOF */
