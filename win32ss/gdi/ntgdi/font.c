@@ -900,9 +900,9 @@ NtGdiGetOutlineTextMetricsInternalW (HDC  hDC,
   pdcattr = dc->pdcattr;
   hFont = pdcattr->hlfntNew;
   TextObj = RealizeFontInit(hFont);
-  DC_UnlockDc(dc);
   if (!TextObj)
   {
+     DC_UnlockDc(dc);
      EngSetLastError(ERROR_INVALID_HANDLE);
      return 0;
   }
@@ -912,9 +912,13 @@ NtGdiGetOutlineTextMetricsInternalW (HDC  hDC,
      TEXTOBJ_UnlockText(TextObj);
      return 0;
   }
-  TextIntUpdateSize(dc, TextObj, FontGDI, TRUE);
+
+  TextIntUpdateSize(dc, TextObj, FontGDI, TRUE); // ???
+  Size = IntGetOutlineTextMetrics(dc, TextObj, FontGDI, 0, NULL);
+
+  DC_UnlockDc(dc);
   TEXTOBJ_UnlockText(TextObj);
-  Size = IntGetOutlineTextMetrics(FontGDI, 0, NULL);
+
   if (!otm) return Size;
   if (Size > Data)
   {
