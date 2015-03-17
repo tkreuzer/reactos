@@ -143,6 +143,11 @@ SURFACE_bIsDeviceSurface(
     ASSERT(!pso || !SURFOBJ_bIsDeviceSurface(pso) || \
            PDEVOBJ_bLockIsOwned((PPDEVOBJ)pso->hdev))
 
+ULONG
+NTAPI
+SURFACE_iCompression(
+    _In_ PSURFACE psurf);
+
 FORCEINLINE
 VOID
 SURFACE_vSetPalette(
