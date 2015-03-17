@@ -208,4 +208,11 @@ PDEVOBJ_vReference(PPDEVOBJ ppdev)
     InterlockedIncrement(&ppdev->cPdevRefs);
 }
 
+FORCEINLINE
+BOOL
+PDEVOBJ_bLockIsOwned(PPDEVOBJ ppdev)
+{
+    return ExIsResourceAcquiredExclusiveLite((PERESOURCE)ppdev->hsemDevLock);
+}
+
 #endif /* !__WIN32K_PDEVOBJ_H */
