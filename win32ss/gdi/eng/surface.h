@@ -131,6 +131,18 @@ SURFACE_AllocSurface(
     _In_opt_ ULONG cjBits,
     _In_opt_ PVOID pvBits);
 
+BOOL
+NTAPI
+SURFACE_bIsDeviceSurface(
+    _In_ PSURFACE psurf);
+
+#define SURFOBJ_bIsDeviceSurface(pso) \
+    SURFACE_bIsDeviceSurface(CONTAINING_RECORD(pso, SURFACE, SurfObj))
+
+#define ASSERT_DEVLOCK(pso) \
+    ASSERT(!pso || !SURFOBJ_bIsDeviceSurface(pso) || \
+           PDEVOBJ_bLockIsOwned((PPDEVOBJ)pso->hdev))
+
 FORCEINLINE
 VOID
 SURFACE_vSetPalette(

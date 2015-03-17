@@ -219,4 +219,11 @@ PDEVOBJ_pdmMatchDevMode(
     PPDEVOBJ ppdev,
     PDEVMODEW pdm);
 
+FORCEINLINE
+BOOL
+PDEVOBJ_bLockIsOwned(PPDEVOBJ ppdev)
+{
+    return ExIsResourceAcquiredExclusiveLite((PERESOURCE)ppdev->hsemDevLock);
+}
+
 #endif /* !__WIN32K_PDEVOBJ_H */
