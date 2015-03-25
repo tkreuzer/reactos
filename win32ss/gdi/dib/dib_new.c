@@ -8,7 +8,7 @@
 
 
 #include <win32k.h>
-#include "..\diblib\DibLib_interface.h"
+#include "../diblib/DibLib_interface.h"
 
 /* Static data */
 
