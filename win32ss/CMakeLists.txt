@@ -1,5 +1,5 @@
 
-set(USE_DIBLIB FALSE)
+set(USE_DIBLIB TRUE)
 
 if(NOT MSVC)
     # HACK: this should be enabled globally!
