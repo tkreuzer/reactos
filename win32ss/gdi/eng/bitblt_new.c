@@ -646,6 +646,7 @@ IntEngBitBlt(
     PFN_DrvBitBlt pfnBitBlt;
 
 //__debugbreak();
+//if (pptlSrc && pptlSrc->y == -3) __debugbreak();
 
     /* Sanity checks */
     NT_ASSERT(IS_VALID_ROP4(rop4));
@@ -690,11 +691,16 @@ IntEngBitBlt(
     if (ROP4_USES_SOURCE(rop4))
     {
         /* Must have a source surface and point */
-        NT_ASSERT(psoSrc);
-        NT_ASSERT(pptlSrc);
+        NT_ASSERT(psoSrc != NULL);
+        NT_ASSERT(pptlSrc != NULL);
 
         /* Get the source point */
         ptSrc = *pptlSrc;
+
+        if ((ptSrc.x < 0) || (ptSrc.x > psoSrc->sizlBitmap.cx))
+            __debugbreak();
+        if ((ptSrc.y < 0) || (ptSrc.y > psoSrc->sizlBitmap.cy))
+            __debugbreak();
 
         /* Clip against the extents of the source surface */
         AdjustOffsetAndSize(&ptOffset, &sizTrg, &ptSrc, &psoSrc->sizlBitmap);
@@ -709,20 +715,26 @@ IntEngBitBlt(
     }
 
     /* Check if the ROP uses a mask */
-    if (ROP4_USES_MASK(rop4))
+    if (ROP4_USES_MASK(rop4) && (psoMask != NULL))
     {
-        /* Must have a mask surface and point */
-        NT_ASSERT(psoMask);
-        NT_ASSERT(pptlMask);
+        NT_ASSERT(pptlMask != NULL);
 
         /* Get the mask point */
         ptMask = *pptlMask;
+
+        if ((ptMask.x < 0) || (ptMask.x > psoSrc->sizlBitmap.cx))
+            __debugbreak();
+        if ((ptMask.y < 0) || (ptMask.y > psoSrc->sizlBitmap.cy))
+            __debugbreak();
+
+        /// FIXME: check if the mask is repeatable
 
         /* Clip against the extents of the mask surface */
         AdjustOffsetAndSize(&ptOffset, &sizTrg, &ptMask, &psoMask->sizlBitmap);
     }
     else
     {
+        /* We either use no mask or the brush is the mask */
         psoMask = NULL;
         ptMask.x = 0;
         ptMask.y = 0;
@@ -777,7 +789,12 @@ IntEngBitBlt(
 
         pfnBitBlt = GDIDEVFUNCS(psoTrg).BitBlt;
     }
-    /* Otherwise is the source surface device managed? */
+    /* Otherwise does the target surface hook BitBlt? */
+    else if (SURFOBJ_flags(psoTrg) & HOOK_BITBLT)
+    {
+        pfnBitBlt = GDIDEVFUNCS(psoTrg).BitBlt;
+    }
+    /* Otherwise does the source surface hook BitBlt? */
     else if (psoSrc && (SURFOBJ_flags(psoSrc) & HOOK_BITBLT))
     {
         pfnBitBlt = GDIDEVFUNCS(psoSrc).BitBlt;
@@ -982,5 +999,21 @@ IntEngCopyBits(
     RECTL *prclTrg,
     POINTL *pptlSrc)
 {
-    return EngCopyBits(psoTrg, psoSrc, pco, pxlo, prclTrg, pptlSrc);
+    PFN_DrvCopyBits pfnCopyBits;
+
+    /* Does the driver hook CopyBits for this surface? */
+    if (SURFOBJ_flags(psoTrg) & HOOK_COPYBITS)
+    {
+        pfnCopyBits = GDIDEVFUNCS(psoTrg).CopyBits;
+    }
+    else if (SURFOBJ_flags(psoSrc) & HOOK_COPYBITS)
+    {
+        pfnCopyBits = GDIDEVFUNCS(psoSrc).CopyBits;
+    }
+    else
+    {
+        pfnCopyBits = EngCopyBits;
+    }
+
+    return pfnCopyBits(psoTrg, psoSrc, pco, pxlo, prclTrg, pptlSrc);
 }
