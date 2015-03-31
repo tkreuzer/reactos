@@ -959,7 +959,7 @@ app_fill_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrush, BOOL 
     return result;
 }
 
-int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen, BOOL Chord)
+int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PPEN ppen, int w, BOOL Chord)
 {
     /* Outer ellipse: e(x,y) = b*b*x*x + a*a*y*y - a*a*b*b */
 
@@ -976,8 +976,6 @@ int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen
     long dyt = a2*(3-y-y);
     int d2xt = b2+b2;
     int d2yt = a2+a2;
-
-    int w = pbrushPen->lWidth;
 
     /* Inner ellipse: E(X,Y) = B*B*X*X + A*A*Y*Y - A*A*B*B */
 
@@ -1008,7 +1006,7 @@ int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen
     if ((start_angle + 360 <= end_angle) ||
             (start_angle - 360 >= end_angle))
     {
-        return app_draw_ellipse(g, r, pbrushPen);
+        return app_draw_ellipse(g, r, ppen);
     }
 
     /* Make start_angle >= 0 and <= 360 */
@@ -1140,10 +1138,10 @@ int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen
             {
                 result &= app_fill_arc_rect(g, r1,
                                             p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
                 result &= app_fill_arc_rect(g, r2,
                                             p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
 
                 prevx = r1.x;
                 prevy = r1.y;
@@ -1154,19 +1152,19 @@ int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen
                 result &= app_fill_arc_rect(g, rect(
                                                 r1.x,r1.y,W,1),
                                             p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
                 result &= app_fill_arc_rect(g, rect(
                                                 r1.x+r1.width-W,r1.y,W,1),
                                             p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
                 result &= app_fill_arc_rect(g, rect(
                                                 r2.x,r2.y,W,1),
                                             p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
                 result &= app_fill_arc_rect(g, rect(
                                                 r2.x+r2.width-W,r2.y,W,1),
                                             p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
 
                 prevx = r1.x;
                 prevy = r1.y;
@@ -1204,7 +1202,7 @@ int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen
             {
                 result &= app_fill_arc_rect(g, rect(r.x,
                                                     r1.y, r.width, 1), p0, p1, p2,
-                                            start_angle, end_angle, pbrushPen, TRUE);
+                                            start_angle, end_angle, ppen, TRUE);
                 r1.y += 1;
                 r1.height -= 1;
             }
@@ -1215,10 +1213,10 @@ int app_draw_arc(DC *g, Rect r, int start_angle, int end_angle, PBRUSH pbrushPen
         {
             result &= app_fill_arc_rect(g, rect(r.x, r1.y,
                                                 W, 1), p0, p1, p2,
-                                        start_angle, end_angle, pbrushPen, TRUE);
+                                        start_angle, end_angle, ppen, TRUE);
             result &= app_fill_arc_rect(g, rect(r.x+r.width-W,
                                                 r1.y, W, 1), p0, p1, p2,
-                                        start_angle, end_angle, pbrushPen, TRUE);
+                                        start_angle, end_angle, ppen, TRUE);
             r1.y += 1;
             r1.height -= 1;
         }
@@ -1347,7 +1345,8 @@ IntDrawArc( PDC dc,
             double StartArc, // FIXME: don't use floating point!
             double EndArc,
             ARCTYPE arctype,
-            PBRUSH pbrush)
+            PPEN ppen,
+            ULONG ulPenWidth)
 {
     int Start = (int)ceil(StartArc);
     int End   = (int)ceil(EndArc);
@@ -1356,7 +1355,7 @@ IntDrawArc( PDC dc,
     return app_draw_arc(dc, rect( XLeft, YLeft, Width, Height),
                         (dc->dclevel.flPath & DCPATH_CLOCKWISE) ? -End : -Start,
                         (dc->dclevel.flPath & DCPATH_CLOCKWISE) ? -Start : -End,
-                        pbrush, Chord);
+                        ppen, ulPenWidth, Chord);
 }
 
 BOOL
@@ -1458,11 +1457,11 @@ IntDrawRoundRect( PDC dc,
                   INT Bottom,
                   INT Wellipse,
                   INT Hellipse,
-                  PBRUSH pbrushPen)
+                  PPEN ppen)
 {
     Rect r;
     int rx, ry; /* Radius in x and y directions */
-    int w = pbrushPen->lWidth;
+    int w = ppen->lWidth;
 
     r = rect( Left, Top, abs(Right-Left), abs(Bottom-Top));
     rx = Wellipse/2;
@@ -1471,50 +1470,50 @@ IntDrawRoundRect( PDC dc,
     if (Wellipse > r.width)
     {
         if (Hellipse > r.height) // > W > H
-            app_draw_ellipse(dc, r, pbrushPen);
+            app_draw_ellipse(dc, r, ppen);
         else // > W < H
         {
             app_draw_arc(dc, rect( r.x, r.y, r.width - 1, Hellipse - 1),
-                         0, 180, pbrushPen, FALSE);
+                         0, 180, ppen, w, FALSE);
             app_draw_arc(dc, rect(r.x, Bottom - Hellipse, r.width - 1, Hellipse - 1),
-                         180, 360, pbrushPen, FALSE);
+                         180, 360, ppen, w, FALSE);
         }
     }
     else if(Hellipse > r.height) // < W > H
     {
         app_draw_arc(dc, rect(r.x, r.y, Wellipse - 1, r.height - 1),
-                     90, 270, pbrushPen, FALSE);
+                     90, 270, ppen, w, FALSE);
         app_draw_arc(dc, rect(Right - Wellipse, r.y, Wellipse - 1, r.height - 1),
-                     270, 90, pbrushPen, FALSE);
+                     270, 90, ppen, w, FALSE);
     }
     else // < W < H
     {
         app_draw_arc(dc, rect(r.x, r.y, rx+rx, ry+ry),
-                     90, 180, pbrushPen, FALSE);
+                     90, 180, ppen, w, FALSE);
 
         app_draw_arc(dc, rect(r.x,r.y+r.height-ry-ry,rx+rx,ry+ry),
-                     180, 270, pbrushPen, FALSE);
+                     180, 270, ppen, w, FALSE);
 
         app_draw_arc(dc, rect(r.x+r.width-rx-rx, r.y+r.height-ry-ry, rx+rx, ry+ry),
-                     270, 360, pbrushPen, FALSE);
+                     270, 360, ppen, w, FALSE);
 
         app_draw_arc(dc, rect(r.x+r.width-rx-rx,r.y,rx+rx,ry+ry),
-                     0, 90, pbrushPen, FALSE);
+                     0, 90, ppen, w, FALSE);
     }
     if ( Hellipse < r.height)
     {
-        app_fill_rect(dc, rect(r.x, r.y+ry+1, w, r.height-ry-ry), pbrushPen, TRUE);
+        app_fill_rect(dc, rect(r.x, r.y+ry+1, w, r.height-ry-ry), ppen, TRUE);
 
 
         app_fill_rect(dc, rect(r.x+r.width-w, r.y+ry+1, w, r.height-ry-ry),
-                      pbrushPen, TRUE);
+                      ppen, TRUE);
     }
     if ( Wellipse < r.width)
     {
         app_fill_rect(dc, rect(r.x+rx, r.y+r.height-w, r.width-rx-rx, w),
-                      pbrushPen, TRUE);
+                      ppen, TRUE);
 
-        app_fill_rect(dc, rect(r.x+rx, r.y, r.width-rx-rx, w), pbrushPen, TRUE);
+        app_fill_rect(dc, rect(r.x+rx, r.y, r.width-rx-rx, w), ppen, TRUE);
     }
     return TRUE;
 }

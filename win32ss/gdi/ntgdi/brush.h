@@ -29,7 +29,6 @@ typedef struct _BRUSHBODY
     ULONG ulSurfTime;
     PVOID pvRBrush;
     HDEV hdev;
-    //DWORD unk054;
 
     /* The following members are for PENs only */
     LONG lWidth;
@@ -186,9 +185,6 @@ EBRUSHOBJ_iSetSolidColor(EBRUSHOBJ *pebo, ULONG iSolidColor)
     pebo->BrushObject.iSolidColor = iSolidColor;
     return iOldColor;
 }
-
-BOOL FASTCALL IntGdiSetBrushOwner(PBRUSH,DWORD);
-BOOL FASTCALL GreSetBrushOwner(HBRUSH,DWORD);
 
 HBRUSH APIENTRY
 IntGdiCreatePatternBrush(

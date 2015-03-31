@@ -2,19 +2,13 @@
 
 /* Internal interface */
 
+#ifndef __cplusplus
 typedef BRUSH PEN, *PPEN;
+#else
+class PEN;
+typedef class PEN *PPEN;
+#endif // __cplusplus
 
-PPEN
-NTAPI
-PEN_AllocPenWithHandle(
-    VOID);
-
-PPEN
-NTAPI
-PEN_AllocExtPenWithHandle(
-    VOID);
-
-#define PEN_UnlockPen(pPenObj) GDIOBJ_vUnlockObject((POBJ)pPenObj)
 #define PEN_ShareUnlockPen(ppen) GDIOBJ_vDereferenceObject((POBJ)ppen)
 
 PPEN

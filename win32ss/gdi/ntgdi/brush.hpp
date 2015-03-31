@@ -33,10 +33,9 @@ public:
     operator delete(
         void *pvObject)
     {
-        /// HACK! better would be to extract the exact object type's tag
-        ExFreePool(pvObject);
-        //ExFreePoolWithTag(pvObject, GDITAG_HMGR_BRUSH_TYPE);
-        //BASEOBJECT::pvFree(GDIObjType_BRUSH_TYPE, cjSize);
+        /// We can possibly use a common operator delete with dynamic pool tag
+        ExFreePoolWithTag(pvObject, GDITAG_HMGR_BRUSH_TYPE);
+        //BASEOBJECT::vFree(GDIObjType_BRUSH_TYPE, cjSize);
     }
 
     BRUSH(

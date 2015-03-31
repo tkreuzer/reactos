@@ -8,6 +8,7 @@
  */
 
 #include "brush.hpp"
+#include "pen.hpp"
 
 DBG_DEFAULT_CHANNEL(GdiBrush);
 
@@ -27,6 +28,16 @@ BRUSH::BRUSH(
 
     /* Start with kmode brush attribute */
     this->pBrushAttr = &this->BrushAttr;
+
+    /* Check if this is a global brush */
+    if (!(flAttrs & BR_IS_GLOBAL))
+    {
+        /* Not a global brush, so allocate a user mode brush attribute */
+        if (!pbr->bAllocateBrushAttr())
+        {
+            WARN("Failed to allocate brush attribute\n");
+        }
+    }
 
     /* Set parameters */
     this->flAttrs = flAttrs;
@@ -161,7 +172,7 @@ BRUSH::cjGetObject(
         return 0;
 
     /* Set color */
-    plb->lbColor = this->BrushAttr.lbColor;
+    plb->lbColor = this->pBrushAttr->lbColor;
 
     /* Set style and hatch based on the attribute flags */
     if (this->flAttrs & BR_IS_SOLID)
@@ -217,21 +228,12 @@ CreateBrushInternal(
     if (pbr == NULL)
     {
         ERR("Failed to allocate a brush\n");
-        GreSetBitmapOwner(hbmPattern, BASEOBJECT::OWNER::POWNED);
-        GreDeleteObject(hbmPattern);
-        return NULL;
-    }
-
-    /* Check if this is a global brush */
-    if (!(flAttrs & BR_IS_GLOBAL))
-    {
-        /* Not a global brush, so allocate a user mode brush attribute */
-        if (!pbr->bAllocateBrushAttr())
+        if (hbmPattern != NULL)
         {
-            ERR("Failed to allocate brush attribute\n");
-            delete pbr;
-            return NULL;
+            GreSetBitmapOwner(hbmPattern, BASEOBJECT::OWNER::POWNED);
+            GreDeleteObject(hbmPattern);
         }
+        return NULL;
     }
 
     /* Set the owner, either public or process owned */
@@ -239,7 +241,7 @@ CreateBrushInternal(
                                        BASEOBJECT::OWNER::POWNED;
 
     /* Insert the object into the GDI handle table */
-    hbr =  static_cast<HBRUSH>(pbr->hInsertObject(owner));
+    hbr = static_cast<HBRUSH>(pbr->hInsertObject(owner));
     if (hbr == NULL)
     {
         ERR("Failed to insert brush\n");
@@ -263,7 +265,18 @@ NTAPI
 BRUSH_vDeleteObject(
     PVOID pvObject)
 {
-    BRUSH::vDeleteObject(pvObject);
+    POBJ pobj = static_cast<POBJ>(pvObject);
+
+    if (GDI_HANDLE_GET_TYPE(pobj->hHmgr) == GDILoObjType_LO_BRUSH_TYPE)
+    {
+        BRUSH::vDeleteObject(pvObject);
+    }
+    else
+    {
+        NT_ASSERT((GDI_HANDLE_GET_TYPE(pobj->hHmgr) == GDILoObjType_LO_PEN_TYPE) ||
+                  (GDI_HANDLE_GET_TYPE(pobj->hHmgr) == GDILoObjType_LO_EXTPEN_TYPE);
+        PEN::vDeleteObject(pvObject);
+    }
 }
 
 INT

@@ -187,7 +187,6 @@ list(APPEND SOURCE
     gdi/ntgdi/metafile.c
     gdi/ntgdi/palette.c
     gdi/ntgdi/path.c
-    gdi/ntgdi/pen.c
     gdi/ntgdi/polyfill.c
     gdi/ntgdi/print.c
     gdi/ntgdi/rect.c
@@ -234,6 +233,7 @@ add_asm_files(win32k_asm ${ASM_SOURCE})
 add_library(win32k MODULE
     ${SOURCE}
     gdi/ntgdi/brush.cpp
+    gdi/ntgdi/pen.cpp
     ${win32k_asm}
     win32k.rc
     ${CMAKE_CURRENT_BINARY_DIR}/win32k.def)

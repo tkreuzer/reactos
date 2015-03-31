@@ -41,7 +41,7 @@ IntArc( DC *dc,
     PBRUSH pbrPen;
     SURFACE *psurf;
     BOOL ret = TRUE;
-    LONG PenWidth, PenOrigWidth;
+    ULONG PenWidth;
     double AngleStart, AngleEnd;
     LONG CenterX, CenterY;
 
@@ -75,7 +75,7 @@ IntArc( DC *dc,
         return FALSE;
     }
 
-    PenOrigWidth = PenWidth = pbrPen->lWidth;
+    PenWidth = PEN_ulWidth(pbrPen);
     if (pbrPen->ulPenStyle == PS_NULL) PenWidth = 0;
 
     if (pbrPen->ulPenStyle == PS_INSIDEFRAME)
@@ -89,7 +89,6 @@ IntArc( DC *dc,
     }
 
     if (!PenWidth) PenWidth = 1;
-    pbrPen->lWidth = PenWidth;
 
     RectBounds.left   = Left;
     RectBounds.right  = Right;
@@ -145,15 +144,16 @@ IntArc( DC *dc,
 
     if(ret)
     {
-        ret = IntDrawArc( dc,
-                  RectBounds.left,
-                  RectBounds.top,
-                  abs(RectBounds.right-RectBounds.left), // Width
-                  abs(RectBounds.bottom-RectBounds.top), // Height
-                  AngleStart,
-                  AngleEnd,
-                  arctype,
-                  pbrPen);
+    ret = IntDrawArc( dc,
+              RectBounds.left,
+              RectBounds.top,
+              abs(RectBounds.right-RectBounds.left), // Width
+              abs(RectBounds.bottom-RectBounds.top), // Height
+              AngleStart,
+              AngleEnd,
+              arctype,
+              pbrPen,
+              PenWidth);
     }
 
     psurf = dc->dclevel.pSurface;
@@ -173,7 +173,6 @@ IntArc( DC *dc,
     if (arctype == GdiTypeChord)
         PUTLINE(RectSEpts.right, RectSEpts.bottom, RectSEpts.left, RectSEpts.top, dc->eboLine);
 
-    pbrPen->lWidth = PenOrigWidth;
     PEN_ShareUnlockPen(pbrPen);
     DPRINT("IntArc Exit.\n");
     return ret;
