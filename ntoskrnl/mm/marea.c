@@ -258,6 +258,7 @@ MmFreeMemoryArea(
 
         if ((Process != NULL) && (Process != CurrentProcess))
         {
+            ASSERT(FALSE);
             KeAttachProcess(&Process->Pcb);
         }
 

@@ -578,8 +578,8 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
             /* Check for unmapped range and skip it */
             if (!PointerPxe->u.Long)
             {
-                /* There are gaps in the address space */
-                AddressGap = TRUE;
+            /* There are gaps in the address space */
+            AddressGap = TRUE;
 
                 /* Update Va and continue looping */
                 Va = (ULONG_PTR)MiPxeToAddress(PointerPxe + 1);
