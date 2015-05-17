@@ -3557,6 +3557,8 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
                         IN PVOID BaseAddress,
                         IN BOOLEAN SkipDebuggerNotify)
 {
+    KAPC_STATE ApcState;
+    BOOLEAN Attached = FALSE;
     NTSTATUS Status;
     PMEMORY_AREA MemoryArea;
     PMMSUPPORT AddressSpace;
@@ -3567,7 +3569,13 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
 
     ASSERT(Process);
 
-    AddressSpace = Process ? &Process->Vm : MmGetKernelAddressSpace();
+    /* Check if we should attach to the process */
+    if (Process != PsGetCurrentProcess())
+    {
+        /* The process is different, do an attach */
+        KeStackAttachProcess(&Process->Pcb, &ApcState);
+        Attached = TRUE;
+    }
 
     MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace,
                  BaseAddress);
@@ -3583,7 +3591,8 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
         if (MemoryArea) ASSERT(MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3);
 
         DPRINT1("Unable to find memory area at address %p.\n", BaseAddress);
-        return STATUS_NOT_MAPPED_VIEW;
+        Status = STATUS_NOT_MAPPED_VIEW;
+        goto Exit;
     }
 
     if (MemoryArea->VadNode.u.VadFlags.VadType == VadImageMap)
@@ -3642,6 +3651,8 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
             ASSERT(NT_SUCCESS(Status));
         }
     }
+
+    if (Attached) KeUnstackDetachProcess(&ApcState);
 
     /* Notify debugger */
     if (ImageBaseAddress && !SkipDebuggerNotify) DbgkUnMapViewOfSection(ImageBaseAddress);
