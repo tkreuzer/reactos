@@ -352,6 +352,7 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
     ULONG Pte;
     PULONG Pt;
 
+    ASSERT((Process == NULL) || (Process == PsGetCurrentProcess()));
     DPRINT("MmDeleteVirtualMapping(%p, %p, %p, %p)\n",
            Process, Address, WasDirty, Page);
 

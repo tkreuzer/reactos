@@ -576,6 +576,11 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
     /* Loop the PTE for each VA */
     while (TRUE)
     {
+#if (_MI_PAGING_LEVELS == 4)
+        /// FIXME: handle PXE and PPE
+        UNIMPLEMENTED_DBGBREAK();
+#endif
+
         /* First keep going until we find a valid PDE */
         while (!PointerPde->u.Long)
         {
