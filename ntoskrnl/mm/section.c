@@ -4132,6 +4132,8 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
                         IN PVOID BaseAddress,
                         IN BOOLEAN SkipDebuggerNotify)
 {
+    KAPC_STATE ApcState;
+    BOOLEAN Attached = FALSE;
     NTSTATUS Status;
     PMEMORY_AREA MemoryArea;
     PMMSUPPORT AddressSpace;
@@ -4143,7 +4145,15 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
 
     ASSERT(Process);
 
-    AddressSpace = Process ? &Process->Vm : MmGetKernelAddressSpace();
+    /* Check if we should attach to the process */
+    if (Process != PsGetCurrentProcess())
+    {
+        /* The process is different, do an attach */
+        KeStackAttachProcess(&Process->Pcb, &ApcState);
+        Attached = TRUE;
+    }
+
+    AddressSpace = &Process->Vm;
 
     MmLockAddressSpace(AddressSpace);
     MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace,
@@ -4154,8 +4164,8 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
             MemoryArea->DeleteInProgress)
     {
         if (MemoryArea) ASSERT(MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3);
-        MmUnlockAddressSpace(AddressSpace);
-        return STATUS_NOT_MAPPED_VIEW;
+        Status = STATUS_NOT_MAPPED_VIEW;
+        goto Exit;
     }
 
     Section = MemoryArea->Data.SectionData.Section;
@@ -4215,7 +4225,11 @@ MiRosUnmapViewOfSection(IN PEPROCESS Process,
         }
     }
 
+Exit:
+
     MmUnlockAddressSpace(AddressSpace);
+
+    if (Attached) KeUnstackDetachProcess(&ApcState);
 
     /* Notify debugger */
     if (ImageBaseAddress && !SkipDebuggerNotify) DbgkUnMapViewOfSection(ImageBaseAddress);
