@@ -878,6 +878,9 @@ QSI_DEF(SystemPathInformation)
     return STATUS_NOT_IMPLEMENTED;
 }
 
+VOID
+ProcessLeakDump(PVOID Object);
+
 /* Class 5 - Process Information */
 QSI_DEF(SystemProcessInformation)
 {
@@ -942,6 +945,8 @@ QSI_DEF(SystemProcessInformation)
                 /* Unlock the Process */
                 ExReleasePushLockShared(&Process->ProcessLock);
                 KeLeaveCriticalRegion();
+                __debugbreak();
+                ProcessLeakDump(Process);
                 goto Skip;
             }
 

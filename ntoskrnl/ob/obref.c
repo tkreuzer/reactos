@@ -17,6 +17,140 @@
 
 /* PRIVATE FUNCTIONS *********************************************************/
 
+PVOID TrackObject;
+KSPIN_LOCK BackTraceLock;
+
+#define MAX_BACKTRACES 100
+#define MAX_TRACE_DEPTH 4
+
+typedef struct _BT_ENTRY
+{
+    PVOID *BackTrace[MAX_TRACE_DEPTH];
+    LONG Count;
+} BT_ENTRY;
+
+BT_ENTRY BackTraces[MAX_BACKTRACES];
+ULONG BackTraceCount;
+
+VOID
+CreateTrackObject(
+    PVOID Object)
+{
+    POBJECT_HEADER ObjectHeader;
+    PEPROCESS Process;
+
+    /* Get the object header */
+    ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
+
+    /* Is this a process? */
+    if (ObjectHeader->Type != PsProcessType)
+    {
+        return;
+    }
+
+    /* Is this the process we want? */
+    Process = (PEPROCESS)Object;
+    if (strcmp(Process->ImageFileName, "kernel32_winete") != 0)
+    {
+        return;
+    }
+
+    if (TrackObject == NULL)
+    {
+        DbgPrint("TRACK -- KeInitializeSpinLock!\n");
+        KeInitializeSpinLock(&BackTraceLock);
+    }
+
+    /* Reset data (track the latest one) */
+    RtlZeroMemory(BackTraces, sizeof(BackTraces));
+    BackTraceCount = 0;
+    TrackObject = Object;
+    DbgPrint("TRACK -- Initialize TrackObject = %p\n", TrackObject);
+
+}
+
+VOID
+ProcessLeakTracker(
+    PVOID Object)
+{
+    PVOID BackTrace[MAX_TRACE_DEPTH];
+    POBJECT_HEADER ObjectHeader;
+    ULONG i, j;
+    KIRQL OldIrql;
+    NT_ASSERT(Object != NULL);
+
+    if (Object != TrackObject)
+    {
+        return;
+    }
+
+    /* Capture the backtrace */
+    RtlZeroMemory(BackTrace, sizeof(BackTrace));
+    RtlCaptureStackBackTrace(1, MAX_TRACE_DEPTH, BackTrace, NULL);
+
+    OldIrql = KfAcquireSpinLock(&BackTraceLock);
+
+    /* Try to find the backtrace in the list */
+    for (i = 0; i < BackTraceCount; i++)
+    {
+        for (j = 0; j < MAX_TRACE_DEPTH; j++)
+        {
+            if (BackTraces[i].BackTrace[j] != BackTrace[j])
+            {
+                break;
+            }
+        }
+
+        /* All equal? */
+        if (j == MAX_TRACE_DEPTH)
+        {
+            /* We have this BT already, increment it's count */
+            BackTraces[i].Count++;
+            goto leave;
+        }
+    }
+
+    /* Not found, so add it to the table, if there is space left */
+    if (BackTraceCount < MAX_BACKTRACES)
+    {
+        BackTraces[i].Count = 1;
+        RtlCopyMemory(BackTraces[BackTraceCount].BackTrace,
+                      BackTrace,
+                      sizeof(BackTrace));
+    }
+
+    BackTraceCount++;
+
+leave:
+    KeReleaseSpinLock(&BackTraceLock, OldIrql);
+
+    /* Get the object header */
+    ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
+    if (ObjectHeader->PointerCount == 0)
+    {
+        DbgPrint("TRACK -- Reset TrackObject %p\n", TrackObject);
+        TrackObject = (PVOID)-1;
+    }
+}
+
+VOID
+ProcessLeakDump(VOID)
+{
+    ULONG i, j;
+
+    DbgPrint("Dumping BackTraces...\n");
+    for (i = 0; i < BackTraceCount; i++)
+    {
+        DbgPrint("#%lu (%lu):\n", i, BackTraces[i].Count);
+        for (j = 0; j < MAX_TRACE_DEPTH; j++)
+        {
+            if (BackTraces[i].BackTrace[j] == NULL) break;
+            DbgPrint("    %p: \n", BackTraces[i].BackTrace[j]);
+        }
+        DbgPrint("\n");
+    }
+}
+
 BOOLEAN
 FASTCALL
 ObReferenceObjectSafe(IN PVOID Object)
@@ -38,7 +172,11 @@ ObReferenceObjectSafe(IN PVOID Object)
         NewValue = InterlockedCompareExchangeSizeT(&ObjectHeader->PointerCount,
                                                    OldValue + 1,
                                                    OldValue);
-        if (OldValue == NewValue) return TRUE;
+        if (OldValue == NewValue)
+        {
+            ProcessLeakTracker(Object);
+            return TRUE;
+        }
 
         /* Keep looping */
         OldValue = NewValue;
@@ -78,9 +216,11 @@ ObReferenceObjectEx(IN PVOID Object,
                     IN LONG Count)
 {
     /* Increment the reference count and return the count now */
-    return InterlockedExchangeAddSizeT(&OBJECT_TO_OBJECT_HEADER(Object)->
-                                       PointerCount,
-                                       Count) + Count;
+    LONG Cnt = InterlockedExchangeAddSizeT(&OBJECT_TO_OBJECT_HEADER(Object)->
+                                           PointerCount,
+                                           Count) + Count;
+    ProcessLeakTracker(Object);
+    return Cnt;
 }
 
 LONG
@@ -96,6 +236,7 @@ ObDereferenceObjectEx(IN PVOID Object,
 
     /* Check whether the object can now be deleted. */
     NewCount = InterlockedExchangeAddSizeT(&Header->PointerCount, -Count) - Count;
+    ProcessLeakTracker(Object);
     if (!NewCount) ObpDeferObjectDeletion(Header);
 
     /* Return the current count */
@@ -307,10 +448,12 @@ LONG_PTR
 FASTCALL
 ObfReferenceObject(IN PVOID Object)
 {
-    ASSERT(Object);
+    //ASSERT(Object);
 
     /* Get the header and increment the reference count */
-    return InterlockedIncrementSizeT(&OBJECT_TO_OBJECT_HEADER(Object)->PointerCount);
+    LONG_PTR Cnt = InterlockedIncrementSizeT(&OBJECT_TO_OBJECT_HEADER(Object)->PointerCount);
+    ProcessLeakTracker(Object);
+    return Cnt;
 }
 
 LONG_PTR
@@ -331,6 +474,7 @@ ObfDereferenceObject(IN PVOID Object)
 
     /* Check whether the object can now be deleted. */
     NewCount = InterlockedDecrementSizeT(&Header->PointerCount);
+    ProcessLeakTracker(Object);
     if (!NewCount)
     {
         /* Sanity check */
@@ -360,7 +504,9 @@ ObDereferenceObjectDeferDelete(IN PVOID Object)
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
 
     /* Check whether the object can now be deleted. */
-    if (!InterlockedDecrementSizeT(&Header->PointerCount))
+    LONG Cnt = InterlockedDecrementSizeT(&Header->PointerCount);
+    ProcessLeakTracker(Object);
+    if (!Cnt)
     {
         /* Add us to the deferred deletion list */
         ObpDeferObjectDeletion(Header);
@@ -401,6 +547,7 @@ ObReferenceObjectByPointer(IN PVOID Object,
 
     /* Increment the reference count and return success */
     InterlockedIncrementSizeT(&Header->PointerCount);
+    ProcessLeakTracker(Object);
     return STATUS_SUCCESS;
 }
 
@@ -474,6 +621,7 @@ ObReferenceObjectByName(IN PUNICODE_STRING ObjectPath,
         {
             /* Return the object */
             *ObjectPtr = Object;
+            ProcessLeakTracker(Object);
         }
     }
 
@@ -542,6 +690,7 @@ ObReferenceObjectByHandle(IN HANDLE Handle,
                     /* Reference ourselves */
                     ObjectHeader = OBJECT_TO_OBJECT_HEADER(CurrentProcess);
                     InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount, 1);
+                    ProcessLeakTracker(Object);
 
                     /* Return the pointer */
                     *Object = CurrentProcess;
@@ -590,6 +739,7 @@ ObReferenceObjectByHandle(IN HANDLE Handle,
                     /* Reference ourselves */
                     ObjectHeader = OBJECT_TO_OBJECT_HEADER(CurrentThread);
                     InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount, 1);
+                    ProcessLeakTracker(Object);
 
                     /* Return the pointer */
                     *Object = CurrentThread;
@@ -653,6 +803,7 @@ ObReferenceObjectByHandle(IN HANDLE Handle,
             {
                 /* Reference the object directly since we have its header */
                 InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+                ProcessLeakTracker(Object);
 
                 /* Mask out the internal attributes */
                 Attributes = HandleEntry->ObAttributes & OBJ_HANDLE_ATTRIBUTES;

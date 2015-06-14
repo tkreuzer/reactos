@@ -33,6 +33,9 @@ WCHAR ObpUnsecureGlobalNamesBuffer[128] = {0};
 ULONG ObpUnsecureGlobalNamesLength = sizeof(ObpUnsecureGlobalNamesBuffer);
 
 /* PRIVATE FUNCTIONS *********************************************************/
+VOID
+ProcessLeakTracker(
+    PVOID Object);
 
 CODE_SEG("INIT")
 NTSTATUS
@@ -976,6 +979,7 @@ ReparseObject:
 
                 /* Increment the pointer count */
                 InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount, 1);
+                ProcessLeakTracker(Object);
 
                 /* Cleanup from the first lookup */
                 ObpReleaseLookupContext(LookupContext);
