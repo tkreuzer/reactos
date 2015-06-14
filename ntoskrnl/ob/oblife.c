@@ -33,6 +33,9 @@ ULONG ObpObjectsWithHandleDB, ObpObjectsWithCreatorInfo;
 POBJECT_TYPE ObpObjectTypes[32];
 
 /* PRIVATE FUNCTIONS *********************************************************/
+VOID
+ProcessLeakTracker(
+    PVOID Object);
 
 VOID
 FASTCALL
@@ -830,6 +833,7 @@ ObpAllocateObject(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo,
 
     /* Initialize the object header */
     Header->PointerCount = 1;
+    ProcessLeakTracker(&Header->Body);
     Header->HandleCount = 0;
     Header->Type = ObjectType;
     Header->ObjectCreateInfo = ObjectCreateInfo;
@@ -947,6 +951,10 @@ ObQueryTypeInfo(IN POBJECT_TYPE ObjectType,
 
 /* PUBLIC FUNCTIONS **********************************************************/
 
+VOID
+CreateTrackObject(
+    PVOID Object);
+
 NTSTATUS
 NTAPI
 ObCreateObject(IN KPROCESSOR_MODE ProbeMode OPTIONAL,
@@ -1027,6 +1035,8 @@ ObCreateObject(IN KPROCESSOR_MODE ProbeMode OPTIONAL,
                         Status = STATUS_PRIVILEGE_NOT_HELD;
                     }
                 }
+
+                CreateTrackObject(*Object);
 
                 /* Return status */
                 return Status;

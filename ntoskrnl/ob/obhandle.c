@@ -24,6 +24,10 @@ ULONG ObpAccessProtectCloseBit = MAXIMUM_ALLOWED;
 
 /* PRIVATE FUNCTIONS *********************************************************/
 
+VOID
+ProcessLeakTracker(
+    PVOID Object);
+
 PHANDLE_TABLE
 NTAPI
 ObReferenceProcessHandleTable(IN PEPROCESS Process)
@@ -119,6 +123,7 @@ ObpReferenceProcessObjectByHandle(IN HANDLE Handle,
             /* Reference ourselves */
             ObjectHeader = OBJECT_TO_OBJECT_HEADER(Process);
             InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+            ProcessLeakTracker(Object);
 
             /* Return the pointer */
             *Object = Process;
@@ -136,6 +141,7 @@ ObpReferenceProcessObjectByHandle(IN HANDLE Handle,
             /* Reference ourselves */
             ObjectHeader = OBJECT_TO_OBJECT_HEADER(Thread);
             InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+            ProcessLeakTracker(Object);
 
             /* No audit mask */
             *AuditMask = 0;
@@ -189,6 +195,7 @@ ObpReferenceProcessObjectByHandle(IN HANDLE Handle,
 
         /* Add a reference */
         InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+        ProcessLeakTracker(Object);
 
         /* Unlock the handle */
         ExUnlockHandleTableEntry(HandleTable, HandleEntry);
@@ -1388,6 +1395,7 @@ ObpCreateUnnamedHandle(IN PVOID Object,
         /* Add them to the header */
         InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
                                     AdditionalReferences);
+        ProcessLeakTracker(Object);
     }
 
     /* Save the access mask */
@@ -1439,6 +1447,7 @@ ObpCreateUnnamedHandle(IN PVOID Object,
         /* Dereference it as many times as required */
         InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
                                     -(LONG)AdditionalReferences);
+        ProcessLeakTracker(Object);
     }
 
     /* Decrement the handle count and detach */
@@ -1605,6 +1614,7 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
         /* Add them to the header */
         InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
                                     AdditionalReferences);
+        ProcessLeakTracker(Object);
     }
 
     /* Now we can release the object */
@@ -1695,6 +1705,7 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
             /* Dereference it many times */
             InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
                                         -(LONG)(AdditionalReferences - 1));
+            ProcessLeakTracker(Object);
         }
 
         /* Dereference the object one last time */
@@ -1974,6 +1985,7 @@ ObpDuplicateHandleCallback(IN PEPROCESS Process,
 
         /* Increment the pointer count */
         InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+        ProcessLeakTracker(&ObjectHeader->Body);
 
         /* Release the handle lock */
         ExUnlockHandleTableEntry(HandleTable, OldEntry);

@@ -15,6 +15,10 @@
 
 /* FUNCTIONS *****************************************************************/
 
+VOID
+ProcessLeakTracker(
+    PVOID Object);
+
 /*++
 * @name NtWaitForMultipleObjects
 * @implemented NT4
@@ -202,6 +206,7 @@ NtWaitForMultipleObjects(IN ULONG ObjectCount,
         {
             /* Increase reference count */
             InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+            ProcessLeakTracker(&ObjectHeader->Body);
             ReferencedObjects++;
 
             /* Save the Object and Wait Object, this is a relative offset */
