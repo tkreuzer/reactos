@@ -17,20 +17,27 @@
 
 /* PRIVATE FUNCTIONS *********************************************************/
 
-PVOID TrackObject;
-KSPIN_LOCK BackTraceLock;
-
+#define MAX_TRACK_OBJECTS 100
 #define MAX_BACKTRACES 100
 #define MAX_TRACE_DEPTH 4
 
 typedef struct _BT_ENTRY
 {
-    PVOID *BackTrace[MAX_TRACE_DEPTH];
+    PVOID BackTrace[MAX_TRACE_DEPTH];
     LONG Count;
 } BT_ENTRY;
 
-BT_ENTRY BackTraces[MAX_BACKTRACES];
-ULONG BackTraceCount;
+typedef struct _BACKTRACE_TABLE
+{
+    BT_ENTRY BackTraces[MAX_BACKTRACES];
+    ULONG BackTraceCount;
+    PVOID Object;
+} BACKTRACE_TABLE;
+
+KSPIN_LOCK BackTraceLock;
+BOOLEAN TrackTableInitialized;
+BACKTRACE_TABLE BackTraceTable[MAX_TRACK_OBJECTS];
+ULONG TrackObjectCount;
 
 VOID
 CreateTrackObject(
@@ -38,6 +45,8 @@ CreateTrackObject(
 {
     POBJECT_HEADER ObjectHeader;
     PEPROCESS Process;
+    KIRQL OldIrql;
+    ULONG n;
 
     /* Get the object header */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -55,18 +64,31 @@ CreateTrackObject(
         return;
     }
 
-    if (TrackObject == NULL)
+    if (!TrackTableInitialized)
     {
         DbgPrint("TRACK -- KeInitializeSpinLock!\n");
         KeInitializeSpinLock(&BackTraceLock);
+        TrackTableInitialized = TRUE;
     }
 
-    /* Reset data (track the latest one) */
-    RtlZeroMemory(BackTraces, sizeof(BackTraces));
-    BackTraceCount = 0;
-    TrackObject = Object;
-    DbgPrint("TRACK -- Initialize TrackObject = %p\n", TrackObject);
+    DbgPrint("TRACK -- Initialize TrackObject = %p @ index %lu\n",
+             Object, TrackObjectCount);
 
+    OldIrql = KfAcquireSpinLock(&BackTraceLock);
+
+    for (n = 0; n < TrackObjectCount; n++)
+    {
+        if (BackTraceTable[n].Object == Object)
+        {
+            __debugbreak();
+        }
+    }
+
+    BackTraceTable[TrackObjectCount].Object = Object;
+    TrackObjectCount++;
+    NT_ASSERT(TrackObjectCount <= MAX_TRACK_OBJECTS);
+
+    KeReleaseSpinLock(&BackTraceLock, OldIrql);
 }
 
 VOID
@@ -75,11 +97,19 @@ ProcessLeakTracker(
 {
     PVOID BackTrace[MAX_TRACE_DEPTH];
     POBJECT_HEADER ObjectHeader;
-    ULONG i, j;
+    ULONG n, i, j;
     KIRQL OldIrql;
     NT_ASSERT(Object != NULL);
 
-    if (Object != TrackObject)
+    for (n = 0; n < TrackObjectCount; n++)
+    {
+        if (BackTraceTable[n].Object == Object)
+        {
+            break;
+        }
+    }
+
+    if (n == TrackObjectCount)
     {
         return;
     }
@@ -91,11 +121,11 @@ ProcessLeakTracker(
     OldIrql = KfAcquireSpinLock(&BackTraceLock);
 
     /* Try to find the backtrace in the list */
-    for (i = 0; i < BackTraceCount; i++)
+    for (i = 0; i < BackTraceTable[n].BackTraceCount; i++)
     {
         for (j = 0; j < MAX_TRACE_DEPTH; j++)
         {
-            if (BackTraces[i].BackTrace[j] != BackTrace[j])
+            if (BackTraceTable[n].BackTraces[i].BackTrace[j] != BackTrace[j])
             {
                 break;
             }
@@ -105,21 +135,21 @@ ProcessLeakTracker(
         if (j == MAX_TRACE_DEPTH)
         {
             /* We have this BT already, increment it's count */
-            BackTraces[i].Count++;
+            BackTraceTable[n].BackTraces[i].Count++;
             goto leave;
         }
     }
 
     /* Not found, so add it to the table, if there is space left */
-    if (BackTraceCount < MAX_BACKTRACES)
+    if (BackTraceTable[n].BackTraceCount < MAX_BACKTRACES)
     {
-        BackTraces[i].Count = 1;
-        RtlCopyMemory(BackTraces[BackTraceCount].BackTrace,
+        BackTraceTable[n].BackTraces[i].Count = 1;
+        RtlCopyMemory(BackTraceTable[n].BackTraces[BackTraceTable[n].BackTraceCount].BackTrace,
                       BackTrace,
                       sizeof(BackTrace));
     }
 
-    BackTraceCount++;
+    BackTraceTable[n].BackTraceCount++;
 
 leave:
     KeReleaseSpinLock(&BackTraceLock, OldIrql);
@@ -128,24 +158,37 @@ leave:
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
     if (ObjectHeader->PointerCount == 0)
     {
-        DbgPrint("TRACK -- Reset TrackObject %p\n", TrackObject);
-        TrackObject = (PVOID)-1;
+        DbgPrint("TRACK -- Stop TrackObject %p\n", BackTraceTable[n].Object);
+        BackTraceTable[n].Object = (PVOID)((ULONG_PTR)BackTraceTable[n].Object | 1);
     }
 }
 
 VOID
-ProcessLeakDump(VOID)
+ProcessLeakDump(PVOID Object)
 {
-    ULONG i, j;
+    ULONG n, i, j;
+
+    for (n = 0; n < TrackObjectCount; n++)
+    {
+        if (BackTraceTable[n].Object == (PVOID)((ULONG_PTR)BackTraceTable[n].Object & ~1))
+        {
+            break;
+        }
+    }
+
+    if (n == TrackObjectCount)
+    {
+        ASSERT(FALSE);
+    }
 
     DbgPrint("Dumping BackTraces...\n");
-    for (i = 0; i < BackTraceCount; i++)
+    for (i = 0; i < BackTraceTable[n].BackTraceCount; i++)
     {
-        DbgPrint("#%lu (%lu):\n", i, BackTraces[i].Count);
+        DbgPrint("#%lu (%lu):\n", i, BackTraceTable[n].BackTraces[i].Count);
         for (j = 0; j < MAX_TRACE_DEPTH; j++)
         {
-            if (BackTraces[i].BackTrace[j] == NULL) break;
-            DbgPrint("    %p: \n", BackTraces[i].BackTrace[j]);
+            if (BackTraceTable[n].BackTraces[i].BackTrace[j] == NULL) break;
+            DbgPrint("    %p: \n", BackTraceTable[n].BackTraces[i].BackTrace[j]);
         }
         DbgPrint("\n");
     }
