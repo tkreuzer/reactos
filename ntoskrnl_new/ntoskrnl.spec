@@ -982,7 +982,7 @@
 @ stdcall KeGenericCallDpc(ptr ptr)
 @ stub KeGetClockOwner
 @ stub KeGetClockTimerResolution
-@ stub KeGetCurrentIrql
+@ stdcall -arch=x86_64 KeGetCurrentIrql()
 @ stdcall KeGetCurrentNodeNumber()
 @ stdcall KeGetCurrentProcessorNumberEx(ptr)
 @ stdcall KeGetCurrentThread()
@@ -1039,7 +1039,7 @@
 @ stdcall KeLeaveGuardedRegion()
 @ stdcall KeLoadMTRR(ptr)
 @ extern KeLoaderBlock
-@ cdecl -stub -arch=x86_64 -private KeLowerIrql(long)
+@ stdcall -arch=x86_64 -private KeLowerIrql(long)
 @ stub KeNotifyProcessorFreezeSupported
 @ extern KeNumberProcessors
 @ stdcall KeOrAffinityEx(ptr ptr ptr)
@@ -1077,7 +1077,7 @@
 @ stdcall KeQueryTimeIncrement()
 @ stdcall KeQueryTotalCycleTimeThread(ptr ptr)
 @ stdcall KeQueryUnbiasedInterruptTime()
-@ cdecl -stub -arch=x86_64 -private KeRaiseIrqlToDpcLevel()
+@ stdcall -arch=x86_64 -private KeRaiseIrqlToDpcLevel()
 @ stdcall -stub KeRaiseUserException(long)
 @ stdcall KeReadStateEvent(ptr)
 @ stdcall KeReadStateMutant(ptr)
@@ -1179,7 +1179,7 @@
 @ fastcall -arch=i386 KfAcquireSpinLock(ptr)
 @ fastcall -arch=i386 KfReleaseSpinLock(ptr ptr)
 @ stdcall -stub -arch=i386 Kei386EoiHelper()
-@ cdecl -stub -arch=x86_64 -private KfRaiseIrql(long)
+@ stdcall -arch=x86_64 -private KfRaiseIrql(long)
 @ stub KiAccumulateCycleStats
 @ fastcall -arch=i386,arm KiAcquireSpinLock(ptr) KefAcquireSpinLockAtDpcLevel
 @ stub KiBeginThreadAccountingPeriod
