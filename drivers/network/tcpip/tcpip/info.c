@@ -278,21 +278,27 @@ TDI_STATUS InfoTdiQueryInformationEx(
                      return TDI_INVALID_PARAMETER;
 
                  if (ID->toi_entity.tei_entity == IF_ENTITY)
+                 {
                      if ((EntityListContext = GetContext(ID->toi_entity)))
                          return InfoTdiQueryGetInterfaceMIB(ID->toi_entity, EntityListContext, Buffer, BufferSize);
                      else
                          return TDI_INVALID_PARAMETER;
+                 }
                  else if (ID->toi_entity.tei_entity == CL_NL_ENTITY ||
                           ID->toi_entity.tei_entity == CO_NL_ENTITY)
+                 {
                      if ((EntityListContext = GetContext(ID->toi_entity)))
                          return InfoTdiQueryGetIPSnmpInfo(ID->toi_entity, EntityListContext, Buffer, BufferSize);
                      else
                          return TDI_INVALID_PARAMETER;
+                 }
                  else if (ID->toi_entity.tei_entity == AT_ENTITY)
+                 {
                      if ((EntityListContext = GetContext(ID->toi_entity)))
                          return InfoTdiQueryGetATInfo(ID->toi_entity, EntityListContext, Buffer, BufferSize);
                      else
                          return TDI_INVALID_PARAMETER;
+                 }
                  else
                      return TDI_INVALID_PARAMETER;
 
