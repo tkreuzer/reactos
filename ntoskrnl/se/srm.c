@@ -21,6 +21,11 @@ typedef struct _SEP_LOGON_SESSION_TERMINATED_NOTIFICATION
     PSE_LOGON_SESSION_TERMINATED_ROUTINE CallbackRoutine;
 } SEP_LOGON_SESSION_TERMINATED_NOTIFICATION, *PSEP_LOGON_SESSION_TERMINATED_NOTIFICATION;
 
+typedef struct _SEP_RM_CONNECT_INFO
+{
+    ULONG ConnectInfo;
+} SEP_RM_CONNECT_INFO;
+
 VOID
 NTAPI
 SepRmCommandServerThread(
@@ -44,6 +49,7 @@ extern LUID SeAnonymousAuthenticationId;
 
 HANDLE SeRmCommandPort;
 HANDLE SeLsaInitEvent;
+HANDLE SepLsaHandle;
 
 PVOID SepCommandPortViewBase;
 PVOID SepCommandPortViewRemoteBase;
@@ -176,6 +182,7 @@ NTAPI
 SeRmInitPhase0(VOID)
 {
     NTSTATUS Status;
+    PAGED_CODE();
 
     /* Initialize the database lock */
     KeInitializeGuardedMutex(&SepRmDbLock);
@@ -210,6 +217,8 @@ BOOLEAN
 NTAPI
 SeRmInitPhase1(VOID)
 {
+    SECURITY_DESCRIPTOR SecurityDescriptor;
+    ULONG AclLength;
     UNICODE_STRING Name;
     OBJECT_ATTRIBUTES ObjectAttributes;
     HANDLE ThreadHandle;
@@ -220,20 +229,63 @@ SeRmInitPhase1(VOID)
     InitializeObjectAttributes(&ObjectAttributes, &Name, 0, NULL, NULL);
     Status = ZwCreatePort(&SeRmCommandPort,
                           &ObjectAttributes,
-                          sizeof(ULONG),
-                          PORT_MAXIMUM_MESSAGE_LENGTH,
-                          2 * PAGE_SIZE);
+                          sizeof(SEP_RM_CONNECT_INFO),
+                          sizeof(SEP_RM_API_MESSAGE),
+                          sizeof(SEP_RM_API_MESSAGE) * 32);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Security: Rm Create Command Port failed 0x%lx\n", Status);
         return FALSE;
     }
 
+    /* Create a security descriptor */
+    Status = RtlCreateSecurityDescriptor(&SecurityDescriptor, 1);
+    if (!NT_SUCCESS(Status))
+    {
+        DbgPrint("Security:  Creating Lsa Init Event Desc failed 0x%lx\n", Status);
+        return FALSE;
+    }
+
+    /* Allocate an ACL for the security descriptor */
+    AclLength = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE)
+        - sizeof(ACCESS_ALLOWED_ACE.SidStart)
+        + RtlLengthSid(SeLocalSystemSid);
+
+    SecurityDescriptor.Dacl = ExAllocatePoolWithTag(PagedPool, AclLength, 'cAeS');
+    if (SecurityDescriptor.Dacl == NULL)
+    {
+        DbgPrint("Security LSA:  Insufficient resources to initialize\n");
+        return 0;
+    }
+
+    /* Create the ACL */
+    Status = RtlCreateAcl(SecurityDescriptor.Dacl, AclLength, 2u);
+    if (!NT_SUCCESS(Status))
+    {
+        DbgPrint("Security:  Creating Lsa Init Event Dacl failed 0x%lx\n", Status);
+        return FALSE;
+    }
+
+    Status = RtlAddAccessAllowedAce(SecurityDescriptor.Dacl,
+                                    2,
+                                    0x10000000,
+                                    SeLocalSystemSid);
+    if (!NT_SUCCESS(Status))
+    {
+        DbgPrint("Security:  Adding Lsa Init Event ACE failed 0x%lx\n", Status);
+        return FALSE;
+    }
+
+
     /* Create SeLsaInitEvent */
     RtlInitUnicodeString(&Name, L"\\SeLsaInitEvent");
-    InitializeObjectAttributes(&ObjectAttributes, &Name, 0, NULL, NULL);
+    InitializeObjectAttributes(&ObjectAttributes,
+                               &Name,
+                               0,
+                               NULL,
+                               &SecurityDescriptor);
     Status = ZwCreateEvent(&SeLsaInitEvent,
-                           GENERIC_WRITE,
+                           EVENT_MODIFY_STATE,
                            &ObjectAttributes,
                            NotificationEvent,
                            FALSE);
@@ -242,6 +294,8 @@ SeRmInitPhase1(VOID)
         DPRINT1("Security: LSA init event creation failed.0x%xl\n", Status);
         return FALSE;
     }
+
+    ExFreePoolWithTag(SecurityDescriptor.Dacl, 0);
 
     /* Create the SeRm server thread */
     Status = PsCreateSystemThread(&ThreadHandle,
@@ -256,6 +310,13 @@ SeRmInitPhase1(VOID)
         DPRINT1("Security: Rm Server Thread creation failed 0x%lx\n", Status);
         return FALSE;
     }
+
+    SepAdtInitializeCrashOnFail();
+
+    SepAdtInitializePrivilegeAuditing();
+
+    SepAdtInitializeAuditingOptions();
+
 
     ObCloseHandle(ThreadHandle, KernelMode);
 
@@ -341,7 +402,11 @@ SepRmSetAuditEvent(
     for (i = 0; i < POLICY_AUDIT_EVENT_TYPE_COUNT; i++)
     {
         /* Save the provided flags in the global array */
-        SeAuditingState[i] = (UCHAR)Message->u.SetAuditEvent.Flags[i];
+        SeAuditingState[i].AuditOnSuccess =
+            ((Message->SetAuditEvent.Flags[i] & 1) != 0);
+
+        SeAuditingState[i].AuditOnFailure =
+            ((Message->SetAuditEvent.Flags[i] & 2) != 0);
     }
 
     return STATUS_SUCCESS;
@@ -1072,8 +1137,10 @@ SepRmDereferenceLogonSession(
  */
 BOOLEAN
 NTAPI
-SepRmCommandServerThreadInit(VOID)
+SepRmCommandServerThreadInit(
+    VOID)
 {
+    OBJECT_ATTRIBUTES ObjectAttributes;
     SECURITY_QUALITY_OF_SERVICE SecurityQos;
     SEP_RM_API_MESSAGE Message;
     UNICODE_STRING PortName;
@@ -1084,12 +1151,16 @@ SepRmCommandServerThreadInit(VOID)
     HANDLE PortHandle;
     NTSTATUS Status;
     BOOLEAN Result;
+    PAGED_CODE();
 
     SectionHandle = NULL;
     PortHandle = NULL;
 
     /* Assume success */
     Result = TRUE;
+
+    SepRmLsaCallProcess = PsGetCurrentProcess();
+    ObfReferenceObject(SepRmLsaCallProcess);
 
     /* Wait until LSASS is ready */
     Status = ZwWaitForSingleObject(SeLsaInitEvent, FALSE, NULL);
@@ -1111,6 +1182,18 @@ SepRmCommandServerThreadInit(VOID)
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Security Rm Init: Listen to Command Port failed 0x%lx\n", Status);
+        goto Cleanup;
+    }
+
+    /* Open the process by it's client id */
+    InititalizeObjectAttributes(&ObjectAttributes, NULL, 0, NULL, NULL);
+    Status = ZwOpenProcess(&SepLsaHandle,
+                           0x28,
+                           &ObjectAttributes,
+                           &Message.ClientId);
+    if (!NT_SUCCESS(Status))
+    {
+        DbgPrint("Security Rm Init: Open Listen to Command Port failed 0x%lx\n", Status);
         goto Cleanup;
     }
 
@@ -1230,6 +1313,9 @@ SepRmCommandServerThread(
     PPORT_MESSAGE ReplyMessage;
     HANDLE DummyPortHandle;
     NTSTATUS Status;
+    BOOLEAN ListIsEmpty;
+    KEVENT Event;
+    PAGED_CODE();
 
     /* Initialize the server thread */
     if (!SepRmCommandServerThreadInit())
@@ -1237,6 +1323,19 @@ SepRmCommandServerThread(
         DPRINT1("Security: Terminating Rm Command Server Thread\n");
         return;
     }
+
+    Status = PoRequestShutdownEvent(NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        ZwClose(SepRmCommandMessagePort);
+        ZwClose(SeRmCommandPort);
+        ZwClose(::PortHandle);
+        goto Done;
+    }
+
+    Message.Header.u2.ZeroInit = 0;
+    Message.Header.u1.s1.TotalLength = sizeof(Message);
+    Message.Header.u1.s1.DataLength = sizeof(Message) - sizeof(PORT_MESSAGE);
 
     /* No reply yet */
     ReplyMessage = NULL;
@@ -1251,10 +1350,19 @@ SepRmCommandServerThread(
                                         &Message.Header);
         if (!NT_SUCCESS(Status))
         {
-            DPRINT1("Failed to get message: 0x%lx", Status);
-            ReplyMessage = NULL;
-            continue;
+            if ((Status == STATUS_UNSUCCESSFUL) ||
+                (Status == STATUS_INVALID_CID) ||
+                (Status == STATUS_REPLY_MESSAGE_MISMATCH))
+            {
+                ReplyMessage = NULL;
+                continue;
+            }
+
+            DbgPrint("Security: RM message receive from Lsa failed %lx\n", Status);
         }
+
+        Message.Header.u2.s2.Type &= ~LPC_KERNELMODE_MESSAGE;
+
 
         /* Check if this is a connection request */
         if (Message.Header.u2.s2.Type == LPC_CONNECTION_REQUEST)
@@ -1316,10 +1424,103 @@ SepRmCommandServerThread(
         Message.u.ResultStatus = Status;
     }
 
+    KeInitializeEvent(&Event, NotificationEvent, FALSE);
+
+    KeEnterCriticalRegion();
+    ExAcquireResourceExclusiveLite(&SepLsaQueueLock, TRUE);
+
+    SepAdtLsaDeadEvent = &Event;
+    ListIsEmpty = IsListEmpty(&SepLsaQueue.Flink);
+
+    ExReleaseResourceLite((ULONG_PTR)&SepLsaQueueLock);
+    KeLeaveCriticalRegion();
+
+    if (!ListIsEmpty)
+    {
+        KeWaitForSingleObject(&Event, Executive, KernelMode, FALSE, NULL);
+    }
+
     /* Close the port handles */
+    ZwClose(::PortHandle);
     ObCloseHandle(SepRmCommandMessagePort, KernelMode);
     ObCloseHandle(SeRmCommandPort, KernelMode);
+
+Done:
+    ZwClose(SepLsaHandle);
+    ::PortHandle = 0;
+    SepRmCommandMessagePort = NULL;
+    SeRmCommandPort = 0;
+    SepLsaHandle = 0;
 }
+
+
+NTSTATUS
+NTAPI
+SepCreateLogonSessionTrack(
+    PLUID LogonLuid)
+{
+    PSEP_LOGON_SESSION_REFERENCES LogonSessionRef;
+    NTSTATUS Status; // eax@6
+    unsigned __int32 v4; // edi@7
+    int v5; // eax@7
+    unsigned int Index; // esi@7
+    __int16 v7; // ax@9
+    struct _ERESOURCE *Lock; // esi@12
+    _SEP_LOGON_SESSION *CurrentSession; // eax@12
+    unsigned __int32 v10; // esi@17
+    unsigned __int32 v11; // esi@27
+    PSEP_LOGON_SESSION_REFERENCES *PreviousSessionPtr;
+    PAGED_CODE();
+
+    DPRINT"\nLOGON : 0x%x 0x%x\n\n", LogonLuid->HighPart, LogonLuid->LowPart);
+
+    LogonSessionRef = ExAllocatePoolWithTag(PagedPool, sizeof(*LogonSessionRef), 'sLeS');
+    if (LogonSessionRef == NULL)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+
+    RtlZeroMemory(LogonSessionRef, sizeof(*LogonSessionRef));
+    LogonSessionRef->LogonId = LogonLuid;
+    LogonSessionRef->ReferenceCount = 0;
+    LogonSessionRef->pDeviceMap = NULL;
+    InitializeListHead(&LogonSessionRef->TokenList);
+
+    Index = LogonLuid->LowPart & 0xF;
+
+    PreviousSessionPtr = &SepLogonSessions[Index];
+
+    ExAcquireResourceExclusiveLite(&SepRmDbLock[Index & 3], TRUE);
+
+    for (CurrentSession = *PreviousSessionPtr;
+         CurrentSession != NULL;
+         CurrentSession = CurrentSession->Next)
+    {
+        if (RtlEqualLuid(&CurrentSession->LogonId, LogonLuid))
+        {
+            Status = STATUS_LOGON_SESSION_EXISTS;
+            goto Leave;
+        }
+    }
+
+    LogonSessionRef->Next = *PreviousSessionPtr;
+    *PreviousSessionPtr = LogonSessionRef;
+
+    Status = STATUS_SUCCESS;
+
+Leave:
+
+    ExReleaseResourceLite(&SepRmDbLock[Index & 3]);
+
+    if (!NT_SUCCESS(Status))
+    {
+        ExFreePoolWithTag(LogonSession, 0);
+    }
+
+    return Status;
+}
+
 
 
 /* PUBLIC FUNCTIONS ***********************************************************/
