@@ -31,6 +31,8 @@ KsecGenRandom(
     ULONG i, RandomValue;
     PULONG P;
 
+    /// @todo FIXME should use entropy data and run SHA-1 over it
+
     /* Try to generate a more random seed */
     KeQueryTickCount(&TickCount);
     KsecRandomSeed ^= _rotl(TickCount.LowPart, (KsecRandomSeed % 23));
@@ -95,7 +97,8 @@ KsecGatherEntropyData(
     MD4_CTX Md4Context;
     PTEB Teb;
     PPEB Peb;
-    PWSTR String;
+    PRTL_USER_PROCESS_PARAMETERS ProcessParameters;
+    PWSTR Environment, String;
     ULONG ReturnLength;
     NTSTATUS Status;
 
@@ -111,14 +114,26 @@ KsecGatherEntropyData(
     Teb = PsGetCurrentThread()->Tcb.Teb;
     if (Teb != NULL)
     {
-        Peb = Teb->ProcessEnvironmentBlock;
-
         /* Initialize the MD4 context */
         MD4Init(&Md4Context);
         _SEH2_TRY
         {
+            /* Probe the TEB pointer and capture the PEB pointer */
+            ProbeForRead(Teb, sizeof(*Teb), _alignof(TEB));
+            Peb = Teb->ProcessEnvironmentBlock;
+
+            /* Probe the PEB pointer and capture the process parameters pointer */
+            ProbeForRead(Peb, sizeof(*Peb), _alignof(PEB));
+            ProcessParameters = Peb->ProcessParameters;
+
+            /* Probe the process parameters and capture the environment pointer */
+            ProbeForRead(ProcessParameters,
+                         sizeof(*ProcessParameters)
+                         , _alignof(RTL_USER_PROCESS_PARAMETERS));
+            Environment = ProcessParameters->Environment;
+
             /* Get the end of the environment */
-            String = Peb->ProcessParameters->Environment;
+            String = Environment;
             while (*String)
             {
                 String += wcslen(String) + 1;
@@ -126,8 +141,8 @@ KsecGatherEntropyData(
 
             /* Update the MD4 context from the environment data */
             MD4Update(&Md4Context,
-                      (PUCHAR)Peb->ProcessParameters->Environment,
-                      (ULONG)((PUCHAR)String - (PUCHAR)Peb->ProcessParameters->Environment));
+                      (PUCHAR)Environment,
+                      (ULONG)((PUCHAR)String - (PUCHAR)Environment));
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
