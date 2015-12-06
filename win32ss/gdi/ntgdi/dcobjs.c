@@ -320,6 +320,7 @@ DC_bIsBitmapCompatible(PDC pdc, PSURFACE psurf)
 
     /* DIB sections are always compatible */
     if (psurf->hSecure != NULL) return TRUE;
+    //if (psurf->ppal->flFlags & PAL_DIBSECTION) return TRUE;
 
     /* See if this is the same PDEV */
     if (psurf->SurfObj.hdev == (HDEV)pdc->ppdev)

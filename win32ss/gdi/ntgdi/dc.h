@@ -151,6 +151,10 @@ DC_hSelectFont(
     _In_ PDC pdc,
     _In_ HFONT hlfntNew);
 
+BOOL
+NTAPI
+DC_bIsBitmapCompatible(PDC pdc, PSURFACE psurf);
+
 HPALETTE
 NTAPI
 GdiSelectPalette(
