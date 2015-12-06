@@ -2301,9 +2301,12 @@ MiRemoveMappedPtes(IN PVOID BaseAddress,
     PMMPFN Pfn1, Pfn2;
     MMPTE PteContents;
     KIRQL OldIrql;
+    PMSUBSECTION SubSection = NULL;
+    BOOLEAN HoldingWsLock = FALSE;
+    PFN_NUMBER PageFrameNumber;
     DPRINT("Removing mapped view at: 0x%p\n", BaseAddress);
 
-    ASSERT(Ws == NULL);
+    NT_ASSERT(Ws == NULL);
 
     /* Get the PTE and loop each one */
     PointerPte = MiAddressToPte(BaseAddress);
@@ -2318,7 +2321,7 @@ MiRemoveMappedPtes(IN PVOID BaseAddress,
             Pfn1 = MiGetPfnEntry(PFN_FROM_PTE(&PteContents));
 
             /* Get the PTE */
-            PointerPde = MiPteToPde(PointerPte);
+            PointerPde = MiAddressToPte(PointerPte);
 
             /* Lock the PFN database and make sure this isn't a mapped file */
             OldIrql = MiAcquirePfnLock();
@@ -2346,7 +2349,7 @@ MiRemoveMappedPtes(IN PVOID BaseAddress,
 
             /* Dereference the PDE and the PTE */
             Pfn2 = MiGetPfnEntry(PFN_FROM_PTE(PointerPde));
-            MiDecrementShareCount(Pfn2, PFN_FROM_PTE(PointerPde));
+            //MiDecrementShareCount(Pfn2, PFN_FROM_PTE(PointerPde));
             DBG_UNREFERENCED_LOCAL_VARIABLE(Pfn2);
             MiDecrementShareCount(Pfn1, PFN_FROM_PTE(&PteContents));
 
@@ -2364,8 +2367,69 @@ MiRemoveMappedPtes(IN PVOID BaseAddress,
                 /* Get the prototype PTE */
                 ProtoPte = MiProtoPteToPte(&PteContents);
 
-                /* We don't support anything else atm */
-                ASSERT(ProtoPte->u.Long == 0);
+                /* Check if we don't have a subsection yet or the proto PTE is
+                   outside the subsection, i.e. in a different one */
+                if ((SubSection == NULL) ||
+                    (ProtoPte < SubSection->SubsectionBase) ||
+                    (ProtoPte >= SubSection->SubsectionBase + SubSection->PtesInSubsection))
+                {
+                    if (HoldingWsLock)
+                    {
+                        MiUnlockWorkingSet(PsGetCurrentThread(), Ws);
+                        HoldingWsLock = FALSE;
+                    }
+
+                    /* Lock the PFN database */
+                    OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);
+
+                    /* Check if the master PTE is invalid */
+                    if (!MiAddressToPte(ProtoPte)->u.Hard.Valid)
+                    {
+                        /* Fault it in */
+                        MiMakeSystemAddressValidPfn(ProtoPte, OldIrql);
+
+                        /* Release the PFN lock and start over */
+                        KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+                        continue;
+                    }
+
+                    PteContents = *ProtoPte;
+
+                    if (PteContents.u.Hard.Valid ||
+                        (PteContents.u.Soft.Transition &&
+                         !PteContents.u.Soft.Prototype))
+                    {
+                        NT_ASSERT)FALSE);
+                        PageFrameNumber = PteContents.u.Hard.PageFrameNumber;
+                        ProtoPte = &MmPfnDatabase[PageFrameNumber].OriginalPte;
+                        PteContents = *ProtoPte;
+                    }
+
+                    if (PteContents.u.Soft.Prototype)
+                    {
+                        /* Get the subsection and check if it's a new one */
+                        Subsection = MiSubsectionPteToSubsection(&PteContents);
+                        if (LastSubsection != Subsection)
+                        {
+                            ASSERT(ControlArea == Subsection->ControlArea);
+
+                            if ((ControlArea->FilePointer != NULL) &&
+                                (ControlArea->u.Flags.Image == 0) &&
+                                (ControlArea->u.Flags.PhysicalMemory == 0))
+                            {
+                                if (LastSubsection != NULL)
+                                {
+                                    MiRemoveViewsFromSection(LastSubsection,
+                                                             LastSubsection->PtesInSubsection);
+                                }
+                                LastSubsection = Subsection;
+                            }
+                        }
+                    }
+
+                    /* Release the PFN lock  */
+                    KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+                }
             }
         }
 
