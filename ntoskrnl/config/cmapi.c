@@ -1499,7 +1499,7 @@ CmpQueryFlagsInformation(
     _In_ PCM_KEY_CONTROL_BLOCK Kcb,
     _Out_ PKEY_USER_FLAGS_INFORMATION KeyFlagsInfo,
     _In_ ULONG Length,
-    _In_ PULONG ResultLength)
+    _Out_ PULONG ResultLength)
 {
     /* Validate the buffer size */
     *ResultLength = sizeof(*KeyFlagsInfo);
@@ -1516,99 +1516,56 @@ CmpQueryFlagsInformation(
 
 static
 NTSTATUS
-CmpQueryNameInformation(
+CmpQueryKeyNameInformation(
     _In_ PCM_KEY_CONTROL_BLOCK Kcb,
-    _Out_opt_ PKEY_NAME_INFORMATION KeyNameInfo,
-    _In_ ULONG Length,
+    _Out_writes_bytes_to_(BufferLength, *ResultLength) PKEY_NAME_INFORMATION KeyNameInformation,
+    _In_ ULONG BufferLength,
     _Out_ PULONG ResultLength)
 {
-    ULONG NeededLength;
-    PCM_KEY_CONTROL_BLOCK CurrentKcb;
+    PUNICODE_STRING KeyName;
+    ULONG ActualLength;
 
-    NeededLength = 0;
-    CurrentKcb = Kcb;
-
-    /* Count the needed buffer size */
-    while (CurrentKcb)
+    /* Check if the KCB doesn't have a name block */
+    if (Kcb->NameBlock == NULL)
     {
-        if (CurrentKcb->NameBlock->Compressed)
-            NeededLength += CmpCompressedNameSize(CurrentKcb->NameBlock->Name, CurrentKcb->NameBlock->NameLength);
-        else
-            NeededLength += CurrentKcb->NameBlock->NameLength;
-
-        NeededLength += sizeof(OBJ_NAME_PATH_SEPARATOR);
-
-        CurrentKcb = CurrentKcb->ParentKcb;
+        /* Nothing to copy, just return the status */
+        return Kcb->Delete ? STATUS_KEY_DELETED : STATUS_SUCCESS;
     }
 
-    _SEH2_TRY
+    /* Get the name */
+    KeyName = CmpConstructName(Kcb);
+    if (KeyName == NULL)
     {
-        *ResultLength = FIELD_OFFSET(KEY_NAME_INFORMATION, Name) + NeededLength;
-        if (Length < RTL_SIZEOF_THROUGH_FIELD(KEY_NAME_INFORMATION, NameLength))
-            _SEH2_YIELD(return STATUS_BUFFER_TOO_SMALL);
-        if (Length < *ResultLength)
-        {
-            KeyNameInfo->NameLength = NeededLength;
-            _SEH2_YIELD(return STATUS_BUFFER_OVERFLOW);
-        }
+        return STATUS_INSUFFICIENT_RESOURCES;
     }
-    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+
+    /* Set the returned length */
+    *ResultLength  = FIELD_OFFSET(KEY_NAME_INFORMATION, Name) + KeyName->Length;
+
+    /* Check if the provided buffer is too small to fit even anything */
+    if (BufferLength < FIELD_OFFSET(KEY_NAME_INFORMATION, Name))
     {
-        _SEH2_YIELD(return _SEH2_GetExceptionCode());
+        ExFreePoolWithTag(KeyName, TAG_CM);
+        return STATUS_BUFFER_TOO_SMALL;
     }
-    _SEH2_END;
 
-    /* Do the real copy */
-    KeyNameInfo->NameLength = 0;
-    CurrentKcb = Kcb;
+    /* Set the full key name length */
+    KeyNameInformation->NameLength = KeyName->Length;
 
-    _SEH2_TRY
-    {
-        while (CurrentKcb)
-        {
-            ULONG NameLength;
+    /* Calculate the size that we can copy */
+    ActualLength = min(*ResultLength, BufferLength);
 
-            if (CurrentKcb->NameBlock->Compressed)
-            {
-                NameLength = CmpCompressedNameSize(CurrentKcb->NameBlock->Name, CurrentKcb->NameBlock->NameLength);
-                /* Copy the compressed name */
-                CmpCopyCompressedName(&KeyNameInfo->Name[(NeededLength - NameLength)/sizeof(WCHAR)],
-                                      NameLength,
-                                      CurrentKcb->NameBlock->Name,
-                                      CurrentKcb->NameBlock->NameLength);
-            }
-            else
-            {
-                NameLength = CurrentKcb->NameBlock->NameLength;
-                /* Otherwise, copy the raw name */
-                RtlCopyMemory(&KeyNameInfo->Name[(NeededLength - NameLength)/sizeof(WCHAR)],
-                              CurrentKcb->NameBlock->Name,
-                              NameLength);
-            }
+    /* Copy the name */
+    RtlCopyMemory(KeyNameInformation->Name,
+                  KeyName->Buffer,
+                  ActualLength - FIELD_OFFSET(KEY_NAME_INFORMATION, Name));
 
-            NeededLength -= NameLength;
-            NeededLength -= sizeof(OBJ_NAME_PATH_SEPARATOR);
-            /* Add path separator */
-            KeyNameInfo->Name[NeededLength/sizeof(WCHAR)] = OBJ_NAME_PATH_SEPARATOR;
-            KeyNameInfo->NameLength += NameLength + sizeof(OBJ_NAME_PATH_SEPARATOR);
+    /* Free the key name */
+    ExFreePoolWithTag(KeyName, TAG_CM);
 
-            CurrentKcb = CurrentKcb->ParentKcb;
-        }
-    }
-    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-    {
-        _SEH2_YIELD(return _SEH2_GetExceptionCode());
-    }
-    _SEH2_END;
-
-    /* Make sure we copied everything */
-    ASSERT(NeededLength == 0);
-    ASSERT(KeyNameInfo->Name[0] == OBJ_NAME_PATH_SEPARATOR);
-
-    /* We're done */
-    return STATUS_SUCCESS;
+    /* Return the status */
+    return Kcb->Delete ? STATUS_KEY_DELETED : STATUS_SUCCESS;
 }
-
 
 NTSTATUS
 NTAPI
@@ -1695,10 +1652,10 @@ CmQueryKey(_In_ PCM_KEY_CONTROL_BLOCK Kcb,
             case KeyNameInformation:
             {
                 /* Call the internal API */
-                Status = CmpQueryNameInformation(Kcb,
-                                                 KeyInformation,
-                                                 Length,
-                                                 ResultLength);
+                Status = CmpQueryKeyNameInformation(Kcb,
+                                                    KeyInformation,
+                                                    Length,
+                                                    ResultLength);
                 break;
             }
 
