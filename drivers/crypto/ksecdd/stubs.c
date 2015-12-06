@@ -214,15 +214,6 @@ InitializeSecurityContextW(
     return 0;
 }
 
-PSecurityFunctionTableW
-SEC_ENTRY
-InitSecurityInterfaceW(void)
-{
-
-    UNIMPLEMENTED_DBGBREAK();
-    return NULL;
-}
-
 VOID
 SEC_ENTRY
 KSecRegisterSecurityProvider(VOID)

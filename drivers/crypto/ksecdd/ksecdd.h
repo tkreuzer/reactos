@@ -10,6 +10,10 @@
 #include <ntifs.h>
 #include <ndk/exfuncs.h>
 #include <ndk/ketypes.h>
+#include <ndk/rtlfuncs.h>
+#include <ndk/lpcfuncs.h>
+#include <ndk/obfuncs.h>
+#include <ndk/psfuncs.h>
 #include <pseh/pseh2.h>
 #include <ntstrsafe.h>
 
@@ -110,3 +114,7 @@ KsecDecryptMemory (
     _In_ ULONG Length,
     _In_ ULONG OptionFlags);
 
+NTSTATUS
+NTAPI
+KsecInitLsaMemory (
+    VOID);

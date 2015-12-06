@@ -120,8 +120,32 @@ KsecDeviceControl(
     {
         case IOCTL_KSEC_REGISTER_LSA_PROCESS:
 
-            Status = STATUS_SUCCESS;
-            break;
+            *OutputLength = 0;
+            if (KsecLsaProcess != NULL)
+            {
+                return STATUS_NOT_SUPPORTED;
+            }
+
+            /* Get the current process, which is lsass.exe and reference it */
+            KsecLsaProcess = PsGetCurrentProcess();
+            ObReferenceObject(KsecLsaProcess);
+
+            InitSecurityInterfaceW();
+
+            Status = ObOpenObjectByPointer(KsecLsaProcess,
+                                           512,
+                                           0,
+                                           1080,
+                                           0,
+                                           0,
+                                           &KsecLsaProcessHandle);
+            if (!NT_SUCCESS(Status))
+            {
+                DPRINT1("Failed to open lsass: 0x%lx\n", Status);
+                return Status;
+            }
+
+            return KsecInitLsaMemory();
 
         case IOCTL_KSEC_RANDOM_FILL_BUFFER:
 
