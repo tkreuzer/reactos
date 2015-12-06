@@ -523,6 +523,10 @@ NTSTATUS
 NTAPI
 CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
+    UNICODE_STRING HardwareProfilesName =
+        RTL_CONSTANT_STRING(L"Hardware Profiles");
+    UNICODE_STRING CurrentControlSetName =
+        RTL_CONSTANT_STRING(L"\\Registry\\Machine\\System\\CurrentControlSet");
     UNICODE_STRING ConfigName = RTL_CONSTANT_STRING(L"Control\\IDConfigDB");
     UNICODE_STRING SelectName =
         RTL_CONSTANT_STRING(L"\\Registry\\Machine\\System\\Select");
@@ -574,6 +578,9 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
             goto Cleanup;
         }
 
+        /* Don't need the handle */
+        NtClose(KeyHandle);
+
         /* Use hard-coded setting */
         ControlSet = 1;
     }
@@ -600,11 +607,8 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                                  ValueInfoBuffer,
                                  sizeof(ValueInfoBuffer),
                                  &ResultLength);
-        if (!NT_SUCCESS(Status))
-        {
-            DPRINT1("Failed to open the Current value: 0x%lx\n", Status);
-            goto Cleanup;
-        }
+        NtClose(SelectHandle);
+        if (!NT_SUCCESS(Status)) return Status;
 
         /* Get the actual value pointer, and get the control set ID */
         ValueInfo = (PKEY_VALUE_FULL_INFORMATION)ValueInfoBuffer;
@@ -612,10 +616,8 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 
     /* Create the current control set key */
-    RtlInitUnicodeString(&KeyName,
-                         L"\\Registry\\Machine\\System\\CurrentControlSet");
     InitializeObjectAttributes(&ObjectAttributes,
-                               &KeyName,
+                               &CurrentControlSetName,
                                OBJ_CASE_INSENSITIVE,
                                NULL,
                                NULL);
@@ -633,7 +635,8 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     ASSERT(Disposition == REG_CREATED_NEW_KEY);
 
     /* Initialize the target link name */
-    Status = RtlStringCbPrintfW(UnicodeBuffer, sizeof(UnicodeBuffer),
+    Status = RtlStringCbPrintfW(UnicodeBuffer,
+                                sizeof(UnicodeBuffer),
                                 L"\\Registry\\Machine\\System\\ControlSet%03ld",
                                 ControlSet);
     if (!NT_SUCCESS(Status))
@@ -649,7 +652,10 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                            KeyName.Buffer,
                            KeyName.Length);
     if (!NT_SUCCESS(Status))
-        goto Cleanup;
+    {
+        NtClose(KeyHandle);
+        return Status;
+    }
 
     /* Get the configuration database key */
     InitializeObjectAttributes(&ObjectAttributes,
@@ -658,6 +664,7 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                                KeyHandle,
                                NULL);
     Status = NtOpenKey(&ConfigHandle, KEY_READ, &ObjectAttributes);
+    //NtClose(KeyHandle);
 
     /* Check if we don't have one */
     if (!NT_SUCCESS(Status))
@@ -698,13 +705,10 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 
     /* Open the hardware profile key */
-    RtlInitUnicodeString(&KeyName,
-                         L"\\Registry\\Machine\\System\\CurrentControlSet"
-                         L"\\Hardware Profiles");
     InitializeObjectAttributes(&ObjectAttributes,
-                               &KeyName,
+                               &HardwareProfilesName,
                                OBJ_CASE_INSENSITIVE,
-                               NULL,
+                               KeyHandle,
                                NULL);
     Status = NtOpenKey(&ParentHandle, KEY_READ, &ObjectAttributes);
     if (!NT_SUCCESS(Status))
@@ -715,11 +719,14 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 
     /* Build the profile name */
-    RtlStringCbPrintfW(UnicodeBuffer, sizeof(UnicodeBuffer),
-                       L"%04ld", HwProfile);
+    RtlStringCbPrintfW(UnicodeBuffer,
+                       sizeof(UnicodeBuffer),
+                       L"%04ld",
+                       HwProfile);
     RtlInitUnicodeString(&KeyName, UnicodeBuffer);
 
     /* Open the associated key */
+    RtlInitUnicodeString(&KeyName, UnicodeBuffer);
     InitializeObjectAttributes(&ObjectAttributes,
                                &KeyName,
                                OBJ_CASE_INSENSITIVE,
@@ -737,19 +744,81 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     /* Check if we have a loader block extension */
     LoaderExtension = LoaderBlock->Extension;
-    if (LoaderExtension)
+    if ((LoaderExtension != NULL) &&
+        (LoaderExtension->Profile.Status != 0))
     {
-        DPRINT("ReactOS doesn't support NTLDR Profiles yet!\n");
+
+        if (LoaderExtension->Profile.Status == 3)
+        {
+            Status = CmpCloneHwProfile(ConfigHandle,
+                                       v17,
+                                       v19,
+                                       Data,
+                                       LoaderExtension->Profile.DockingState,
+                                       &v19,
+                                       &Data);
+            if (!NT_SUCCESS(Status))
+            {
+                v19 = 0;
+                goto CleanupSuccess1;
+            }
+
+            RtlInitUnicodeString(&ValueName, "C");
+            Status = ZwSetValueKey(ConfigKeyHandle, &ValueName, 0, 4u, &Data, 4u);
+            if (!NT_SUCCESS(Status))
+            {
+                goto Cleanup;
+            }
+
+            v5 = (NTSTATUS)Status;
+
+        }
+
+        if ((LoaderExtension->Profile.Status == 1) ||
+            (LoaderExtension->Profile.Status == 3))
+        {
+            CmpAddAliasEntry(ConfigKeyHandle, &Extension->Profile, Data);
+        }
+
+        if ((LoaderExtension->Profile.Status == 1) ||
+            (LoaderExtension->Profile.Status == 2) ||
+            (LoaderExtension->Profile.Status == 3))
+        {
+            RtlInitUnicodeString(&ValueName, L"CurrentDockInfo");
+            ObjectAttributes.RootDirectory = ConfigKeyHandle;
+            ObjectAttributes.ObjectName = (_UNICODE_STRING *)&ValueName;
+            ObjectAttributes.Length = 24;
+            ObjectAttributes.Attributes = 576;
+            ObjectAttributes.SecurityDescriptor = 0;
+            ObjectAttributes.SecurityQualityOfService = 0;
+            Status = ZwCreateKey(&KeyHandle,
+                                 0x2001Fu,
+                                 &ObjectAttributes,
+                                 0,
+                                 0,
+                                 1u,
+                                 &Disposition);
+            ASSERT(Status == STATUS_SUCCESS);
+
+            CmpAddDockingInfo(KeyHandle, (int)&Status->Profile);
+            ZwClose(KeyHandle);
+
+            if (LoaderExtension->Profile.DockingState == 1)
+                v24 = 1;
+        }
+        else
+        {
+            ASSERT(LoaderExtension->Profile.Status == 0xC001);
+        }
+
     }
 
     /* Create the current hardware profile key */
-    RtlInitUnicodeString(&KeyName,
-                         L"\\Registry\\Machine\\System\\CurrentControlSet\\"
-                         L"Hardware Profiles\\Current");
+    RtlInitUnicodeString(&KeyName, L"Current");
     InitializeObjectAttributes(&ObjectAttributes,
                                &KeyName,
                                OBJ_CASE_INSENSITIVE,
-                               NULL,
+                               ParentHandle,
                                NULL);
     Status = NtCreateKey(&KeyHandle,
                          KEY_CREATE_LINK,
@@ -758,30 +827,31 @@ CmpCreateControlSet(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                          NULL,
                          REG_OPTION_VOLATILE | REG_OPTION_CREATE_LINK,
                          &Disposition);
-    if (NT_SUCCESS(Status))
+    if (!NT_SUCCESS(Status))
     {
-        /* Sanity check */
-        ASSERT(Disposition == REG_CREATED_NEW_KEY);
-
-        /* Create the profile name */
-        RtlStringCbPrintfW(UnicodeBuffer, sizeof(UnicodeBuffer),
-                           L"\\Registry\\Machine\\System\\CurrentControlSet\\"
-                           L"Hardware Profiles\\%04ld",
-                           HwProfile);
-        RtlInitUnicodeString(&KeyName, UnicodeBuffer);
-
-        /* Set it */
-        Status = NtSetValueKey(KeyHandle,
-                               &CmSymbolicLinkValueName,
-                               0,
-                               REG_LINK,
-                               KeyName.Buffer,
-                               KeyName.Length);
+        goto Cleanup;
     }
 
-    Status = STATUS_SUCCESS;
+    /* Sanity check */
+    ASSERT(Disposition == REG_CREATED_NEW_KEY);
 
-Cleanup:
+    /* Create the profile name */
+    snwprintf(UnicodeBuffer,
+              sizeof(UnicodeBuffer) / sizeof(WCHAR) - sizeof(UNICODE_NULL),
+              L"%wZ\\%04ld",
+              &HardwareProfilesName,
+              HwProfile);
+    RtlInitUnicodeString(&KeyName, UnicodeBuffer);
+
+    /* Set it */
+    Status = NtSetValueKey(KeyHandle,
+                           &CmSymbolicLinkValueName,
+                           0,
+                           REG_LINK,
+                           KeyName.Buffer,
+                           KeyName.Length);
+    NtClose(KeyHandle);
+
     /* Close every opened handle */
     if (SelectHandle) NtClose(SelectHandle);
     if (KeyHandle) NtClose(KeyHandle);
@@ -917,8 +987,21 @@ CmpInitializeSystemHive(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                                HiveBase ? 2 : 0);
     if (!NT_SUCCESS(Status))
     {
-        return FALSE;
-    }
+        /* Import it */
+        //((PHBASE_BLOCK)HiveBase)->Length = LoaderBlock->RegistryLength;
+        NT_ASSERT(((PHBASE_BLOCK)HiveBase)->Length != 0);
+        NT_ASSERT(((PHBASE_BLOCK)HiveBase)->Length <= LoaderBlock->RegistryLength);
+        Status = CmpInitializeHive(&SystemHive,
+                                   HINIT_MEMORY,
+                                   HIVE_NOLAZYFLUSH,
+                                   HFILE_TYPE_LOG,
+                                   HiveBase,
+                                   NULL,
+                                   NULL,
+                                   NULL,
+                                   &HiveName,
+                                   2);
+        if (!NT_SUCCESS(Status)) return FALSE;
 
     /* Set the hive filename */
     Success = RtlCreateUnicodeString(&SystemHive->FileFullPath,
