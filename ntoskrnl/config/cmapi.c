@@ -2010,15 +2010,20 @@ CmLoadKey(IN POBJECT_ATTRIBUTES TargetKey,
     SECURITY_CLIENT_CONTEXT ClientSecurityContext;
     HANDLE KeyHandle;
     BOOLEAN Allocate = TRUE;
-    PCMHIVE CmHive, LoadedHive;
+    PCMHIVE CmHive, LoadedHive, TrustKeyHive = NULL;
     NTSTATUS Status;
     CM_PARSE_CONTEXT ParseContext;
 
     /* Check if we have a trust key */
     if (KeyBody)
     {
-        /* Fail */
-        DPRINT("Trusted classes not yet supported\n");
+        TrustKeyHive = (PCMHIVE)KeyBody->KeyControlBlock->KeyHive;
+
+        /* Don't allow trust keys that are trusted */
+        if (!(TrustKeyHive->Flags & 1))
+        {
+            //return STATUS_INVALID_PARAMETER;
+        }
     }
 
     /* Build a service QoS for a security context */
@@ -2074,6 +2079,24 @@ CmLoadKey(IN POBJECT_ATTRIBUTES TargetKey,
                 /* That's okay then */
                 ASSERT(LoadedHive);
                 Status = STATUS_SUCCESS;
+
+                /* Check if we have a trust key hive */
+                if (TrustKeyHive != NULL)
+                {
+                    /* Is the loaded hive in a trust class? */
+                    if (!IsListEmpty(&LoadedHive->TrustClassEntry))
+                    {
+                        /* Remove the hive from the current trust class and
+                           insert it into the one of the trust key */
+                        ExAcquirePushLockExclusive(&CmpHiveListHeadLock);
+                        //RemoveEntryList(&LoadedHive->TrustClassEntry);
+                        //InsertTailList(&TrustKeyHive->TrustClassEntry,
+                        //               &LoadedHive->TrustClassEntry);
+                        ExReleasePushLock(&CmpHiveListHeadLock);
+                    }
+
+                    LoadedHive->Flags |= 1;
+                }
             }
 
             /* Release the registry */
@@ -2097,6 +2120,16 @@ CmLoadKey(IN POBJECT_ATTRIBUTES TargetKey,
 
     /* Set flag */
     if (Flags & REG_NO_LAZY_FLUSH) CmHive->Hive.HiveFlags |= HIVE_NOLAZYFLUSH;
+
+    /* The hive is not trusted */
+    CmHive->Flags |= 1;
+    if (TrustKeyHive != NULL)
+    {
+        ExAcquirePushLockExclusive(&CmpHiveListHeadLock);
+        //InsertTailList(&TrustKeyHive->TrustClassEntry,
+        //               &CmHive->TrustClassEntry);
+        ExReleasePushLock(&CmpHiveListHeadLock);
+    }
 
     /* Link the hive */
     Status = CmpLinkHiveToMaster(TargetKey->ObjectName,
