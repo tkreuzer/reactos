@@ -6,7 +6,7 @@ typedef struct
     ULONG iFormat;
     PBYTE pvScan0;
     PBYTE pjBase;
-    LONG lDelta;
+    LONG lDelta; /// FIXME: consider merging these 2
     LONG cjAdvanceY;
     POINTL ptOrig;
     BYTE jBpp;
@@ -75,8 +75,10 @@ extern const PFN_DIBFUNCTION gapfnMaskFunction[8];
 #define RUN_MAX 20
 typedef struct _LINEDATA
 {
-    LONG lGamma;
-    LONG lGamma0;
+    SURFINFO siDst;
+
+    LONG lRemainder;
+    LONG lRemainder0;
     LONG lDelta;
     ULONG ulColor;
     ULONG acxyStyle[16];    /* Style array, adjusted to pixel size */
@@ -97,9 +99,9 @@ typedef
 VOID
 (FASTCALL
 *PFN_DIB_LINETO)(
-    _Inout_ PLINEDATA pli);
+    _Inout_ PLINEDATA pld);
 
 VOID
 FASTCALL
 Dib_Line_MajorX(
-    PLINEDATA pli);
+    PLINEDATA pld);
