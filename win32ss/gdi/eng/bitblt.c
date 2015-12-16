@@ -21,13 +21,13 @@ XCLIPOBJ gxcoTrivial =
 {
     /* CLIPOBJ */
     {
-        0, /* iUniq */
-        {LONG_MIN, LONG_MIN, LONG_MAX, LONG_MAX}, /* rclBounds */
-        DC_TRIVIAL,    /* idCOmplexity */
-        FC_RECT,       /* iFComplexity */
-        TC_RECTANGLES, /* iMode */
-        0              /* fjOptions */
-    },
+            0, /* iUniq */
+            {COORD_MIN, COORD_MIN, COORD_MAX, COORD_MAX}, /* rclBounds */
+            DC_TRIVIAL,    /* idCOmplexity */
+            FC_RECT,       /* iFComplexity */
+            TC_RECTANGLES, /* iMode */
+            0              /* fjOptions */
+        },
     { 0, {0,0,0,0}, 0},
     0, {0,0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };

@@ -28,6 +28,8 @@
 
 #pragma once
 
+#include "clipobj.h"
+
 /* Structure of internal gdi objects that win32k manages for ddi engine:
    |---------------------------------|
    |         Public part             |
@@ -39,68 +41,9 @@
 
 ---------------------------------------------------------------------------*/
 
-typedef struct _RWNDOBJ {
-  PVOID   pvConsumer;
-  RECTL   rclClient;
-  SURFOBJ *psoOwner;
-} RWNDOBJ;
 
-/* EXtended CLip and Window Region Objects */
-#ifdef __cplusplus
-typedef struct _XCLIPOBJ : _CLIPOBJ, _RWNDOBJ
-{
-#else
-typedef struct _XCLIPOBJ
-{
-  CLIPOBJ;
-  RWNDOBJ;
-#endif
-  struct _REGION *pClipRgn;    /* prgnRao_ or (prgnVis_ if (prgnRao_ == z)) */
-  //
-  RECTL   rclClipRgn;
-  //PVOID   pscanClipRgn; /* Ptr to regions rect buffer based on iDirection. */
-  RECTL*  Rects;
-  DWORD   cScan;
-  DWORD   reserved;
-  ULONG   EnumPos;
-  LONG    lscnSize;
-  ULONG   EnumMax;
-  ULONG   iDirection;
-  ULONG   iType;
-  DWORD   reserved1;
-  LONG    lUpDown;
-  DWORD   reserved2;
-  BOOL    bAll;
-  //
-  DWORD   RectCount;   /* count/mode based on # of rect in regions scan. */
-  PVOID   pDDA;        /* Pointer to a large drawing structure. */
-} XCLIPOBJ, *PXCLIPOBJ;
 
-/*
-  EngCreateClip allocates XCLIPOBJ and REGION, pco->co.pClipRgn = &pco->ro.
-  {
-    XCLIPOBJ co;
-    REGION   ro;
-  }
- */
-
-extern XCLIPOBJ gxcoTrivial;
-
-#ifdef __cplusplus
-typedef struct _EWNDOBJ : _XCLIPOBJ
-{
-#else
-typedef struct _EWNDOBJ
-{
-    XCLIPOBJ;
-#endif
-    /* Extended WNDOBJ part */
-    HWND              Hwnd;
-    WNDOBJCHANGEPROC  ChangeProc;
-    FLONG             Flags;
-    int               PixelFormat;
-} EWNDOBJ, *PEWNDOBJ;
-
+extern struct _XCLIPOBJ gxcoTrivial;
 
 /*ei What is this for? */
 typedef struct _DRVFUNCTIONSGDI {
@@ -134,18 +77,18 @@ typedef struct _SHARED_FACE {
 } SHARED_FACE, *PSHARED_FACE;
 
 typedef struct _FONTGDI {
-  FONTOBJ       FontObj;
-  ULONG         iUnique;
-  FLONG         flType;
+  FONTOBJ     FontObj;
+  ULONG       iUnique;
+  FLONG       flType;
 
-  DHPDEV        dhpdev;
+  DHPDEV      dhpdev;
   PSHARED_FACE  SharedFace;
 
-  LONG          lMaxNegA;
-  LONG          lMaxNegC;
-  LONG          lMinWidthD;
+  LONG        lMaxNegA;
+  LONG        lMaxNegC;
+  LONG        lMinWidthD;
 
-  LPWSTR        Filename;
+  LPWSTR      Filename;
   BYTE          RequestUnderline;
   BYTE          RequestStrikeOut;
   BYTE          RequestItalic;

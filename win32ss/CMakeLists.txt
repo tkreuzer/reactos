@@ -62,7 +62,6 @@ list(APPEND SOURCE
     gdi/eng/bitblt.c
     gdi/eng/engbrush.c
     gdi/eng/engevent.c
-    gdi/eng/clip.c
     gdi/eng/debug.c
     gdi/eng/device.c
     gdi/eng/driverobj.c
@@ -233,6 +232,7 @@ add_asm_files(win32k_asm ${ASM_SOURCE})
 
 add_library(win32k MODULE
     ${SOURCE}
+    gdi/eng/clipobj.cpp
     gdi/ntgdi/brush.cpp
     ${win32k_asm}
     win32k.rc
