@@ -10,6 +10,8 @@
 #include <wingdi.h>
 #include <winddi.h>
 
+#define _OPTIMIZE_DIBLIB
+
 #ifdef _OPTIMIZE_DIBLIB
 #ifdef _MSC_VER
 #pragma optimize("g", on)
@@ -17,6 +19,47 @@
 #pragma GCC optimize("O3")
 #endif
 #endif
+
+#ifdef _M_IX86
+FORCEINLINE
+LONGLONG
+MulDivModx86(
+    _In_ LONG lNumber,
+    _In_ LONG lNumerator,
+    _In_ LONG lDenominator)
+{
+#ifdef _MSC_VER
+    __asm
+    {
+        mov eax, lNumber
+        imul lNumerator
+        idiv lDenominator
+    }
+#else
+#endif
+}
+#endif
+
+FORCEINLINE
+LONG
+MulDivMod(
+    _In_ LONG lNumber,
+    _In_ LONG lNumerator,
+    _In_ LONG lDenominator,
+    _Out_ PLONG plRemainder)
+{
+#ifdef _M_IX86
+    LARGE_INTEGER li;
+    li.QuadPart = MulDivModx86(lNumber, lNumerator, lDenominator);
+    *plRemainder = li.HighPart;
+    return li.LowPart;
+#else
+    /* Generic implementation */
+    LONGLONG llResult = lNumber * lNumerator;
+    *plRemainder = llResult % lDenominator;
+    return llResult / lDenominator;
+#endif
+}
 
 typedef
 ULONG
