@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif // __cplusplus
+
 typedef ULONG HCLIP;
 
 #define ENUM_RECT_LIMIT 32
@@ -107,13 +111,15 @@ IntEngGradientFill(SURFOBJ *psoDest,
                    POINTL *pptlDitherOrg,
                    ULONG ulMode);
 
-BOOL APIENTRY
-IntEngPolyline(SURFOBJ *DestSurf,
-               CLIPOBJ *Clip,
-               BRUSHOBJ *Brush,
-               CONST LPPOINT  pt,
-               LONG dCount,
-               MIX mix);
+BOOL
+NTAPI
+IntEngPolyline(
+    _Inout_ SURFOBJ *pso,
+    _In_ CLIPOBJ *pco,
+    _In_ BRUSHOBJ *pbo,
+    _In_ const POINT *pt,
+    _In_ LONG cpt,
+    _In_ MIX mix);
 
 VOID FASTCALL
 IntEngUpdateClipRegion(XCLIPOBJ* Clip,
@@ -165,3 +171,7 @@ IntEngCopyBits(SURFOBJ *psoDest,
 	    XLATEOBJ *pxlo,
 	    RECTL *prclDest,
 	    POINTL *ptlSource);
+
+#ifdef __cplusplus
+} // extern "C"
+#endif // __cplusplus
