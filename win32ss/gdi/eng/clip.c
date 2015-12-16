@@ -347,4 +347,51 @@ CLIPOBJ_bEnum(
     return Clip->EnumPos < Clip->RectCount;
 }
 
+FORCEINLINE
+BOOL
+ClipLineToRect(
+    _In_ const POINTFIX *pptfxA,
+    _In_ const POINTFIX *pptfxB,
+    _In_ const RECTFX *prcfxClip,
+    _Out_ PRUN prunX,
+    _Out_ PRUN prunY)
+{
+    return 1;
+}
+
+BOOL
+NTAPI
+CLIPOBJ_bEnumClipLines(
+    _Inout_ CLIPOBJ *pco,
+    _In_ const POINTFIX pptfx[2],
+    _In_ ULONG cj,
+    _Out_ CLIPLINE *pcl)
+{
+    XCLIPOBJ* pxco = CONTAINING_RECORD(pco, XCLIPOBJ, ClipObj);
+    RECTFX rcfxClip;
+    RUN runX, runY;
+
+    if (pxco->EnumPos >= pxco->EnumMax)
+    {
+        return FALSE;
+    }
+
+
+    do
+    {
+
+        //src = &pxco->Rects[pxco->EnumPos];
+
+        rcfxClip.xLeft =
+
+        ClipLineToRect(&pptfx[0],
+                       &pptfx[1],
+                       &rcfxClip,
+                       &runX,
+                       &runY);
+    } while (0);
+
+    return 0;
+}
+
 /* EOF */

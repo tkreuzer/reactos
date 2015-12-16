@@ -69,7 +69,6 @@ list(APPEND SOURCE
     gdi/eng/error.c
     gdi/eng/float.c
     gdi/eng/gradient.c
-    gdi/eng/lineto.c
     gdi/eng/ldevobj.c
     gdi/eng/mapping.c
     gdi/eng/math.c
@@ -233,6 +232,7 @@ add_asm_files(win32k_asm ${ASM_SOURCE})
 
 add_library(win32k MODULE
     ${SOURCE}
+    gdi/eng/LineTo.cpp
     gdi/ntgdi/brush.cpp
     ${win32k_asm}
     win32k.rc

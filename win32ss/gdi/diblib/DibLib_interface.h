@@ -72,4 +72,30 @@ extern const UCHAR gajIndexPerRop[256];
 extern const PFN_DIBFUNCTION gapfnDibFunction[];
 extern const PFN_DIBFUNCTION gapfnMaskFunction[8];
 
+#define RUN_MAX 20
+typedef struct _LINEINFO
+{
+    LONG lGamma;
+    LONG lGamma0;
+    LONG lDelta;
+    ULONG ulColor;
+    ULONG acxyStyle[16];    /* Style array, adjusted to pixel size */
+    USHORT cStyles;
+    USHORT cxyStyleSize;
+    USHORT iStyle;          /* Current index into pulStyle */
+    USHORT xyStylePos;      /* Pixel offset from the start of iStyle */
+    RUN runOtherCoordinate;
+    union
+    {
+        UCHAR aj[FIELD_OFFSET(CLIPLINE, arun) + RUN_MAX * sizeof(RUN)];
+        CLIPLINE cl;
+    };
+
+} LINEINFO, *PLINEINFO;
+
+typedef
+VOID
+(FASTCALL
+*PFN_DIB_LINETO)(
+    _Inout_ PLINEINFO pli);
 

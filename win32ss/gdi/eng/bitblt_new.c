@@ -3,8 +3,6 @@
 #include "../diblib/DibLib_interface.h"
 DBG_DEFAULT_CHANNEL(GdiFont);
 
-#define SURFOBJ_flags(pso) (CONTAINING_RECORD(pso, SURFACE, SurfObj)->flags)
-
 // FIXME this needs to be updated, once we use the new structure
 extern XCLIPOBJ gxcoTrivial;
 /*
@@ -329,6 +327,7 @@ EngBitBlt(
             if (!RECTL_bIntersectRect(&rcenum.arcl[i], &rcenum.arcl[i], &rcTrg))
             {
                 /* This rect is outside the bounds, continue */
+                /// FIXME: shouldn't happen!
                 continue;
             }
 
