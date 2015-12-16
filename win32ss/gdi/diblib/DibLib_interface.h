@@ -73,7 +73,7 @@ extern const PFN_DIBFUNCTION gapfnDibFunction[];
 extern const PFN_DIBFUNCTION gapfnMaskFunction[8];
 
 #define RUN_MAX 20
-typedef struct _LINEINFO
+typedef struct _LINEDATA
 {
     LONG lGamma;
     LONG lGamma0;
@@ -91,11 +91,15 @@ typedef struct _LINEINFO
         CLIPLINE cl;
     };
 
-} LINEINFO, *PLINEINFO;
+} LINEDATA, *PLINEDATA;
 
 typedef
 VOID
 (FASTCALL
 *PFN_DIB_LINETO)(
-    _Inout_ PLINEINFO pli);
+    _Inout_ PLINEDATA pli);
 
+VOID
+FASTCALL
+Dib_Line_MajorX(
+    PLINEDATA pli);
