@@ -3,32 +3,36 @@
 #define __DIB_FUNCTION_NAME __DIB_FUNCTION_NAME_DST
 #endif
 
+#ifndef __HEADER_NAME
+#define __HEADER_NAME "DibLib_BitBlt.h"
+#endif
+
 #ifndef _SOURCE_BPP
 #define _SOURCE_BPP 0
 #endif
 
 #define _DEST_BPP 1
-#include "DibLib_BitBlt.h"
+#include __HEADER_NAME
 #undef _DEST_BPP
 
 #define _DEST_BPP 4
-#include "DibLib_BitBlt.h"
+#include __HEADER_NAME
 #undef _DEST_BPP
 
 #define _DEST_BPP 8
-#include "DibLib_BitBlt.h"
+#include __HEADER_NAME
 #undef _DEST_BPP
 
 #define _DEST_BPP 16
-#include "DibLib_BitBlt.h"
+#include __HEADER_NAME
 #undef _DEST_BPP
 
 #define _DEST_BPP 24
-#include "DibLib_BitBlt.h"
+#include __HEADER_NAME
 #undef _DEST_BPP
 
 #define _DEST_BPP 32
-#include "DibLib_BitBlt.h"
+#include __HEADER_NAME
 #undef _DEST_BPP
 
 #if (__USES_SOURCE == 0)

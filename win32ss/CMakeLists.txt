@@ -11,9 +11,7 @@ PROJECT(WIN32SS)
 
 add_subdirectory(drivers)
 
-if(USE_DIBLIB)
-    add_subdirectory(gdi/diblib)
-endif()
+add_subdirectory(gdi/diblib)
 
 add_subdirectory(gdi/gdi32)
 add_subdirectory(printing)
