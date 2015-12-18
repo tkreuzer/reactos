@@ -78,8 +78,8 @@ typedef struct _LINEDATA
     SURFINFO siDst;
 
     LONG lRemainder;
-    LONG lRemainder0;
-    LONG lDelta;
+    LONG lDenominator;
+    LONG lNumerator;
     ULONG ulColor;
     ULONG acxyStyle[16];    /* Style array, adjusted to pixel size */
     USHORT cStyles;
