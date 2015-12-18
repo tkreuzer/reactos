@@ -2,7 +2,7 @@
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # no optimization
-    add_compile_flags("/Ob0 /Od")
+    add_compile_flags("/Ob1 /Od")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_flags("/Ox /Ob2 /Ot /Oy /GT")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /OPT:REF /OPT:ICF")
