@@ -299,7 +299,7 @@ PspSetPrimaryToken(IN PEPROCESS Process,
                                    MAXIMUM_ALLOWED,
                                    0,
                                    NULL,
-                                   &PsProcessType->TypeInfo.GenericMapping,
+                                   &PspProcessMapping,
                                    PreviousMode,
                                    &Process->GrantedAccess,
                                    &AccessStatus);

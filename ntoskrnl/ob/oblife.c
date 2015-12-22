@@ -600,8 +600,13 @@ ObpCaptureObjectCreateInformation(IN POBJECT_ATTRIBUTES ObjectAttributes,
 
 VOID
 NTAPI
-ObFreeObjectCreateInfoBuffer(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo)
+ObFreeObjectCreateInfoBuffer(IN PVOID Object)
 {
+    POBJECT_CREATE_INFORMATION ObjectCreateInfo;
+
+    /* Get the create info */
+    ObjectCreateInfo = OBJECT_TO_OBJECT_HEADER(Object)->ObjectCreateInfo;
+
     /* Call the macro. We use this function to isolate Ob internals from Io */
     ObpFreeCapturedAttributes(ObjectCreateInfo, LookasideCreateInfoList);
 }

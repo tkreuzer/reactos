@@ -486,6 +486,8 @@ extern LIST_ENTRY PsLoadedModuleList;
 extern KSPIN_LOCK PsLoadedModuleSpinLock;
 extern ERESOURCE PsLoadedModuleResource;
 extern ULONG_PTR PsNtosImageBase;
+extern GENERIC_MAPPING PspProcessMapping;
+extern GENERIC_MAPPING PspThreadMapping;
 
 //
 // Inlined Functions

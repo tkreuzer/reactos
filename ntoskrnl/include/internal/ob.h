@@ -381,7 +381,7 @@ ObDuplicateObject(
 VOID
 NTAPI
 ObFreeObjectCreateInfoBuffer(
-    IN POBJECT_CREATE_INFORMATION ObjectCreateInfo
+    IN PVOID Object
 );
 
 VOID

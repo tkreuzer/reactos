@@ -362,8 +362,8 @@ CmpDoCreateChild(IN PHHIVE Hive,
                               &NewDescriptor,
                               TRUE,
                               &AccessState->SubjectSecurityContext,
-                              &CmpKeyObjectType->TypeInfo.GenericMapping,
-                              CmpKeyObjectType->TypeInfo.PoolType);
+                              &CmpKeyMapping,
+                              PagedPool);
     if (NT_SUCCESS(Status))
     {
         Status = CmpSecurityMethod(*Object,
@@ -372,8 +372,8 @@ CmpDoCreateChild(IN PHHIVE Hive,
                                    NewDescriptor,
                                    NULL,
                                    NULL,
-                                   CmpKeyObjectType->TypeInfo.PoolType,
-                                   &CmpKeyObjectType->TypeInfo.GenericMapping);
+                                   PagedPool,
+                                   &CmpKeyMapping);
     }
 
     /* Now that the security descriptor is copied in the hive, we can free the original */

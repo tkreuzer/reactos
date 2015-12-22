@@ -31,6 +31,13 @@ BOOLEAN CmpWasSetupBoot;
 BOOLEAN CmpProfileLoaded;
 BOOLEAN CmpNoVolatileCreates;
 ULONG CmpTraceLevel = 0;
+GENERIC_MAPPING CmpKeyMapping =
+{
+    KEY_READ,
+    KEY_WRITE,
+    KEY_EXECUTE,
+    KEY_ALL_ACCESS
+};
 
 extern LONG CmpFlushStarveWriters;
 extern BOOLEAN CmFirstTime;
@@ -159,8 +166,8 @@ NTAPI
 CmpCloseKeyObject(IN PEPROCESS Process OPTIONAL,
                   IN PVOID Object,
                   IN ACCESS_MASK GrantedAccess,
-                  IN ULONG ProcessHandleCount,
-                  IN ULONG SystemHandleCount)
+                  IN ULONG_PTR ProcessHandleCount,
+                  IN ULONG_PTR SystemHandleCount)
 {
     PCM_KEY_BODY KeyBody = (PCM_KEY_BODY)Object;
     PAGED_CODE();
@@ -983,10 +990,6 @@ CmpCreateObjectTypes(VOID)
 {
     OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;
     UNICODE_STRING Name;
-    GENERIC_MAPPING CmpKeyMapping = {KEY_READ,
-                                     KEY_WRITE,
-                                     KEY_EXECUTE,
-                                     KEY_ALL_ACCESS};
     PAGED_CODE();
 
     /* Initialize the Key object type */
