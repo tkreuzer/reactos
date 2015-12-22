@@ -275,6 +275,11 @@ public:
         Release(1);
     }
 
+    VOID
+    InitializeStackObjectHeader (
+        _In_ class OBJECT_TYPE *ObjectType,
+        _In_ LONG_PTR PointerCount);
+
 };
 
 
