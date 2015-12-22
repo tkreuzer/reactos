@@ -31,6 +31,13 @@ BOOLEAN CmpWasSetupBoot;
 BOOLEAN CmpProfileLoaded;
 BOOLEAN CmpNoVolatileCreates;
 ULONG CmpTraceLevel = 0;
+GENERIC_MAPPING CmpKeyMapping =
+{
+    KEY_READ,
+    KEY_WRITE,
+    KEY_EXECUTE,
+    KEY_ALL_ACCESS
+};
 
 extern LONG CmpFlushStarveWriters;
 extern BOOLEAN CmFirstTime;
@@ -983,10 +990,6 @@ CmpCreateObjectTypes(VOID)
 {
     OBJECT_TYPE_INITIALIZER ObjectTypeInitializer;
     UNICODE_STRING Name;
-    GENERIC_MAPPING CmpKeyMapping = {KEY_READ,
-                                     KEY_WRITE,
-                                     KEY_EXECUTE,
-                                     KEY_ALL_ACCESS};
     PAGED_CODE();
 
     /* Initialize the Key object type */

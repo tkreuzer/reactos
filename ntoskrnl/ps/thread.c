@@ -428,7 +428,7 @@ PspCreateThread(OUT PHANDLE ThreadHandle,
                                    &LocalAccessState,
                                    &AuxData,
                                    DesiredAccess,
-                                   &PsThreadType->TypeInfo.GenericMapping);
+                                   &PspThreadMapping);
     if (!NT_SUCCESS(Status))
     {
         /* Access state failed, thread is dead */
@@ -539,7 +539,7 @@ PspCreateThread(OUT PHANDLE ThreadHandle,
                                MAXIMUM_ALLOWED,
                                0,
                                NULL,
-                               &PsThreadType->TypeInfo.GenericMapping,
+                               &PspThreadMapping,
                                PreviousMode,
                                &Thread->GrantedAccess,
                                &AccessStatus);
@@ -1081,7 +1081,7 @@ NtOpenThread(OUT PHANDLE ThreadHandle,
     Status = SeCreateAccessState(&AccessState,
                                  &AuxData,
                                  DesiredAccess,
-                                 &PsThreadType->TypeInfo.GenericMapping);
+                                 &PspThreadMapping);
     if (!NT_SUCCESS(Status)) return Status;
 
     /* Check if this is a debugger */

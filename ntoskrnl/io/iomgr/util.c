@@ -176,7 +176,7 @@ IoCheckDesiredAccess(IN OUT PACCESS_MASK DesiredAccess,
 
     /* Map the generic mask */
     RtlMapGenericMask(DesiredAccess,
-                      &IoFileObjectType->TypeInfo.GenericMapping);
+                      &IopFileMapping);
 
     /* Fail if the access masks don't grant full access */
     if ((~(*DesiredAccess) & GrantedAccess)) return STATUS_ACCESS_DENIED;
