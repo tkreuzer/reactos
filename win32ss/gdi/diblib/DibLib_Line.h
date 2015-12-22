@@ -25,11 +25,11 @@
 
 #define _AdvanceX(ppj, pjShift, cx) (*(ppj) += (_DEST_BPP * cx / 8)), (*(pjShift) += cx),
 
-#define _NextPixel_4(ppj, pjShift)    (void)((*(pjShift)) ^= 4, (*(ppj) += (*(pjShift) != 0)))
-#define _NextPixelR2L_4(ppj, pjShift) (void)((*(pjShift)) ^= 4, (*(ppj) -= (*(pjShift) == 0)))
+//#define _NextPixel_4(ppj, pjShift)    (void)((*(pjShift)) ^= 4, (*(ppj) += (*(pjShift) != 0)))
+//#define _NextPixelR2L_4(ppj, pjShift) (void)((*(pjShift)) ^= 4, (*(ppj) -= (*(pjShift) == 0)))
 
-#define _AdvanceX_1(ppj, pjShift, cx)    (void)(((*(pjShift)) -= ((cx & 1) << 2)), (*(ppj) += (cx/2) + (*(pjShift) > 4)), (*(pjShift) &= 7))
-#define _AdvanceXR2L_1(ppj, pjShift, cx) (void)(((*(pjShift)) += ((cx & 1) << 2)), (*(ppj) -= (cx/2) + (*(pjShift) > 4)), (*(pjShift) &= 7))
+//#define _AdvanceX_1(ppj, pjShift, cx)    (void)(((*(pjShift)) -= ((cx & 1) << 2)), (*(ppj) += (cx/2) + (*(pjShift) > 4)), (*(pjShift) &= 7))
+//#define _AdvanceXR2L_1(ppj, pjShift, cx) (void)(((*(pjShift)) += ((cx & 1) << 2)), (*(ppj) -= (cx/2) + (*(pjShift) > 4)), (*(pjShift) &= 7))
 
 FORCEINLINE
 VOID
@@ -53,7 +53,7 @@ _SkipPixels(
     if (*plRemainder < 0)
     {
         /* We need to go 1 pixel down (or up) */
-        _NextPixelY(_DEST_BPP, ppjDest, pjDstShift);
+        //_NextPixelY(_DEST_BPP, ppjDest, pjShift);
 
         /* Account for this in the remainder */
         *plRemainder += pld->lDenominator;
@@ -66,10 +66,11 @@ FASTCALL
 _DibLine(
     PLINEDATA pld)
 {
-    LONG x, y, xMax, cx;
+    LONG x, y, xMax, cx, cxStyle, xStyle, xStyleMax;
     ULONG iRun, iStyle;
     LONG lRemainder;
     PBYTE pjDest;
+    BOOL bMoreStyles;
     _SHIFT(_DEST_BPP, BYTE jDstShift;)
 
     /* Style count must be even and max 16! */
