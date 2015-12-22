@@ -91,6 +91,8 @@ $define(USHORT=USHORT)
 #define NTKERNELAPI DECLSPEC_IMPORT
 #else
 #define NTKERNELAPI
+#if !defined(_NTSYSTEM_) && !defined(_DATA_AS_POINTERS_)
+#define _NTSYSTEM_
 #endif
 
 /* For statically-linked ntoskrnl_vista library */
