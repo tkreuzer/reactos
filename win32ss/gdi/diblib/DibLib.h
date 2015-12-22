@@ -1,4 +1,6 @@
 
+#define _ENGINE_EXPORT_
+
 #ifdef _MSC_VER
 #pragma warning(disable:4711)
 #endif
@@ -36,6 +38,15 @@ MulDivModx86(
         idiv lDenominator
     }
 #else
+    LONGLONG llResult;
+    __asm__ __volatile__
+    (
+        "imul %[lNumerator];"
+        "idiv %[lDenominator]"
+        :"=A"(llResult)
+        :"a"(lNumber), [lNumerator] "q"(lNumerator), [lDenominator] "q"(lDenominator)
+    );
+    return llResult;
 #endif
 }
 #endif
@@ -97,7 +108,7 @@ extern const BYTE ajShift4[2];
 #define _NextPixel_4(ppj, pjShift) (void)((*(ppj) += (*(pjShift) & 1)), (*(pjShift)) -= 4, *(pjShift) &= 7)
 #define _NextPixelR2L_4(ppj, pjShift) (void)((*(pjShift)) -= 4, *(pjShift) &= 7, (*(ppj) -= (*(pjShift) & 1)))
 #define _SHIFT_4(x) x
-#define _CALCSHIFT_4(pShift, x) (void)(*(pShift) = ajShift4[(x) & 1])
+#define _CALCSHIFT_4(pShift, x) (void)(*(pShift) = (~(x) & 1) << 4)
 
 #define _ReadPixel_8(pjSource, x)  (*(UCHAR*)(pjSource))
 #define _WritePixel_8(pjDest, x, ulColor) (void)(*(UCHAR*)(pjDest) = (UCHAR)(ulColor))
