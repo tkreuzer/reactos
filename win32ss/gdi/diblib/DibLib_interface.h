@@ -84,6 +84,7 @@ typedef struct _LINEDATA
     ULONG acxyStyle[16];    /* Style array, adjusted to pixel size */
     USHORT cStyles;
     USHORT cxyStyleSize;
+    USHORT cxyStyleOffset;
     USHORT iStyle;          /* Current index into pulStyle */
     USHORT xyStylePos;      /* Pixel offset from the start of iStyle */
     RUN runOtherCoordinate;
