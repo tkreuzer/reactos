@@ -163,6 +163,31 @@ OBJECT::GetHeaderInfo (
     return static_cast<PVOID>(reinterpret_cast<PUCHAR>(Header) - Offset);
 }
 
+VOID
+OBJECT::InitializeStackObjectHeader (
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ LONG_PTR PointerCount)
+{
+    POBJECT_HEADER Header;
+
+    Header = GetObjectHeader();
+    RtlZeroMemory(Header, sizeof(*Header));
+    Header->TypeIndex = ObjectType->GetIndex();
+    Header->PointerCount = PointerCount;
+}
+
+extern "C"
+VOID
+NTAPI
+ObInitializeStackObjectHeader(
+    _Out_ PVOID ObjectBody,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ LONG_PTR PointerCount)
+{
+    POBJECT Object = reinterpret_cast<POBJECT>(ObjectBody);
+    Object->InitializeStackObjectHeader(ObjectType, PointerCount);
+}
+
 extern "C"
 VOID
 NTAPI
