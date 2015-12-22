@@ -11,7 +11,6 @@
 
 */
 
-
 #include "ntosbase.h"
 #include "AddressSpace.hpp"
 #include "PfnDatabase.hpp"

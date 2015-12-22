@@ -20,6 +20,10 @@
 
 #define VALID_ALLOCATION_FLAGS (MEM_COMMIT | MEM_RESERVE | MEM_RESET | MEM_PHYSICAL | MEM_TOP_DOWN | MEM_WRITE_WATCH)
 
+extern "C"
+void
+EnterDebugger();
+
 namespace Mm {
 
 /*! \fn AllocateVirtualMemory
@@ -71,6 +75,10 @@ AllocateVirtualMemory (
     if ((*BaseAddress != NULL) && (AlignedBaseAddress == NULL))
     {
         ERR("Tried to allocate at address 0\n");
+        /// HACK
+        ERR("!!!! HACK !!! pretending to map memory at address 0!\n");
+        return STATUS_SUCCESS;
+
         return STATUS_INVALID_PARAMETER;
     }
 
@@ -129,9 +137,6 @@ AllocateVirtualMemory (
                                         Protect);
     }
 
-    /* Release the VAD object */
-    VadObject->Release();
-
     if (!NT_SUCCESS(Status))
     {
         /* Did we also reserve? */
@@ -141,6 +146,9 @@ AllocateVirtualMemory (
             AddressSpace->ReleaseVirtualMemory(*BaseAddress);
         }
     }
+
+    /* Release the VAD object */
+    VadObject->Release();
 
     return Status;
 }
@@ -169,7 +177,7 @@ MmSecureVirtualMemory (
     _In_ ULONG ProbeMode)
 {
     UNIMPLEMENTED;
-    return 0;
+    return (HANDLE)Address;
 }
 
 /*! \fn MmUnsecureVirtualMemory

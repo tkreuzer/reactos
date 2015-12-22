@@ -19,7 +19,6 @@
 #include "Mapping.hpp"
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
 
-
 namespace Mm {
 
 extern "C" {
@@ -147,8 +146,7 @@ MmDeleteKernelStack (
     /* Calculate the base address */
     BaseAddress = AddToPointer(StackBase, -ReservedSize);
 
-    //CleanSystemMappingRange(BaseAddress, BYTES_TO_PAGES(ReservedSize));
-    UNIMPLEMENTED_DBGBREAK;
+    UnmapSystemMappingRange(BaseAddress, BYTES_TO_PAGES(ReservedSize));
 
     ReleaseSystemMappingRange(BaseAddress);
 }

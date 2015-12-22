@@ -19,83 +19,59 @@ namespace Mm {
 ULONG_PTR g_LowestSystemVpn;
 VAD_TABLE g_KernelVadTable;
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::AcquireTableLock
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [out] LockHandle -
  *
  *  \return ...
  */
 inline
 VOID
 VAD_TABLE::AcquireTableLock (
-    PKLOCK_QUEUE_HANDLE LockHandle)
+    _Out_ PKLOCK_QUEUE_HANDLE LockHandle)
 {
     KeAcquireInStackQueuedSpinLock(&m_ListLock, LockHandle);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::ReleaseTableLock
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] LockHandle -
  *
  *  \return ...
  */
 inline
 VOID
 VAD_TABLE::ReleaseTableLock (
-    PKLOCK_QUEUE_HANDLE LockHandle)
+    _In_ PKLOCK_QUEUE_HANDLE LockHandle)
 {
     KeReleaseInStackQueuedSpinLock(LockHandle);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::Initialize
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] KernelMode -
  *
  *  \return ...
  */
 VOID
 VAD_TABLE::Initialize (
-    BOOLEAN KernelMode)
+    _In_ BOOLEAN KernelMode)
 {
     InitializeListHead(&m_ListHead);
     KeInitializeSpinLock(&m_ListLock);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::GetLowestNodeWithEndingVpnNotBelow
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] MinimumEndingVpn -
  *
  *  \return ...
  */
@@ -122,17 +98,11 @@ VAD_TABLE::GetLowestNodeWithEndingVpnNotBelow (
     return NULL;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::GetHighestNodeWithStartingVpnNotAbove
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] MaximumStartingVpn -
  *
  *  \return ...
  */
@@ -159,17 +129,11 @@ VAD_TABLE::GetHighestNodeWithStartingVpnNotAbove (
     return NULL;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::GetNextHigherNode
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] Node -
  *
  *  \return ...
  */
@@ -186,17 +150,11 @@ VAD_TABLE::GetNextHigherNode (
     return CONTAINING_RECORD(Node->ListEntry.Flink, VAD_NODE, ListEntry);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::GetNextLowerNode
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] Node -
  *
  *  \return ...
  */
@@ -213,19 +171,13 @@ VAD_TABLE::GetNextLowerNode (
     return CONTAINING_RECORD(Node->ListEntry.Blink, VAD_NODE, ListEntry);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::InsertBefore
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ReferenceNode -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \return ...
+ *  \param [in] NewNode -
  */
 inline
 VOID
@@ -243,19 +195,13 @@ VAD_TABLE::InsertBefore (
     }
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::InsertAfter
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ReferenceNode -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \return ...
+ *  \param [in] NewNode -
  */
 inline
 VOID
@@ -274,17 +220,21 @@ VAD_TABLE::InsertAfter (
 }
 
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::InsertVadObject
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] VadObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] PageCount -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] LowestStartingVpn -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] HighestEndingVpn -
+ *
+ *  \param [in] BoundaryPageMultiple -
+ *
+ *  \param [in] TopDown -
  *
  *  \return ...
  */
@@ -360,8 +310,9 @@ VAD_TABLE::InsertVadObject (
             (PostGapStartingVpn - GapStartingVpn) >= PageCount)
         {
             /* Set the starting and ending VPN in the node */
-            VadObject->StartingVpn = PostGapStartingVpn - PageCount;
-            VadObject->EndingVpn = PostGapStartingVpn - 1;
+            VadObject->StartingVpn = ALIGN_DOWN_BY(PostGapStartingVpn - PageCount,
+                                                   BoundaryPageMultiple);
+            VadObject->EndingVpn = VadObject->StartingVpn + PageCount - 1;
 
             /* Insert the VAD *after* the current node, or at the lowest end */
             InsertAfter(CurrentNode, VadObject);
@@ -415,22 +366,21 @@ VAD_TABLE::InsertVadObject (
         /* Add a reference to the VAD object */
         VadObject->AddRef();
         VadObject->m_Flags.Inserted = TRUE;
+        NT_ASSERT(!(VadObject->StartingVpn & (BoundaryPageMultiple - 1)));
     }
 
     return Status;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::InsertVadObjectAtVpn
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] VadObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] StartingVpn -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] PageCount -
  *
  *  \return ...
  */
@@ -505,17 +455,11 @@ VAD_TABLE::InsertVadObject (
 }
 #endif
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::RemoveVadObject
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] VadObject -
  *
  *  \return ...
  */
@@ -539,17 +483,11 @@ VAD_TABLE::RemoveVadObject (
     ReleaseTableLock(&LockHandle);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_TABLE::GetVadObjectByAddress
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] Address -
  *
  *  \return ...
  */

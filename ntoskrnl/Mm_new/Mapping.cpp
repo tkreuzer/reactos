@@ -1053,7 +1053,7 @@ ProtectVirtualMemory (
     return STATUS_UNSUCCESSFUL;
 }
 
-/*! \fn ProtectVirtualMemory
+/*! \fn CheckVirtualMapping
  *
  *  \brief ...
  *

@@ -49,17 +49,11 @@ enum VA_TYPE
     VaMaximumType,
 };
 
-/*! \fn xxxxxxxxxx
+/*! \fn IsSectionVad
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] VadObject -
  *
  *  \return ...
  */
@@ -69,17 +63,23 @@ IsSectionVad(VAD_OBJECT* VadObject)
     return VadObject->GetVadType() == SectionViewVadType;
 }
 
-/*! \fn xxxxxxxxxx
+
+/*! \fn SECTION_VIEW::~SECTION_VIEW
+ *
+ *  \brief SECTION_VIEW virtual destructor
+ *
+ */
+SECTION_VIEW::~SECTION_VIEW (
+    VOID)
+{
+    NT_ASSERT(m_Section != NULL);
+    m_Section->Release();
+}
+
+
+/*! \fn SECTION_VIEW::GetVadType
  *
  *  \brief ...
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
  *
  *  \return ...
  */
@@ -89,17 +89,15 @@ SECTION_VIEW::GetVadType () const
     return SectionViewVadType;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn SECTION_VIEW::CreateInstance
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [out] OutSectionView -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] Section -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] Protect -
  *
  *  \return ...
  */
@@ -107,6 +105,7 @@ NTSTATUS
 SECTION_VIEW::CreateInstance (
     _Out_ SECTION_VIEW** OutSectionView,
     _In_ PPHYSICAL_SECTION Section,
+    _In_ ULONG_PTR SectionPageOffset,
     _In_ ULONG Protect)
 {
     PSECTION_VIEW SectionView;
@@ -122,23 +121,16 @@ SECTION_VIEW::CreateInstance (
     }
 
     SectionView->m_Section = Section;
+    SectionView->m_SectionPageOffset = SectionPageOffset;
     SectionView->m_Protect = Protect;
 
     *OutSectionView = SectionView;
     return STATUS_SUCCESS;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn SECTION_VIEW::GetMemoryType
  *
  *  \brief ...
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
  *
  *  \return ...
  */
@@ -155,17 +147,15 @@ SECTION_VIEW::GetMemoryType (
         return MEM_MAPPED;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn SECTION_VIEW::CommitPages
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] StartingVpn -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] NumberOfPages -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] Protect -
  *
  *  \return ...
  */
@@ -177,7 +167,7 @@ SECTION_VIEW::CommitPages (
 {
     NTSTATUS Status;
     //PVOID BaseAddress;
-    ULONG_PTR EndingVpn;
+    ULONG_PTR EndingVpn, SectionStartingVpn;
 
     /// \todo check the range
 
@@ -194,25 +184,36 @@ SECTION_VIEW::CommitPages (
         return STATUS_UNSUCCESSFUL;
     }
 
+    SectionStartingVpn = StartingVpn - GetStartingVpn() + GetSectionPageOffset();
+
+    /* Commit the requested size of the backing section memory */
+    Status = m_Section->CommitPages(SectionStartingVpn, NumberOfPages, Protect);
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to commit pages for section: 0x%lx\n", Status);
+        __debugbreak(); // we need to make sure that the memory gets unmapped!
+        return Status;
+    }
+
     Status = m_Section->CreateMapping(VpnToAddress(StartingVpn),
-                                      StartingVpn - GetStartingVpn(),
+                                      SectionStartingVpn,
                                       NumberOfPages,
                                       Protect);
 
     return Status;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn SECTION_VIEW::CreateMapping
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] RelativeStartingVpn -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] NumberOfPages -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] CommitSizeInPages -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] Protect -
  *
  *  \return ...
  */
@@ -240,7 +241,7 @@ SECTION_VIEW::CreateMapping (
 
     /* Forward the mapping request to the section */
     Status = m_Section->CreateMapping(GetBaseAddress(),
-                                      RelativeStartingVpn,
+                                      GetSectionPageOffset(),
                                       NumberOfPages,
                                       Protect);
     if (!NT_SUCCESS(Status))
@@ -252,17 +253,29 @@ SECTION_VIEW::CreateMapping (
     return STATUS_SUCCESS;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MapViewOfSection
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] VaType -
  *
- *  \param [in] xxxxxx -
+ *  \param [in,out] BaseAddress -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ZeroBits -
+ *
+ *  \param [in] CommitSize -
+ *
+ *  \param [in,out] SectionOffset -
+ *
+ *  \param [in,out] ViewSize -
+ *
+ *  \param [in] InheritDisposition -
+ *
+ *  \param [in] AllocationType -
+ *
+ *  \param [in] Win32Protect -
  *
  *  \return ...
  */
@@ -281,11 +294,10 @@ MapViewOfSection (
     _In_ ULONG Win32Protect)
 {
     PADDRESS_SPACE AddressSpace;
-    ULONG_PTR StartingVpn, LowestStartingVpn, HighestEndingVpn, RelativeStartingVpn;
-    ULONG_PTR BoundaryPageMultiple, ViewSizeInPages;
+    ULONG_PTR StartingVpn, SectionPageOffset;
+    ULONG_PTR BoundaryPageMultiple, SectionSizeInPages, ViewSizeInPages;
     SECTION_VIEW* SectionView;
     NTSTATUS Status;
-    PVAD_TABLE VadTable;
     PPHYSICAL_SECTION Section;
     ULONG Protect;
 
@@ -293,25 +305,21 @@ MapViewOfSection (
 
     // Check ViewSize
 
-    if (CommitSize > *ViewSize)
-    {
-        return STATUS_INVALID_PARAMETER_5;
-    }
-
     /* Check if the caller specified a section offset */
     if (SectionOffset != NULL)
     {
         /* Check if it's valid */
         if (SectionOffset->QuadPart >= (LONG64)(ULONG64)MAXULONG * PAGE_SIZE)
         {
+            __debugbreak();
             return STATUS_INVALID_PARAMETER;
         }
 
-        RelativeStartingVpn = (ULONG_PTR)BYTES_TO_PAGES(SectionOffset->QuadPart);
+        SectionPageOffset = (ULONG_PTR)BYTES_TO_PAGES(SectionOffset->QuadPart);
     }
     else
     {
-        RelativeStartingVpn = 0;
+        SectionPageOffset = 0;
     }
 
     /* Convert protection mask */
@@ -320,28 +328,20 @@ MapViewOfSection (
     if (VaType == VaProcessSpace)
     {
         AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
-        LowestStartingVpn = 1;
-        HighestEndingVpn = AddressToVpn(MmHighestUserAddress);
-        BoundaryPageMultiple = 16;
         Protect |= MM_USER;
     }
     else if (VaType == VaSystemSpace)
     {
         AddressSpace = &g_KernelAddressSpace;
-        LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
-        HighestEndingVpn = AddressToVpn(SYSTEM_RANGE_END);
-        BoundaryPageMultiple = 1;
         Protect |= MM_GLOBAL;
     }
     else if (VaType == VaSessionSpace)
     {
         AddressSpace = &g_KernelAddressSpace; /// HACK
-        LowestStartingVpn = AddressToVpn(SESSION_SPACE_START);
-        HighestEndingVpn = AddressToVpn(SESSION_VIEW_END);
-        BoundaryPageMultiple = 1;
     }
     else
     {
+        __debugbreak();
         return STATUS_INVALID_PARAMETER;
     }
 
@@ -358,8 +358,51 @@ MapViewOfSection (
     Section = SectionObject->ReferenceSection();
     NT_ASSERT(Section != NULL);
 
+    /* Get the section size */
+    SectionSizeInPages = Section->GetSizeInPages();
+
+    /// \todo check if == is ok
+    /* Check if we start outside of the section */
+    if (SectionPageOffset >= SectionSizeInPages)
+    {
+        Section->Release();
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Check if the caller specified the view size */
+    if (*ViewSize != 0)
+    {
+        /* Convert to pages and check if it's valid */
+        ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
+        if (ViewSizeInPages > SectionSizeInPages - SectionPageOffset)
+        {
+            Section->Release();
+            return STATUS_INVALID_PARAMETER;
+        }
+    }
+    else
+    {
+        /* Otherwise use the full section size minus the section offset */
+        ViewSizeInPages = SectionSizeInPages - SectionPageOffset;
+        NT_ASSERT(ViewSizeInPages != 0);
+    }
+
+    /* Update the view size */
+    *ViewSize = ViewSizeInPages * PAGE_SIZE;
+
+    /* Check if the commit size is larger than the view size */
+    if (CommitSize > *ViewSize)
+    {
+        ERR("Invalid CommitSize (0x%lx), ViewSize 0x%lx\n", CommitSize, *ViewSize);
+        Section->Release();
+        return STATUS_INVALID_PARAMETER_5;
+    }
+
     /* Create a section view VAD */
-    Status = SECTION_VIEW::CreateInstance(&SectionView, Section, Protect);
+    Status = SECTION_VIEW::CreateInstance(&SectionView,
+                                          Section,
+                                          SectionPageOffset,
+                                          Protect);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to create section view VAD: 0x%lx\n", Status);
@@ -367,87 +410,56 @@ MapViewOfSection (
         return Status;
     }
 
-    /* Check if the caller did not specify the size */
-    ViewSizeInPages = BYTES_TO_PAGES(*ViewSize);
-    if (ViewSizeInPages == 0)
+    /* Check if the base address should be automatically chosen */
+    if (*BaseAddress == NULL)
     {
-        /* Use the full section size */
-        ViewSizeInPages = Section->GetSizeInPages();
-        NT_ASSERT(ViewSizeInPages != 0);
-    }
+        /* Use the section base address */
+        *BaseAddress = Section->GetBaseAddress();
 
-    /* Get the VAD table */
-    VadTable = AddressSpace->GetVadTable();
-
-    /* Check if a base address was specified */
-    if (*BaseAddress != NULL)
-    {
-        /* Use the specified base address */
-        StartingVpn = AddressToVpn(*BaseAddress);
-
-        /* Check if the range is OK */
-        if (((StartingVpn < LowestStartingVpn)) ||
-            ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
-            ((StartingVpn + ViewSizeInPages) < StartingVpn))
+        /* Insert the VAD object into the address space */
+        Status = AddressSpace->InsertVadObjectEx(SectionView,
+                                                 BaseAddress,
+                                                 ViewSizeInPages,
+                                                 ZeroBits,
+                                                 AllocationType);
+        if (!NT_SUCCESS(Status))
         {
-            ERR("Invalid parameters: StartingVpn\n");
-            SectionView->Release();
-            return STATUS_INVALID_PARAMETER;
+            /* Try again with automatically selected base address */
+            *BaseAddress = NULL;
         }
-
-        /* Try to insert the VAD at the corresponding VPN */
-        Status = VadTable->InsertVadObjectAtVpn(SectionView,
-                                                StartingVpn,
-                                                ViewSizeInPages);
     }
     else
     {
-        /* Use the image base address */
-        StartingVpn = AddressToVpn(Section->GetBaseAddress());
-
-        /* Check if the range is OK */
-        if ((StartingVpn != 0) && ((StartingVpn >= LowestStartingVpn)) &&
-            ((StartingVpn + ViewSizeInPages) <= HighestEndingVpn) &&
-            ((StartingVpn + ViewSizeInPages) > StartingVpn))
-        {
-            /* Try to insert the VAD at the image base address */
-            Status = VadTable->InsertVadObjectAtVpn(SectionView,
-                                                    StartingVpn,
-                                                    ViewSizeInPages);
-        }
-        else
-        {
-            /* Range is invalid, no success yet */
-            Status = STATUS_UNSUCCESSFUL;
-        }
-
-        /* Check if we did not succeed yet */
-        if (!NT_SUCCESS(Status))
-        {
-            /* Insert the VAD into the VAD table */
-            Status = VadTable->InsertVadObject(SectionView,
-                                               ViewSizeInPages,
-                                               LowestStartingVpn,
-                                               HighestEndingVpn,
-                                               BoundaryPageMultiple,
-                                               (AllocationType & MEM_TOP_DOWN) != 0);
-        }
+        Status = STATUS_UNSUCCESSFUL;
     }
+
+    /* Check if we didn't succeed yet */
+    if (!NT_SUCCESS(Status))
+    {
+        /* Insert the VAD object into the address space */
+        Status = AddressSpace->InsertVadObjectEx(SectionView,
+                                                 BaseAddress,
+                                                 ViewSizeInPages,
+                                                 ZeroBits,
+                                                 AllocationType);
+    }
+
 
     if (!NT_SUCCESS(Status))
     {
+        ERR("Failed to insert section view into address space: %x\n", Status);
         SectionView->Release();
         return Status;
     }
 
     /* Now create the prototype PTE mapping */
-    Status = SectionView->CreateMapping(RelativeStartingVpn,
+    Status = SectionView->CreateMapping(SectionPageOffset,
                                         ViewSizeInPages,
                                         BYTES_TO_PAGES(CommitSize),
                                         Protect);
     if (!NT_SUCCESS(Status))
     {
-        VadTable->RemoveVadObject(SectionView);
+        //AddressSpace->RemoveVadObject(SectionView);
         SectionView->Release();
         return Status;
     }
@@ -457,17 +469,13 @@ MapViewOfSection (
     return STATUS_SUCCESS;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn UnmapViewOfSection
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] VaType -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] BaseAddress -
  *
  *  \return ...
  */
@@ -477,24 +485,61 @@ UnmapViewOfSection (
     _In_ VA_TYPE VaType,
     _In_ PVOID BaseAddress)
 {
-    UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    PADDRESS_SPACE AddressSpace;
+    PVAD_TABLE VadTable;
+    PVAD_OBJECT VadObject;
+
+    if (VaType == VaProcessSpace)
+    {
+        AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+    }
+    else if (VaType == VaSystemSpace)
+    {
+        AddressSpace = &g_KernelAddressSpace;
+    }
+    else if (VaType == VaSessionSpace)
+    {
+        AddressSpace = &g_KernelAddressSpace; /// HACK
+    }
+    else
+    {
+        __debugbreak();
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Get the VAD table */
+    VadTable = AddressSpace->GetVadTable();
+
+    /// should lock the address space or something
+
+    VadObject = VadTable->GetVadObjectByAddress(BaseAddress);
+    if (VadObject == NULL)
+    {
+        return STATUS_NOT_COMMITTED;
+    }
+
+    if (VadObject->GetVadType() != SectionViewVadType)
+    {
+        return STATUS_NOT_COMMITTED;
+    }
+
+    // VadObject->Unmap()
+    VadTable->RemoveVadObject(VadObject);
+    VadObject->Release();
+
+    return STATUS_SUCCESS;
 }
 
 extern "C" {
 /** Internal API **************************************************************/
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmGetFileNameForAddress
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] Address -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [out] ModuleName -
  *
  *  \return ...
  */
@@ -516,17 +561,15 @@ MmGetFileNameForAddress (
 
 /** Exported API **************************************************************/
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmMapViewInSystemSpace
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [out] BaseAddress -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in,out] ViewSize -
  *
  *  \return ...
  */
@@ -553,17 +596,11 @@ MmMapViewInSystemSpace (
                             PAGE_EXECUTE_READWRITE);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmUnmapViewInSystemSpace
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] BaseAddress -
  *
  *  \return ...
  */
@@ -577,17 +614,15 @@ MmUnmapViewInSystemSpace (
     return UnmapViewOfSection(VaSystemSpace, BaseAddress);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmMapViewInSessionSpace
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [out] BaseAddress -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in,out] ViewSize -
  *
  *  \return ...
  */
@@ -614,17 +649,11 @@ MmMapViewInSessionSpace (
                             PAGE_EXECUTE_READWRITE);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmUnmapViewInSessionSpace
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] BaseAddress -
  *
  *  \return ...
  */
@@ -641,17 +670,29 @@ MmUnmapViewInSessionSpace (
 //MmMapViewInSystemCache
 //MmUnmapViewInSystemCache
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmMapViewOfSection
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionObject -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] Process -
  *
- *  \param [in] xxxxxx -
+ *  \param [in,out] BaseAddress -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ZeroBits -
+ *
+ *  \param [in] CommitSize -
+ *
+ *  \param [in,out] SectionOffset -
+ *
+ *  \param [in,out] ViewSize -
+ *
+ *  \param [in] InheritDisposition -
+ *
+ *  \param [in] AllocationType -
+ *
+ *  \param [in] Win32Protect -
  *
  *  \return ...
  */
@@ -703,17 +744,13 @@ MmMapViewOfSection (
     return Status;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmUnmapViewOfSection
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] Process -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] BaseAddress -
  *
  *  \return ...
  */
@@ -750,17 +787,29 @@ MmUnmapViewOfSection (
 
 /** Syscall API ***************************************************************/
 
-/*! \fn xxxxxxxxxx
+/*! \fn NtMapViewOfSection
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] SectionHandle -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ProcessHandle -
  *
- *  \param [in] xxxxxx -
+ *  \param [in,out] BaseAddress -
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ZeroBits -
+ *
+ *  \param [in] CommitSize -
+ *
+ *  \param [in,out] SectionOffset -
+ *
+ *  \param [in,out] ViewSize -
+ *
+ *  \param [in] InheritDisposition -
+ *
+ *  \param [in] AllocationType -
+ *
+ *  \param [in] Win32Protect -
  *
  *  \return ...
  */
@@ -961,17 +1010,13 @@ NtMapViewOfSection (
     return Status;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn NtUnmapViewOfSection
  *
  *  \brief ...
  *
- *  \param [in] xxxxxx -
+ *  \param [in] ProcessHandle -
  *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
- *
- *  \param [in] xxxxxx -
+ *  \param [in] BaseAddress -
  *
  *  \return ...
  */

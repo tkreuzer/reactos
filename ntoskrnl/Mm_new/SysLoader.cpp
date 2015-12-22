@@ -18,15 +18,103 @@
 #include <mmfuncs.h>
 #include <obfuncs.h>
 #include "Mapping.hpp"
+#include "MmData.hpp"
+#include "AddressSpace.hpp"
+#include "SectionObject.hpp"
+#include <arc/arc.h>
 
-#define TAG_MODULE_OBJECT 0
+#define TAG_MODULE_OBJECT 'ommM'
 
 namespace Mm {
 
 ERESOURCE PsLoadedModuleResource;
-KMUTANT SystemLoaderLock;
+KMUTEX SystemLoaderLock;
+PLDR_DATA_TABLE_ENTRY NtOsLdrEntry, HalLdrEntry;
 extern "C" LIST_ENTRY PsLoadedModuleList;
 extern "C" BOOLEAN PsImageNotifyEnabled;
+
+VOID
+PatchLoadedSystemImage(
+    PUNICODE_STRING ImageName,
+    PVOID ImageBase);
+
+static
+PLDR_DATA_TABLE_ENTRY
+FindLoaderEntry (
+    _In_ PUNICODE_STRING FileName,
+    _In_opt_ PUNICODE_STRING BaseName);
+
+VOID
+InitializeSysLoader (
+    VOID)
+{
+    UNICODE_STRING ModuleName;// = RTL_CONSTANT_STRING(L"ntoskrnl.exe");
+    PLIST_ENTRY ListEntry;
+    PLDR_DATA_TABLE_ENTRY LdrEntry, NewEntry;
+    ULONG Size;
+    PWCHAR Buffer;
+
+    KeInitializeMutex(&SystemLoaderLock, 0);
+    InitializeListHead(&PsLoadedModuleList);
+
+    /* Loop all entries on the loader block's module list */
+    for (ListEntry = KeLoaderBlock->LoadOrderListHead.Flink;
+         ListEntry != &KeLoaderBlock->LoadOrderListHead;
+         ListEntry = ListEntry->Flink)
+    {
+        /* Get the loader entry */
+        LdrEntry = CONTAINING_RECORD(ListEntry,
+                                     LDR_DATA_TABLE_ENTRY,
+                                     InLoadOrderLinks);
+
+        /* Calculate the size for a full entry */
+        Size = sizeof(LDR_DATA_TABLE_ENTRY) + 
+               LdrEntry->BaseDllName.Length + sizeof(WCHAR) +
+               LdrEntry->FullDllName.Length + sizeof(WCHAR);
+
+        /* Allocate a new entry from non paged pool */
+        //NewEntry = new(NonPagedPool, Size, TAG_MODULE_OBJECT) LDR_DATA_TABLE_ENTRY;
+        NewEntry = (PLDR_DATA_TABLE_ENTRY)ExAllocatePoolWithTag(NonPagedPool, Size, TAG_MODULE_OBJECT);
+        NT_ASSERT(NewEntry != NULL);
+
+        /* Copy the entry */
+        *NewEntry = *LdrEntry;
+
+        /* Copy the base dll name */
+        Buffer = reinterpret_cast<PWCHAR>(NewEntry + 1);
+        NewEntry->BaseDllName.Buffer = Buffer;
+        NewEntry->BaseDllName.MaximumLength = LdrEntry->BaseDllName.Length + sizeof(WCHAR);
+        RtlCopyMemory(Buffer, LdrEntry->BaseDllName.Buffer, LdrEntry->BaseDllName.Length);
+        Buffer[NewEntry->BaseDllName.Length / sizeof(WCHAR)] = L'\0';
+
+        /* Copy the full dll name */
+        Buffer = (PWCHAR)AddToPointer(Buffer, NewEntry->BaseDllName.MaximumLength);
+        NewEntry->FullDllName.Buffer = Buffer;
+        NewEntry->FullDllName.MaximumLength = LdrEntry->FullDllName.Length + sizeof(WCHAR);
+        RtlCopyMemory(Buffer, LdrEntry->FullDllName.Buffer, LdrEntry->FullDllName.Length);
+        Buffer[NewEntry->FullDllName.Length / sizeof(WCHAR)] = L'\0';
+
+        /* Reset load count to 0, unmapping is owned by the kernel */
+        NewEntry->LoadCount = 0;
+        NewEntry->Flags |= LDRP_COR_IMAGE | LDR_COR_OWNS_UNMAP;
+
+        /* Insert the entry into the module list */
+        InsertTailList(&PsLoadedModuleList, &NewEntry->InLoadOrderLinks);
+    }
+
+    RtlInitUnicodeString(&ModuleName, L"ntoskrnl.exe");
+    NtOsLdrEntry = FindLoaderEntry(NULL, &ModuleName);
+    NT_ASSERT(NtOsLdrEntry != NULL);
+    NtOsLdrEntry->LoadCount = 1;
+
+    PsNtosImageBase = (ULONG_PTR)NtOsLdrEntry->DllBase;
+    NT_ASSERT(PsNtosImageBase != 0);
+
+    RtlInitUnicodeString(&ModuleName, L"hal.dll");
+    HalLdrEntry = FindLoaderEntry(NULL, &ModuleName);
+    NT_ASSERT(HalLdrEntry != NULL);
+    HalLdrEntry->LoadCount = 1;
+}
 
 VOID
 FORCEINLINE
@@ -64,14 +152,14 @@ SeperatePath (
     FileName->MaximumLength = FileName->Length;
 
     PathName->Buffer = FullName->Buffer;
-    PathName->Length = (USHORT)(Current - PathName->Buffer);
+    PathName->Length = (USHORT)(Current + 1 - PathName->Buffer) * sizeof(WCHAR);
     PathName->MaximumLength = PathName->Length;
 }
 
 static
 PLDR_DATA_TABLE_ENTRY
-ReferenceLoaderEntry (
-    _In_ PUNICODE_STRING FileName,
+FindLoaderEntry (
+    _In_opt_ PUNICODE_STRING FileName,
     _In_opt_ PUNICODE_STRING BaseName)
 {
     PLDR_DATA_TABLE_ENTRY LdrEntry, FoundEntry = NULL;
@@ -105,7 +193,6 @@ ReferenceLoaderEntry (
         {
             /* We found it, increment load count */
             FoundEntry = LdrEntry;
-            FoundEntry->LoadCount++;
             break;
         }
     }
@@ -162,7 +249,7 @@ CreateLdrEntry (
                                         NtHeader->OptionalHeader.AddressOfEntryPoint);
     LdrEntry->SizeOfImage = (ULONG)SizeOfImage;
     LdrEntry->Flags = LDRP_SYSTEM_MAPPED | LDRP_ENTRY_PROCESSED | LDRP_MM_LOADED;
-    LdrEntry->LoadCount = 1;
+    LdrEntry->LoadCount = 0;
     LdrEntry->TlsIndex = 0;
     LdrEntry->SectionPointer = NULL;
     LdrEntry->CheckSum = NtHeader->OptionalHeader.CheckSum;
@@ -184,9 +271,10 @@ CreateLdrEntry (
 static
 NTSTATUS
 LoadSystemImageInternal (
+    _Out_ PLDR_DATA_TABLE_ENTRY* OutLdrEntry,
     _In_ PUNICODE_STRING FileName,
     _In_ PUNICODE_STRING LoadedName,
-    _Out_ PLDR_DATA_TABLE_ENTRY* OutLdrEntry)
+    _In_ ULONG Flags)
 {
     OBJECT_ATTRIBUTES ObjectAttributes;
     IO_STATUS_BLOCK IoStatusBlock;
@@ -199,6 +287,7 @@ LoadSystemImageInternal (
     PLDR_DATA_TABLE_ENTRY LdrEntry = NULL;
     ULONG_PTR NumberOfPages;
     SIZE_T SizeOfImage;
+    PADDRESS_SPACE AddressSpace;
 
     /* Initialize object attributes */
     InitializeObjectAttributes(&ObjectAttributes,
@@ -231,33 +320,12 @@ LoadSystemImageInternal (
                              FileHandle,
                              NULL);
 
-    /* Close the file handle */
+    /* Close the file handle already */
     ObCloseHandle(FileHandle, KernelMode);
 
     if (!NT_SUCCESS(Status))
     {
         ERR("MmCreateSection failed, status 0x%x\n", Status);
-        return Status;
-    }
-
-    /* Calculate how many bytes we need */
-    NumberOfPages = (ULONG_PTR)BYTES_TO_PAGES(SectionSize.QuadPart);
-
-    /* Allocate a mapping range */
-    DriverBase = ReserveSystemMappingRange(NumberOfPages);
-    if (DriverBase == NULL)
-    {
-        /* Dereference the section and return failure */
-        ObDereferenceObject(SectionObject);
-        return STATUS_INSUFFICIENT_RESOURCES;
-    }
-
-    Status = MapNonPagedMemory(AddressToVpn(DriverBase), NumberOfPages, MM_EXECUTE_READWRITE);
-    if (!NT_SUCCESS(Status))
-    {
-        /* Cleanup and return failure */
-        ObDereferenceObject(SectionObject);
-        ReleaseSystemMappingRange(DriverBase);
         return Status;
     }
 
@@ -267,6 +335,7 @@ LoadSystemImageInternal (
     /* Map the section into the system process address space */
     SectionOffset.QuadPart = 0;
     SizeOfImage = 0;
+    MappingBase = NULL;
     Status = MmMapViewOfSection(SectionObject,
                                 PsGetCurrentProcess(),
                                 &MappingBase,
@@ -284,31 +353,61 @@ LoadSystemImageInternal (
     /* Check if mapping succeeded, but the image is not our architecture */
     if (Status == STATUS_IMAGE_MACHINE_TYPE_MISMATCH)
     {
-        /* Unmap the image */
-        Status = MmUnmapViewOfSection(PsGetCurrentProcess(), MappingBase);
-        NT_ASSERT(NT_SUCCESS(Status));
-
         /* Return failure */
         Status = STATUS_INVALID_IMAGE_FORMAT;
     }
-
-    if (NT_SUCCESS(Status))
-    {
-        /* Copy the image to the new location */
-        RtlCopyMemory(DriverBase, MappingBase, SizeOfImage);
-
-        Status = MmUnmapViewOfSection(PsGetCurrentProcess(), MappingBase);
-        NT_ASSERT(NT_SUCCESS(Status));
-    }
-
-    /* Detach from the system process */
-    KeUnstackDetachProcess(&ApcState);
 
     if (!NT_SUCCESS(Status))
     {
         ERR("MmMapViewOfSection failed with status 0x%x\n", Status);
         goto Cleanup;
     }
+
+    /* Calculate how many pages we need */
+    NumberOfPages = BYTES_TO_PAGES(SizeOfImage);
+
+    /* Get the base address from the section */
+    DriverBase = reinterpret_cast<PSECTION_OBJECT>(SectionObject)->GetBaseAddress();
+
+    /* Check if this is a session load */
+    if (Flags & 1)
+    {
+        /// FIXME, we should use the session address space!
+        AddressSpace = &g_KernelAddressSpace;
+    }
+    else
+    {
+        AddressSpace = &g_KernelAddressSpace;
+    }
+
+    /* Reserve virtual address space */
+    Status = AddressSpace->ReserveVirtualMemory(&DriverBase,
+                                                NumberOfPages,
+                                                MM_READWRITE);
+    if (!NT_SUCCESS(Status))
+    {
+        /* Try with a different address */
+        DriverBase = NULL;
+        Status = AddressSpace->ReserveVirtualMemory(&DriverBase,
+                                                    NumberOfPages,
+                                                    MM_READWRITE);
+        if (!NT_SUCCESS(Status))
+        {
+            goto Cleanup;
+        }
+    }
+
+    /// FIXME we need to prepare the mapping range
+
+    Status = MapNonPagedMemory(AddressToVpn(DriverBase), NumberOfPages, MM_EXECUTE_READWRITE);
+    if (!NT_SUCCESS(Status))
+    {
+        /* Cleanup and return failure */
+        goto Cleanup;
+    }
+
+    /* Copy the image to the new location */
+    RtlCopyMemory(DriverBase, MappingBase, SizeOfImage);
 
     /// MiCheckSystemImage
 
@@ -318,18 +417,31 @@ LoadSystemImageInternal (
                               DriverBase,
                               SizeOfImage);
 
+    DbgPrint("LoadSystemImageInternal MappingBase=%p, DllBase = %p\n", MappingBase, LdrEntry->DllBase);
+
     /* Set result status */
     Status = (LdrEntry == NULL) ? STATUS_INSUFFICIENT_RESOURCES : STATUS_SUCCESS;
 
 Cleanup:
 
+    /* Did we map the image? */
+    if (MappingBase != NULL)
+    {
+        /* Unmap the image */
+        Status = MmUnmapViewOfSection(PsGetCurrentProcess(), MappingBase);
+        DbgPrint("Status = 0x%lx\n", Status);
+        NT_ASSERT(NT_SUCCESS(Status));
+    }
+
+    /* Detach from the system process */
+    KeUnstackDetachProcess(&ApcState);
 
     if (!NT_SUCCESS(Status))
     {
         /* Check if we mapped memory for the driver */
         if (DriverBase != NULL)
         {
-            //Unmap,,,
+            UnmapSystemMappingRange(DriverBase, NumberOfPages);
             ReleaseSystemMappingRange(DriverBase);
         }
     }
@@ -342,6 +454,7 @@ VOID
 ReleaseImportedModules (
     PVOID ImportDirectory)
 {
+    UNIMPLEMENTED;
 }
 
 VOID
@@ -361,6 +474,7 @@ UnloadSystemImageInternal (
         return ReleaseImportedModules(ImportDirectory);
     }
 
+    DbgPrint("Releasing driver mapping, DllBase = %p\n", LdrEntry->DllBase);
     ReleaseSystemMappingRange(LdrEntry->DllBase);
 
     ExFreePoolWithTag(LdrEntry, TAG_MODULE_OBJECT);
@@ -405,6 +519,7 @@ FindExportByName (
             IndexMid = (IndexLow + IndexHigh) / 2;
 
             /* Compare name */
+            //DbgPrint("Comparing '%s' and '%s' (%lu)\n", Name, (PCHAR)DllBase + NameTable[IndexMid], IndexMid);
             Result = strcmp(Name, (PCHAR)DllBase + NameTable[IndexMid]);
             if (Result < 0)
             {
@@ -444,8 +559,8 @@ NTSTATUS
 CallDllInitialize (
     _In_ PLDR_DATA_TABLE_ENTRY LdrEntry)
 {
-    UNIMPLEMENTED_DBGBREAK;
-    return STATUS_NOT_IMPLEMENTED;
+    UNIMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 /// FIXME: make this a template for 32/64 bit
@@ -508,7 +623,8 @@ ProcessImportDescriptor (
         else
         {
             /* Get the name import data */
-            NameImport = (PIMAGE_IMPORT_BY_NAME)NameThunk->u1.AddressOfData;
+            NameImport = static_cast<PIMAGE_IMPORT_BY_NAME>(
+                AddToPointer(ImageBase, NameThunk->u1.AddressOfData));
 
             /* Find the export by name or hint */
             Function = FindExportByName(DllBase,
@@ -517,6 +633,8 @@ ProcessImportDescriptor (
                                         (PCHAR)NameImport->Name);
             if (Function == NULL)
             {
+                ERR("Failed to find export '%s' in DLL '%s'\n",
+                    NameImport->Name, AddToPointer(DllBase, ExportDirectory->Name));
                 return STATUS_UNSUCCESSFUL;
             }
 
@@ -611,13 +729,19 @@ ResolveImageReferences (
                                    LDRP_DRIVER_DEPENDENT_DLL,
                                    (PVOID*)&DllLdrEntry,
                                    &DllBase);
-        if (!NT_SUCCESS(Status))
+        if (Status == STATUS_IMAGE_ALREADY_LOADED)
+        {
+            DllLdrEntry->LoadCount++;
+            Status = STATUS_SUCCESS;
+        }
+        else if (!NT_SUCCESS(Status))
         {
             break;
         }
-
-        /* Go ahead, since we loaded the image */
-        CurrentImport++;
+        else
+        {
+            NT_ASSERT(DllLdrEntry->LoadCount == 1);
+        }
 
         /* Check if we still need to call the init routine */
         if (DllLdrEntry->LoadCount == 1)
@@ -626,6 +750,8 @@ ResolveImageReferences (
             Status = CallDllInitialize(DllLdrEntry);
             if (!NT_SUCCESS(Status))
             {
+                /* Go ahead, since we loaded the image */
+                CurrentImport++;
                 break;
             }
         }
@@ -637,6 +763,13 @@ ResolveImageReferences (
                                          CurrentImport,
                                          DllLdrEntry->DllBase);
 
+        /* Go ahead, since we loaded the image */
+        CurrentImport++;
+
+        if (!NT_SUCCESS(Status))
+        {
+            break;
+        }
     }
 
     if (!NT_SUCCESS(Status))
@@ -719,6 +852,7 @@ MmLoadSystemImage (
     PLDR_DATA_TABLE_ENTRY LdrEntry, FoundLdrEntry;
     UNICODE_STRING BaseDirectory, BaseName;
     NTSTATUS Status;
+    ERR("MmLoadSystemImage('%wZ')\n", FileName);
 
     /* A name prefix is not supported! */
     NT_ASSERT(NamePrefix == NULL);
@@ -726,130 +860,156 @@ MmLoadSystemImage (
     /* Acquire the loader lock */
     AcquireLoaderLock();
 
-    /* Find an entry with the name */
-    FoundLdrEntry = ReferenceLoaderEntry(FileName, LoadedName);
+    /* Try to find an entry with the name */
+    LdrEntry = FindLoaderEntry(FileName, LoadedName);
+
+    /* Did we find it? */
+    if (LdrEntry == NULL)
+    {
+        /* Release the loader lock */
+        ReleaseLoaderLock();
+
+        /* Separate the path into directory and file name */
+        SeperatePath(FileName, &BaseDirectory, &BaseName);
+
+        /* If we have a LoadedName, use that instead */
+        if (LoadedName != NULL)
+        {
+            BaseName = *LoadedName;
+        }
+
+        /* Load the image into memory */
+        Status = LoadSystemImageInternal(&LdrEntry, FileName, &BaseName, Flags);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("LoadSystemImageInternal failed with status 0x%lx\n", Status);
+            return Status;
+        }
+
+        /* Relocate the image */
+        Status = LdrRelocateImageWithBias(LdrEntry->DllBase,
+                                          0,
+                                          "SYSLDR",
+                                          STATUS_SUCCESS,
+                                          STATUS_CONFLICTING_ADDRESSES,
+                                          STATUS_INVALID_IMAGE_FORMAT);
+        if (!NT_SUCCESS(Status))
+        {
+            ERR("LdrRelocateImageWithBias failed with status 0x%x\n", Status);
+            UnloadSystemImageInternal(LdrEntry);
+            return Status;
+        }
+
+        /* Patch the image */
+        PatchLoadedSystemImage(FileName, LdrEntry->DllBase);
+
+        /* Acquire the loader lock again */
+        AcquireLoaderLock();
+
+        /* Search for the entry again and check if it's still not there */
+        FoundLdrEntry = FindLoaderEntry(FileName, LoadedName);
+        if (FoundLdrEntry == NULL)
+        {
+            /// We could call the DLL initialize routine here. Or we could also
+            /// call it for already loaded modules (which would be more logical)
+            /// but that would mean, we would call it for ntoskrnl/hal as well
+
+            /* Mark the entry as in progress */
+            LdrEntry->Flags |= LDRP_LOAD_IN_PROGRESS;
+
+            /* Acquire the module list lock */
+            ExAcquireResourceExclusiveLite(&PsLoadedModuleResource, TRUE);
+
+            /* Insert the new entry */
+            InsertTailList(&PsLoadedModuleList, &LdrEntry->InLoadOrderLinks);
+
+            /* Release the module list lock */
+            ExReleaseResource(&PsLoadedModuleResource);
+
+            /* Resolve imports (still need to hold the loader lock!) */
+            Status = ResolveImageReferences(LdrEntry->DllBase, &BaseDirectory);
+            if (!NT_SUCCESS(Status))
+            {
+                ERR("ResolveImageReferences failed with status 0x%x\n", Status);
+
+                /* Release the loader lock */
+                ReleaseLoaderLock();
+
+                /* Unload the image and return the failure code */
+                MmUnloadSystemImage(LdrEntry);
+                return Status;
+            }
+
+            /* Loading this image is finished, remove the flag */
+            LdrEntry->Flags &= ~LDRP_LOAD_IN_PROGRESS;
+        }
+        else
+        {
+            /* Someone else raced us, unload our newly created entry */
+            UnloadSystemImageInternal(LdrEntry);
+            LdrEntry = FoundLdrEntry;
+        }
+    }
+
+    /* Check if the image was already completely loaded */
+    if (LdrEntry->LoadCount > 0)
+    {
+        /* Return the correspronding status code */
+        Status = STATUS_IMAGE_ALREADY_LOADED;
+    }
+    else
+    {
+        LdrEntry->LoadCount = 1;
+        Status = STATUS_SUCCESS;
+    }
 
     /* Release the loader lock */
     ReleaseLoaderLock();
 
-    /* Did we find the entry? */
-    if (FoundLdrEntry != NULL)
+    /* Check if the image was already loaded */
+    if (Status == STATUS_IMAGE_ALREADY_LOADED)
     {
         /* Check if this is a session load */
         if (Flags & 1)
         {
             UNIMPLEMENTED;
+            __debugbreak(); __debugbreak();
             return STATUS_NOT_IMPLEMENTED;
         }
-
-        /* Return the data */
-        *ModuleObject = FoundLdrEntry;
-        *ImageBaseAddress = FoundLdrEntry->DllBase;
-        return STATUS_IMAGE_ALREADY_LOADED;
     }
-
-    /* Separate the path into directory and file name */
-    SeperatePath(FileName, &BaseDirectory, &BaseName);
-
-    /* If we have a LoadedName, use that instead */
-    if (LoadedName != NULL)
+    else
     {
-        BaseName = *LoadedName;
-    }
+        DbgPrint("=====> Loaded image at %p\n", LdrEntry->DllBase);
 
-    /* We don't have the entry yet, so load the image */
-    Status = LoadSystemImageInternal(FileName, &BaseName, &LdrEntry);
-    if (!NT_SUCCESS(Status))
-    {
-        return Status;
-    }
+        /* Write-protect the system image */
+        WriteProtectSystemImage(LdrEntry->DllBase);
 
-    /* Relocate the image */
-    Status = LdrRelocateImageWithBias(LdrEntry->DllBase,
-                                      0,
-                                      "SYSLDR",
-                                      STATUS_SUCCESS,
-                                      STATUS_CONFLICTING_ADDRESSES,
-                                      STATUS_INVALID_IMAGE_FORMAT);
-    if (!NT_SUCCESS(Status))
-    {
-        ERR("LdrRelocateImageWithBias failed with status 0x%x\n", Status);
-        UnloadSystemImageInternal(LdrEntry);
-        return Status;
-    }
-
-    /* Acquire the loader lock */
-    AcquireLoaderLock();
-
-    /* Search for the entry again and check if it's still not there */
-    FoundLdrEntry = ReferenceLoaderEntry(FileName, LoadedName);
-
-    /* Did we find an entry? */
-    if (FoundLdrEntry == NULL)
-    {
-        /// We could call the DLL initialize routine here. Or we could also
-        /// call it for already loaded modules (which would be more logical)
-        /// but that would mean, we would call it for ntoskrnl/hal as well
-
-        /* Mark the entry as in progress */
-        LdrEntry->Flags |= LDRP_LOAD_IN_PROGRESS;
-
-        /* Acquire the module list lock */
-        ExAcquireResourceExclusiveLite(&PsLoadedModuleResource, TRUE);
-
-        /* Insert the new entry */
-        InsertTailList(&PsLoadedModuleList, &LdrEntry->InLoadOrderLinks);
-
-        /* Release the module list lock */
-        ExReleaseResource(&PsLoadedModuleResource);
-
-        /* Resolve imports */
-        Status = ResolveImageReferences(LdrEntry->DllBase, &BaseDirectory);
-        if (!NT_SUCCESS(Status))
+        /* Check if notifications are enabled */
+        if (PsImageNotifyEnabled)
         {
-            ERR("ResolveImageReferences failed with status 0x%x\n", Status);
-            MmUnloadSystemImage(LdrEntry);
-            return Status;
+            IMAGE_INFO ImageInfo;
+
+            /* Fill out the notification data */
+            ImageInfo.Properties = 0;
+            ImageInfo.ImageAddressingMode = IMAGE_ADDRESSING_MODE_32BIT;
+            ImageInfo.SystemModeImage = TRUE;
+            ImageInfo.ImageSize = LdrEntry->SizeOfImage;
+            ImageInfo.ImageBase = LdrEntry->DllBase;
+            ImageInfo.ImageSectionNumber = ImageInfo.ImageSelector = 0;
+
+            /* Send the notification */
+            //PspRunLoadImageNotifyRoutines(FileName, NULL, &ImageInfo);
         }
-
-        /* Loading this image is finished, remove the flag */
-        LdrEntry->Flags &= ~LDRP_LOAD_IN_PROGRESS;
     }
 
-    /* Release the loader lock */
-    ReleaseLoaderLock();
+    /* Return the data */
+    *ModuleObject = LdrEntry;
+    *ImageBaseAddress = LdrEntry->DllBase;
 
-    /* Write-protect the system image */
-    WriteProtectSystemImage(LdrEntry->DllBase);
+DbgPrint("MmLoadSystemImage: entry %p, file '%wZ' count = %u\n", LdrEntry, &LdrEntry->BaseDllName, LdrEntry->LoadCount);
+//__debugbreak();__debugbreak();
 
-    /* Did we find an entry? */
-    if (FoundLdrEntry != NULL)
-    {
-        /* Someone else raced us, unload our newly created entry */
-        UnloadSystemImageInternal(LdrEntry);
-
-        /* Use the entry we found instead */
-        LdrEntry = FoundLdrEntry;
-    }
-
-    /* Check if notifications are enabled */
-    if (PsImageNotifyEnabled)
-    {
-        IMAGE_INFO ImageInfo;
-
-        /* Fill out the notification data */
-        ImageInfo.Properties = 0;
-        ImageInfo.ImageAddressingMode = IMAGE_ADDRESSING_MODE_32BIT;
-        ImageInfo.SystemModeImage = TRUE;
-        ImageInfo.ImageSize = LdrEntry->SizeOfImage;
-        ImageInfo.ImageBase = LdrEntry->DllBase;
-        ImageInfo.ImageSectionNumber = ImageInfo.ImageSelector = 0;
-
-        /* Send the notification */
-        //PspRunLoadImageNotifyRoutines(FileName, NULL, &ImageInfo);
-    }
-
-    return STATUS_SUCCESS;
+    return Status;
 }
 
 
@@ -873,7 +1033,7 @@ MmUnloadSystemImage (
 
     /* Dereference the loader entry */
     LdrEntry->LoadCount--;
-    if (LdrEntry->LoadCount == 0)
+    if ((LdrEntry->LoadCount == 0) && !(LdrEntry->Flags & LDR_COR_OWNS_UNMAP))
     {
         /* Remove the entry from the module list */
         RemoveEntryList(&LdrEntry->InLoadOrderLinks);
@@ -885,6 +1045,116 @@ MmUnloadSystemImage (
     ReleaseLoaderLock();
 
     return STATUS_SUCCESS;
+}
+
+/*! \fn MmGetSystemRoutineAddress
+ *
+ *  \brief ...
+ *
+ *  \param [in] SystemRoutineName -
+ *
+ *  \return ...
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+PVOID
+NTAPI
+MmGetSystemRoutineAddress (
+    _In_ PUNICODE_STRING SystemRoutineName)
+{
+    CHAR NameBuffer[64];
+    ANSI_STRING AnsiName;
+    PIMAGE_EXPORT_DIRECTORY ExportDirectory;
+    ULONG ExportSize;
+    NTSTATUS Status;
+    PVOID RoutineAddress;
+
+    TRACE("MmGetSystemRoutineAddress(%wZ)\n", SystemRoutineName);
+
+    /* Initialize an ansi string for the name */
+    RtlInitEmptyAnsiString(&AnsiName, NameBuffer, sizeof(NameBuffer));
+
+    /* Convert the unicode name to ansi */
+    Status = RtlUnicodeStringToAnsiString(&AnsiName, SystemRoutineName, FALSE);
+    if (!NT_SUCCESS(Status))
+    {
+        ERR("Failed to convert unicode string name '%wZ' to ansi\n", SystemRoutineName);
+        return NULL;
+    }
+
+    /* Get the export directory */
+    ExportDirectory = static_cast<PIMAGE_EXPORT_DIRECTORY>(
+                      RtlImageDirectoryEntryToData((PVOID)PsNtosImageBase,
+                                                   TRUE,
+                                                   IMAGE_DIRECTORY_ENTRY_EXPORT,
+                                                   &ExportSize));
+    if (ExportDirectory == NULL)
+    {
+        ERR("Failed to get NT export directory %p\n", PsNtosImageBase);
+        return NULL;
+    }
+
+    /* Find the address */
+    RoutineAddress = FindExportByName((PVOID)PsNtosImageBase,
+                                      ExportDirectory,
+                                      -1,
+                                      NameBuffer);
+    if (RoutineAddress == NULL)
+    {
+        ERR("Couldn't locate routine '%Z' in the kernel\n", &AnsiName);
+        __debugbreak();
+        __debugbreak();
+    }
+
+    return RoutineAddress;
+}
+
+
+PVOID
+NTAPI
+MmFindModuleImport (
+    PWCHAR ModuleName,
+    PCHAR RoutineName)
+{
+    UNICODE_STRING ModuleNameU;
+    PVOID RoutineAddress;
+    PIMAGE_EXPORT_DIRECTORY ExportDirectory;
+    ULONG ExportSize;
+    PLDR_DATA_TABLE_ENTRY LdrEntry;
+
+    RtlInitUnicodeString(&ModuleNameU, ModuleName);
+
+    LdrEntry = FindLoaderEntry(NULL, &ModuleNameU);
+    if (LdrEntry == NULL)
+    {
+        ERR("Failed to locate module '%wZ'\n", &ModuleNameU);
+        return NULL;
+    }
+
+    /* Get the export directory */
+    ExportDirectory = static_cast<PIMAGE_EXPORT_DIRECTORY>(
+                      RtlImageDirectoryEntryToData(LdrEntry->DllBase,
+                                                   TRUE,
+                                                   IMAGE_DIRECTORY_ENTRY_EXPORT,
+                                                   &ExportSize));
+    if (ExportDirectory == NULL)
+    {
+        ERR("Failed to get NT export directory %p\n", PsNtosImageBase);
+        return NULL;
+    }
+
+    /* Find the address */
+    RoutineAddress = FindExportByName(LdrEntry->DllBase,
+                                      ExportDirectory,
+                                      -1,
+                                      RoutineName);
+    if (RoutineAddress == NULL)
+    {
+        ERR("Couldn't locate routine '%s' in module '%s'\n", RoutineName, ModuleName);
+        __debugbreak();
+        __debugbreak();
+    }
+
+    return RoutineAddress;
 }
 
 }; // extern "C"

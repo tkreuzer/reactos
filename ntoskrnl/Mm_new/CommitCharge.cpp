@@ -52,38 +52,40 @@ InitializeSystemCommitLimit (
  *      committing (writing demand zero PTEs) any pages to make sure that
  *      there will always be sufficient memory to resolve any page faults.
  */
+
+// AcquireCommitCharge / ReleaseCommitCharge
 NTSTATUS
 ChargeSystemCommit (
     _In_ ULONG_PTR NumberOfPages)
 {
-    ULONG_PTR CurrentCommit, NewCommit, ExpectedOldCommit;
+    ULONG_PTR CommittedPages, NewCommittedPages, OldCommittedPages;
 
-    /* Start with the current commit */
-    CurrentCommit = MmTotalCommittedPages;
+    /* Get the current value of committed pages */
+    CommittedPages = MmTotalCommittedPages;
 
     do
     {
         /* Calculate the new commit charge */
-        NewCommit = CurrentCommit + NumberOfPages;
+        NewCommittedPages = CommittedPages + NumberOfPages;
 
         /* Check if that overflows or exceeds the limit */
-        if ((NewCommit < CurrentCommit) ||
-            (NewCommit > MmTotalCommitLimit))
+        if ((NewCommittedPages < CommittedPages) ||
+            (NewCommittedPages > MmTotalCommitLimit))
         {
             return STATUS_COMMITMENT_LIMIT;
         }
 
         /* Try to exchange */
-        ExpectedOldCommit = CurrentCommit;
-        CurrentCommit = InterlockedCompareExchangeSizeT(&MmTotalCommittedPages,
-                                                        NewCommit,
-                                                        ExpectedOldCommit);
+        OldCommittedPages = CommittedPages;
+        CommittedPages = InterlockedCompareExchangeSizeT(&MmTotalCommittedPages,
+                                                         NewCommittedPages,
+                                                         OldCommittedPages);
     }
-    while (CurrentCommit != ExpectedOldCommit);
+    while (CommittedPages != OldCommittedPages);
 
     /* Update the peak commitment */
-    if (MmTotalCommittedPages > MmPeakCommitment)
-        MmPeakCommitment = MmTotalCommittedPages;
+    if (NewCommittedPages > MmPeakCommitment)
+        MmPeakCommitment = NewCommittedPages;
 
     return STATUS_SUCCESS;
 }

@@ -18,7 +18,7 @@ namespace Mm {
 
 const char VadObjectVadType[] = "VadObject";
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_OBJECT::CreateInstance
  *
  *  \brief ...
  *
@@ -48,7 +48,7 @@ VAD_OBJECT::CreateInstance (
     return STATUS_SUCCESS;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_OBJECT::AcquireLock
  *
  *  \brief ...
  */
@@ -61,7 +61,7 @@ VAD_OBJECT::AcquireLock (
     //ExAcquirePushLockExclusive(&m_Lock);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_OBJECT::ReleaseLock
  *
  *  \brief ...
  */
@@ -74,7 +74,7 @@ VAD_OBJECT::ReleaseLock (
     //ExReleasePushLock(&m_Lock);
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_OBJECT::GetMemoryType 
  *
  *  \brief ...
  *
@@ -87,7 +87,7 @@ VAD_OBJECT::GetMemoryType (
     return MEM_PRIVATE;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_OBJECT::GetVadType
  *
  *  \brief ...
  *
@@ -100,9 +100,15 @@ VAD_OBJECT::GetVadType (
     return VadObjectVadType;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn VAD_OBJECT::CommitPages
  *
  *  \brief ...
+ *
+ *  \param [in] StartingVpn - 
+ *
+ *  \param [in] NumberOfPages - 
+ *
+ *  \param [in] Protect - 
  *
  *  \return ...
  */

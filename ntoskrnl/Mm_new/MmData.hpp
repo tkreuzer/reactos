@@ -17,7 +17,7 @@
 
 extern "C" ULONG_PTR MmNumberOfPhysicalPages;
 extern "C" ULONG_PTR MmAvailablePages;
-extern "C" struct _MMPFN* MmPfnDatabase;
+extern "C" PVOID MmPfnDatabase;
 extern "C" SIZE_T MmSizeOfPfnDatabase;
 extern "C" PFN_NUMBER MmNumberOfPhysicalPages;
 extern "C" PVOID MmNonPagedPoolStart;
@@ -26,3 +26,7 @@ extern "C" PVOID MmPagedPoolStart;
 extern "C" PVOID MmPagedPoolEnd;
 extern "C" SIZE_T MmSizeOfPagedPoolInBytes;
 extern "C" SIZE_T MmMaximumNonPagedPoolInBytes;
+extern "C" PFN_NUMBER MmLowestPhysicalPage;
+extern "C" PFN_NUMBER MmHighestPhysicalPage;
+extern "C" PFN_NUMBER MmBadPagesDetected;
+extern "C" ULONG_PTR PsNtosImageBase;

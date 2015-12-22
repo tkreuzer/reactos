@@ -90,7 +90,7 @@ PVOID MmPagedPoolStart;
 PVOID MmPagedPoolEnd;
 PVOID MmSessionBase;
 SIZE_T MmSessionSize;
-struct _MMPFN* MmPfnDatabase;
+PVOID MmPfnDatabase;
 SIZE_T MmSizeOfPfnDatabase;
 PFN_NUMBER MmNumberOfPhysicalPages;
 PFN_NUMBER MmLowestPhysicalPage;

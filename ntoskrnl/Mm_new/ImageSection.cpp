@@ -25,7 +25,7 @@ extern ULONG RandomNumberSeed;
 
 /*! \fn PageReadHelper
  *
- *  \brief
+ *  \brief Helper function to read memory from a file
  *
  *  \param [in] FileObject - Pointer to the file object for the file to read
  *
@@ -339,7 +339,8 @@ VerifySectionHeaders (
 NTSTATUS
 PHYSICAL_SECTION::CreateImageFileSection (
     _Out_ PPHYSICAL_SECTION* OutPhysicalSection,
-    _In_ PFILE_OBJECT FileObject)
+    _In_ PFILE_OBJECT FileObject,
+    _Inout_ PLARGE_INTEGER MaximumSize)
 {
     PVOID DosHeaderBuffer, NtHeadersBuffer;
     PIMAGE_DOS_HEADER DosHeader;
@@ -349,7 +350,7 @@ PHYSICAL_SECTION::CreateImageFileSection (
     LARGE_INTEGER FileSize;
     PPHYSICAL_SECTION Section;
     ULONG NtHeaderOffset, Offset, ByteOffset, NumberOfPages, NumberOfSections;
-    ULONG Size, SectorSize; //, AvailableHeaderSize;
+    ULONG SectionSize, Size, SectorSize; //, AvailableHeaderSize;
     ULONG SizeOfSectionHeaders, NtHeaderSize, HeaderSize, FullHeaderSize;
     PVOID BaseAddress;
     SCHAR AslrOffset;
@@ -462,11 +463,21 @@ PHYSICAL_SECTION::CreateImageFileSection (
         goto Cleanup;
     }
 
+    /* Get the section size from the image size */
+    SectionSize = NtHeaders->OptionalHeader.SizeOfImage;
+    
+    /* Did the caller specify a maximum size? */
+    if (MaximumSize->QuadPart != 0)
+    {
+        /* Limit the size to the maximum */
+        SectionSize = min(SectionSize, MaximumSize->QuadPart);
+    }
+
     /* Get the number of pages and the number of sections */
-    NumberOfPages = BYTES_TO_PAGES(NtHeaders->OptionalHeader.SizeOfImage);
+    NumberOfPages = BYTES_TO_PAGES(SectionSize);
     NumberOfSections = NtHeaders->FileHeader.NumberOfSections;
 
-    /* Create an empty section */
+    /* Create an empty section (one additional subsection for the headers) */
     Status = PHYSICAL_SECTION::CreateInstance(&Section,
                                               NumberOfSections + 1,
                                               NumberOfPages);
@@ -475,9 +486,10 @@ PHYSICAL_SECTION::CreateImageFileSection (
         goto Cleanup;
     }
 
-    /* Mark the section as an image section */
+    /* Mark the section as an image section and reference the file object */
     Section->m_ControlArea.Flags.Image = TRUE;
     Section->m_ControlArea.FileObject = FileObject;
+    ObReferenceObject(FileObject);
 
     /* Calculate the section header size */
     Status = RtlULongMult(NumberOfSections,

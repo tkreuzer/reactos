@@ -2046,6 +2046,9 @@ PFN_LIST::AddPage (
     PfnEntry = &g_PfnDatabase.m_PfnArray[PageFrameNumber];
     PfnEntry->Flink = 0;
 
+    /// FIXME: use simple single list? m_ListTail seems unused everywhere else
+    /// use -1 as list end?
+
     /* Check if the list is empty */
     if (m_ListHead == 0)
     {
