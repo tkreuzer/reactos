@@ -347,11 +347,11 @@ IopParseDevice(IN PVOID ParseObject,
 
         /* Map the generic mask and set the new mapping in the access state */
         RtlMapGenericMask(&AccessState->RemainingDesiredAccess,
-                          &IoFileObjectType->TypeInfo.GenericMapping);
+                          &IopFileMapping);
         RtlMapGenericMask(&AccessState->OriginalDesiredAccess,
-                          &IoFileObjectType->TypeInfo.GenericMapping);
+                          &IopFileMapping);
         SeSetAccessStateGenericMapping(AccessState,
-                                       &IoFileObjectType->TypeInfo.GenericMapping);
+                                       &IopFileMapping);
         DesiredAccess = AccessState->RemainingDesiredAccess;
 
         /* Check what kind of access checks to do */
@@ -414,8 +414,7 @@ IopParseDevice(IN PVOID ParseObject,
                                               DesiredAccess,
                                               0,
                                               &Privileges,
-                                              &IoFileObjectType->
-                                              TypeInfo.GenericMapping,
+                                              &IopFileMapping,
                                               UserMode,
                                               &GrantedAccess,
                                               &Status);
@@ -2740,9 +2739,7 @@ IoCreateStreamFileObjectLite(IN PFILE_OBJECT FileObject OPTIONAL,
     KeInitializeEvent(&CreatedFileObject->Event, SynchronizationEvent, FALSE);
 
     /* Destroy create information */
-    ObFreeObjectCreateInfoBuffer(OBJECT_TO_OBJECT_HEADER(CreatedFileObject)->
-                                 ObjectCreateInfo);
-    OBJECT_TO_OBJECT_HEADER(CreatedFileObject)->ObjectCreateInfo = NULL;
+    ObFreeObjectCreateInfoBuffer(CreatedFileObject);
 
     /* Set the handle created flag */
     CreatedFileObject->Flags |= FO_HANDLE_CREATED;

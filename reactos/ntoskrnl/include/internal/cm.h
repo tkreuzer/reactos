@@ -1518,6 +1518,7 @@ extern BOOLEAN CmpProfileLoaded;
 extern PCMHIVE CmiVolatileHive;
 extern LIST_ENTRY CmiKeyObjectListHead;
 extern BOOLEAN CmpHoldLazyFlush;
+extern GENERIC_MAPPING CmpKeyMapping;
 
 //
 // Inlined functions

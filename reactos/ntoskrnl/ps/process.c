@@ -760,7 +760,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                    &LocalAccessState,
                                    &AuxData,
                                    DesiredAccess,
-                                   &PsProcessType->TypeInfo.GenericMapping);
+                                   &PspProcessMapping);
     if (!NT_SUCCESS(Status)) goto CleanupWithRef;
 
     /* Insert the Process into the Object Directory */
@@ -812,7 +812,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                MAXIMUM_ALLOWED,
                                0,
                                NULL,
-                               &PsProcessType->TypeInfo.GenericMapping,
+                               &PspProcessMapping,
                                PreviousMode,
                                &Process->GrantedAccess,
                                &AccessStatus);
@@ -1509,7 +1509,7 @@ NtOpenProcess(OUT PHANDLE ProcessHandle,
     Status = SeCreateAccessState(&AccessState,
                                  &AuxData,
                                  DesiredAccess,
-                                 &PsProcessType->TypeInfo.GenericMapping);
+                                 &PspProcessMapping);
     if (!NT_SUCCESS(Status)) return Status;
 
     /* Check if this is a debugger */
