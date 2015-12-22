@@ -548,12 +548,12 @@ PATH_MoveTo(
     if (dc->pdcattr->ulDirty_ & DIRTY_STYLESTATE)
     {
        DPRINT("MoveTo has changed\n");
-       pPath->newStroke = TRUE;
+    pPath->newStroke = TRUE;
        // Set position and clear the signal flag.
        IntGetCurrentPositionEx(dc, &pPath->pos);
        IntLPtoDP( dc, &pPath->pos, 1 );
-       return TRUE;
-    }
+    return TRUE;
+}
 
     return FALSE;
 }
@@ -585,19 +585,19 @@ PATH_LineTo(
     // Coalesce a MoveTo point.
     if ( !PATH_MoveTo(dc, pPath) )
     {
-       /* Add a PT_MOVETO if necessary */
-       if (pPath->newStroke)
-       {
+    /* Add a PT_MOVETO if necessary */
+    if (pPath->newStroke)
+    {
            DPRINT("Line To : New Stroke\n");
-           pPath->newStroke = FALSE;
-           IntGetCurrentPositionEx(dc, &pointCurPos);
-           CoordLPtoDP(dc, &pointCurPos);
-           if (!PATH_AddEntry(pPath, &pointCurPos, PT_MOVETO))
-           {
-               PATH_UnlockPath(pPath);
-               return FALSE;
-           }
-       }
+        pPath->newStroke = FALSE;
+        IntGetCurrentPositionEx(dc, &pointCurPos);
+        CoordLPtoDP(dc, &pointCurPos);
+        if (!PATH_AddEntry(pPath, &pointCurPos, PT_MOVETO))
+        {
+            PATH_UnlockPath(pPath);
+            return FALSE;
+        }
+    }
     }
     Ret = add_log_points_new_stroke( dc, pPath, &point, 1, PT_LINETO );
     PATH_UnlockPath(pPath);
@@ -642,8 +642,8 @@ PATH_Rectangle(
 
     if (!(type = add_points( pPath, points, 4, PT_LINETO )))
     {
-       PATH_UnlockPath(pPath);
-       return FALSE;
+        PATH_UnlockPath(pPath);
+        return FALSE;
     }
     type[0] = PT_MOVETO;
 
@@ -740,8 +740,8 @@ PATH_RoundRect(
     if (dc->dclevel.flPath & DCPATH_CLOCKWISE) reverse_points( points, 16 );
     if (!(type = add_points( pPath, points, 16, PT_BEZIERTO )))
     {
-       PATH_UnlockPath(pPath);
-       return FALSE;
+        PATH_UnlockPath(pPath);
+        return FALSE;
     }
     type[0] = PT_MOVETO;
     type[4] = type[8] = type[12] = PT_LINETO;
@@ -769,8 +769,8 @@ PATH_Ellipse(
     BYTE *type;
     double width, height;
 
-    pPath = PATH_LockPath(dc->dclevel.hPath);
-    if (!pPath) return FALSE;
+        pPath = PATH_LockPath(dc->dclevel.hPath);
+        if (!pPath) return FALSE;
 
     if (!PATH_CheckCorners(dc, corners, x1, y1, x2, y2))
     {
@@ -822,10 +822,10 @@ PATH_Ellipse(
     }
     type[0] = PT_MOVETO;
 
-    IntGdiCloseFigure(pPath);
-    PATH_UnlockPath(pPath);
+        IntGdiCloseFigure(pPath);
+        PATH_UnlockPath(pPath);
     return TRUE;
-}
+    }
 
 /* PATH_DoArcPart
  *
@@ -868,7 +868,7 @@ PATH_DoArcPart(
         yNorm[3] = sin(angleEnd);
         xNorm[2] = xNorm[3] + a * yNorm[3];
         yNorm[2] = yNorm[3] - a * xNorm[3];
-    }
+}
     else
         for (i = 0; i < 4; i++)
         {
@@ -933,7 +933,7 @@ PATH_Arc(
     if (direction)
        clockwise = ((direction == AD_CLOCKWISE) !=0 );
     else
-       clockwise = ((dc->dclevel.flPath & DCPATH_CLOCKWISE) != 0);
+    clockwise = ((dc->dclevel.flPath & DCPATH_CLOCKWISE) != 0);
 
     /* Check for zero height / width */
     /* FIXME: Only in GM_COMPATIBLE? */
@@ -1097,9 +1097,9 @@ PATH_PolyBezierTo(
 
     ret = add_log_points_new_stroke( dc, pPath, pts, cbPoints, PT_BEZIERTO );
 
-    PATH_UnlockPath(pPath);
+            PATH_UnlockPath(pPath);
     return ret;
-}
+        }
 
 BOOL
 FASTCALL
@@ -1171,22 +1171,22 @@ PATH_PolyDraw(
         case PT_LINETO | PT_CLOSEFIGURE:
             if (!add_log_points_new_stroke( dc, pPath, &pts[i], 1, PT_LINETO ))
             {
-               PATH_UnlockPath(pPath);
-               return FALSE;
+                PATH_UnlockPath(pPath);
+                return FALSE;
             }
             break;
         case PT_BEZIERTO:
             if ((i + 2 < cbPoints) && (types[i + 1] == PT_BEZIERTO) &&
                 (types[i + 2] & ~PT_CLOSEFIGURE) == PT_BEZIERTO)
-            {
+    {
                 if (!add_log_points_new_stroke( dc, pPath, &pts[i], 3, PT_BEZIERTO ))
-                {
+        {
                    PATH_UnlockPath(pPath);
                    return FALSE;
-                }
-                i += 2;
+        }
+            i += 2;
                 break;
-            }
+        }
             /* fall through */
         default:
             /* restore original position */
@@ -1196,16 +1196,16 @@ PATH_PolyDraw(
 
             IntGdiMoveToEx(dc, cur_pos.x, cur_pos.y, NULL);
 
-            PATH_UnlockPath(pPath);
+    PATH_UnlockPath(pPath);
             return FALSE;
-        }
+}
 
         if (types[i] & PT_CLOSEFIGURE)
-        {
+{
             close_figure( pPath );
             pPath->pos = pPath->pPoints[lastmove];
             DPRINT("PPD close : pos X %d Y %d\n",pPath->pos.x, pPath->pos.y);
-        }
+    }
     }
     PATH_UnlockPath(pPath);
     return TRUE;
@@ -1231,9 +1231,9 @@ PATH_PolylineTo(
     if (!pPath) return FALSE;
 
     ret = add_log_points_new_stroke( dc, pPath, pts, cbPoints, PT_LINETO );
-    PATH_UnlockPath(pPath);
+        PATH_UnlockPath(pPath);
     return ret;
-}
+    }
 
 BOOL
 FASTCALL
@@ -1262,9 +1262,9 @@ PATH_PolyPolygon(
     {
         if (counts[poly] < 2)
         {
-           PATH_UnlockPath(pPath);
-           return FALSE;
-        }
+        PATH_UnlockPath(pPath);
+        return FALSE;
+    }
         count += counts[poly];
     }
 
@@ -1273,7 +1273,7 @@ PATH_PolyPolygon(
     {
        PATH_UnlockPath(pPath);
        return FALSE;
-    }
+        }
 
     /* make the first point of each polyline a PT_MOVETO, and close the last one */
     for (poly = 0; poly < polygons; type += counts[poly++])
@@ -1305,7 +1305,7 @@ PATH_PolyPolyline(
     pPath = PATH_LockPath(dc->dclevel.hPath);
     if (!pPath)
     {
-       return FALSE;
+        return FALSE;
     }
 
     for (i = 0, poly = 0; poly < polylines; poly++)
@@ -1426,7 +1426,7 @@ PATH_PathToRegion(
         if (pPath->pFlags[i] != PT_MOVETO) continue;
         counts[polygons++] = i - pos;
         pos = i;
-    }
+        }
     if (i > pos + 1) counts[polygons++] = i - pos;
 
     ASSERT( polygons <= pPath->numEntriesUsed / 2 );
@@ -1482,15 +1482,15 @@ PATH_FillPathEx(
     {
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
         return FALSE;
-    }
+}
 
     if (!PATH_PathToRegion(pPath, pdcattr->jFillMode, Rgn))
-    {
+{
         DPRINT("PFP : Fail P2R\n");
         /* EngSetLastError ? */
         REGION_Delete(Rgn);
-        return FALSE;
-    }
+            return FALSE;
+        }
 
     /* Since PaintRgn interprets the region as being in logical coordinates
      * but the points we store for the path are already in device
@@ -1512,7 +1512,7 @@ PATH_FillPathEx(
      * believe that this has to be done only in GM_ADVANCED; however, my
      * tests show that resetting the graphics mode to GM_COMPATIBLE does
      * not reset the world transform.
-     */
+ */
     MatrixS2XForm(&xform, &dc->pdcattr->mxWorldToPage);
 
     /* Set MM_TEXT */
@@ -2395,14 +2395,14 @@ NtGdiAbortPath(HDC hDC)
 
     if (!dc->dclevel.hPath)
     {
-       DC_UnlockDc(dc);
+        DC_UnlockDc(dc);
        return TRUE;
     }
 
     if (!PATH_Delete(dc->dclevel.hPath))
     {
        DC_UnlockDc(dc);
-       return FALSE;
+        return FALSE;
     }
 
     dc->dclevel.hPath = 0;

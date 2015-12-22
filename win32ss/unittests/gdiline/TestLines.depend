@@ -1,0 +1,879 @@
+# depslib dependency file v1.0
+1450345681 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\linestest.cpp
+	<windows.h>
+
+1449916611 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\lineto.cpp
+
+1449920819 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\strokepath.cpp
+	"eng.h"
+
+1450090247 e:\reactos\trunk\src\modules\rostests\regtests\linestest\eng.h
+	<stdarg.h>
+	<windef.h>
+	<wingdi.h>
+	<winddi.h>
+
+1450348145 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\englineto.cpp
+	"eng.h"
+	"DibLine.h"
+	"pathobj.hpp"
+
+1449920819 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\engstrokepath.cpp
+	"eng.h"
+
+1450007881 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\dibline.c
+	"DibLine.h"
+
+1450348126 e:\reactos\trunk\src\modules\rostests\regtests\linestest\dibline.h
+	<stdarg.h>
+	<windef.h>
+	<wingdi.h>
+	<winddi.h>
+
+1450002203 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\line.cpp
+	<windows.h>
+	"eng.h"
+
+1450430261 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\diblineall.c
+	"DibLine.h"
+	"DibLine.c"
+	"DibLine.c"
+
+1450349181 e:\reactos\trunk\src\modules\rostests\regtests\linestest\dibline.c
+
+1450044598 e:\reactos\trunk\src\modules\rostests\regtests\linestest\pathobj.hpp
+
+1450124362 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\pathobj.cpp
+	<windows.h>
+	"eng.h"
+	<windows.h>
+	"eng.h"
+	"pathobj.hpp"
+
+1385316878 source:e:\reactos\trunk\src\modules\rostests\regtests\linestest\main.cpp
+	<tchar.h>
+	<windows.h>
+
+1450434161 source:e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\lineto.cpp
+	<win32k.h>
+	"../diblib/DibLib_interface.h"
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\win32k.h
+	"pch.h"
+	<reactos/probe.h>
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\pch.h
+	<ntifs.h>
+	<ntddmou.h>
+	<ndk/exfuncs.h>
+	<ndk/iofuncs.h>
+	<ndk/kdfuncs.h>
+	<ndk/kefuncs.h>
+	<ndk/mmfuncs.h>
+	<ndk/obfuncs.h>
+	<ndk/psfuncs.h>
+	<ndk/rtlfuncs.h>
+	<ntstrsafe.h>
+	<ntintsafe.h>
+	<ntddkbd.h>
+	<stdarg.h>
+	<windef.h>
+	<math.h>
+	<intrin.h>
+	<winerror.h>
+	<wingdi.h>
+	<winddi.h>
+	<winuser.h>
+	<prntfont.h>
+	<ddrawi.h>
+	<imm.h>
+	<pseh/pseh2.h>
+	<include/ntgdityp.h>
+	<ntgdi.h>
+	<include/ntgdihdl.h>
+	<include/ntgdibad.h>
+	<include/ntusrtyp.h>
+	<include/ntuser.h>
+	<include/callback.h>
+	<undocuser.h>
+	<ft2build.h>
+	"win32kp.h"
+
+1449438239 e:\reactos\trunk-git-svn\src\win32ss\include\ntgdityp.h
+	"ntwin32.h"
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\include\ntwin32.h
+
+1450554438 e:\reactos\trunk-git-svn\src\win32ss\include\ntgdihdl.h
+	<winddi.h>
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\include\ntgdibad.h
+
+1449438239 e:\reactos\trunk-git-svn\src\win32ss\include\ntusrtyp.h
+	<ntwin32.h>
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\include\ntuser.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\include\callback.h
+
+1446210715 e:\reactos\trunk-git-svn\src\lib\3rdparty\freetype\include\ft2build.h
+	<freetype/config/ftheader.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\lib\3rdparty\freetype\include\freetype\config\ftheader.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\win32kp.h
+	"gdi/ntgdi/rect.h"
+	"gdi/ntgdi/misc.h"
+	"gdi/ntgdi/gdiobj.h"
+	"gdi/ntgdi/palette.h"
+	"gdi/eng/surface.h"
+	"gdi/eng/pdevobj.h"
+	"gdi/eng/ldevobj.h"
+	"gdi/eng/device.h"
+	"gdi/eng/driverobj.h"
+	"gdi/eng/engobjects.h"
+	"gdi/eng/eng.h"
+	"gdi/eng/engevent.h"
+	"gdi/eng/inteng.h"
+	"gdi/eng/xlateobj.h"
+	"gdi/eng/floatobj.h"
+	"gdi/eng/mouse.h"
+	"gdi/eng/mapping.h"
+	"gdi/ntgdi/xformobj.h"
+	"gdi/ntgdi/brush.h"
+	"gdi/ntgdi/color.h"
+	"gdi/ntgdi/bitmaps.h"
+	"gdi/ntgdi/region.h"
+	"gdi/ntgdi/dc.h"
+	"gdi/ntgdi/dib.h"
+	"gdi/ntgdi/cliprgn.h"
+	"gdi/ntgdi/intgdi.h"
+	"gdi/ntgdi/paint.h"
+	"gdi/ntgdi/text.h"
+	"gdi/ntgdi/pen.h"
+	"gdi/ntgdi/cliprgn.h"
+	"gdi/ntgdi/coord.h"
+	"gdi/ntgdi/gdifloat.h"
+	"gdi/ntgdi/path.h"
+	"gdi/dib/dib.h"
+	"reactx/ntddraw/intddraw.h"
+	"user/ntuser/win32kdebug.h"
+	"user/ntuser/win32.h"
+	"user/ntuser/tags.h"
+	"user/ntuser/usrheap.h"
+	"user/ntuser/object.h"
+	"user/ntuser/ntuser.h"
+	"user/ntuser/shutdown.h"
+	"user/ntuser/cursoricon.h"
+	"user/ntuser/accelerator.h"
+	"user/ntuser/hook.h"
+	"user/ntuser/clipboard.h"
+	"user/ntuser/winsta.h"
+	"user/ntuser/msgqueue.h"
+	"user/ntuser/desktop.h"
+	"user/ntuser/dce.h"
+	"user/ntuser/focus.h"
+	"user/ntuser/hotkey.h"
+	"user/ntuser/input.h"
+	"user/ntuser/menu.h"
+	"user/ntuser/monitor.h"
+	"user/ntuser/timer.h"
+	"user/ntuser/caret.h"
+	"user/ntuser/painting.h"
+	"user/ntuser/class.h"
+	"user/ntuser/window.h"
+	"user/ntuser/sysparams.h"
+	"user/ntuser/prop.h"
+	"user/ntuser/guicheck.h"
+	"user/ntuser/useratom.h"
+	"user/ntuser/vis.h"
+	"user/ntuser/userfuncs.h"
+	"user/ntuser/scroll.h"
+	"user/ntuser/winpos.h"
+	"user/ntuser/callback.h"
+	"user/ntuser/mmcopy.h"
+	"user/ntuser/csr.h"
+	"gdi/ntgdi/gdidebug.h"
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\rect.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\misc.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\gdiobj.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\palette.h
+
+1450433919 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\surface.h
+
+1449438209 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\pdevobj.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\ldevobj.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\device.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\driverobj.h
+
+1450271449 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\engobjects.h
+
+1449438238 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\eng.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\engevent.h
+
+1450433919 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\inteng.h
+
+1449438238 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\xlateobj.h
+
+1446458265 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\floatobj.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\mouse.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\mapping.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\xformobj.h
+
+1450433919 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\brush.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\color.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\bitmaps.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\region.h
+
+1449438238 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\dc.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\dib.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\cliprgn.h
+
+1446458265 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\intgdi.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\paint.h
+
+1446210756 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\text.h
+
+1446458265 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\pen.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\coord.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\gdifloat.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\path.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\gdi\dib\dib.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\reactx\ntddraw\intddraw.h
+	<ddrawint.h>
+	<ddkernel.h>
+	<reactos/drivers/directx/directxint.h>
+	<reactos/drivers/directx/dxg.h>
+	<reactos/drivers/directx/dxeng.h>
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\win32kdebug.h
+	<builddir.h>
+
+1450432324 e:\reactos\trunk-git-svn\build-gcc-x86\include\reactos\builddir.h
+
+1449438239 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\win32.h
+	<pshpack1.h>
+	<poppack.h>
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\tags.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\usrheap.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\object.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\ntuser.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\shutdown.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\cursoricon.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\accelerator.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\hook.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\clipboard.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\winsta.h
+
+1449438239 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\msgqueue.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\desktop.h
+
+1446210505 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\dce.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\focus.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\hotkey.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\input.h
+	<ndk/kbd.h>
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\menu.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\monitor.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\timer.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\caret.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\painting.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\class.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\window.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\sysparams.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\prop.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\guicheck.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\useratom.h
+
+1449438239 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\vis.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\userfuncs.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\scroll.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\winpos.h
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\callback.h
+
+1431610498 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\mmcopy.h
+
+1449438239 e:\reactos\trunk-git-svn\src\win32ss\user\ntuser\csr.h
+	<ndk/lpcfuncs.h>
+	<csr/csr.h>
+	<win/winmsg.h>
+
+1446210716 e:\reactos\trunk-git-svn\src\win32ss\gdi\ntgdi\gdidebug.h
+
+1450434961 e:\reactos\trunk-git-svn\src\win32ss\gdi\diblib\diblib_interface.h
+	"RopFunctions.h"
+
+1449438209 e:\reactos\trunk-git-svn\src\win32ss\gdi\diblib\ropfunctions.h
+
+1450433960 source:e:\reactos\trunk-git-svn\src\win32ss\gdi\diblib\line.c
+	"DibLib.h"
+	"DibLib_AllDstBPP.h"
+	"DibLib_AllDstBPP.h"
+
+1450436430 e:\reactos\trunk-git-svn\src\win32ss\gdi\diblib\diblib.h
+	<stdarg.h>
+	<windef.h>
+	<wingdi.h>
+	<winddi.h>
+	"DibLib_interface.h"
+
+1450433960 e:\reactos\trunk-git-svn\src\win32ss\gdi\diblib\diblib_alldstbpp.h
+
+1449920819 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\engstrokepath.cpp
+	"eng.h"
+
+1450445252 e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\eng.h
+	<stdarg.h>
+	<windef.h>
+	<wingdi.h>
+	<winddi.h>
+
+1450445255 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\line.cpp
+	<windows.h>
+	"eng.h"
+
+1450452807 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\linestest.cpp
+	<windows.h>
+	"eng.h"
+
+1450436185 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\main.cpp
+	<tchar.h>
+	<windows.h>
+
+1450124362 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\pathobj.cpp
+	<windows.h>
+	"eng.h"
+	<windows.h>
+	"eng.h"
+	"pathobj.hpp"
+
+1450044598 e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\pathobj.hpp
+
+1431610496 e:\reactos\trunk-git-svn\src\include\reactos\subsys\csr\csr.h
+	"csrmsg.h"
+
+1431610496 e:\reactos\trunk-git-svn\src\include\reactos\subsys\csr\csrmsg.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\reactos\subsys\win\winmsg.h
+
+1450433919 source:e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\clip.c
+	<win32k.h>
+
+1450446758 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\umglue.c
+	<windows.h>
+	"umglue.h"
+
+1449438238 source:e:\reactos\trunk-git-svn\src\win32ss\gdi\eng\sort.c
+	<win32k.h>
+	<debug.h>
+
+1450557622 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\grelineto.cpp
+	<win32k.h>
+	"bltobj.hpp"
+
+1450447751 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\kmglue.c
+	<win32k.h>
+	"umglue.h"
+
+1450448221 e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\umglue.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ntddmou.h
+
+1431610495 e:\reactos\trunk-git-svn\src\include\ddk\ntstrsafe.h
+	<stdio.h>
+	<string.h>
+	<stdarg.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\stdio.h
+	<crtdefs.h>
+	<stdarg.h>
+	<vadefs.h>
+	<sec_api/stdio_s.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\include\crt\crtdefs.h
+	<_mingw.h>
+	<specstrings.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\_mingw.h
+	"_mingw_mac.h"
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\_mingw_mac.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\specstrings.h
+	<sal.h>
+	<driverspecs.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\sal.h
+	<sal_old.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\sal_old.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\driverspecs.h
+	<specstrings.h>
+	<concurrencysal.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\concurrencysal.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\stdarg.h
+	<crtdefs.h>
+	<vadefs.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\include\crt\vadefs.h
+	<crtdefs.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\sec_api\stdio_s.h
+	<stdio.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\include\crt\string.h
+	<crtdefs.h>
+	<sec_api/string_s.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\sec_api\string_s.h
+	<string.h>
+
+1431610495 e:\reactos\trunk-git-svn\src\include\ddk\ntintsafe.h
+	<intsafe.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\intsafe.h
+	<specstrings.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ntddkbd.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\windef.h
+	<winnt.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\include\crt\math.h
+	"crtdefs.h"
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\intrin.h
+	<crtdefs.h>
+	<setjmp.h>
+	<stddef.h>
+	<armintr.h>
+	"mingw32/intrin.h"
+	"msc/intrin.h"
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\setjmp.h
+	<crtdefs.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\stddef.h
+	<crtdefs.h>
+	<errno.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\errno.h
+	<crtdefs.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\armintr.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\mingw32\intrin.h
+	"intrin_x86.h"
+	"intrin_ppc.h"
+	"intrin_mips.h"
+	"intrin_arm.h"
+	"intrin_x86.h"
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\mingw32\intrin_x86.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\mingw32\intrin_ppc.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\mingw32\intrin_arm.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\crt\msc\intrin.h
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\winerror.h
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\wingdi.h
+	"pshpack1.h"
+	"poppack.h"
+	"pshpack2.h"
+	"poppack.h"
+	"pshpack2.h"
+	"poppack.h"
+	"pshpack4.h"
+	"poppack.h"
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\pshpack1.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\poppack.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\pshpack2.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\pshpack4.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\winddi.h
+	<ddrawint.h>
+	<d3dnthal.h>
+	<specstrings.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ddrawint.h
+	<ddraw.h>
+	<dvp.h>
+	<ddraw.h>
+	<dvp.h>
+	<ddraw.h>
+	<dvp.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ddraw.h
+	<objbase.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\objbase.h
+	<rpc.h>
+	<rpcndr.h>
+	<stdlib.h>
+	<wtypes.h>
+	<unknwn.h>
+	<objidl.h>
+	<guiddef.h>
+	<cguid.h>
+	<urlmon.h>
+	<propidl.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpc.h
+	<windows.h>
+	<pseh/pseh2.h>
+	<pshpack2.h>
+	<basetsd.h>
+	<pshpack8.h>
+	<setjmp.h>
+	<rpcdce.h>
+	<rpcnsi.h>
+	<rpcerr.h>
+	<rpcmac.h>
+	<poppack.h>
+	<rpcdce.h>
+	<rpcnterr.h>
+	<excpt.h>
+	<winerror.h>
+	<poppack.h>
+	<rpcasync.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\windows.h
+	<msvctarget.h>
+	<winresrc.h>
+	<excpt.h>
+	<stdarg.h>
+	<windef.h>
+	<winbase.h>
+	<wingdi.h>
+	<winuser.h>
+	<wincon.h>
+	<winnls.h>
+	<winver.h>
+	<winnetwk.h>
+	<winreg.h>
+	<winsvc.h>
+	<cderr.h>
+	<dde.h>
+	<ddeml.h>
+	<dlgs.h>
+	<imm.h>
+	<lzexpand.h>
+	<mmsystem.h>
+	<nb30.h>
+	<rpc.h>
+	<shellapi.h>
+	<winperf.h>
+	<wincrypt.h>
+	<winefs.h>
+	<winscard.h>
+	<commdlg.h>
+	<winspool.h>
+	<winsock2.h>
+	<winsock.h>
+	<ole2.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winresrc.h
+	<winuser.h>
+	<winnt.h>
+	<winver.h>
+	<dde.h>
+	<dlgs.h>
+	<commctrl.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winuser.h
+	<pshpack2.h>
+	<poppack.h>
+	"reactos/undocuser.h"
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\winver.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\dde.h
+	<windef.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\dlgs.h
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\commctrl.h
+	<_mingw_unicode.h>
+	<prsht.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\_mingw_unicode.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\prsht.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\excpt.h
+	<crtdefs.h>
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\winbase.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\wincon.h
+	"wingdi.h"
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\winnls.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winnetwk.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winreg.h
+	<reason.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\reason.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winsvc.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\cderr.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ddeml.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\imm.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\lzexpand.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\mmsystem.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\nb30.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\shellapi.h
+	<pshpack1.h>
+	<poppack.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winperf.h
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\wincrypt.h
+	<specstrings.h>
+	<bcrypt.h>
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\bcrypt.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winefs.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winscard.h
+	<wtypes.h>
+	<winioctl.h>
+	<winsmcrd.h>
+	<scarderr.h>
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\winioctl.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winsmcrd.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\scarderr.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\commdlg.h
+	<prsht.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winspool.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winsock2.h
+	<pshpack4.h>
+	<windows.h>
+	<ws2def.h>
+	<qos.h>
+	<guiddef.h>
+	<poppack.h>
+	<wsipv6ok.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ws2def.h
+	<inaddr.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\inaddr.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\qos.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\guiddef.h
+	<string.h>
+	<string.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\wsipv6ok.h
+	<ws2tcpip.h>
+	<wspiapi.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ws2tcpip.h
+	<winsock2.h>
+	<ws2ipdef.h>
+	<limits.h>
+	<wspiapi.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ws2ipdef.h
+	<in6addr.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\in6addr.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\limits.h
+	<crtdefs.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\wspiapi.h
+	<stdio.h>
+	<stdlib.h>
+	<malloc.h>
+	<string.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\stdlib.h
+	<crtdefs.h>
+	<limits.h>
+	<errno.h>
+	<sec_api/stdlib_s.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\sec_api\stdlib_s.h
+	<stdlib.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\malloc.h
+	<crtdefs.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\winsock.h
+	<windows.h>
+	<inaddr.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ole2.h
+	<winerror.h>
+	<objbase.h>
+	<oleauto.h>
+	<oleidl.h>
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\oleauto.h
+	<oaidl.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\basetsd.h
+	<msvctarget.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\pshpack8.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpcdce.h
+	<guiddef.h>
+	<rpcdcep.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpcdcep.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpcnsi.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpcnterr.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpcasync.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\rpcndr.h
+	<basetsd.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\cguid.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\dvp.h
+	<objbase.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\d3dnthal.h
+	<ddrawint.h>
+	<d3dtypes.h>
+	<d3dcaps.h>
+
+1450433919 e:\reactos\trunk-git-svn\src\include\psdk\d3dtypes.h
+	<float.h>
+	<ddraw.h>
+	<pshpack4.h>
+	<d3dvec.inl>
+	<poppack.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\float.h
+	"mingw32/gcc_float.h"
+	"msc/msc_float.h"
+	<crtdefs.h>
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\mingw32\gcc_float.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\crt\msc\msc_float.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\dxsdk\d3dvec.inl
+	<math.h>
+
+1431610496 e:\reactos\trunk-git-svn\src\include\dxsdk\d3dcaps.h
+	"ddraw.h"
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\prntfont.h
+
+1431610496 e:\reactos\trunk-git-svn\src\include\psdk\ddrawi.h
+	<ddraw.h>
+	<dvp.h>
+	<ddkernel.h>
+	<dmemmgr.h>
+	"dciddi.h"
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\ddkernel.h
+
+1446210715 e:\reactos\trunk-git-svn\src\include\psdk\dmemmgr.h
+
+1431610494 e:\reactos\trunk-git-svn\src\include\ddk\dciddi.h
+
+1449438238 e:\reactos\trunk-git-svn\src\include\psdk\ntgdi.h
+
+1450552011 source:e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\blitobj.cpp
+	"bltobj.hpp"
+
+1450558578 e:\reactos\trunk-git-svn\src\win32ss\unittests\gdiline\bltobj.hpp
+	"win32k.h"
+

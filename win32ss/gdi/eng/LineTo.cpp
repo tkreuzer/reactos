@@ -10,7 +10,7 @@
 #include <win32k.h>
 #include "../diblib/DibLib_interface.h"
 
-DBG_DEFAULT_CHANNEL(EngLine);
+//DBG_DEFAULT_CHANNEL(EngLine);
 
 // FIXME: move to header
 extern "C"
@@ -67,7 +67,7 @@ IntStrokeTo(
 
 VOID
 InitializeLineInfo(
-    _Out_ PLINEINFO pli,
+    _Out_ PLINEDATA pld,
     _In_ SURFOBJ *pso,
     _In_ BRUSHOBJ *pbo
     )
@@ -80,7 +80,7 @@ InitializeLineInfo(
     ppdev->gdiinfo.xStyleStep = 3;
     ppdev->gdiinfo.yStyleStep = 3;
 
-    pli->ulColor = pbo->iSolidColor;
+    pld->ulColor = pbo->iSolidColor;
 
 }
 
@@ -99,7 +99,7 @@ EngLineTo(
     _In_opt_ RECTL *prclBounds,
     _In_ MIX mix)
 {
-    LINEINFO li;
+    LINEDATA ld;
     PFN_DIB_LINETO pfnLineTo;
     BOOL bEnumMore;
     POINTFIX aptfx[2];
@@ -112,7 +112,7 @@ EngLineTo(
         return FALSE;
     }
 
-    InitializeLineInfo(&li, pso, pbo);
+    InitializeLineInfo(&ld, pso, pbo);
 
     /* Setup the point array for enumeration */
     aptfx[0].x = x1;
@@ -128,19 +128,19 @@ EngLineTo(
     do
     {
         /* Enumerate clip lines */
-        bEnumMore = CLIPOBJ_bEnumClipLines(pco, aptfx, sizeof(li.aj), &li.cl);
+        bEnumMore = CLIPOBJ_bEnumClipLines(pco, aptfx, sizeof(ld.aj), &ld.cl);
 
         /* Loop all runs we got */
-        for (i = 0; i < li.cl.c; i++)
+        for (i = 0; i < ld.cl.c; i++)
         {
-            li.runOtherCoordinate.iStart = y1;
-            li.runOtherCoordinate.iStop = y2;
+            ld.runOtherCoordinate.iStart = y1;
+            ld.runOtherCoordinate.iStop = y2;
 
 
             //InitializeLineInfo(&li, &pfnLineTo, &ppdev->gdiinfo, pso, pbo, NULL);
             pfnLineTo = 0;
 
-            pfnLineTo(&li);
+            pfnLineTo(&ld);
         }
 
     } while (bEnumMore);
@@ -203,7 +203,7 @@ IntEngPolyline(
     ULONG i;
     RECTL rcBounds;
 
-    for (i = 1; i < cpt; i++)
+    for (i = 1; i < (ULONG)cpt; i++)
     {
         rcBounds.left = min(pt[i-1].x, pt[i].x);
         rcBounds.top = min(pt[i-1].y, pt[i].y);

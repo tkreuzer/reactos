@@ -381,7 +381,14 @@ XFORMOBJ_bXformFixPoints(
     if ((flAccel & (XFORM_SCALE|XFORM_UNITY)) == (XFORM_SCALE|XFORM_UNITY))
     {
         /* Identity transformation */
-        RtlCopyMemory(pptOut, pptIn, cPoints * sizeof(POINTL));
+        if (pptOut != pptIn)
+        {
+            i = cPoints - 1;
+            do
+            {
+                pptOut[i] = pptIn[i];
+            }
+            while (--i >= 0);        }
     }
     else if (flAccel & XFORM_INTEGER)
     {
