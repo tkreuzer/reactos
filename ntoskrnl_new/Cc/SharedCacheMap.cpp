@@ -53,6 +53,8 @@ CcUninitializeCacheMap (
     _In_opt_ PLARGE_INTEGER TruncateSize,
     _In_opt_ PCACHE_UNINITIALIZE_EVENT UninitializeCompleteEvent)
 {
+    // call CcPurgeCacheSection to purge any cached data that is no longer part of the file.
+    // Enqueue the Event in the SharedCacheMap
     __debugbreak();
     return FALSE;
 }

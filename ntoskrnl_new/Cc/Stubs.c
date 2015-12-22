@@ -78,6 +78,15 @@ CcCopyReadEx (
     _Out_ PIO_STATUS_BLOCK IoStatus,
     _In_ PETHREAD IoIssuerThread)
 {
+    /// NT File System Internals p. 295
+    // Get shared cache map
+    // for each block in the file
+        // find VACB
+        // Create VACB if not existing
+    // prefetch the pages we need MmPrefetchPages
+    // for each block in the file
+        // find VACB
+        // Copy the block
     UNIMPLEMENTED_DBGBREAK;
     return FALSE;
 }
@@ -168,6 +177,13 @@ CcDeferWrite (
     _In_ BOOLEAN Retrying
     )
 {
+    // Create a "workitem"
+    // if that failed, call PostRoutine directly
+    // queue the workitem (Retrying to head)
+        // Workerthread waits for event that signals that writing is ok
+        // Workerthread walks the list
+            // if (CcCanIWrite(FileObject, BytesToWrite, TRUE, Retrying))
+            //     PostRoutine(Context1, Context2);
     UNIMPLEMENTED_DBGBREAK;
 }
 
@@ -250,6 +266,7 @@ CcGetFileObjectFromBcb (
     _In_ PVOID Bcb
     )
 {
+    // return ExGetObjectFastReference(Bcb->SharedCacheMap->FileObjectFastRef);
     UNIMPLEMENTED_DBGBREAK;
     return NULL;
 }
