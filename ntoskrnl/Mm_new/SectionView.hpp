@@ -21,15 +21,14 @@ namespace Mm {
 class SECTION_VIEW : public VAD_OBJECT
 {
     class PHYSICAL_SECTION* m_Section;
+    ULONG_PTR m_SectionPageOffset;
 
 public:
 
     /// FIXME: why can't this shit be protected???
     virtual
     ~SECTION_VIEW (
-        VOID)
-    {
-    }
+        VOID);
 
     virtual
     const char*
@@ -45,6 +44,7 @@ public:
     CreateInstance (
         _Out_ SECTION_VIEW** OutSectionView,
         _In_ class PHYSICAL_SECTION* Section,
+        _In_ ULONG_PTR RelativeStartingVpn,
         _In_ ULONG Protect);
 
     NTSTATUS
@@ -60,6 +60,14 @@ public:
         _In_ ULONG_PTR RelativeStartingVpn,
         _In_ ULONG_PTR NumberOfPages,
         _In_ ULONG Protect);
+
+    inline
+    ULONG_PTR
+    GetSectionPageOffset (
+        VOID)
+    {
+        return m_SectionPageOffset;
+    }
 
 };
 

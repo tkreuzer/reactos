@@ -33,8 +33,14 @@ namespace Mm {
  */
 ULONG
 CalculateFileAccess (
-    _In_ ULONG PageProtection)
+    _In_ ULONG PageProtection,
+    _In_ ULONG AllocationAttributes)
 {
+    if (AllocationAttributes & SEC_IMAGE)
+    {
+        return PAGE_EXECUTE;
+    }
+
     switch (PageProtection & 0xFF)
     {
         case PAGE_NOACCESS: return FILE_READ_DATA;
@@ -51,7 +57,7 @@ CalculateFileAccess (
 
 /*! \fn SECTION_OBJECT::InitializeClass
  *
- *  \brief ...
+ *  \brief Initializes the SECTION_OBJECT class
  */
 VOID
 SECTION_OBJECT::InitializeClass (
@@ -144,21 +150,22 @@ SECTION_OBJECT::ObCloseProcedure (
 
 /*! \fn SECTION_OBJECT::CreateInstance
  *
- *  \brief ...
+ *  \brief Creates a new instance of the SECTION_OBJECT class
  *
- *  \param [out] OutSectionObject -
+ *  \param [out] OutSectionObject - Pointer to a variable that receives a
+ *               pointer to the newly created object.
  *
- *  \param [in] ObjectAttributes -
+ *  \param [in] ObjectAttributes - Pointer to the object attributes for the object
  *
- *  \param [in] MaximumSize -
+ *  \param [in] MaximumSize - The maximum size of the section
  *
- *  \param [in] SectionPageProtection -
+ *  \param [in] SectionPageProtection - The page protection for the section
  *
- *  \param [in] AllocationAttributes -
+ *  \param [in] AllocationAttributes - Allocation attributes
  *
- *  \param [in] FileObject -
+ *  \param [in] FileObject - Pointer to a FILE_OBJECT, for file backed sections
  *
- *  \return ...
+ *  \return STATUS_SUCCESS on success, an appropriate error code on failure.
  */
 _Must_inspect_result_
 NTSTATUS
@@ -166,7 +173,7 @@ SECTION_OBJECT::CreateInstance (
     _Out_ SECTION_OBJECT** OutSectionObject,
     _In_ PPHYSICAL_SECTION PhysicalSection,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ ULONG64 MaximumSize,
+    _In_ ULONG64 SectionSize,
     _In_ ULONG SectionPageProtection,
     _In_ ULONG AllocationAttributes)
 {
@@ -187,7 +194,7 @@ SECTION_OBJECT::CreateInstance (
     /* Initialize the object */
     SectionObject = new(Object) SECTION_OBJECT;
     SectionObject->m_Section = PhysicalSection;
-    SectionObject->m_SectionSize = MaximumSize;
+    SectionObject->m_SectionSize = SectionSize;
     SectionObject->m_SectionFlags = 0;
     SectionObject->m_PageProtection = SectionPageProtection;
 
@@ -199,9 +206,9 @@ SECTION_OBJECT::CreateInstance (
 
 /*! \fn SECTION_OBJECT::ReferenceSection
  *
- *  \brief ...
+ *  \brief References the physical section of a section object
  *
- *  \return ...
+ *  \return Pointer to the PHYSICAL_SECTION object
  */
 class PHYSICAL_SECTION*
 SECTION_OBJECT::ReferenceSection (
@@ -213,9 +220,9 @@ SECTION_OBJECT::ReferenceSection (
 
 /*! \fn SECTION_OBJECT::GetFileObject
  *
- *  \brief ...
+ *  \brief Returns the file object for a section, if the section is file backed
  *
- *  \return ...
+ *  \return Pointer to the FILE_OBJECT or NULL, if the section is not file backed
  */
 inline
 PFILE_OBJECT
@@ -227,9 +234,10 @@ SECTION_OBJECT::GetFileObject (
 
 /*! \fn SECTION_OBJECT::QueryBasicInformation
  *
- *  \brief ...
+ *  \brief Queries the basic information for the section
  *
- *  \param [out] BasicInformation -
+ *  \param [out] BasicInformation - Pointer to a SECTION_BASIC_INFORMATION
+ *               structure that receives the requested data.
  */
 VOID
 SECTION_OBJECT::QueryBasicInformation (
@@ -242,9 +250,10 @@ SECTION_OBJECT::QueryBasicInformation (
 
 /*! \fn SECTION_OBJECT::QueryImageInformation
  *
- *  \brief ...
+ *  \brief Queries the image information for the section
  *
- *  \param [out] ImageInformation -
+ *  \param [out] ImageInformation - Pointer to a SECTION_IMAGE_INFORMATION
+ *               structure that receives the requested data.
  *
  *  \return ...
  */
@@ -273,11 +282,12 @@ extern "C" {
 
 /*! \fn MmGetFileObjectForSection
  *
- *  \brief ...
+ *  \brief Returns the file object for a section, if the section is file backed
  *
- *  \param [in] SectionObject -
+ *  \param [in] SectionObject - Pointer to the section object for which to get
+ *              the file object.
  *
- *  \return ...
+ *  \return Pointer to the FILE_OBJECT or NULL, if the section is not file backed
  */
 PFILE_OBJECT
 NTAPI
@@ -369,18 +379,19 @@ MmCreateSection (
     else if (FileHandle != NULL)
     {
         /* Calculate access mask */
-        FileAccess = CalculateFileAccess(SectionPageProtection);
+        FileAccess = CalculateFileAccess(SectionPageProtection,
+                                         AllocationAttributes);
 
         /* Reference the file object */
         Status = ObReferenceObjectByHandle(FileHandle,
                                            FileAccess,
                                            IoFileObjectType,
-                                           ExGetPreviousMode(),
+                                           KernelMode,
                                            reinterpret_cast<PVOID*>(&FileObject),
                                            NULL);
         if (!NT_SUCCESS(Status))
         {
-            ERR("Failed to reference the file handle: 0x%lx\n", Status);
+            ERR("Failed to reference FileHandle %p (Status 0x%lx)\n", FileHandle, Status);
             return Status;
         }
 
@@ -415,7 +426,7 @@ MmCreateSection (
 
     if (!NT_SUCCESS(Status))
     {
-        ERR("Failed to create the physical section: 0x%lx\n", Status);
+        ERR("Failed to create PHYSICAL_SECTION: 0x%lx\n", Status);
         return Status;
     }
 
@@ -428,7 +439,7 @@ MmCreateSection (
                                             AllocationAttributes);
     if (!NT_SUCCESS(Status))
     {
-        ERR("Failed to create the section object: 0x%lx\n", Status);
+        ERR("Failed to create SECTION_OBJECT: 0x%lx\n", Status);
         PhysicalSection->Release();
         return Status;
     }
@@ -450,7 +461,7 @@ MmCreateSection (
  *
  *  \param [in] Length -
  *
- *  \param [in] ResultLength -
+ *  \param [out] ResultLength -
  *
  *  \return ...
  */
@@ -502,7 +513,7 @@ MmQuerySectionInformation (
  *
  *  \brief ...
  *
- *  \param [in] ImageInformation -
+ *  \param [out] ImageInformation -
  *
  *  \todo This should probably be a Ps function and use MmQuerySectionInformation
  */
@@ -513,7 +524,7 @@ MmGetImageInformation (
 {
     PSECTION_OBJECT SectionObject;
 
-    /* Get the section object of this process*/
+    /* Get the section object of this process */
     SectionObject = static_cast<PSECTION_OBJECT>(PsGetCurrentProcess()->SectionObject);
     NT_ASSERT(SectionObject != NULL);
 

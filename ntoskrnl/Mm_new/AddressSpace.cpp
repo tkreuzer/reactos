@@ -18,78 +18,6 @@
 #include _ARCH_RELATIVE_(MachineDependent.hpp)
 #include <ndk/exfuncs.h>
 
-/*
-
-- After return from a function releasing virtual memory, the region must be available again
-- A releasing function must remove the VAD object AND unmap all pages from it,
-  Dereferencing alone is not sufficient!
--
-
-Name            x86                 x86-PAE             x64                                 IA64
------------------------------------------------------------------------------------------------------
-UserModeVa      00000000-7FFFFFFF   00000000-7FFFFFFF   0000000000000000-000007FFFFFFFFFF
--                                                       0000080000000000-FFFF7FFFFFFFFFFF
-
-ProcessVa       C0000000-C0BFFFFF   C0000000-?          FFFFF68000000000-FFFFF77FFFFFFFFF
-SystemCache     C0C00000-E0FFFFFF                       FFFFF78000001000-FFFFF7FFFFFFFFFF
-PagedVa         E1000000-
-
-HalVa           FFC00000-FFFFFFFF   FFC00000-FFFFFFFF   FFFFFFFFFFC00000-FFFFFFFFFFFFFFFF
-
-
-                                x86-PAE     x86PAE/3GB
--------------------------------------------------------------------------------
-MmSystemRangeStart              80000000    C0000000    ...
-
-MmSystemPteBase                 C0000000    C0000000
-MmSystemPtesStart               c0767000    c0769000
-MmSystemPtesEnd                 c07d18f8    c07cbff0
-?HyperSpace                     C0800000    C0800000
-?FirstMappingVa                 C0800000    C0800000/C0800000
-?LastMappingVa                  C087E000    C087E000/C087E000
-MmHyperSpaceEnd                 c0dfffff    c11fffff ???
-
-MmSystemCacheStart              c1200000    c1600000/c1600000
-MmSystemCacheEnd                e0ffffff    dbffffff/dbdfffff
-
-MmSessionBase                   bc000000    dc000000/dbe00000
-MiSessionPoolStart              bc000000    dc000000
-MiSessionPoolEnd                bc400000    dd000000
-MiSessionViewStart              bc400000    dd000000
-MiSessionSpaceWs                bf400000    de400000
-MmSessionSpace                  bf7f0000    de7f0000
-MiSessionSpaceEnd               c0000000    df000000/dee00000
-
-MiSystemViewStart               bb000000    df000000/dee00000
-
-?LoaderMappingRange             80800000    e0800000
-
-MmPagedPoolStart                e1000000    e1000000/e1200000
-MmPagedPoolEnd                  ecdfffff    ed1fffff/f05fffff
-
-MmNonPagedSystemStart           ece00000    ed200000/f0600000 (SystemPtes)
-                                            f97fe000          (systemPtes end)
-MmPfnDataBase                   81000000    f9800000/f5c00000
-MmNonPagedPoolStart             811c0000    f99c0000/f7b81000
-MmNonPagedPoolEnd0              81800000    fa000000/ffa00000
-MmNonPagedPoolExpansionStart    fa321000    fa000000/ffa00000
-MmNonPagedPoolEnd               ffbe0000    ffbe0000/ffb81000
-*HalVaStart                     FFC00000    FFC00000
-------------------------------------------------------------------------------
-MmBootImageSize                 01000000    01000000
-MmSessionViewSize               03000000    01400000/01400000
-MmSessionSize                   04000000    03000000/03000000
-MmSystemViewSize                01000000    01000000/01000000
-
-MmSizeOfNonPagedPoolInBytes                          07e7f000 (126 MB)
-MmSizeOfPagedPoolInBytes                             0f400000 (244MB)
-
-MmFirstReservedMappingPte       c0604000    C0301000/c0604000
-MmLastReservedMappingPte        c06043f0    C03013FC/c06043f0
-
-
-*/
-
 namespace Mm {
 
 PADDRESS_SPACE g_SystemProcessAddressSpace;
@@ -444,7 +372,7 @@ ADDRESS_SPACE::InsertVadObject (
 
 /*! \fn ADDRESS_SPACE::ReserveVirtualMemory
  *
- *  \brief ...
+ *  \brief Reserves a range of virtual memory in the given address space
  *
  *  \return STATUS_SUCCESS on success, STATUS_INSUFFICIENT_RESOURCES, when
  *      there was not enough free pool memory, STATUS_CONFLICTING_ADDRESSES
@@ -578,11 +506,11 @@ ADDRESS_SPACE::ReferenceVadObjectByAddress (
     return VadObject;
 }
 
-/*! \fn ReserveKernelMemory
+/*! \fn ReserveKernelVaSpace
  *
- *  \brief ...
+ *  \brief Reserves a range of virtual memory in the kernel address space
  *
- *  \return ...
+ *  \return A pointer to the base address of the reserved memory range.
  */
 PVOID
 ReserveKernelVaSpace (
@@ -626,11 +554,10 @@ ReserveKernelVaSpace (
     return VadObject->GetBaseAddress();
 }
 
-/*! \fn ReleaseKernelMemory
+/*! \fn ReleaseKernelVaSpace
  *
- *  \brief ...
+ *  \brief Releases a memory range, that was reserved with ReserveKernelVaSpace
  *
- *  \return ...
  */
 VOID
 ReleaseKernelVaSpace (

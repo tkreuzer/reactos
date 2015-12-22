@@ -18,6 +18,7 @@
 #include "ntosbase.h"
 #include "Ob/Object.hpp"
 #include <ndk/mmtypes.h>
+#include "PhysicalSection.hpp"
 
 namespace Mm {
 
@@ -84,6 +85,12 @@ public:
     QueryImageInformation (
         _Out_ PSECTION_IMAGE_INFORMATION BasicInformation);
 
+    inline
+    PVOID
+    GetBaseAddress ()
+    {
+        return m_Section->GetBaseAddress();
+    }
 
 };
 

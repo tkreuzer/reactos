@@ -17,6 +17,9 @@
 #include "SectionObject.hpp"
 #include "VirtualMemory.hpp"
 #include "VadTable.hpp"
+#ifdef __linux__
+#include "eal.h"
+#endif
 #include <ndk/mmfuncs.h>
 #include <ndk/rtlfuncs.h>
 
@@ -80,15 +83,17 @@ MmGetExecuteOptions (
 
 /*! \fn MmCreatePeb
  *
- *  \brief ...
+ *  \brief Creates a PEB in the virtual address space of a given process
  *
- *  \param [in] Process -
+ *  \param [in] Process - The process for which to allocate the PEB
  *
- *  \param [in] InitialPeb -
+ *  \param [in] InitialPeb - Pointer to an INITIAL_PEB that contains information
+ *              about the new PEB.
  *
- *  \param [out] BasePeb -
+ *  \param [out] BasePeb - Pointer to a variable that receives the base address
+ *               of the newly created PEB.
  *
- *  \return ...
+ *  \return STATUS_SUCCESS on success, an appropriate error code on failure.
  */
 NTSTATUS
 NTAPI
@@ -245,17 +250,19 @@ Cleanup:
 
 /*! \fn MmCreateTeb
  *
- *  \brief ...
+ *  \brief Creates a TEB in the virtual address space of a given process
  *
- *  \param [in] Process -
+ *  \param [in] Process - The process for which to allocate the TEB
  *
- *  \param [in] ClientId -
+ *  \param [in] ClientId - The client id of the process
  *
- *  \param [in] InitialTeb -
+ *  \param [in] InitialPeb - Pointer to an INITIAL_TEB that contains information
+ *              about the new TEB.
  *
- *  \param [out] BaseTeb -
+ *  \param [out] BaseTeb - Pointer to a variable that receives the base address
+ *               of the newly created TEB.
  *
- *  \return ...
+ *  \return STATUS_SUCCESS on success, an appropriate error code on failure.
  */
 NTSTATUS
 NTAPI
@@ -336,11 +343,11 @@ Cleanup:
 
 /*! \fn MmDeleteTeb
  *
- *  \brief ...
+ *  \brief Deletes a TEB for a given process.
  *
- *  \param [in] Process -
+ *  \param [in] Process - The process for which to delete the TEB
  *
- *  \param [in] Teb -
+ *  \param [in] Teb - Base address of the TEB to delete.
  *
  *  \return ...
  */
@@ -599,7 +606,9 @@ MmInitializeProcessAddressSpace (
         Process->SectionBaseAddress = ImageBase;
     }
 
-//Cleanup:
+#ifdef __linux__
+Cleanup:
+#endif
     /* Detach from the process */
     KeDetachProcess();
 
@@ -640,13 +649,13 @@ MmDeleteProcessAddressSpace (
 
 /*! \fn MmSetMemoryPriorityProcess
  *
- *  \brief ...
+ *  \brief Sets the memory priority for a given process
  *
- *  \param [in] Process -
+ *  \param [in] Process - The process for whch to set the memory priority
  *
- *  \param [in] MemoryPriority -
+ *  \param [in] MemoryPriority - The new memory priority
  *
- *  \return ...
+ *  \return The process' previous memory priority
  */
 UCHAR
 NTAPI

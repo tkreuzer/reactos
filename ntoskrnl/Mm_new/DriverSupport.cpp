@@ -12,6 +12,9 @@
 */
 
 #include "ntosbase.h"
+#include <ldrtypes.h>
+
+extern "C" LIST_ENTRY PsLoadedModuleList;
 
 extern "C" {
 
@@ -34,7 +37,7 @@ MmCheckSystemImage (
     _In_ HANDLE ImageHandle,
     _In_ BOOLEAN PurgeSection)
 {
-//    UNIMPLEMENTED;
+    UNIMPLEMENTED;
     return STATUS_NOT_IMPLEMENTED;
 }
 
@@ -55,7 +58,7 @@ MmCallDllInitialize (
     _In_ struct _LDR_DATA_TABLE_ENTRY* LdrEntry,
     _In_ PLIST_ENTRY ListHead)
 {
-    UNIMPLEMENTED;
+    UNIMPLEMENTED_DBGBREAK;
     return STATUS_NOT_IMPLEMENTED;
 }
 
@@ -99,7 +102,7 @@ MmAddVerifierThunks (
     _In_ ULONG ThunkBufferSize)
 {
     UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 /*! \fn MmIsDriverVerifying
@@ -115,7 +118,7 @@ NTAPI
 MmIsDriverVerifying (
     _In_ struct _DRIVER_OBJECT *DriverObject)
 {
-    UNIMPLEMENTED;
+    UNIMPLEMENTED_DBGBREAK;
     return 0;
 }
 
@@ -134,7 +137,7 @@ MmIsVerifierEnabled (
     _Out_ PULONG VerifierFlags)
 {
     UNIMPLEMENTED;
-    return STATUS_NOT_IMPLEMENTED;
+    return STATUS_SUCCESS;
 }
 
 /*! \fn MmPageEntireDriver
@@ -151,8 +154,28 @@ NTAPI
 MmPageEntireDriver (
     _In_ PVOID AddressWithinSection)
 {
-    UNIMPLEMENTED;
-    return NULL;
+    PLIST_ENTRY ListEntry;
+    PLDR_DATA_TABLE_ENTRY LdrEntry;
+    PVOID ImageBase = NULL;
+
+    /* Loop the modules on the module list */
+    for (ListEntry = PsLoadedModuleList.Flink;
+         ListEntry != &PsLoadedModuleList;
+         ListEntry = ListEntry->Flink)
+    {
+        /* Get the loader entry */
+        LdrEntry = CONTAINING_RECORD(ListEntry,
+                                     LDR_DATA_TABLE_ENTRY,
+                                     InLoadOrderLinks);
+        if ((AddressWithinSection >= LdrEntry->DllBase) &&
+            (AddressWithinSection <= AddToPointer(LdrEntry->DllBase, LdrEntry->SizeOfImage)))
+        {
+            ImageBase = LdrEntry->DllBase;
+            break;
+        }
+    }
+
+    return ImageBase;
 }
 
 /*! \fn MmResetDriverPaging
@@ -169,27 +192,8 @@ NTAPI
 MmResetDriverPaging (
     _In_ PVOID AddressWithinSection)
 {
-    UNIMPLEMENTED;
+    UNIMPLEMENTED_DBGBREAK;
 }
-
-/*! \fn MmGetSystemRoutineAddress
- *
- *  \brief ...
- *
- *  \param [in] SystemRoutineName -
- *
- *  \return ...
- */
-_IRQL_requires_max_(PASSIVE_LEVEL)
-PVOID
-NTAPI
-MmGetSystemRoutineAddress (
-    _In_ PUNICODE_STRING SystemRoutineName)
-{
-    UNIMPLEMENTED;
-    return NULL;
-}
-
 
 
 }; // extern "C"

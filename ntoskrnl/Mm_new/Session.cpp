@@ -68,6 +68,14 @@ MmGetSessionId (
     return 0;
 }
 
+/*! \fn MmGetSessionIdEx
+ *
+ *  \brief ...
+ *
+ *  \param [in] Process -
+ *
+ *  \return ...
+ */
 ULONG
 NTAPI
 MmGetSessionIdEx (

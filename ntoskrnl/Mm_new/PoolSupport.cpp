@@ -51,7 +51,7 @@ static ULONG PoolExpansionCount[2];
 
 /*! \fn CalculatePoolDimensions
  *
- *  \brief ...
+ *  \brief Calculates the size and location of paged and non-paged pool
  *
  *  \remarks Initializes MmSizeOfNonPagedPoolInBytes, MmMaximumNonPagedPoolInBytes,
  *      MmSizeOfPagedPoolInBytes
@@ -122,17 +122,18 @@ CalculatePoolDimensions (
 
 /*! \fn InitializePoolSupportSingle
  *
- *  \brief ...
+ *  \brief Initialized a single pool
  *
- *  \param [in] PoolType -
+ *  \param [in] PoolType - The type of pool to be initialized. Can be either
+ *              PagedPool or NonPagedPool
  *
- *  \param [in] PoolStart -
+ *  \param [in] PoolStart - The start address of the pool
  *
- *  \param [in] InitialSize -
+ *  \param [in] InitialSize - The initial size of the pool
  *
- *  \param [in] MaximumSize -
+ *  \param [in] MaximumSize - The maximum size, the pool can grow to
  *
- *  \param [in] Protect -
+ *  \param [in] Protect - The protection for the pool
  */
 VOID
 INIT_FUNCTION
@@ -249,7 +250,7 @@ InitializePoolSupportSingle (
 
 /*! \fn InitializePoolSupport
  *
- *  \brief ...
+ *  \brief Initializez paged and non-paged pool
  */
 VOID
 INIT_FUNCTION
@@ -278,9 +279,10 @@ InitializePoolSupport (
 
 /*! \fn ExpandPool
  *
- *  \brief ...
+ *  \brief Expands a pool
  *
- *  \param [in] BasePoolType -
+ *  \param [in] BasePoolType - The type of pool to be initialized. Can be either
+ *              PagedPool or NonPagedPool
  *
  *  \param [in] Index -
  *
@@ -303,11 +305,13 @@ extern "C" {
 
 /*! \fn MmDeterminePoolType
  *
- *  \brief ...
+ *  \brief Determines the type of pool from a given address
  *
- *  \param [in] VirtualAddress -
+ *  \param [in] VirtualAddress - The virtual address of interest
  *
- *  \return ...
+ *  \return The pool type: either PagedPool or NonPagedPool
+ *
+ *  \remarks The function bugchecks when a non-pool address is passed!
  */
 POOL_TYPE
 NTAPI
@@ -349,11 +353,12 @@ MmDeterminePoolType (
 
 /*! \fn MiAllocatePoolPages
  *
- *  \brief ...
+ *  \brief Allocated pages in a pool
  *
- *  \param [in] PoolType -
+ *  \param [in] PoolType - The type of pool to be initialized. Can be either
+ *              PagedPool or NonPagedPool
  *
- *  \param [in] SizeInBytes -
+ *  \param [in] SizeInBytes - The size to allocate in bytes.
  *
  *  \return ...
  */
@@ -466,11 +471,11 @@ MiAllocatePoolPages (
 
 /*! \fn MiFreePoolPages
  *
- *  \brief ...
+ *  \brief Frees pool pages that were allocated with MiAllocatePoolPages
  *
- *  \param [in] BaseAddress -
+ *  \param [in] BaseAddress - Base address of the pages to free
  *
- *  \return ...
+ *  \return The number of pages that were freed.
  */
 ULONG
 NTAPI
@@ -538,7 +543,7 @@ MmUseSpecialPool (
     return 0;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmIsSpecialPoolAddress
  *
  *  \brief ...
  *
@@ -555,7 +560,7 @@ MmIsSpecialPoolAddress (
     return 0;
 }
 
-/*! \fn xxxxxxxxxx
+/*! \fn MmAllocateSpecialPool
  *
  *  \brief ...
  *

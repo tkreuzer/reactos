@@ -76,6 +76,11 @@ PrepareSystemMappingRange (
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect);
 
+VOID
+UnmapSystemMappingRange (
+    _In_ PVOID BaseAddress,
+    _In_ ULONG_PTR NumberOfPages);
+
 PVOID
 ReserveSystemMappingRange (
     _In_ ULONG_PTR NumberOfPages);
