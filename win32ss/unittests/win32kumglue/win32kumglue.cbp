@@ -1,0 +1,473 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="win32kumglue" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/win32kumglue" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj/Debug/" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/win32kumglue" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="" />
+				<Option object_output="obj/Release/" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-std=c++11" />
+			<Add option="-nostdinc" />
+			<Add option="-fms-extensions" />
+			<Add option="-Wno-multichar" />
+			<Add option="-Wno-unused-value" />
+			<Add option="-Wno-unused-but-set-variable" />
+			<Add option="-D_WIN32K_" />
+			<Add option="-D_NTOSKRNL_" />
+			<Add option="-D_DATA_AS_POINTERS_" />
+			<Add option="-D_USE_DUMMY_PSEH=1" />
+			<Add option="-DNTDDI_VERSION=NTDDI_WS03" />
+			<Add option="-D_WIN32_WINNT=_WIN32_WINNT_WS03" />
+			<Add directory="../../../win32ss" />
+			<Add directory="../../../include" />
+			<Add directory="../../../include/crt" />
+			<Add directory="../../../include/psdk" />
+			<Add directory="../../../include/ddk" />
+			<Add directory="../../../include/ndk" />
+			<Add directory="../../../include/reactos" />
+			<Add directory="../../../include/reactos/libs" />
+			<Add directory="../../../../build-GCC-x86/include/ddk" />
+			<Add directory="../../../../build-GCC-x86/include/psdk" />
+			<Add directory="../../../../build-GCC-x86/include/reactos" />
+			<Add directory="../../../lib/3rdparty/freetype/include" />
+			<Add directory="../../include" />
+			<Add directory="../../../include/reactos/subsys" />
+			<Add directory="../../../include/dxsdk" />
+			<Add directory="../../../include/asm" />
+		</Compiler>
+		<Linker>
+			<Add library="../../../../build-GCC-x86/win32ss/CMakeFiles/win32k.dir/gdi/dib/dib8gen.c.obj" />
+		</Linker>
+		<Unit filename="../../gdi/dib/alphablend.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib.h" />
+		<Unit filename="../../gdi/dib/dib16bpp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib1bpp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib24bpp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib24bppc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib32bpp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib32bppc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib4bpp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib8bpp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/dib_new.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/floodfill.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/dib/stretchblt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_DSTINVERT.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_MERGECOPY.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_MERGEPAINT.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_NOTPATCOPY.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_NOTSRCCOPY.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_NOTSRCERASE.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_PATCOPY.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_PATINVERT.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_PATPAINT.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_SRCAND.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_SRCCOPY.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_SRCERASE.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_SRCINVERT.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_SRCPAINT.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/BitBlt_other.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/DibLib.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/DibLib.h" />
+		<Unit filename="../../gdi/diblib/DibLib_AllDstBPP.h" />
+		<Unit filename="../../gdi/diblib/DibLib_AllSrcBPP.h" />
+		<Unit filename="../../gdi/diblib/DibLib_BitBlt.h" />
+		<Unit filename="../../gdi/diblib/DibLib_Line.h" />
+		<Unit filename="../../gdi/diblib/DibLib_interface.h" />
+		<Unit filename="../../gdi/diblib/Line.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskBlt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskCopy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskPaint.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskPatBlt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskPatPaint.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskSrcBlt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskSrcPaint.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/MaskSrcPatBlt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/PatPaint.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/RopFunctions.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/RopFunctions.h" />
+		<Unit filename="../../gdi/diblib/SrcPaint.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/diblib/SrcPatBlt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/LineTo.cpp" />
+		<Unit filename="../../gdi/eng/alphablend.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/bitblt.c">
+			<Option compilerVar="CC" />
+			<Option compile="0" />
+			<Option link="0" />
+		</Unit>
+		<Unit filename="../../gdi/eng/bitblt_new.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/clip.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/copybits.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/debug.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/device.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/device.h" />
+		<Unit filename="../../gdi/eng/driverobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/driverobj.h" />
+		<Unit filename="../../gdi/eng/eng.h" />
+		<Unit filename="../../gdi/eng/engbrush.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/engevent.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/engevent.h" />
+		<Unit filename="../../gdi/eng/engmisc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/engobjects.h" />
+		<Unit filename="../../gdi/eng/engwindow.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/error.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/float.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/floatobj.h" />
+		<Unit filename="../../gdi/eng/gradient.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/i386/floatobj.S" />
+		<Unit filename="../../gdi/eng/inteng.h" />
+		<Unit filename="../../gdi/eng/ldevobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/ldevobj.h" />
+		<Unit filename="../../gdi/eng/lineto.c">
+			<Option compilerVar="CC" />
+			<Option compile="0" />
+			<Option link="0" />
+		</Unit>
+		<Unit filename="../../gdi/eng/mapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/mapping.h" />
+		<Unit filename="../../gdi/eng/math.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/mouse.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/mouse.h" />
+		<Unit filename="../../gdi/eng/paint.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/pdevobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/pdevobj.h" />
+		<Unit filename="../../gdi/eng/perfcnt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/rlecomp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/sort.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/stretchblt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/string.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/stubs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/surface.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/surface.h" />
+		<Unit filename="../../gdi/eng/transblt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/umpdstubs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/xlateobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/eng/xlateobj.h" />
+		<Unit filename="../../gdi/ntgdi/arc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/baseobj.hpp" />
+		<Unit filename="../../gdi/ntgdi/bezier.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/bitblt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/bitmaps.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/bitmaps.h" />
+		<Unit filename="../../gdi/ntgdi/brush.cpp" />
+		<Unit filename="../../gdi/ntgdi/brush.h" />
+		<Unit filename="../../gdi/ntgdi/brush.hpp" />
+		<Unit filename="../../gdi/ntgdi/cliprgn.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/cliprgn.h" />
+		<Unit filename="../../gdi/ntgdi/color.h" />
+		<Unit filename="../../gdi/ntgdi/coord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/coord.h" />
+		<Unit filename="../../gdi/ntgdi/dc.h" />
+		<Unit filename="../../gdi/ntgdi/dcattr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/dclife.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/dcobjs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/dcstate.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/dcutil.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/device.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/dib.h" />
+		<Unit filename="../../gdi/ntgdi/dibobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/drawing.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/fillshap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/font.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/freetype.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/gdibatch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/gdidbg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/gdidebug.h" />
+		<Unit filename="../../gdi/ntgdi/gdifloat.h" />
+		<Unit filename="../../gdi/ntgdi/gdikdbgext.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/gdiobj.h" />
+		<Unit filename="../../gdi/ntgdi/icm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/init.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/intgdi.h" />
+		<Unit filename="../../gdi/ntgdi/line.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/metafile.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/misc.h" />
+		<Unit filename="../../gdi/ntgdi/paint.h" />
+		<Unit filename="../../gdi/ntgdi/palette.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/palette.h" />
+		<Unit filename="../../gdi/ntgdi/path.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/path.h" />
+		<Unit filename="../../gdi/ntgdi/pen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/pen.h" />
+		<Unit filename="../../gdi/ntgdi/polyfill.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/print.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/rect.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/rect.h" />
+		<Unit filename="../../gdi/ntgdi/region.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/region.h" />
+		<Unit filename="../../gdi/ntgdi/stockobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/text.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/text.h" />
+		<Unit filename="../../gdi/ntgdi/wingl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/xformobj.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../../gdi/ntgdi/xformobj.h" />
+		<Unit filename="dc.cpp" />
+		<Unit filename="dc.hpp" />
+		<Unit filename="gdipool.cpp" />
+		<Unit filename="hmgr.cpp" />
+		<Unit filename="mem.cpp" />
+		<Unit filename="misc.cpp" />
+		<Unit filename="mouse.cpp" />
+		<Unit filename="ntoskrnl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="pdev.cpp" />
+		<Unit filename="pdev.hpp" />
+		<Unit filename="pen.cpp" />
+		<Unit filename="semaphor.cpp" />
+		<Unit filename="surface.cpp" />
+		<Unit filename="surface.hpp" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

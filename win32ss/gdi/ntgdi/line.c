@@ -97,7 +97,7 @@ IntGdiMoveToEx(DC      *dc,
     }
     pdcattr->ptlCurrent.x = X;
     pdcattr->ptlCurrent.y = Y;
-    pdcattr->ptfxCurrent = pdcattr->ptlCurrent;
+    pdcattr->ptfxCurrent = *(PPOINTFIX)&pdcattr->ptlCurrent;
     CoordLPtoDP(dc, &pdcattr->ptfxCurrent); // Update fx
     pdcattr->ulDirty_ &= ~(DIRTY_PTLCURRENT|DIRTY_PTFXCURRENT|DIRTY_STYLESTATE);
 
@@ -133,7 +133,7 @@ IntGetCurrentPositionEx(PDC dc, LPPOINT pt)
     {
         if (pdcattr->ulDirty_ & DIRTY_PTFXCURRENT)
         {
-            pdcattr->ptfxCurrent = pdcattr->ptlCurrent;
+            pdcattr->ptfxCurrent = *(PPOINTFIX)&pdcattr->ptlCurrent;
             CoordLPtoDP(dc, &pdcattr->ptfxCurrent); // Update fx
             pdcattr->ulDirty_ &= ~(DIRTY_PTFXCURRENT|DIRTY_STYLESTATE);
         }
@@ -162,7 +162,7 @@ IntGdiLineTo(DC  *dc,
     if (PATH_IsPathOpen(dc->dclevel))
     {
         Ret = PATH_LineTo(dc, XEnd, YEnd);
-    }
+        }
     else
     {
         psurf = dc->dclevel.pSurface;
@@ -248,7 +248,7 @@ IntGdiLineTo(DC  *dc,
     {
         pdcattr->ptlCurrent.x = XEnd;
         pdcattr->ptlCurrent.y = YEnd;
-        pdcattr->ptfxCurrent = pdcattr->ptlCurrent;
+        pdcattr->ptfxCurrent = *(PPOINTFIX)&pdcattr->ptlCurrent;
         CoordLPtoDP(dc, &pdcattr->ptfxCurrent); // Update fx
         pdcattr->ulDirty_ &= ~(DIRTY_PTLCURRENT|DIRTY_PTFXCURRENT|DIRTY_STYLESTATE);
     }
@@ -313,7 +313,7 @@ IntGdiPolyBezierTo(DC      *dc,
     {
         pdcattr->ptlCurrent.x = pt[Count-1].x;
         pdcattr->ptlCurrent.y = pt[Count-1].y;
-        pdcattr->ptfxCurrent = pdcattr->ptlCurrent;
+        pdcattr->ptfxCurrent = *(PPOINTFIX)&pdcattr->ptlCurrent;
         CoordLPtoDP(dc, &pdcattr->ptfxCurrent); // Update fx
         pdcattr->ulDirty_ &= ~(DIRTY_PTLCURRENT|DIRTY_PTFXCURRENT|DIRTY_STYLESTATE);
     }
@@ -449,7 +449,7 @@ IntGdiPolylineTo(DC      *dc,
     {
         pdcattr->ptlCurrent.x = pt[Count-1].x;
         pdcattr->ptlCurrent.y = pt[Count-1].y;
-        pdcattr->ptfxCurrent = pdcattr->ptlCurrent;
+        pdcattr->ptfxCurrent = *(PPOINTFIX)&pdcattr->ptlCurrent;
         CoordLPtoDP(dc, &pdcattr->ptfxCurrent); // Update fx
         pdcattr->ulDirty_ &= ~(DIRTY_PTLCURRENT|DIRTY_PTFXCURRENT|DIRTY_STYLESTATE);
     }

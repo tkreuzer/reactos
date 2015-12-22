@@ -305,7 +305,7 @@ typedef struct _DC_ATTR
     BYTE jFillMode;
     BYTE jStretchBltMode;
     POINTL ptlCurrent;
-    POINTL ptfxCurrent;
+    POINTFIX ptfxCurrent;
     LONG lBkMode;
     LONG lFillMode;
     LONG lStretchBltMode;

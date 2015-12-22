@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="TestLines" />
+		<Option pch_mode="2" />
+		<Option compiler="rosbe" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/TestLines" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="0" />
+				<Option compiler="rosbe" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wfatal-errors" />
+			<Add option="-Wall" />
+			<Add option="-std=c++11" />
+			<Add option="-nostdinc" />
+			<Add option="-fms-extensions" />
+			<Add option="-Wno-multichar" />
+			<Add option="-Wno-unused-value" />
+			<Add option="-Wno-unused-but-set-variable" />
+			<Add option="-D_WIN32K_" />
+			<Add option="-D_NTOSKRNL_" />
+			<Add option="-D_DATA_AS_POINTERS_" />
+			<Add option="-D_USE_DUMMY_PSEH=1" />
+			<Add option="-DNTDDI_VERSION=NTDDI_WS03" />
+			<Add option="-D_WIN32_WINNT=_WIN32_WINNT_WS03" />
+			<Add directory="../../../win32ss" />
+			<Add directory="../../include" />
+			<Add directory="../../../include/crt" />
+			<Add directory="../../../include/psdk" />
+			<Add directory="../../../include/ddk" />
+			<Add directory="../../../include/dxsdk" />
+			<Add directory="../../../include/ndk" />
+			<Add directory="../../../include/reactos/subsys" />
+			<Add directory="../../../../build-GCC-x86/include/reactos" />
+			<Add directory="../../../lib/3rdparty/freetype/include" />
+		</Compiler>
+		<Linker>
+			<Add library="gdi32" />
+			<Add library="user32" />
+			<Add library="kernel32" />
+			<Add library="comctl32" />
+			<Add library="../win32kumglue/bin/Debug/libwin32kumglue.a" />
+			<Add library="../../../../build-GCC-x86/dll/ntdll/libntdll.a" />
+			<Add library="../../../../build-GCC-x86/lib/3rdparty/freetype/libfreetype.a" />
+			<Add library="../../../../build-GCC-x86/win32ss/CMakeFiles/win32k.dir/gdi/dib/dib8gen.c.obj" />
+			<Add library="../../../../build-GCC-x86/win32ss/CMakeFiles/win32k.dir/gdi/dib/dib16gen.c.obj" />
+			<Add library="../../../../build-GCC-x86/win32ss/CMakeFiles/win32k.dir/gdi/dib/dib32gen.c.obj" />
+		</Linker>
+		<Unit filename="../../gdi/diblib/DibLib.h" />
+		<Unit filename="../../gdi/diblib/DibLib_Line.h" />
+		<Unit filename="../../gdi/diblib/DibLib_interface.h" />
+		<Unit filename="../../gdi/eng/LineTo.cpp" />
+		<Unit filename="EngStrokePath.cpp" />
+		<Unit filename="GreLineTo.cpp" />
+		<Unit filename="LinesTest.cpp" />
+		<Unit filename="blitobj.cpp" />
+		<Unit filename="bltobj.hpp" />
+		<Unit filename="eng.h" />
+		<Unit filename="pathobj.cpp">
+			<Option compile="0" />
+			<Option link="0" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<debugger />
+			<lib_finder disable_auto="1" />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>
