@@ -1,0 +1,279 @@
+
+Microsoft (R) Windows Debugger Version 6.2.8400.4218 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+Loading Dump File [C:\Windows\livekd.dmp]
+Kernel Complete Dump File: Full address space is available
+
+Comment: 'LiveKD live system view'
+Symbol search path is: srv*c:\Symbols*http://msdl.microsoft.com/download/symbols
+Executable search path is: 
+Windows 7 Kernel Version 7601 (Service Pack 1) MP (2 procs) Free x64
+Product: WinNt, suite: TerminalServer SingleUserTS
+Built by: 7601.18113.amd64fre.win7sp1_gdr.130318-1533
+Machine Name:
+Kernel base = 0xfffff800`02e54000 PsLoadedModuleList = 0xfffff800`03097670
+Debug session time: Mon Jun  3 19:25:11.847 2013 (UTC + 2:00)
+System Uptime: 0 days 11:40:11.474
+Loading Kernel Symbols
+...............................................................
+................................................................
+............................
+Loading User Symbols
+.............................
+Loading unloaded module list
+.....Unable to enumerate user-mode unloaded modules, NTSTATUS 0xC0000147
+*** ERROR: Module load completed but symbols could not be loaded for LiveKdD.SYS
+0: kd> !process 0 1 CacheManagerTest.exe
+PROCESS fffffa8005c5a460
+    SessionId: 1  Cid: 0f30    Peb: 7efdf000  ParentCid: 0818
+    DirBase: 1a6ce0000  ObjectTable: fffff8a01da723a0  HandleCount:  16.
+    Image: CacheManagerTest.exe
+    VadRoot fffffa8009392ab0 Vads 31 Clone 0 Private 127. Modified 0. Locked 0.
+    DeviceMap fffff8a000e1a720
+    Token                             fffff8a010200060
+    ElapsedTime                       06:41:37.980
+    UserTime                          00:00:00.000
+    KernelTime                        00:00:00.000
+    QuotaPoolUsage[PagedPool]         20312
+    QuotaPoolUsage[NonPagedPool]      3480
+    Working Set Sizes (now,min,max)  (565, 50, 345) (2260KB, 200KB, 1380KB)
+    PeakWorkingSetSize                637
+    VirtualSize                       12 Mb
+    PeakVirtualSize                   16 Mb
+    PageFaultCount                    668
+    MemoryPriority                    BACKGROUND
+    BasePriority                      8
+    CommitCharge                      161
+    Job                               fffffa800c1f9b80
+
+0: kd> .process fffffa8005c5a460
+Implicit process is now fffffa80`05c5a460
+0: kd> !handle 30
+
+PROCESS fffffa8005c5a460
+    SessionId: 1  Cid: 0f30    Peb: 7efdf000  ParentCid: 0818
+    DirBase: 1a6ce0000  ObjectTable: fffff8a01da723a0  HandleCount:  16.
+    Image: CacheManagerTest.exe
+
+Handle table at fffff8a01da723a0 with 16 entries in use
+
+0030: Object: fffffa8009af4af0  GrantedAccess: 00120089 Entry: fffff8a0117f60c0
+Object: fffffa8009af4af0  Type: (fffffa800581b8a0) File
+    ObjectHeader: fffffa8009af4ac0 (new version)
+        HandleCount: 1  PointerCount: 2
+        Directory Object: 00000000  Name: \Win-Install\WindowsDeveloperPreview-64bit-English-Developer.iso {HarddiskVolume4}
+
+
+0: kd> dt _FILE_OBJECT fffffa8009af4af0
+ntdll!_FILE_OBJECT
+   +0x000 Type             : 0n5
+   +0x002 Size             : 0n216
+   +0x008 DeviceObject     : 0xfffffa80`074da060 _DEVICE_OBJECT
+   +0x010 Vpb              : 0xfffffa80`06c57de0 _VPB
+   +0x018 FsContext        : 0xfffff8a0`159d3be0 Void
+   +0x020 FsContext2       : 0xfffff8a0`1e105980 Void
+   +0x028 SectionObjectPointer : 0xfffffa80`06b4d818 _SECTION_OBJECT_POINTERS
+   +0x030 PrivateCacheMap  : 0xfffffa80`0982a430 Void
+   +0x038 FinalStatus      : 0n0
+   +0x040 RelatedFileObject : (null) 
+   +0x048 LockOperation    : 0 ''
+   +0x049 DeletePending    : 0 ''
+   +0x04a ReadAccess       : 0x1 ''
+   +0x04b WriteAccess      : 0 ''
+   +0x04c DeleteAccess     : 0 ''
+   +0x04d SharedRead       : 0 ''
+   +0x04e SharedWrite      : 0 ''
+   +0x04f SharedDelete     : 0 ''
+   +0x050 Flags            : 0xc0042
+   +0x058 FileName         : _UNICODE_STRING "\Win-Install\WindowsDeveloperPreview-64bit-English-Developer.iso"
+   +0x068 CurrentByteOffset : _LARGE_INTEGER 0xa
+   +0x070 Waiters          : 0
+   +0x074 Busy             : 0
+   +0x078 LastLock         : (null) 
+   +0x080 Lock             : _KEVENT
+   +0x098 Event            : _KEVENT
+   +0x0b0 CompletionContext : (null) 
+   +0x0b8 IrpListLock      : 0
+   +0x0c0 IrpList          : _LIST_ENTRY [ 0xfffffa80`09af4bb0 - 0xfffffa80`09af4bb0 ]
+   +0x0d0 FileObjectExtension : (null) 
+0: kd> dt  _SECTION_OBJECT_POINTERS 0xfffffa80`06b4d818
+ntdll!_SECTION_OBJECT_POINTERS
+   +0x000 DataSectionObject : 0xfffffa80`091ea3a0 Void
+   +0x008 SharedCacheMap   : 0xfffffa80`0982a2c0 Void
+   +0x010 ImageSectionObject : (null) 
+0: kd> dt _SHARED_CACHE_MAP 0xfffffa80`0982a2c0
+nt!_SHARED_CACHE_MAP
+   +0x000 NodeTypeCode     : 0n767
+   +0x002 NodeByteSize     : 0n504
+   +0x004 OpenCount        : 1
+   +0x008 FileSize         : _LARGE_INTEGER 0x00000001`35c55800
+   +0x010 BcbList          : _LIST_ENTRY [ 0xfffffa80`0982a2d0 - 0xfffffa80`0982a2d0 ]
+   +0x020 SectionSize      : _LARGE_INTEGER 0x00000001`35c80000
+   +0x028 ValidDataLength  : _LARGE_INTEGER 0x00000001`35c55800
+   +0x030 ValidDataGoal    : _LARGE_INTEGER 0x00000001`35c55800
+   +0x038 InitialVacbs     : [4] (null) 
+   +0x058 Vacbs            : 0xfffffa80`09ce3bf0  -> 0xfffffa80`09927210 _VACB
+   +0x060 FileObjectFastRef : _EX_FAST_REF
+   +0x068 VacbLock         : _EX_PUSH_LOCK
+   +0x070 DirtyPages       : 0
+   +0x078 LoggedStreamLinks : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+   +0x088 SharedCacheMapLinks : _LIST_ENTRY [ 0xfffffa80`07d9aa88 - 0xfffffa80`0c3f0098 ]
+   +0x098 Flags            : 0x240000
+   +0x09c Status           : 0n0
+   +0x0a0 Mbcb             : (null) 
+   +0x0a8 Section          : 0xfffff8a0`01e7e060 Void
+   +0x0b0 CreateEvent      : (null) 
+   +0x0b8 WaitOnActiveCount : (null) 
+   +0x0c0 PagesToWrite     : 0
+   +0x0c8 BeyondLastFlush  : 0n0
+   +0x0d0 Callbacks        : 0xfffff880`0128b088 _CACHE_MANAGER_CALLBACKS
+   +0x0d8 LazyWriteContext : 0xfffff8a0`159d3be0 Void
+   +0x0e0 PrivateList      : _LIST_ENTRY [ 0xfffffa80`0982a480 - 0xfffffa80`0982a480 ]
+   +0x0f0 LogHandle        : (null) 
+   +0x0f8 FlushToLsnRoutine : (null) 
+   +0x100 DirtyPageThreshold : 0
+   +0x104 LazyWritePassCount : 0
+   +0x108 UninitializeEvent : (null) 
+   +0x110 BcbLock          : _KGUARDED_MUTEX
+   +0x148 LastUnmapBehindOffset : _LARGE_INTEGER 0x0
+   +0x150 Event            : _KEVENT
+   +0x168 HighWaterMappingOffset : _LARGE_INTEGER 0x40000
+   +0x170 PrivateCacheMap  : _PRIVATE_CACHE_MAP
+   +0x1d8 WriteBehindWorkQueueEntry : (null) 
+   +0x1e0 VolumeCacheMap   : 0xfffffa80`074fd180 _VOLUME_CACHE_MAP
+   +0x1e8 ProcImagePathHash : 0xc9175939
+   +0x1ec WritesInProgress : 0
+   +0x1f0 PipelinedReadAheadSize : 0
+0: kd> !pool 0xfffffa80`09ce3bf0
+Pool page fffffa8009ce3bf0 region is Nonpaged pool
+ fffffa8009ce3000 size:   d0 previous size:    0  (Allocated)  Mdl 
+ fffffa8009ce30d0 size:  370 previous size:   d0  (Free)       CcSc
+ fffffa8009ce3440 size:   40 previous size:  370  (Free )  UHUB
+ fffffa8009ce3480 size:  2e0 previous size:   40  (Allocated)  FMic
+ fffffa8009ce3760 size:   c0 previous size:  2e0  (Allocated)  FMsl
+ fffffa8009ce3820 size:   c0 previous size:   c0  (Allocated)  FMsl
+ fffffa8009ce38e0 size:  100 previous size:   c0  (Allocated)  Ntfx
+ fffffa8009ce39e0 size:  100 previous size:  100  (Allocated)  MmCa
+ fffffa8009ce3ae0 size:  100 previous size:  100  (Allocated)  MmCa
+*fffffa8009ce3be0 size:  420 previous size:  100  (Allocated) *CcVp
+		Pooltag CcVp : Cache Manager Array of Vacb pointers for a cached stream, Binary : nt!cc
+0: kd> dq 0xfffffa80`09ce3bf0
+fffffa80`09ce3bf0  fffffa80`09927210 00000000`00000000
+fffffa80`09ce3c00  00000000`00000000 00000000`00000000
+fffffa80`09ce3c10  00000000`00000000 00000000`00000000
+fffffa80`09ce3c20  00000000`00000000 00000000`00000000
+fffffa80`09ce3c30  00000000`00000000 00000000`00000000
+fffffa80`09ce3c40  00000000`00000000 00000000`00000000
+fffffa80`09ce3c50  00000000`00000000 00000000`00000000
+fffffa80`09ce3c60  00000000`00000000 00000000`00000000
+0: kd> dq fffffa80`09927210
+fffffa80`09927210  fffffa80`0a4347f0 00000000`00000000
+fffffa80`09927220  00000000`00000000 00000000`00000000
+fffffa80`09927230  00000000`00000000 00000000`00000000
+fffffa80`09927240  00000000`00000000 00000000`00000000
+fffffa80`09927250  00000000`00000000 00000000`00000000
+fffffa80`09927260  00000000`00000000 00000000`00000000
+fffffa80`09927270  00000000`00000000 00000000`00000000
+fffffa80`09927280  00000000`00000000 00000000`00000000
+0: kd> !pool fffffa80`09927210
+Pool page fffffa8009927210 region is Nonpaged pool
+ fffffa8009927000 size:  100 previous size:    0  (Allocated)  MmCa
+ fffffa8009927100 size:  100 previous size:  100  (Allocated)  MmCa
+*fffffa8009927200 size:  820 previous size:  100  (Allocated) *CcVl
+		Pooltag CcVl : Cache Manager Vacb Level structures (large streams), Binary : nt!cc
+ fffffa8009927a20 size:  210 previous size:  820  (Allocated)  CcSc
+ fffffa8009927c30 size:   c0 previous size:  210  (Allocated)  FMsl
+ fffffa8009927cf0 size:  100 previous size:   c0  (Allocated)  MmCa
+ fffffa8009927df0 size:   10 previous size:  100  (Free)       NpFr
+ fffffa8009927e00 size:  100 previous size:   10  (Allocated)  MmCa
+ fffffa8009927f00 size:  100 previous size:  100  (Allocated)  MmCa
+0: kd> dq fffffa80`09927210
+fffffa80`09927210  fffffa80`0a4347f0 00000000`00000000
+fffffa80`09927220  00000000`00000000 00000000`00000000
+fffffa80`09927230  00000000`00000000 00000000`00000000
+fffffa80`09927240  00000000`00000000 00000000`00000000
+fffffa80`09927250  00000000`00000000 00000000`00000000
+fffffa80`09927260  00000000`00000000 00000000`00000000
+fffffa80`09927270  00000000`00000000 00000000`00000000
+fffffa80`09927280  00000000`00000000 00000000`00000000
+0: kd> !pool fffffa80`0a4347f0
+Pool page fffffa800a4347f0 region is Nonpaged pool
+ fffffa800a434000 size:  100 previous size:    0  (Allocated)  MmCa
+ fffffa800a434100 size:   10 previous size:  100  (Free)       ....
+ fffffa800a434110 size:  100 previous size:   10  (Allocated)  MmCa
+ fffffa800a434210 size:  150 previous size:  100  (Allocated)  File (Protected)
+ fffffa800a434360 size:   c0 previous size:  150  (Allocated)  EtwR (Protected)
+ fffffa800a434420 size:  100 previous size:   c0  (Allocated)  Ntfx
+ fffffa800a434520 size:   c0 previous size:  100  (Allocated)  FMsl
+ fffffa800a4345e0 size:  100 previous size:   c0  (Allocated)  Ntfx
+ fffffa800a4346e0 size:   10 previous size:  100  (Free)       Pccr
+ fffffa800a4346f0 size:   f0 previous size:   10  (Allocated)  NVRM
+*fffffa800a4347e0 size:  820 previous size:   f0  (Allocated) *CcVl
+		Pooltag CcVl : Cache Manager Vacb Level structures (large streams), Binary : nt!cc
+0: kd> dq fffffa80`0a4347f0
+fffffa80`0a4347f0  fffffa80`057f78d0 00000000`00000000
+fffffa80`0a434800  00000000`00000000 00000000`00000000
+fffffa80`0a434810  00000000`00000000 00000000`00000000
+fffffa80`0a434820  00000000`00000000 00000000`00000000
+fffffa80`0a434830  00000000`00000000 00000000`00000000
+fffffa80`0a434840  00000000`00000000 00000000`00000000
+fffffa80`0a434850  00000000`00000000 00000000`00000000
+fffffa80`0a434860  00000000`00000000 00000000`00000000
+
+
+0: kd> !pool fffffa80`057f78d0
+Pool page fffffa80057f78d0 region is Nonpaged pool
+ fffffa80057f7000 size:  840 previous size:    0  (Free )  .... (Protected) Process: fffffa8007fb1430
+
+fffffa80057f7840 doesn't look like a valid small pool allocation, checking to see
+if the entire page is actually part of a large page allocation...
+
+*fffffa80057f0000 : large page allocation, Tag is CcVa, size is 0x20000 bytes
+		Pooltag CcVa : Cache Manager Initial array of Vacbs, Binary : nt!cc
+0: kd> dt _VACB fffffa80`057f78d0
+nt!_VACB
+   +0x000 BaseAddress      : 0xfffff980`b5340000 Void
+   +0x008 SharedCacheMap   : 0xfffffa80`0982a2c0 _SHARED_CACHE_MAP
+   +0x010 Overlay          : <unnamed-tag>
+   +0x018 Links            : _LIST_ENTRY [ 0xfffffa80`09b853d8 - 0xfffff800`030d07f0 ]
+   +0x028 ArrayHead        : 0xfffffa80`057f0000 _VACB_ARRAY_HEADER
+0: kd> dt _VACB_ARRAY_HEADER 0xfffffa80`057f0000 
+nt!_VACB_ARRAY_HEADER
+   +0x000 VacbArrayIndex   : 0
+   +0x004 MappingCount     : 0xaaa
+   +0x008 HighestMappedIndex : 0xaa9
+   +0x00c Reserved         : 0
+
+FILE_OBJECT 		FileObject = fffffa8009af4af0
+SECTION_OBJECT_POINTERS FileObject->SectionObjectPointer = 0xfffffa80`06b4d818
+SHARED_CACHE_MAP 	SectionObjectPointers->SharedCacheMap = 0xfffffa80`0982a2c0
+VACB*			SharedCacheMap->Vacbs =    fffffa80`09ce3bf0, Size 420, Pooltag CcVp : Cache Manager Array of Vacb pointers for a cached stream
+VACB*			*SharedCacheMap->Vacbs =   fffffa80`09927210, Size 820, Pooltag CcVl : Cache Manager Vacb Level structures (large streams)
+VACB*			**SharedCacheMap->Vacbs =  fffffa80`0a4347f0, Size 820, Pooltag CcVl : Cache Manager Vacb Level structures (large streams)
+VACB			***SharedCacheMap->Vacbs = fffffa80`057f78d0, Size 0x20000, Pooltag CcVa : Cache Manager Initial array of Vacbs
+VACB_ARRAY_HEADER	Vacb->ArrayHead = fffffa80`057f0000
+
+
+VacbArray -> Lvl1 -> Lvl2 -> Vacb
+
+-----------------------------
+large file
+FileSize = 0x135c55800, SectionSize = 0x135c80000
+
+
+------------------------------
+
+small file (few bytes)
+SectionSize = 0x40000
+VacbArray (inside shared cache map) -> VACB
+
+----------------------------
+
+medium file (30 MB)
+FileSize = 0x1ee65f8, SectionSize = 0x1f00000
+
+SharedCacheMap->Vacb = Size = 3f0, Pooltag CcVp : Cache Manager Array of Vacb pointers for a cached stream
+*SharedCacheMap->Vacb = Pooltag CcVa : Cache Manager Initial array of Vacbs
+
