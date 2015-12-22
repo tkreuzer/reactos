@@ -934,8 +934,7 @@ IopParseDevice(IN PVOID ParseObject,
 
             /* Set it up */
             FileObject = (PFILE_OBJECT)&LocalFileObject->ObjectHeader.Body;
-            LocalFileObject->ObjectHeader.Type = IoFileObjectType;
-            LocalFileObject->ObjectHeader.PointerCount = 1;
+            ObInitializeStackObjectHeader(FileObject, IoFileObjectType, 1);
         }
 
         /* Setup the file header */

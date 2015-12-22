@@ -627,6 +627,14 @@ ObGetProcessHandleCount(
     IN PEPROCESS Process
 );
 
+VOID
+NTAPI
+ObInitializeStackObjectHeader(
+    _Out_ PVOID ObjectBody,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ LONG_PTR PointerCount
+);
+
 //
 // Global data inside the Object Manager
 //

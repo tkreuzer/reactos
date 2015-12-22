@@ -1878,4 +1878,17 @@ NtSetInformationObject(IN HANDLE ObjectHandle,
     return Status;
 }
 
+VOID
+NTAPI
+ObInitializeStackObjectHeader(
+    _Out_ PVOID ObjectBody,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ LONG_PTR PointerCount)
+{
+    POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(ObjectBody);
+    RtlZeroMemory(ObjectHeader, sizeof(*ObjectHeader));
+    ObjectHeader->Type = ObjectType;
+    ObjectHeader->PointerCount = PointerCount;
+}
+
 /* EOF */
