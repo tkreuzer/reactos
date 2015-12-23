@@ -323,7 +323,7 @@ CreateDIBPalette(
             /* Mark the palette as a brush hack palette */
             ppal->flFlags |= PAL_BRUSHHACK;
         }
-//        else if (iUsage == 2)
+//        else if (iUsage == DIB_PAL_INDICES)
 //        {
             // FIXME: this one is undocumented
 //            ASSERT(FALSE);
