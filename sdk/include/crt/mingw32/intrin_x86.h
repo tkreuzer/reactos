@@ -763,6 +763,33 @@ __INTRIN_INLINE unsigned char _interlockedbittestandset64(volatile long long * a
 }
 #endif
 
+/*** TSX intrinsics ***/
+
+__INTRIN_INLINE int _xbegin(void)
+{
+	int status;
+	__asm__ __volatile__ ( "orl $-1, %%eax; xbegin 1f; 1:" : [status] "=a" (status) );
+	return status;
+}
+
+__INTRIN_INLINE void _xend(void)
+{
+	__asm__ __volatile__ ( "xend" );
+}
+
+__INTRIN_INLINE void _xabort(const unsigned int code)
+{
+	__asm__ __volatile__ ( "xabort %[code]" : : [code] "i" (code) );
+}
+
+__INTRIN_INLINE unsigned char _xtest(void)
+{
+    unsigned char result = 0;
+	__asm__ __volatile__ ( "xtest; setnz %[result]" : [result] "=q" (result) );
+	return result;
+}
+
+
 /*** String operations ***/
 
 #if !HAS_BUILTIN(__stosb)
