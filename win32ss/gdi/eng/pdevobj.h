@@ -147,6 +147,7 @@ typedef struct _PDEVOBJ
     UINT SafetyRemoveLevel; /* at what level was the cursor removed?
                               0 for not removed */
     UINT SafetyRemoveCount;
+    PSURFACE psTemp;
     struct _EDD_DIRECTDRAW_GLOBAL * pEDDgpl;
 } PDEVOBJ, *PPDEVOBJ;
 

@@ -21,6 +21,52 @@ extern XCLIPOBJ gxcoTrivial;
 };
 */
 
+#if 0 // experimental code
+SURFOBJ*
+GetCachedRenderSurface(
+    _In_ SURFOBJ psoParent,
+    _In_ LONG cx,
+    _In_ LONG cy)
+{
+    ULONG iFormat;
+    PPDEVOBJ ppdev;
+    PSURFACE psTemp;
+
+    /* Get the bitmap format for the temp surface */
+    iFormat = psoParent->iBitmapFormat;
+    if (iFormat == BMF_4RLE) iFormat = BMF_4BPP;
+    else if (iFormat == BMF_8RLE) iFormat = BMF_8BPP;
+
+    ppdev = (PPDEVOBJ)psoParent->hdev;
+
+    if ((ppdev->psTemp != NULL) &&
+        (ppdev->psTemp->SurfObj.sizlBitmap.cx >= cx) &&
+        (ppdev->psTemp->SurfObj.sizlBitmap.cy >= cy))
+    {
+        return &ppdev->psTemp->SurfObj;
+    }
+
+    /* Allocate a surface */
+    psTemp = SURFACE_AllocSurface(STYPE_BITMAP, cx, cy, iFormat, 0, 0, 0, NULL);
+    if (psTemp == NULL)
+    {
+        ERR("Failed to allocate a surface\n");
+        return NULL;
+    }
+
+    if (ppdev->psTemp != NULL)
+    {
+        /* Delete the old temp surface */
+        GDIOBJ_vDeleteObject(&ppdev->psTemp->BaseObject);
+    }
+
+    /* Store the new temp surface */
+    ppdev->psTemp = psTemp;
+
+    return &psTemp->SurfObj;
+}
+#endif
+
 static
 BOOL
 EngSrcBufferedBitBlt (
