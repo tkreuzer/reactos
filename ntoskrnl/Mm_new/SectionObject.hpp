@@ -66,8 +66,7 @@ public:
         _In_ class PHYSICAL_SECTION* PhysicalSection,
         _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
         _In_ ULONG64 MaximumSize,
-        _In_ ULONG SectionPageProtection,
-        _In_ ULONG AllocationAttributes);
+        _In_ ULONG SectionPageProtection);
 
     class PHYSICAL_SECTION*
     ReferenceSection (
