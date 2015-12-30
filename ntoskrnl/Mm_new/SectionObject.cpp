@@ -174,8 +174,7 @@ SECTION_OBJECT::CreateInstance (
     _In_ PPHYSICAL_SECTION PhysicalSection,
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
     _In_ ULONG64 SectionSize,
-    _In_ ULONG SectionPageProtection,
-    _In_ ULONG AllocationAttributes)
+    _In_ ULONG SectionPageProtection)
 {
     PVOID Object;
     PSECTION_OBJECT SectionObject;
@@ -435,8 +434,7 @@ MmCreateSection (
                                             PhysicalSection,
                                             ObjectAttributes,
                                             MaximumSize->QuadPart,
-                                            SectionPageProtection,
-                                            AllocationAttributes);
+                                            SectionPageProtection);
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to create SECTION_OBJECT: 0x%lx\n", Status);
