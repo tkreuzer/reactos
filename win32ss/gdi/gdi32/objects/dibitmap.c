@@ -188,10 +188,14 @@ CreateDIBitmap(
     _In_ const BITMAPINFO *pbmi,
     _In_ UINT iUsage)
 {
+    PMITMAPINFO pbmiConverted;
     LONG cx, cy;
     BOOL bConvertedInfo = FALSE;
     HBITMAP hbmp = NULL;
-    ULONG cjInfo, cjImageSize;
+    ULONG cjInfoSize, cjImageSize;
+
+    /* Convert the BITMAPINFO if it is a COREINFO */
+    pbmiConverted = ConvertBitmapInfo(pbmi, ColorUse, &cjInfoSize, FALSE);
 
     if (pbmi)
     {
@@ -207,7 +211,7 @@ CreateDIBitmap(
         }
 
         /* Get the size of the BITMAPINFO */
-        cjInfo = DibGetBitmapInfoSize(pbmi, iUsage);
+        cjInfoSize = DibGetBitmapInfoSize(pbmi, iUsage);
 
         /* Check if we have bits */
         if (pbInit)
@@ -229,7 +233,7 @@ CreateDIBitmap(
     }
     else
     {
-        cjInfo = 0;
+        cjInfoSize = 0;
     }
 
     /* Check for the undocumented CBM_CREATDIB flag */
@@ -278,7 +282,8 @@ CreateDIBitmap(
     if ((cx == 0) || (cy == 0))
     {
         /* Return the default bitmap */
-        return GetStockObject(DEFAULT_BITMAP);
+        hbmp = GetStockObject(DEFAULT_BITMAP);
+        goto cleanup;
     }
 
 
@@ -289,7 +294,7 @@ CreateDIBitmap(
                                        (PVOID)pbInit,
                                        (PVOID)pbmi,
                                        iUsage,
-                                       cjInfo,
+                                       cjInfoSize,
                                        cjImageSize,
                                        0,
                                        0);
