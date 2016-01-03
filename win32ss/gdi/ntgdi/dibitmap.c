@@ -164,7 +164,10 @@ DibGetBitmapInfoSize(
             cColors = cMaxColors;
 
         /// FIME: align color size to 4 bytes
-        return cjHeaderSize + cColors * cjColorSize;
+        if (iUsage == DIB_RGB_COLORS)
+            return cjHeaderSize + cColors * sizeof(RGBQUAD);
+        else
+            return cjHeaderSize + cColors * sizeof(WORD);
     }
 }
 
@@ -563,6 +566,7 @@ NtGdiCreateDIBSection(
         /* Check if we used a section */
         if (hSectionApp)
         {
+            /// FIXME: use SURFACE function for that (alloc etc) / C++
             /* Update section and secure handle */
             psurfDIBSection->hDIBSection = hSectionApp;
             psurfDIBSection->hSecure = hSecure;
@@ -642,35 +646,54 @@ GreCreateDIBitmapInternal(
         if (!pbmi) goto cleanup;
 
         /* Create a surface from the DIB */
-        psurfDIB = DibCreateDIBSurface(pbmi,
-                                       pdc,
-                                       iUsage,
-                                       0,
-                                       pjInit,
-                                       cjMaxBits);
-
+        psurfDIB = DibCreateDIBSurface(pbmi, pdc, iUsage, 0, pjInit, cjMaxBits);
         if (!psurfDIB) goto cleanup;
     }
 
     if (fInit & CBM_CREATDIB)
     {
         if (iUsage == 2) goto cleanup;
-        if (!psurfDIB) goto cleanup;
+        if (!pbmi) goto cleanup;
+        //if (!psurfDIB) goto cleanup;
 
         /* Need a DC for DIB_PAL_COLORS */
         if ((iUsage == DIB_PAL_COLORS) && !pdc) goto cleanup;
+#if 1
+        /* Create an empty DIB bitmap */
+        psurfBmp = DibCreateDIBSurface(pbmi, pdc, iUsage, 0, NULL, 0);
+        if (psurfBmp == NULL)
+        {
+            goto cleanup;
+        }
 
-        iFormat = psurfDIB->SurfObj.iBitmapFormat;
-
+        iFormat = psurfBmp->SurfObj.iBitmapFormat;
+        if (iFormat > BMF_32BPP) goto cleanup;
+#else
         if (psurfDIB)
         {
             ppalBmp = psurfDIB->ppal;
             GDIOBJ_vReferenceObjectByPointer(&ppalBmp->BaseObject);
+            iFormat = psurfDIB->SurfObj.iBitmapFormat;
         }
         else
         {
+            // FIXME: we potentially already create this PALETTE, avoid doing it twice
             ppalBmp = CreateDIBPalette(pbmi, pdc, iUsage);
+            if (pbmi->bmiHeader.biSize < sizeof(BITMAPINFOHEADER))
+            {
+                PBITMAPCOREHEADER pbch = (PBITMAPCOREHEADER)pbmi;
+                cBitsPixel = pbch->bcBitCount * pbch->bcPlanes;
+                iCompression = BI_RGB;
+            }
+            else
+            {
+                cBitsPixel = pbmi->bmiHeader.biBitCount * pbmi->bmiHeader.biPlanes;
+                iCompression = pbmi->bmiHeader.biCompression;
+            }
+
+            iFormat = BitmapFormat(cBitsPixel, iCompression);
         }
+#endif
     }
     else
     {
@@ -688,15 +711,21 @@ GreCreateDIBitmapInternal(
         }
 
         GDIOBJ_vReferenceObjectByPointer(&ppalBmp->BaseObject);
-    }
 
-    /* Allocate a surface for the bitmap */
-    psurfBmp = SURFACE_AllocSurface(STYPE_BITMAP, cx, cy, iFormat, 0, 0, 0, NULL);
-    if (psurfBmp)
-    {
+        /* Allocate a surface for the bitmap */
+        psurfBmp = SURFACE_AllocSurface(STYPE_BITMAP, cx, cy, iFormat, 0, 0, NULL);
+        if (psurfBmp == NULL)
+        {
+            goto cleanup;
+        }
+
         /* Set new palette for the bitmap */
         SURFACE_vSetPalette(psurfBmp, ppalBmp);
         ppalBmp = NULL;
+    }
+
+    if (psurfBmp)
+    {
 
         if (pjInit)
         {
@@ -1423,7 +1452,7 @@ __debugbreak();
     yTop = cyDIB - (iStartScan + cNumScan);
 
     /* Bail out if the intersecion between scanlines and copy area is empty */
-    if ((ySrc > yTop + cNumScan) || (ySrc + (INT)cy < yTop)) goto leave;
+    if ((ySrc > yTop + (INT)cNumScan) || (ySrc + (INT)cy < yTop)) goto leave;
 
     /* Check if the copy area starts below or at the topmost scanline */
     if (ySrc >= yTop)
