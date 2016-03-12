@@ -207,7 +207,7 @@ __int64 __mulh(__int64 a, __int64 b);
 #pragma intrinsic(__umulh)
 __int64 _mul128(__int64 Multiplier, __int64 Multiplicand, __int64 * HighProduct);
 #pragma intrinsic(_mul128)
-#pragma intrinsic(_umul128)
+//#pragma intrinsic(_umul128)
 #elif defined(_M_ARM)
 #pragma intrinsic(_MulHigh)
 #pragma intrinsic(_MulUnsignedHigh)
