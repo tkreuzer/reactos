@@ -1,5 +1,28 @@
 
-#include "Exp.hpp"
+#include "PushLock.hpp"
+
+namespace Ex {
+
+_IRQL_requires_max_(APC_LEVEL)
+_Requires_lock_held_(_Global_critical_region_)
+VOID
+PUSH_LOCK::AcquireExclusive (
+    VOID)
+{
+    __debugbreak();
+}
+
+_Must_inspect_result_
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Requires_lock_held_(_Global_critical_region_)
+_Post_satisfies_(return == 0 || return == 1)
+bool
+PUSH_LOCK::TryAcquireExclusive (
+    VOID)
+{
+    __debugbreak();
+    return false;
+}
 
 extern "C" {
 
@@ -10,7 +33,7 @@ NTAPI
 ExInitializePushLock (
     _Out_ PEX_PUSH_LOCK PushLock)
 {
-    __debugbreak();
+    new((PVOID)PushLock) PUSH_LOCK;
 }
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -21,7 +44,7 @@ ExfAcquirePushLockExclusive (
     _Inout_ _Requires_lock_not_held_(*_Curr_) _Acquires_lock_(*_Curr_)
     PEX_PUSH_LOCK PushLock)
 {
-    __debugbreak();
+    reinterpret_cast<PPUSH_LOCK>(PushLock)->AcquireExclusive();
 }
 
 _IRQL_requires_max_(APC_LEVEL)
@@ -47,7 +70,7 @@ ExTryAcquirePushLockExclusiveEx (
     _Inout_ PEX_PUSH_LOCK PushLock,
     _In_ ULONG Flags)
 {
-    __debugbreak();
+    return reinterpret_cast<PPUSH_LOCK>(PushLock)->TryAcquireExclusive();
 }
 
 _IRQL_requires_max_(APC_LEVEL)
