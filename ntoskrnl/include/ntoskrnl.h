@@ -28,6 +28,7 @@
 #include <psdk/ntverp.h>
 
 /* DDK/IFS/NDK Headers */
+#define __PROVIDE_INTERNAL_OB_DEFINITIONS_FOR_NTOS__ 1
 #define _REALLY_GET_CALLERS_CALLER
 #include <excpt.h>
 #include <ntdef.h>

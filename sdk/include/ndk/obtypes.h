@@ -85,6 +85,10 @@ typedef enum _OBJECT_INFORMATION_CLASS
 
 #else
 
+#if __PROVIDE_INTERNAL_OB_DEFINITIONS_FOR_NTOS__
+
+/// FIXME: this is private stuff and shouldn't be here!
+
 //
 // Undocumented Attribute for Kernel-Only Access
 //
@@ -132,6 +136,8 @@ typedef enum _OBJECT_INFORMATION_CLASS
     ((!((h)->Flags & OB_FLAG_EXCLUSIVE)) ?                  \
         NULL: (((POBJECT_HEADER_QUOTA_INFO)((PCHAR)(h) -    \
         (h)->QuotaInfoOffset))->ExclusiveProcess))
+
+#endif // __PROVIDE_INTERNAL_OB_DEFINITIONS_FOR_NTOS__
 
 //
 // Reasons for Open Callback

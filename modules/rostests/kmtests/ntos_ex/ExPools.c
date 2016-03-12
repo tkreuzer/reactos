@@ -5,6 +5,7 @@
  * PROGRAMMER:      Aleksey Bragin <aleksey@reactos.org>
  */
 
+#define __PROVIDE_INTERNAL_OB_DEFINITIONS_FOR_NTOS__ 1
 #include <kmt_test.h>
 
 #define NDEBUG
