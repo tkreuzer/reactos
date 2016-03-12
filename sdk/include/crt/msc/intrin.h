@@ -203,7 +203,7 @@ extern "C" {
 #pragma intrinsic(__mulh)
 #pragma intrinsic(__umulh)
 #pragma intrinsic(_mul128)
-#pragma intrinsic(_umul128)
+//#pragma intrinsic(_umul128)
 #elif defined(_M_ARM)
 #pragma intrinsic(_MulHigh)
 #pragma intrinsic(_MulUnsignedHigh)
