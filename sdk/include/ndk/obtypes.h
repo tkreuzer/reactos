@@ -85,6 +85,8 @@ typedef enum _OBJECT_INFORMATION_CLASS
 
 #else
 
+/// FIXME: this is private stuff and shouldn't be here!
+
 //
 // Undocumented Attribute for Kernel-Only Access
 //
