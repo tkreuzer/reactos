@@ -37,6 +37,10 @@ if(NOT USE_CLANG_CL)
     add_compile_options(/X /Zl)
 endif()
 
+# FIXME: do we still need this?
+replace_compile_flags("/GR" "")
+replace_compile_flags("/EHsc" "")
+
 # Disable buffer security checks by default.
 add_compile_options(/GS-)
 
