@@ -257,6 +257,7 @@ InitDesktopImpl(VOID)
                                           DESKTOP_ALL_ACCESS};
 
     /* Set Desktop Object Attributes */
+    /// This is so fucking retarded!!!!
     ExDesktopObjectType->TypeInfo.DefaultNonPagedPoolCharge = sizeof(DESKTOP);
     ExDesktopObjectType->TypeInfo.GenericMapping = IntDesktopMapping;
     ExDesktopObjectType->TypeInfo.ValidAccessMask = DESKTOP_ALL_ACCESS;
