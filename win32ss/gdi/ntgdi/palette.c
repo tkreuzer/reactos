@@ -1210,6 +1210,10 @@ NtGdiUpdateColors(HDC hDC)
    BOOL calledFromUser, ret;
    USER_REFERENCE_ENTRY Ref;
 
+   /* FIXME: We should simply CopyBits from the surface to itself with an
+      XLATEOBJ that takes the current surface palette and the current DC
+      palette into account. */
+
    calledFromUser = UserIsEntered();
 
    if (!calledFromUser){
