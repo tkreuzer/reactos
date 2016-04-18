@@ -171,31 +171,31 @@ list(APPEND SOURCE
     ${REACTOS_SOURCE_DIR}/ntoskrnl/kd64/kdlock.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/kd64/kdprint.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/kd64/kdtrap.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/apc.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/balmgr.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/bug.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/clock.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/config.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/devqueue.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/dpc.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/eventobj.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/except.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/freeze.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/gate.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/gmutex.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/ipi.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/krnlinit.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/mutex.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/procobj.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/profobj.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/queue.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/semphobj.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/spinlock.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/thrdobj.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/thrdschd.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/time.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/timerobj.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/wait.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/apc.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/balmgr.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/bug.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/clock.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/config.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/devqueue.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/dpc.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/eventobj.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/except.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/freeze.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/gate.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/gmutex.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/ipi.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/krnlinit.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/mutex.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/procobj.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/profobj.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/queue.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/semphobj.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/spinlock.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/thrdobj.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/thrdschd.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/time.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/timerobj.c
+    #${REACTOS_SOURCE_DIR}/ntoskrnl/ke/wait.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/lpc/close.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/lpc/complete.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/lpc/connect.c
