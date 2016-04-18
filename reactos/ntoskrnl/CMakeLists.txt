@@ -37,7 +37,7 @@ else()
     endif()
 endif()
 
-target_link_libraries(ntoskrnl cportlib csq ${PSEH_LIB} cmlib rtl ${ROSSYM_LIB} libcntpr wdmguid ioevent ntos_ob)
+target_link_libraries(ntoskrnl cportlib csq ${PSEH_LIB} cmlib rtl ${ROSSYM_LIB} libcntpr wdmguid ioevent ntos_ob ntos_ke)
 
 if(STACK_PROTECTOR)
     target_link_libraries(ntoskrnl gcc_ssp)
