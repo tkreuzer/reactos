@@ -1,14 +1,67 @@
 
 #include "SpinLock.hpp"
+#include "Irql.hpp"
+
+#include <Cpp/bitcount.hpp>
+
+namespace Ke {
+
+VOID
+FASTCALL
+SpinAndAcquireExclusiveOnly (
+    volatile ULONG_PTR *Lock,
+    ULONG ExclusiveBit)
+{
+    do
+    {
+        do
+        {
+            YieldProcessor();
+        } while ((ReadULongPtrAcquire(Lock) & ((ULONG_PTR)1 << ExclusiveBit)) != 0);
+    } while (InterlockedBitTestAndSetSizeTAcquire(Lock, ExclusiveBit) != 0);
+}
+
+VOID
+FASTCALL
+SpinAndAcquireExclusiveEx (
+    volatile ULONG_PTR *Lock,
+    ULONG ExclusiveBit)
+{
+    SpinAndAcquireExclusiveOnly(Lock, ExclusiveBit);
+
+    while (ReadULongPtrAcquire(Lock) != ((ULONG_PTR)1 << ExclusiveBit))
+    {
+        YieldProcessor();
+    }
+
+}
+
+bool Test()
+{
+    struct FOO
+    {
+        LIST_ENTRY ListLink;
+    };
+
+    struct BAR
+    {
+        LINKED_LIST<FOO> FooList;
+    } a;
+
+    return a.FooList.IsEmpty();
+}
+}; // namespace Ke
 
 extern "C" {
+
+using namespace Ke;
 
 VOID
 NTAPI
 KeInitializeSpinLock (
     _Out_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
+    new (SpinLock) SPIN_LOCK;
 }
 
 _Must_inspect_result_
@@ -17,8 +70,7 @@ FASTCALL
 KeTestSpinLock (
     _In_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
-    return FALSE;
+    return SpinLock->Test();
 }
 
 _Must_inspect_result_
@@ -31,8 +83,7 @@ KeTryToAcquireSpinLockAtDpcLevel (
     _When_(return!=0, _Acquires_lock_(*_Curr_))
         PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
-    return FALSE;
+    return SpinLock->TryToAcquireExclusive();
 }
 
 _Requires_lock_not_held_(*SpinLock)
@@ -43,7 +94,7 @@ NTAPI
 KeAcquireSpinLockAtDpcLevel (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
+    SpinLock->AcquireExclusive();
 }
 
 _Requires_lock_held_(*SpinLock)
@@ -54,7 +105,7 @@ NTAPI
 KeReleaseSpinLockFromDpcLevel (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
+    SpinLock->ReleaseSetZero();
 }
 
 #ifdef _M_IX86
@@ -66,7 +117,7 @@ FASTCALL
 KefAcquireSpinLockAtDpcLevel (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
+    SpinLock->AcquireExclusive();
 }
 
 _Requires_lock_held_(*SpinLock)
@@ -77,7 +128,7 @@ FASTCALL
 KefReleaseSpinLockFromDpcLevel (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
+    SpinLock->ReleaseSetZero();
 }
 #endif // _M_IX86
 
@@ -91,8 +142,11 @@ FASTCALL
 KeAcquireSpinLockRaiseToDpc (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
-    return 0;
+    KIRQL OldIrql;
+
+    OldIrql = KeRaiseIrqlToDpcLevel();
+    SpinLock->AcquireExclusive();
+    return OldIrql;
 }
 
 #ifdef _M_IX86
@@ -106,8 +160,11 @@ NTAPI
 Ke386AcquireSpinLock (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
-    return 0;
+    KIRQL OldIrql;
+
+    OldIrql = KeRaiseIrqlToDpcLevel();
+    SpinLock->AcquireExclusive();
+    return OldIrql;
 }
 #endif
 
@@ -120,8 +177,11 @@ FASTCALL
 KeAcquireSpinLockRaiseToSynch (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
-    return 0;
+    KIRQL OldIrql;
+
+    OldIrql = KfRaiseIrql(SYNCH_LEVEL);
+    SpinLock->AcquireExclusive();
+    return OldIrql;
 }
 
 _Requires_lock_held_(*SpinLock)
@@ -133,7 +193,8 @@ KeReleaseSpinLock (
     _Inout_ PKSPIN_LOCK SpinLock,
     _In_ _IRQL_restores_ KIRQL NewIrql)
 {
-    __debugbreak();
+    SpinLock->ReleaseSetZero();
+    KeLowerIrql(NewIrql);
 }
 
 _Requires_lock_not_held_(*SpinLock)
@@ -145,8 +206,11 @@ FASTCALL
 KeAcquireSpinLockForDpc (
     _Inout_ PKSPIN_LOCK SpinLock)
 {
-    __debugbreak();
-    return 0;
+    KIRQL OldIrql;
+
+    OldIrql = KfRaiseIrql(DISPATCH_LEVEL);
+    SpinLock->AcquireExclusive();
+    return OldIrql;
 }
 
 _Requires_lock_held_(*SpinLock)
@@ -158,7 +222,8 @@ KeReleaseSpinLockForDpc (
     _Inout_ PKSPIN_LOCK SpinLock,
     _In_ _IRQL_restores_ KIRQL OldIrql)
 {
-    __debugbreak();
+    SpinLock->ReleaseSetZero();
+    KeLowerIrql(OldIrql);
 }
 
 }; // extern "C"
