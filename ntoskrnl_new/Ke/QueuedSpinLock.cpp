@@ -1,5 +1,6 @@
 
 #include "Kep.hpp"
+#include "SpinLock.hpp"
 
 extern "C" {
 

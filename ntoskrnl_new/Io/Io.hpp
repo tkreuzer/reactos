@@ -5,6 +5,7 @@
 
 #include "include/devpropdef.h"
 #include "Ke/Ke.hpp"
+#include "Ke/SpinLock.hpp"
 
 /// FIXME!
 #define __volatile /* specstrings.h */

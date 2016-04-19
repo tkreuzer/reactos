@@ -12,7 +12,6 @@ extern "C" {
 typedef UCHAR KIRQL, *PKIRQL;
 typedef CCHAR KPROCESSOR_MODE;
 typedef LONG KPRIORITY, *PKPRIORITY;
-typedef ULONG_PTR KSPIN_LOCK, *PKSPIN_LOCK;
 
 typedef enum _KINTERRUPT_MODE
 {
