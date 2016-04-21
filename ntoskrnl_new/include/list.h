@@ -217,3 +217,149 @@ PushEntryList (
     Entry->Next = ListHead->Next;
     ListHead->Next = Entry;
 }
+
+#ifdef __cplusplus
+
+class LIST_HEAD
+{
+    LIST_ENTRY _Head;
+
+public:
+
+    inline
+    LIST_HEAD (
+        VOID)
+    {
+        InitializeListHead(&_Head);
+    }
+
+    _Must_inspect_result_
+    inline
+    BOOLEAN
+    IsEmpty (
+        VOID) const
+    {
+        return IsListEmpty(&_Head);
+    }
+
+    inline
+    VOID
+    InsertHead (
+        _Inout_ __drv_aliasesMem PLIST_ENTRY ListEntry)
+    {
+        InsertHeadList(&_Head, ListEntry);
+    }
+
+    inline
+    VOID
+    InsertTail (
+        _Inout_ __drv_aliasesMem PLIST_ENTRY ListEntry)
+    {
+        InsertTailList(&_Head, ListEntry);
+    }
+
+    inline
+    PLIST_ENTRY
+    RemoveHead (
+        VOID)
+    {
+        if (IsListEmpty(&_Head))
+        {
+            return NULL;
+        }
+
+        return RemoveHeadList(&_Head);
+    }
+
+    inline
+    PLIST_ENTRY
+    RemoveTail (
+        VOID)
+    {
+        if (IsListEmpty(&_Head))
+        {
+            return NULL;
+        }
+
+        return RemoveTailList(&_Head);
+    }
+
+    static
+    inline
+    BOOLEAN
+    RemoveEntry (
+        _In_ PLIST_ENTRY ListEntry)
+    {
+        return RemoveEntryList(ListEntry);
+    }
+
+
+
+};
+
+template<typename _T, size_t Offset>
+class LINKED_LISTEX
+    : public LIST_HEAD
+{
+
+    inline
+    VOID
+    InsertHead (
+        _Inout_ __drv_aliasesMem _T *Object)
+    {
+        PLIST_ENTRY ListEntry = (PLIST_ENTRY)((ULONG_PTR)Object + Offset);
+        LIST_HEAD::InsertHead(ListEntry);
+    }
+
+    inline
+    VOID
+    InsertTail (
+        _Inout_ __drv_aliasesMem _T *Object)
+    {
+        PLIST_ENTRY ListEntry = (PLIST_ENTRY)((ULONG_PTR)Object + Offset);
+        LIST_HEAD::InsertTail(ListEntry);
+    }
+
+    inline
+    _T*
+    RemoveHead (
+        VOID)
+    {
+        PLIST_ENTRY ListEntry;
+
+        if (IsEmpty())
+        {
+            return NULL;
+        }
+
+        ListEntry = RemoveHeadList(&_Head);
+        return (_T*)((ULONG_PTR)ListEntry - Offset);
+    }
+
+    inline
+    _T*
+    RemoveTail (
+        VOID)
+    {
+        PLIST_ENTRY ListEntry;
+
+        if (IsEmpty())
+        {
+            return NULL;
+        }
+
+        ListEntry = RemoveTailList(&_Head);
+        return (_T*)((ULONG_PTR)ListEntry - Offset);
+    }
+
+};
+
+template<typename _T>
+class LINKED_LIST
+    : public LINKED_LISTEX<_T, 0>
+{
+};
+
+
+
+#endif
