@@ -1,6 +1,8 @@
 
 #include "Bitmap.hpp"
 
+using namespace Rtl;
+
 extern "C" {
 
 VOID
@@ -10,7 +12,7 @@ RtlInitializeBitMap64 (
     _In_opt_ __drv_aliasesMem PULONG BitMapBuffer,
     _In_opt_ ULONG SizeOfBitMap)
 {
-    __debugbreak();
+    new (BitMapHeader) BITMAP64;
 }
 
 VOID
@@ -19,7 +21,7 @@ RtlClearBit64 (
     _In_ PRTL_BITMAP64 BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber)
 {
-    __debugbreak();
+    BitMapHeader->ClearBit(BitNumber);
 }
 
 VOID
@@ -28,7 +30,7 @@ RtlSetBit64 (
     _In_ PRTL_BITMAP64 BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber)
 {
-    __debugbreak();
+    BitMapHeader->SetBit(BitNumber);
 }
 
 _Must_inspect_result_
@@ -38,8 +40,7 @@ RtlTestBit64 (
     _In_ PRTL_BITMAP64 BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber)
 {
-    __debugbreak();
-    return FALSE;
+    return BitMapHeader->CheckBit(BitNumber);
 }
 
 VOID
@@ -47,7 +48,7 @@ NTAPI
 RtlClearAllBits64 (
     _In_ PRTL_BITMAP64 BitMapHeader)
 {
-    __debugbreak();
+    BitMapHeader->ClearAllBits();
 }
 
 VOID
@@ -55,7 +56,7 @@ NTAPI
 RtlSetAllBits64 (
     _In_ PRTL_BITMAP64 BitMapHeader)
 {
-    __debugbreak();
+    BitMapHeader->SetAllBits();
 }
 
 _Success_(return != -1)
@@ -67,8 +68,7 @@ RtlFindClearBits64 (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindClearBits(NumberToFind, HintIndex);
 }
 
 _Success_(return != -1)
@@ -80,8 +80,7 @@ RtlFindSetBits64 (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindSetBits(NumberToFind, HintIndex);
 }
 
 _Success_(return != -1)
@@ -92,8 +91,7 @@ RtlFindClearBitsAndSet64 (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindClearBitsAndSet(NumberToFind, HintIndex);
 }
 
 _Success_(return != -1)
@@ -104,8 +102,7 @@ RtlFindSetBitsAndClear64 (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindSetBitsAndClear(NumberToFind, HintIndex);
 }
 
 VOID
@@ -115,7 +112,7 @@ RtlClearBits64 (
     _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
     _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear)
 {
-    __debugbreak();
+    BitMapHeader->ClearBits(StartingIndex, NumberToClear);
 }
 
 VOID
@@ -125,7 +122,7 @@ RtlSetBits64 (
     _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
     _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet)
 {
-    __debugbreak();
+    BitMapHeader->SetBits(StartingIndex, NumberToSet);
 }
 
 _Must_inspect_result_
@@ -136,8 +133,7 @@ RtlAreBitsClear64 (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return FALSE;
+    return BitMapHeader->AreBitsClear(StartingIndex, Length);
 }
 
 _Must_inspect_result_
@@ -148,8 +144,7 @@ RtlAreBitsSet64 (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return FALSE;
+    return BitMapHeader->AreBitsSet(StartingIndex, Length);
 }
 
 ULONG
@@ -157,8 +152,7 @@ NTAPI
 RtlNumberOfClearBits64 (
     _In_ PRTL_BITMAP64 BitMapHeader)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfClearBits();
 }
 
 ULONG
@@ -166,8 +160,7 @@ NTAPI
 RtlNumberOfSetBits64 (
     _In_ PRTL_BITMAP64 BitMapHeader)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfSetBits();
 }
 
 #if 0 // not exported!
@@ -179,8 +172,7 @@ RtlNumberOfClearBitsInRange64 (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfClearBitsInRange(StartingIndex, Length);
 }
 
 ULONG
@@ -190,8 +182,7 @@ RtlNumberOfSetBitsInRange64 (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfSetBitsInRange(StartingIndex, Length);
 }
 
 ULONG
@@ -202,8 +193,7 @@ RtlFindClearRuns64 (
     _In_range_(>, 0) ULONG SizeOfRunArray,
     _In_ BOOLEAN LocateLongestRuns)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindClearRuns(RunArray, SizeOfRunArray, LocateLongestRuns);
 }
 
 ULONG
@@ -212,8 +202,7 @@ RtlFindLongestRunClear64 (
     _In_ PRTL_BITMAP64 BitMapHeader,
     _Out_ PULONG StartingIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindLongestRunClear(StartingIndex);
 }
 
 ULONG
@@ -222,8 +211,7 @@ RtlFindFirstRunClear64 (
     _In_ PRTL_BITMAP64 BitMapHeader,
     _Out_ PULONG StartingIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindFirstRunClear(StartingIndex);
 }
 
 #endif // 0
@@ -235,8 +223,7 @@ RtlFindNextForwardRunClear64 (
     _In_ ULONG FromIndex,
     _Out_ PULONG StartingRunIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindNextForwardRunClear(FromIndex, StartingRunIndex);
 }
 
 #if 0 // not exported!
@@ -248,8 +235,7 @@ RtlFindLastBackwardRunClear64 (
     _In_ ULONG FromIndex,
     _Out_ PULONG StartingRunIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindLastBackwardRunClear(FromIndex, StartingRunIndex);
 }
 
 VOID
@@ -259,7 +245,7 @@ RtlCopyBitMap64 (
     _In_ PRTL_BITMAP64 Destination,
     _In_range_(0, Destination->SizeOfBitMap - 1) ULONG TargetBit)
 {
-    __debugbreak();
+    Destination->CopyBitMapFrom(Source, TargetBit);
 }
 
 VOID
@@ -270,7 +256,7 @@ RtlExtractBitMap64 (
     _In_range_(0, Source->SizeOfBitMap - 1) ULONG TargetBit,
     _In_range_(0, Source->SizeOfBitMap) ULONG NumberOfBits)
 {
-    __debugbreak();
+    Destination->ExtractBitMapFrom(Source, TargetBit, NumberOfBits);
 }
 #endif // 0
 
