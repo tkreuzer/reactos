@@ -1,6 +1,108 @@
 
 #include "Bitmap.hpp"
 
+namespace Rtl {
+
+/* Number of set bits per byte value */
+const UCHAR BitCountTable[256] =
+{
+    /* x0 x1 x2 x3 x4 x5 x6 x7 x8 x9 xA xB xC xD xE xF */
+       0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, /* 0x */
+       1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, /* 1x */
+       1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, /* 2x */
+       2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, /* 3x */
+       1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, /* 4x */
+       2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, /* 5x */
+       2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, /* 6c */
+       3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, /* 7x */
+       1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, /* 8x */
+       2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, /* 9x */
+       2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, /* Ax */
+       3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, /* Bx */
+       2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6, /* Cx */
+       3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, /* Dx */
+       3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7, /* Ex */
+       4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8  /* Fx */
+};
+
+template<typename _ULONG>
+_ULONG
+TBITMAP<_ULONG>::NumberOfSetBits (
+    VOID)
+{
+    _ULONG BitCount = 0;
+    ULONG Remaining, Shift;
+#ifdef _WIN64
+    ULONG64 *Current, *MaxBuffer;
+
+    /* Handle bitmaps up to 64 bits */
+    if (_SizeOfBitMap <= 64)
+    {
+        Shift = 64 - _SizeOfBitMap;
+        return PopulationCount64(*(PULONG64)_Buffer << Shift);
+    }
+
+    /* Get the start and size of the buffer */
+    Current = (PULONG64)_Buffer;
+    Remaining = _SizeOfBitMap;
+
+    /* Check for unaligned buffer */
+    if ((ULONG_PTR)_Buffer & 7)
+    {
+        BitCount += PopulationCount(*_Buffer);
+        Remaining -= 32;
+        Current = (PULONG64)((ULONG_PTR)Current + sizeof(ULONG));
+    }
+
+    /* Loop all full ULONG64 */
+    MaxBuffer = Current + (Remaining / sizeof(ULONG64));
+    while (Current < MaxBuffer)
+    {
+        BitCount += PopulationCount64(*Current++);
+    }
+
+    /* Calculate the remaining number of bits */
+    Remaining = Remaining % (8 * sizeof(ULONG64));
+    if (Remaining > 0)
+    {
+        Shift = (8 * sizeof(ULONG64)) - Remaining;
+        BitCount += PopulationCount64(*Current << Shift);
+    }
+#else // _WIN64
+    _ULONG *Current, *MaxBuffer;
+
+    /* Get the start and end of the buffer */
+    Current = _Buffer;
+    MaxBuffer = _Buffer + (_SizeOfBitMap / sizeof(_ULONG));
+
+    /* Loop all full _ULONG's */
+    while (Current < MaxBuffer)
+    {
+        BitCount += PopulationCount(*Current++);
+    }
+
+    /* Calculate the remaining number of bits */
+    Remaining = _SizeOfBitMap % (8 * sizeof(_ULONG));
+    if (Remaining > 0)
+    {
+        Shift = (8 * sizeof(_ULONG)) - Remaining;
+        BitCount += PopulationCount(*Current << Shift);
+    }
+#endif // _WIN64
+
+    return BitCount;
+}
+
+/* Explicitly instantiate the class */
+template class TBITMAP<ULONG>;
+#ifdef _WIN64
+template class TBITMAP<ULONG64>;
+#endif // _WIN64
+
+}; // namespace Rtl
+
+using namespace Rtl;
+
 extern "C" {
 
 _Success_(return != -1)
@@ -8,9 +110,25 @@ _Must_inspect_result_
 CCHAR
 NTAPI
 RtlFindLeastSignificantBit (
-    _In_ ULONGLONG Set)
+    _In_ ULONGLONG Value)
 {
-    __debugbreak();
+    ULONG Position;
+
+#ifdef _WIN64
+    if (BitScanForward64(&Position, Value))
+    {
+        return (CCHAR)Position;
+    }
+#else
+    if (BitScanForward(&Position, (ULONG)Value))
+    {
+        return (CCHAR)Position;
+    }
+    else if (BitScanForward(&Position, Value >> 32))
+    {
+        return (CCHAR)(Position + 32);
+    }
+#endif
     return -1;
 }
 
@@ -19,9 +137,25 @@ _Must_inspect_result_
 CCHAR
 NTAPI
 RtlFindMostSignificantBit (
-    _In_ ULONGLONG Set)
+    _In_ ULONGLONG Value)
 {
-    __debugbreak();
+    ULONG Position;
+
+#ifdef _WIN64
+    if (BitScanReverse64(&Position, Value))
+    {
+        return (CCHAR)Position;
+    }
+#else
+    if (BitScanReverse(&Position, Value >> 32))
+    {
+        return (CCHAR)(Position + 32);
+    }
+    else if (BitScanReverse(&Position, (ULONG)Value))
+    {
+        return (CCHAR)Position;
+    }
+#endif
     return -1;
 }
 
@@ -30,8 +164,7 @@ NTAPI
 RtlNumberOfSetBitsUlongPtr (
     _In_ ULONG_PTR Target)
 {
-    __debugbreak();
-    return -1;
+    return PopulationCount(Target);
 }
 
 VOID
@@ -41,7 +174,7 @@ RtlInitializeBitMap (
     _In_opt_ __drv_aliasesMem PULONG BitMapBuffer,
     _In_opt_ ULONG SizeOfBitMap)
 {
-    __debugbreak();
+    new (BitMapHeader) BITMAP;
 }
 
 VOID
@@ -50,7 +183,7 @@ RtlClearBit (
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber)
 {
-    __debugbreak();
+    BitMapHeader->ClearBit(BitNumber);
 }
 
 VOID
@@ -59,7 +192,7 @@ RtlSetBit (
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber)
 {
-    __debugbreak();
+    BitMapHeader->SetBit(BitNumber);
 }
 
 _Must_inspect_result_
@@ -69,8 +202,7 @@ RtlTestBit (
     _In_ PRTL_BITMAP BitMapHeader,
     _In_range_(<, BitMapHeader->SizeOfBitMap) ULONG BitNumber)
 {
-    __debugbreak();
-    return FALSE;
+    return BitMapHeader->CheckBit(BitNumber);
 }
 
 VOID
@@ -78,7 +210,7 @@ NTAPI
 RtlClearAllBits (
     _In_ PRTL_BITMAP BitMapHeader)
 {
-    __debugbreak();
+    BitMapHeader->ClearAllBits();
 }
 
 VOID
@@ -86,7 +218,7 @@ NTAPI
 RtlSetAllBits (
     _In_ PRTL_BITMAP BitMapHeader)
 {
-    __debugbreak();
+    BitMapHeader->SetAllBits();
 }
 
 _Success_(return != -1)
@@ -98,8 +230,7 @@ RtlFindClearBits (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindClearBits(NumberToFind, HintIndex);
 }
 
 _Success_(return != -1)
@@ -111,8 +242,7 @@ RtlFindSetBits (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindSetBits(NumberToFind, HintIndex);
 }
 
 _Success_(return != -1)
@@ -123,8 +253,7 @@ RtlFindClearBitsAndSet (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindClearBitsAndSet(NumberToFind, HintIndex);
 }
 
 _Success_(return != -1)
@@ -135,8 +264,7 @@ RtlFindSetBitsAndClear (
     _In_ ULONG NumberToFind,
     _In_ ULONG HintIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindSetBitsAndClear(NumberToFind, HintIndex);
 }
 
 VOID
@@ -146,7 +274,7 @@ RtlClearBits (
     _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToClear) ULONG StartingIndex,
     _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToClear)
 {
-    __debugbreak();
+    BitMapHeader->ClearBits(StartingIndex, NumberToClear);
 }
 
 VOID
@@ -156,7 +284,7 @@ RtlSetBits (
     _In_range_(0, BitMapHeader->SizeOfBitMap - NumberToSet) ULONG StartingIndex,
     _In_range_(0, BitMapHeader->SizeOfBitMap - StartingIndex) ULONG NumberToSet)
 {
-    __debugbreak();
+    BitMapHeader->SetBits(StartingIndex, NumberToSet);
 }
 
 _Must_inspect_result_
@@ -167,8 +295,7 @@ RtlAreBitsClear (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return FALSE;
+    return BitMapHeader->AreBitsClear(StartingIndex, Length);
 }
 
 _Must_inspect_result_
@@ -179,8 +306,7 @@ RtlAreBitsSet (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return FALSE;
+    return BitMapHeader->AreBitsSet(StartingIndex, Length);
 }
 
 ULONG
@@ -188,8 +314,7 @@ NTAPI
 RtlNumberOfClearBits (
     _In_ PRTL_BITMAP BitMapHeader)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfClearBits();
 }
 
 ULONG
@@ -197,8 +322,7 @@ NTAPI
 RtlNumberOfSetBits (
     _In_ PRTL_BITMAP BitMapHeader)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfSetBits();
 }
 
 ULONG
@@ -208,8 +332,7 @@ RtlNumberOfClearBitsInRange (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfClearBitsInRange(StartingIndex, Length);
 }
 
 ULONG
@@ -219,8 +342,7 @@ RtlNumberOfSetBitsInRange (
     _In_ ULONG StartingIndex,
     _In_ ULONG Length)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->NumberOfSetBitsInRange(StartingIndex, Length);
 }
 
 ULONG
@@ -231,8 +353,7 @@ RtlFindClearRuns (
     _In_range_(>, 0) ULONG SizeOfRunArray,
     _In_ BOOLEAN LocateLongestRuns)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindClearRuns(RunArray, SizeOfRunArray, LocateLongestRuns);
 }
 
 ULONG
@@ -241,8 +362,7 @@ RtlFindLongestRunClear (
     _In_ PRTL_BITMAP BitMapHeader,
     _Out_ PULONG StartingIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindLongestRunClear(StartingIndex);
 }
 
 ULONG
@@ -251,8 +371,7 @@ RtlFindFirstRunClear (
     _In_ PRTL_BITMAP BitMapHeader,
     _Out_ PULONG StartingIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindFirstRunClear(StartingIndex);
 }
 
 ULONG
@@ -262,8 +381,7 @@ RtlFindNextForwardRunClear (
     _In_ ULONG FromIndex,
     _Out_ PULONG StartingRunIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindNextForwardRunClear(FromIndex, StartingRunIndex);
 }
 
 ULONG
@@ -273,8 +391,7 @@ RtlFindLastBackwardRunClear (
     _In_ ULONG FromIndex,
     _Out_ PULONG StartingRunIndex)
 {
-    __debugbreak();
-    return -1;
+    return BitMapHeader->FindLastBackwardRunClear(FromIndex, StartingRunIndex);
 }
 
 VOID
@@ -284,7 +401,7 @@ RtlCopyBitMap (
     _In_ PRTL_BITMAP Destination,
     _In_range_(0, Destination->SizeOfBitMap - 1) ULONG TargetBit)
 {
-    __debugbreak();
+    Destination->CopyBitMapFrom(Source, TargetBit);
 }
 
 VOID
@@ -295,7 +412,7 @@ RtlExtractBitMap (
     _In_range_(0, Source->SizeOfBitMap - 1) ULONG TargetBit,
     _In_range_(0, Source->SizeOfBitMap) ULONG NumberOfBits)
 {
-    __debugbreak();
+    Destination->ExtractBitMapFrom(Source, TargetBit, NumberOfBits);
 }
 
 // prototype from RtlClearBits
