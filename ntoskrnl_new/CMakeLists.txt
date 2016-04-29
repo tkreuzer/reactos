@@ -102,7 +102,6 @@ target_link_libraries(ntoskrnl_new
     csq
     ${PSEH_LIB}
     cmlib
-    rtl
     ${ROSSYM_LIB}
     libcntpr
     wdmguid
