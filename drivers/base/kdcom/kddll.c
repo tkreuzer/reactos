@@ -328,6 +328,16 @@ KdReceivePacket(
             continue;
         }
 
+        /* Check the PacketId */
+        if (Packet.PacketId != INITIAL_PACKET_ID &&
+            Packet.PacketId != (INITIAL_PACKET_ID ^ 1))
+        {
+            KDDBGPRINT("KdReceivePacket - wrong PacketId, got 0x%x\n",
+                       Packet.PacketId);
+            KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
+            continue;
+        }
+
         /* Acknowledge the received packet */
         KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE, Packet.PacketId);
 
