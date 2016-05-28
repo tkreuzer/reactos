@@ -145,7 +145,7 @@ KdReceivePacket(
         {
             /* Didn't receive a PacketType. */
             KDDBGPRINT("KdReceivePacket - Didn't receive a PacketType.\n");
-            return KdStatus;
+            continue;
         }
 
         /* Check if we got a resend packet */
@@ -160,9 +160,9 @@ KdReceivePacket(
         KdStatus = KdpReceiveBuffer(&Packet.ByteCount, sizeof(USHORT));
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
-            /* Didn't receive ByteCount. */
+            /* Didn't receive ByteCount. Start over. */
             KDDBGPRINT("KdReceivePacket - Didn't receive ByteCount.\n");
-            return KdStatus;
+            continue;
         }
 
         /* Step 4 - Read PacketId */
@@ -171,7 +171,7 @@ KdReceivePacket(
         {
             /* Didn't receive PacketId. */
             KDDBGPRINT("KdReceivePacket - Didn't receive PacketId.\n");
-            return KdStatus;
+            continue;
         }
 
 /*
@@ -188,7 +188,7 @@ KdReceivePacket(
         {
             /* Didn't receive Checksum. */
             KDDBGPRINT("KdReceivePacket - Didn't receive Checksum.\n");
-            return KdStatus;
+            continue;
         }
 
         /* Step 6 - Handle control packets */
