@@ -166,9 +166,10 @@ KdReceivePacket(
 
         /* Step 3 - Read ByteCount */
         KdStatus = KdpReceiveBuffer(&Packet.ByteCount, sizeof(USHORT));
-        if (KdStatus != KDP_PACKET_RECEIVED)
+        if ((KdStatus != KDP_PACKET_RECEIVED) || 
+            (Packet.ByteCount > PACKET_MAX_SIZE))
         {
-            /* Didn't receive ByteCount. Start over. */
+            /* Didn't receive ByteCount or it's too big. Start over. */
             KDDBGPRINT("KdReceivePacket - Didn't receive ByteCount.\n");
             continue;
         }
