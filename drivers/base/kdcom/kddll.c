@@ -256,6 +256,7 @@ KdReceivePacket(
         //KDDBGPRINT("KdReceivePacket - got normal PacketType, Buffer = %p\n", MessageHeader->Buffer);
 
         /* Receive the message header data */
+        MessageHeader->Length = MessageHeader->MaximumLength;
         KdStatus = KdpReceiveBuffer(MessageHeader->Buffer,
                                     MessageHeader->Length);
         if (KdStatus != KDP_PACKET_RECEIVED)
