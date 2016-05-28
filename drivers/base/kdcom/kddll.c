@@ -30,13 +30,13 @@ KdpCalculateChecksum(
     IN PVOID Buffer,
     IN ULONG Length)
 {
-    PUCHAR ByteBuffer = Buffer;
-    ULONG Checksum = 0;
+    ULONG i, Checksum = 0;
 
-    while (Length-- > 0)
+    for (i = 0; i < Length; i++)
     {
-        Checksum += (ULONG)*ByteBuffer++;
+        Checksum += ((PUCHAR)Buffer)[i];
     }
+
     return Checksum;
 }
 
