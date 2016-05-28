@@ -355,6 +355,28 @@ KdReceivePacket(
     return KDP_PACKET_RECEIVED;
 }
 
+static
+BOOLEAN
+IsQuickTimeoutAllowed(
+    IN ULONG PacketType,
+    IN PSTRING MessageHeader)
+{
+    PDBGKD_DEBUG_IO DebugIo = (PDBGKD_DEBUG_IO)MessageHeader->Buffer;
+    ULONG ApiNumber = DebugIo->ApiNumber;
+
+    if ( ((PacketType == PACKET_TYPE_KD_DEBUG_IO) &&
+          ((ApiNumber == DbgKdPrintStringApi))) ||
+         ((PacketType == PACKET_TYPE_KD_FILE_IO) &&
+          ((ApiNumber == DbgKdCreateFileApi))) ||
+         ((PacketType == PACKET_TYPE_KD_STATE_CHANGE64) &&
+          ((ApiNumber == DbgKdLoadSymbolsStateChange))) )
+    {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID
 NTAPI
 KdSendPacket(
@@ -418,7 +440,9 @@ KdSendPacket(
             CurrentPacketId &= ~SYNC_PACKET_ID;
             break;
         }
-        else if (KdStatus == KDP_PACKET_TIMEOUT)
+
+        /* Did we get a timeout? */
+        if (KdStatus == KDP_PACKET_TIMEOUT)
         {
             /* Timeout, decrement the retry count */
             if (Retries > 0)
@@ -428,30 +452,9 @@ KdSendPacket(
              * If the retry count reaches zero, bail out
              * for packet types allowed to timeout.
              */
-            if (Retries == 0)
+            if ((Retries == 0) &&
+                IsQuickTimeoutAllowed(PacketType, MessageHeader))
             {
-                ULONG MessageId = *(PULONG)MessageHeader->Buffer;
-                switch (PacketType)
-                {
-                    case PACKET_TYPE_KD_DEBUG_IO:
-                    {
-                        if (MessageId != DbgKdPrintStringApi) continue;
-                        break;
-                    }
-
-                    case PACKET_TYPE_KD_STATE_CHANGE32:
-                    case PACKET_TYPE_KD_STATE_CHANGE64:
-                    {
-                        if (MessageId != DbgKdLoadSymbolsStateChange) continue;
-                        break;
-                    }
-
-                    case PACKET_TYPE_KD_FILE_IO:
-                    {
-                        if (MessageId != DbgKdCreateFileApi) continue;
-                        break;
-                    }
-                }
 
                 /* Reset debugger state */
                 KD_DEBUGGER_NOT_PRESENT = TRUE;
