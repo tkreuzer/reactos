@@ -416,7 +416,6 @@ KdSendPacket(
         {
             /* Packet received, we can quit the loop */
             CurrentPacketId &= ~SYNC_PACKET_ID;
-            Retries = KdContext->KdpDefaultRetries;
             break;
         }
         else if (KdStatus == KDP_PACKET_TIMEOUT)
