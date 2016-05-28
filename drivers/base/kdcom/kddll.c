@@ -387,7 +387,7 @@ KdSendPacket(
 {
     KD_PACKET Packet;
     KDP_STATUS KdStatus;
-    ULONG Retries;
+    LONG Retries;
 
     /* Initialize a KD_PACKET */
     Packet.PacketLeader = PACKET_LEADER;
@@ -445,14 +445,13 @@ KdSendPacket(
         if (KdStatus == KDP_PACKET_TIMEOUT)
         {
             /* Timeout, decrement the retry count */
-            if (Retries > 0)
-                Retries--;
+            Retries--;
 
             /*
              * If the retry count reaches zero, bail out
              * for packet types allowed to timeout.
              */
-            if ((Retries == 0) &&
+            if ((Retries <= 0) &&
                 IsQuickTimeoutAllowed(PacketType, MessageHeader))
             {
 
