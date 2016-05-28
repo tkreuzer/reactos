@@ -60,6 +60,36 @@ KdpSendControlPacket(
 
 /* PUBLIC FUNCTIONS ***********************************************************/
 
+NTSTATUS
+NTAPI
+KdD0Transition(VOID)
+{
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+KdD3Transition(VOID)
+{
+    return STATUS_SUCCESS;
+}
+
+
+/******************************************************************************
+ * \name KdDebuggerInitialize1
+ * \brief Phase 1 initialization.
+ * \param [opt] LoaderBlock Pointer to the Loader parameter block. Can be NULL.
+ * \return Status
+ */
+NTSTATUS
+NTAPI
+KdDebuggerInitialize1(
+    IN PLOADER_PARAMETER_BLOCK LoaderBlock OPTIONAL)
+{
+    return STATUS_SUCCESS;
+}
+
+
 /******************************************************************************
  * \name KdReceivePacket
  * \brief Receive a packet from the KD port.
