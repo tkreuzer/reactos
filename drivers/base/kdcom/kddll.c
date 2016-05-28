@@ -127,6 +127,11 @@ KdReceivePacket(
 
     for (;;)
     {
+        if (KdContext)
+        {
+            KdContext->KdpControlCPending = FALSE;
+        }
+
         /* Step 1 - Read PacketLeader */
         KdStatus = KdpReceivePacketLeader(&Packet.PacketLeader);
         if (KdStatus != KDP_PACKET_RECEIVED)
