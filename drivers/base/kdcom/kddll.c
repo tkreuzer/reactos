@@ -8,11 +8,19 @@
 
 #include "kddll.h"
 
+#define _FULL_ 1
+#define _WORKS_ 0
+#define _WORKS2_ 0
+
 /* GLOBALS ********************************************************************/
 
 ULONG CurrentPacketId = INITIAL_PACKET_ID | SYNC_PACKET_ID;
 ULONG RemotePacketId  = INITIAL_PACKET_ID;
 
+#if _FULL_
+ULONG KdCompNumberRetries = 5;
+ULONG KdCompRetryCount = 5;
+#endif
 
 /* PRIVATE FUNCTIONS **********************************************************/
 
@@ -134,6 +142,12 @@ KdReceivePacket(
 
         /* Step 1 - Read PacketLeader */
         KdStatus = KdpReceivePacketLeader(&Packet.PacketLeader);
+#if _FULL_
+        if (KdStatus != KDP_PACKET_TIMEOUT)
+        {
+//            KdCompNumberRetries = KdCompRetryCount;
+        }
+#endif
         if (KdStatus != KDP_PACKET_RECEIVED)
         {
             /* Check if we got a breakin  */
@@ -240,6 +254,19 @@ KdReceivePacket(
         if (PacketType == PACKET_TYPE_KD_ACKNOWLEDGE)
         {
             /* We received something different */
+#if _FULL_ || _WORKS2_
+            if (Packet.PacketId != RemotePacketId)
+            {
+                KdpSendControlPacket(PACKET_TYPE_KD_ACKNOWLEDGE,
+                                     Packet.PacketId);
+                continue;
+            }
+#elif _PATCH_
+            DBGKD_MANIPULATE_STATE64 State;
+            KdStatus = KdpReceiveBuffer(&State, sizeof(State));
+            KDDBGPRINT("KdReceivePacket - unxpected Packet.PacketType=0x%x, 0x%x, 0x%x\n",
+                       Packet.PacketType, Packet.Checksum, State.ApiNumber);
+#endif
             KdpSendControlPacket(PACKET_TYPE_KD_RESEND, 0);
             CurrentPacketId ^= 1;
             return KDP_PACKET_RECEIVED;
@@ -414,7 +441,11 @@ KdSendPacket(
                                                 MessageData->Length);
     }
 
+#if _FULL_
+    Retries = KdCompNumberRetries = KdCompRetryCount;
+#else
     Retries = KdContext->KdpDefaultRetries;
+#endif
 
     for (;;)
     {
@@ -479,6 +510,10 @@ KdSendPacket(
         /* Packet timed out, send it again */
         KDDBGPRINT("KdSendPacket got KdStatus 0x%x\n", KdStatus);
     }
+
+#if _FULL_
+    KdCompNumberRetries = Retries;
+#endif // _FULL_
 }
 
 /* EOF */
