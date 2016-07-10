@@ -1,3 +1,18 @@
+$if (0)
+
+/* Segment selectors */
+#define RPL_MASK                0x0003
+#define MODE_MASK               0x0001
+#define KGDT64_NULL             0x0000
+#define KGDT64_R0_CODE          0x0010
+#define KGDT64_R0_DATA          0x0018
+#define KGDT64_R3_CMCODE        0x0020
+#define KGDT64_R3_DATA          0x0028
+#define KGDT64_R3_CODE          0x0030
+#define KGDT64_SYS_TSS          0x0040
+#define KGDT64_R3_CMTEB         0x0050
+
+$endif (0)
 $if (_WDMDDK_)
 /** Kernel definitions for AMD64 **/
 
@@ -163,7 +178,7 @@ KeRestoreFloatingPointState(
 /* x86 and x64 performs a 0x2C interrupt */
 #define DbgRaiseAssertionFailure __int2c
 
-$endif /* _WDMDDK_ */
+$endif (_WDMDDK_)
 $if (_NTDDK_)
 
 #define PAUSE_PROCESSOR YieldProcessor();
@@ -327,4 +342,4 @@ KeGetCurrentProcessorNumber(VOID)
     return (ULONG)__readgsword(0x184);
 }
 
-$endif /* _NTDDK_ */
+$endif (_NTDDK_)

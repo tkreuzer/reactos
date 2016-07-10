@@ -230,3 +230,48 @@ ObGetObjectPointerCount(
 $endif (_NTIFS_)
 #endif /* (NTDDI_VERSION >= NTDDI_WIN7) */
 
+$if (0)
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObCreateObjectType(
+    _In_ PUNICODE_STRING TypeName,
+    _In_ POBJECT_TYPE_INITIALIZER ObjectTypeInitializer,
+    _In_ PVOID Reserved,
+    _Out_ POBJECT_TYPE *ObjectType);
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObCreateObject(
+    _In_ KPROCESSOR_MODE ObjectAttributesAccessMode OPTIONAL,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _Inout_ PVOID ParseContext OPTIONAL,
+    _In_ ULONG ObjectSize,
+    _In_ ULONG PagedPoolCharge OPTIONAL,
+    _In_ ULONG NonPagedPoolCharge OPTIONAL,
+    _Out_ PVOID *Object);
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObOpenObjectByName(
+    _In_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_ POBJECT_TYPE ObjectType,
+    _In_ KPROCESSOR_MODE AccessMode,
+    _In_ PACCESS_STATE PassedAccessState,
+    _In_ ACCESS_MASK DesiredAccess,
+    _Inout_ PVOID ParseContext,
+    _Out_ PHANDLE Handle);
+
+NTKERNELAPI
+NTSTATUS
+NTAPI
+ObCloseHandle(
+    _In_ HANDLE Handle,
+    _In_ KPROCESSOR_MODE AccessMode);
+
+$endif (0)

@@ -348,3 +348,43 @@ HalBugCheckSystem(
 #endif /* (NTDDI_VERSION >= NTDDI_WIN7) */
 
 $endif (_NTDDK_)
+$if (0)
+/* Private stuff */
+
+NTHALAPI
+VOID
+NTAPI
+HalInitializeProcessor(
+    ULONG ProcessorNumber,
+    struct _LOADER_PARAMETER_BLOCK *LoaderBlock);
+
+NTHALAPI
+BOOLEAN
+NTAPI
+HalInitSystem(
+    ULONG BootPhase,
+    struct _LOADER_PARAMETER_BLOCK *LoaderBlock);
+
+NTHALAPI
+VOID
+NTAPI
+HalStopProfileInterrupt(
+    IN KPROFILE_SOURCE ProfileSource);
+
+NTHALAPI
+VOID
+NTAPI
+HalDisableSystemInterrupt(
+    ULONG Vector,
+    KIRQL Irql);
+
+NTHALAPI
+BOOLEAN
+NTAPI
+HalEnableSystemInterrupt(
+    ULONG Vector,
+    KIRQL Irql,
+    KINTERRUPT_MODE InterruptMode);
+
+$endif(0)
+

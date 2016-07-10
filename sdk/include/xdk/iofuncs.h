@@ -2871,3 +2871,15 @@ IoInitializeThreadedDpcRequest(
 #endif
 
 $endif (_WDMDDK_)
+$if (0)
+
+VOID
+FASTCALL
+IoAssignDriveLetters(
+    IN struct _LOADER_PARAMETER_BLOCK *LoaderBlock,
+    IN PSTRING NtDeviceName,
+    OUT PUCHAR NtSystemPath,
+    OUT PSTRING NtSystemPathString
+);
+
+$endif (0)
