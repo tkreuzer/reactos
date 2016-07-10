@@ -648,3 +648,33 @@ typedef struct _COMPRESSED_DATA_INFO {
 } COMPRESSED_DATA_INFO, *PCOMPRESSED_DATA_INFO;
 #endif
 $endif (_NTIFS_)
+$if (0)
+
+/* RTL Range List Structures */
+typedef struct _RTL_RANGE_LIST
+{
+    LIST_ENTRY ListHead;
+    ULONG Flags;
+    ULONG Count;
+    ULONG Stamp;
+} RTL_RANGE_LIST, *PRTL_RANGE_LIST;
+
+typedef struct _RTL_RANGE
+{
+    ULONGLONG Start;
+    ULONGLONG End;
+    PVOID UserData;
+    PVOID Owner;
+    UCHAR Attributes;
+    UCHAR Flags;
+} RTL_RANGE, *PRTL_RANGE;
+
+typedef struct _RANGE_LIST_ITERATOR
+{
+    PLIST_ENTRY RangeListHead;
+    PLIST_ENTRY MergedHead;
+    PVOID Current;
+    ULONG Stamp;
+} RTL_RANGE_LIST_ITERATOR, *PRTL_RANGE_LIST_ITERATOR;
+
+$endif (0)

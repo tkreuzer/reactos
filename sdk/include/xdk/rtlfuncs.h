@@ -3337,14 +3337,12 @@ InitializeSListHead(
 
 #else /* defined(_WIN64) &&  ... */
 
-/* HACK */
-_IRQL_requires_max_(APC_LEVEL)
-NTKERNELAPI
 DECLSPEC_NORETURN
+NTSYSAPI
 VOID
 NTAPI
-ExRaiseStatus(
-  _In_ NTSTATUS Status);
+RtlRaiseStatus(
+    _In_ NTSTATUS Status);
 
 FORCEINLINE
 VOID
@@ -3673,3 +3671,23 @@ $if (_NTIFS_)
 #define RtlOffsetToPointer(B,O) ((PCHAR)(((PCHAR)(B)) + ((ULONG_PTR)(O))))
 #define RtlPointerToOffset(B,P) ((ULONG)(((PCHAR)(P)) - ((PCHAR)(B))))
 $endif (_NTIFS_)
+$if (0)
+
+/* Not in public headers */
+
+NTSYSAPI
+PIMAGE_NT_HEADERS
+NTAPI
+RtlImageNtHeader(
+  IN PVOID BaseAddress);
+
+NTSYSAPI
+PVOID
+NTAPI
+RtlImageDirectoryEntryToData(
+    PVOID BaseAddress,
+    BOOLEAN MappedAsImage,
+    USHORT Directory,
+    PULONG Size);
+
+$endif (0)

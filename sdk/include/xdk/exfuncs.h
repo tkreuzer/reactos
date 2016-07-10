@@ -1005,7 +1005,7 @@ NTKERNELAPI
 VOID
 NTAPI
 ExNotifyCallback(
-  _In_ PCALLBACK_OBJECT CallbackObject,
+  _In_ PVOID CallbackObject,
   _In_opt_ PVOID Argument1,
   _In_opt_ PVOID Argument2);
 
@@ -1553,3 +1553,51 @@ ExFreeToNPagedLookasideList(
 }
 
 $endif (_WDMDDK_)
+
+$if (0)
+
+/* Pushlock functions */
+VOID
+FASTCALL
+ExfAcquirePushLockExclusive(
+    PEX_PUSH_LOCK PushLock);
+#define ExAcquirePushLockExclusive ExfAcquirePushLockExclusive
+
+VOID
+FASTCALL
+ExfAcquirePushLockShared(
+    PEX_PUSH_LOCK PushLock);
+#define ExAcquirePushLockShared ExfAcquirePushLockShared
+
+VOID
+FASTCALL
+ExfReleasePushLock(
+    PEX_PUSH_LOCK PushLock);
+#define ExReleasePushLock ExfReleasePushLock
+
+VOID
+FASTCALL
+ExfReleasePushLockExclusive(
+    PEX_PUSH_LOCK PushLock);
+#define ExReleasePushLockExclusive ExfReleasePushLockExclusive
+
+VOID
+FASTCALL
+ExfReleasePushLockShared(
+    PEX_PUSH_LOCK PushLock);
+#define ExReleasePushLockShared ExfReleasePushLockShared
+
+VOID
+FASTCALL
+ExfTryToWakePushLock(
+    PEX_PUSH_LOCK PushLock);
+#define ExTryToWakePushLock ExfTryToWakePushLock
+
+VOID
+FASTCALL
+ExfUnblockPushLock(
+    PEX_PUSH_LOCK PushLock,
+    PVOID CurrentWaitBlock);
+#define ExUnblockPushLock ExfUnblockPushLock
+
+$endif (0)

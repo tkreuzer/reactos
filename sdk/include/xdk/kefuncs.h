@@ -1433,3 +1433,20 @@ void __PREfastPagedCodeLocked(void);
 #endif /* DBG */
 
 $endif (_WDMDDK_)
+$if (0)
+
+VOID
+NTAPI
+KeSetTimeIncrement(
+    IN ULONG MaxIncrement,
+    IN ULONG MinIncrement);
+
+VOID
+FASTCALL
+KeUpdateSystemTime(
+    IN struct _KTRAP_FRAME *TrapFrame,
+    IN ULONG Increment,
+    IN KIRQL OldIrql);
+
+$endif (0)
+

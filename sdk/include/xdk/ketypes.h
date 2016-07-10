@@ -440,6 +440,33 @@ typedef enum _KWAIT_REASON {
   MaximumWaitReason
 } KWAIT_REASON;
 
+#if defined(_REACTOS_)// || (NTDDI_VERSION >= NTDDI_WIN8)
+typedef struct _KWAIT_BLOCK
+{
+    LIST_ENTRY WaitListEntry;
+    UCHAR WaitType;
+    volatile UCHAR BlockState;
+    USHORT WaitKey;
+#if defined(_WIN64)
+    LONG SpareLong;
+#endif
+    union {
+        struct _KTHREAD *Thread;
+        struct _KQUEUE *NotificationQueue;
+    };
+    PVOID Object;
+    PVOID SparePtr;
+} KWAIT_BLOCK, *PKWAIT_BLOCK, *PRKWAIT_BLOCK;
+
+typedef enum _KWAIT_BLOCK_STATE  // 5 elements, 0x4 bytes
+{
+    WaitBlockBypassStart    = 0 /*0x0*/,
+    WaitBlockBypassComplete = 1 /*0x1*/,
+    WaitBlockActive         = 2 /*0x2*/,
+    WaitBlockInactive       = 3 /*0x3*/,
+    WaitBlockAllStates      = 4 /*0x4*/
+} KWAIT_BLOCK_STATE, *PKWAIT_BLOCK_STATE;
+#else
 typedef struct _KWAIT_BLOCK {
   LIST_ENTRY WaitListEntry;
 #if (NTDDI_VERSION >= NTDDI_WIN8)
@@ -471,6 +498,7 @@ typedef struct _KWAIT_BLOCK {
 #endif
 #endif
 } KWAIT_BLOCK, *PKWAIT_BLOCK, *PRKWAIT_BLOCK;
+#endif
 
 typedef enum _KINTERRUPT_MODE {
   LevelSensitive,
@@ -1297,4 +1325,30 @@ typedef struct _KQUEUE {
 } KQUEUE, *PKQUEUE, *RESTRICTED_POINTER PRKQUEUE;
 
 $endif (_NTIFS_)
+$if (0)
+#define SSDT_MAX_ENTRIES 2
 
+typedef struct _KSERVICE_TABLE_DESCRIPTOR
+{
+    PULONG_PTR Base;
+    PULONG Count;
+    ULONG Limit;
+#if defined(_IA64_)
+    LONG TableBaseGpOffset;
+#endif
+    PUCHAR Number;
+} KSERVICE_TABLE_DESCRIPTOR, *PKSERVICE_TABLE_DESCRIPTOR;
+
+typedef struct _KAFFINITY_EX
+{
+    USHORT Count;
+    USHORT Size;
+    ULONG Reserved;
+    ULONG64 Bitmap[8];
+} KAFFINITY_EX, *PKAFFINITY_EX;
+
+extern NTKERNELAPI ULONG_PTR KiBugCheckData[5];
+extern KSERVICE_TABLE_DESCRIPTOR NTSYSAPI KeServiceDescriptorTable[SSDT_MAX_ENTRIES];
+extern KSERVICE_TABLE_DESCRIPTOR NTSYSAPI KeServiceDescriptorTableShadow[SSDT_MAX_ENTRIES];
+
+$endif (0)
