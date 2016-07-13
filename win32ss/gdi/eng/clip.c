@@ -10,7 +10,9 @@
 DBG_DEFAULT_CHANNEL(EngClip);
 
 
-static __inline int
+static
+int
+__cdecl
 CompareRightDown(
     const RECTL *r1,
     const RECTL *r2)
@@ -46,7 +48,9 @@ CompareRightDown(
     return Cmp;
 }
 
-static __inline int
+static
+int
+__cdecl
 CompareRightUp(
     const RECTL *r1,
     const RECTL *r2)
@@ -82,7 +86,9 @@ CompareRightUp(
     return Cmp;
 }
 
-static __inline int
+static
+int
+__cdecl
 CompareLeftDown(
     const RECTL *r1,
     const RECTL *r2)
@@ -118,7 +124,9 @@ CompareLeftDown(
     return Cmp;
 }
 
-static __inline int
+static
+int
+__cdecl
 CompareLeftUp(
     const RECTL *r1,
     const RECTL *r2)
@@ -157,7 +165,24 @@ VOID
 FASTCALL
 IntEngInitClipObj(XCLIPOBJ *Clip)
 {
-    Clip->Rects = &Clip->rclBounds;
+    Clip->ClipObj.iUniq = 0;
+    Clip->ClipObj.rclBounds.left = LONG_MIN;
+    Clip->ClipObj.rclBounds.top = LONG_MIN;
+    Clip->ClipObj.rclBounds.right = LONG_MAX;
+    Clip->ClipObj.rclBounds.bottom = LONG_MAX;
+    Clip->ClipObj.iDComplexity = DC_TRIVIAL;
+    Clip->ClipObj.iFComplexity = FC_RECT;
+    Clip->ClipObj.iMode = TC_RECTANGLES;
+    Clip->ClipObj.fjOptions = 0;
+
+    Clip->Rects = Clip->ClipObj.arcBuffer;
+    Clip->BufferSize = RTL_NUMBER_OF(Clip->ClipObj.arcBuffer);
+    Clip->RectCount = 1;
+    Clip->ClipObj.arcBuffer[0].left = 0;
+    Clip->ClipObj.arcBuffer[0].top = 0;
+    Clip->ClipObj.arcBuffer[0].right = 0;
+    Clip->ClipObj.arcBuffer[0].bottom = 0;
+    Clip->prgn = NULL;
 }
 
 VOID FASTCALL
@@ -170,49 +195,78 @@ IntEngFreeClipResources(XCLIPOBJ *Clip)
 
 VOID
 FASTCALL
-IntEngUpdateClipRegion(
-    XCLIPOBJ* Clip,
-    ULONG count,
-    const RECTL* pRect,
-    const RECTL* rcBounds)
+XCLIPOBJ_vSetRect(
+    XCLIPOBJ* pxco,
+    const RECTL* prc)
 {
-    if(count > 1)
+    /* Set the rect */
+    pxco->Rects[0] = *prc;
+    pxco->RectCount = 1;
+    pxco->EnumOrder = CD_ANY;
+
+    /* Update the complexity */
+    pxco->ClipObj.iDComplexity = (((prc->top == prc->bottom) &&
+                                 (prc->left == prc->right))
+                                 ? DC_TRIVIAL : DC_RECT);
+    pxco->ClipObj.iFComplexity = FC_RECT;
+}
+
+VOID
+FASTCALL
+XCLIPOBJ_vUpdate(
+    XCLIPOBJ* pxco,
+    PREGION prgnClip)
+{
+    /* Update the region pointer and the count of rects */
+    pxco->prgn = prgnClip;
+    pxco->RectCount = prgnClip->rdh.nCount;
+
+    /* Update the CLIPOBJ */
+    pxco->ClipObj.iUniq = prgnClip->iUniq;
+    if (pxco->RectCount == 1)
     {
-        RECTL* NewRects = EngAllocMem(0, FIELD_OFFSET(ENUMRECTS, arcl[count]), GDITAG_CLIPOBJ);
-
-        if(NewRects != NULL)
-        {
-            Clip->RectCount = count;
-            Clip->iDirection = CD_ANY;
-            RtlCopyMemory(NewRects, pRect, count * sizeof(RECTL));
-
-            Clip->iDComplexity = DC_COMPLEX;
-            Clip->iFComplexity = ((Clip->RectCount <= 4) ? FC_RECT4 : FC_COMPLEX);
-            Clip->iMode = TC_RECTANGLES;
-            Clip->rclBounds = *rcBounds;
-
-            if (Clip->Rects != &Clip->rclBounds)
-                EngFreeMem(Clip->Rects);
-            Clip->Rects = NewRects;
-        }
+        pxco->ClipObj.iDComplexity = RECTL_bIsEmpty(&prgnClip->rclBounds) ?
+                                         DC_TRIVIAL : DC_RECT);
+        pxco->ClipObj.iFComplexity = FC_RECT;
     }
     else
     {
-        Clip->iDirection = CD_ANY;
+        pxco->ClipObj.iDComplexity = DC_COMPLEX;
+        pxco->ClipObj.iFComplexity = ((pxco->RectCount <= 4) ?
+                                          FC_RECT4 : FC_COMPLEX);;
+    }
 
-        Clip->iDComplexity = (((rcBounds->top == rcBounds->bottom) &&
-                                     (rcBounds->left == rcBounds->right))
-                                     ? DC_TRIVIAL : DC_RECT);
+    /* Use the buffer of the region, which is sorted right-down */
+    pxco->EnumOrder = CD_RIGHTDOWN;
+}
 
-        Clip->iFComplexity = FC_RECT;
-        Clip->iMode = TC_RECTANGLES;
-        Clip->rclBounds = *rcBounds;
-        Clip->RectCount = 1;
-        if (Clip->Rects != &Clip->rclBounds)
-            EngFreeMem(Clip->Rects);
-        Clip->Rects = &Clip->rclBounds;
+VOID
+FASTCALL
+XCLIPOBJ_vUpdateBufferSize(
+    XCLIPOBJ* pxco,
+    ULONG cRects)
+{
+}
+
+VOID
+FASTCALL
+XCLIPOBJ_vSetDrawingBounds(
+    XCLIPOBJ* pxco,
+    PRECT prcDraw)
+{
+    if (pxco->prgn != NULL)
+    {
+        RECTL_bIntersectRect(&pxco->ClipObj.rclBounds,
+                             pxco->prgn->rdh.Bounds,
+                             prcDraw);
+    }
+    else
+    {
+        NT_ASSERT(pxco->RectCount == 1);
+        pxco->ClipObj.rclBounds = *prcDraw;
     }
 }
+
 
 /*
  * @implemented
@@ -262,44 +316,88 @@ CLIPOBJ_cEnumStart(
     XCLIPOBJ* Clip = (XCLIPOBJ *)pco;
     SORTCOMP CompareFunc;
 
-    Clip->bAll    = bAll;
-    Clip->iType   = iType;
-    Clip->EnumPos = 0;
-    Clip->EnumMax = (cMaxRects > 0) ? cMaxRects : Clip->RectCount;
+    NT_ASSERT(iType == CT_RECTANGLES);
 
-    if (CD_ANY != iDirection && Clip->iDirection != iDirection)
+    /* Check if the clip object has a region */
+    if (Clip->prgn != NULL)
     {
-        switch (iDirection)
+        /* Update rect count */
+        Clip->RectCount = Clip->prgn->rdh.Count;
+        prc = Clip->prgn->rdh.Buffer;
+    }
+    else
+    {
+        prc = Clip->Rects;
+    }
+
+    if (bAll)
+    {
+        Clip->EnumMax = (cMaxRects > 0) ? cMaxRects : Clip->RectCount;
+
+    }
+    else
+    {
+
+    }
+
+    Clip->EnumPos = 0;
+
+    if (bAll)
+    {
+        if ((iDirection == CD_RIGHTDOWN) && (Clip->prgn != NULL))
         {
-            case CD_RIGHTDOWN:
-                CompareFunc = (SORTCOMP) CompareRightDown;
-                break;
+            prcl = Clip->prgn->rdh.Buffer;
+        }
+        else if ((iDirection == CD_ANY) || (iDirection == Clip->EnumOrder))
+        {
+            prcl = Clip->Rects;
+        }
 
-            case CD_RIGHTUP:
-                CompareFunc = (SORTCOMP) CompareRightUp;
-                break;
+        if ((iDirection != CD_ANY) && (iDirection != Clip->EnumOrder))
+        {
+            if ((iDirection == CD_RIGHTDOWN) && (Clip->prgn != NULL))
+            {
+                Clip->EnumOrder = CD_RIGHTDOWN
+            }
 
-            case CD_LEFTDOWN:
-                CompareFunc = (SORTCOMP) CompareLeftDown;
-                break;
+            switch (iDirection)
+            {
+                case CD_RIGHTDOWN:
 
-            case CD_LEFTUP:
-                CompareFunc = (SORTCOMP) CompareLeftUp;
-                break;
+                    CompareFunc = (SORTCOMP) CompareRightDown;
+                    break;
 
-            default:
-                ERR("Invalid iDirection %lu\n", iDirection);
+                case CD_RIGHTUP:
+                    CompareFunc = (SORTCOMP) CompareRightUp;
+                    break;
+
+                case CD_LEFTDOWN:
+                    CompareFunc = (SORTCOMP) CompareLeftDown;
+                    break;
+
+                case CD_LEFTUP:
+                    CompareFunc = (SORTCOMP) CompareLeftUp;
+                    break;
+
+                default:
+                    ERR("Invalid iDirection %lu\n", iDirection);
                 iDirection = Clip->iDirection;
-                CompareFunc = NULL;
-                break;
-        }
+                    CompareFunc = NULL;
+                    break;
+            }
 
-        if (NULL != CompareFunc)
-        {
-            EngSort((PBYTE) Clip->Rects, sizeof(RECTL), Clip->RectCount, CompareFunc);
-        }
+            if (NULL != CompareFunc)
+            {
+                EngSort((PBYTE) Clip->Rects, sizeof(RECTL), Clip->RectCount, CompareFunc);
+            }
 
         Clip->iDirection = iDirection;
+        }
+
+    }
+    else
+    {
+
     }
 
     /* Return the number of rectangles enumerated */
