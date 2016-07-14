@@ -47,15 +47,14 @@ BLTOBJ::~BLTOBJ (
         vUnlockDevices();
     }
 
-    /* Check if we locked a DC */
-    if (_fDCsLocked)
+    /* Unlock DCs */
+    if (_pdcTrg != NULL)
     {
-        NT_ASSERT(_pdcTrg != NULL);
         DC_UnlockDc(_pdcTrg);
-        if (_pdcSrc != NULL)
-        {
-            DC_UnlockDc(_pdcSrc);
-        }
+    }
+    if (_pdcSrc != NULL)
+    {
+        DC_UnlockDc(_pdcSrc);
     }
 
     /* Check if we initialized an EXLATEOBJ */
@@ -124,9 +123,9 @@ BLTOBJ::bInit (
     }
     else
     {
-        _pdcTrg = NULL;
-        _pdcSrc = DC_LockDc(hdcSrc);
-        if (_pdcSrc == NULL)
+        _pdcSrc = NULL;
+        _pdcTrg = DC_LockDc(hdcTrg);
+        if (_pdcTrg == NULL)
         {
             bResult = FALSE;
             goto Exit;
@@ -164,7 +163,6 @@ BLTOBJ::bInit (
     NT_ASSERT(_pdcTrg != NULL);
     NT_ASSERT((hdcSrc == NULL) || (_pdcSrc != NULL));
 
-    _fDCsLocked = TRUE;
     bResult = TRUE;
 
 Exit:
@@ -176,12 +174,13 @@ Exit:
         if (_pdcTrg != NULL)
         {
             DC_UnlockDc(_pdcTrg);
+            _pdcTrg = NULL;
         }
         if (_pdcSrc != NULL)
         {
             DC_UnlockDc(_pdcSrc);
+            _pdcSrc = NULL;
         }
-        _fDCsLocked = FALSE;
     }
 
     return bResult;

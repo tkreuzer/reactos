@@ -21,8 +21,8 @@ GreLineTo(
         return FALSE;
     }
 
-    /* Check for empty memory DCs */
-    if (!bltobj.bTrgDcHasSurface() || !bltobj.bSrcDcHasSurface())
+    /* Check for empty memory DC */
+    if (!bltobj.bTrgDcHasSurface())
     {
         return TRUE;
     }

@@ -37,7 +37,6 @@ class BLTOBJ
         ULONG _fl;
         struct
         {
-            FLONG _fDCsLocked : 1;
             FLONG _fDevicesLocked : 1;
             FLONG _fXlateInitialized : 1;
             FLONG _fXlateNeedsCleanup : 1;
@@ -57,6 +56,8 @@ public:
         VOID)
     {
         _fl = 0;
+        _pdcSrc = NULL;
+        _pdcTrg = NULL;
     }
 
     ~BLTOBJ(
