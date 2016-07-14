@@ -629,7 +629,9 @@ EXLATEOBJ_vInitXlateFromDCs(
     pexlo->ppalDstDc = pdcDst->dclevel.ppal;
 }
 
-VOID NTAPI EXLATEOBJ_vInitSrcMonoXlate(
+VOID
+NTAPI
+EXLATEOBJ_vInitSrcMonoXlate(
     PEXLATEOBJ pexlo,
     PPALETTE ppalDst,
     COLORREF crBackgroundClr,
