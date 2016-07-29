@@ -920,9 +920,21 @@ GreGetDIBitmapInfo(
     pbmi->bmiHeader.biPlanes = 1;
     pbmi->bmiHeader.biCompression = SURFACE_iCompression(psurf);
     pbmi->bmiHeader.biSizeImage = psurf->SurfObj.cjBits;
-    pbmi->bmiHeader.biXPelsPerMeter = 0;
-    pbmi->bmiHeader.biYPelsPerMeter = 0;
-    pbmi->bmiHeader.biBitCount = gajBitsPerFormat[psurf->SurfObj.iBitmapFormat];
+    pbmi->bmiHeader.biXPelsPerMeter = psurf->sizlDim.cx;
+    pbmi->bmiHeader.biYPelsPerMeter = psurf->sizlDim.cy;
+
+    /* Check if the caller requests a color table */
+    if (pbmi->bmiHeader.biBitCount != 0)
+    {
+        /* Synthesize a color table */
+        __debugbreak();
+    }
+    else
+    {
+        /* Just return the bit depth */
+        pbmi->bmiHeader.biBitCount =
+            gajBitsPerFormat[psurf->SurfObj.iBitmapFormat];
+    }
 
     /* Set the number of colors */
     if (pbmi->bmiHeader.biBitCount <= 8)
@@ -1012,20 +1024,19 @@ GreGetDIBits(
     if (!DC_bIsBitmapCompatible(pdc, psurfBmp))
     {
         /* Dereference the bitmap, unlock the DC and fail. */
-        SURFACE_ShareUnlockSurface(psurfBmp);
-        DC_UnlockDc(pdc);
-        return 0;
+        //SURFACE_ShareUnlockSurface(psurfBmp);
+        //DC_UnlockDc(pdc);
+        //return 0;
     }
 
+    /* Get the bit depth of the bitmap */
+    cBitsPixel = gajBitsPerFormat[psurfBmp->SurfObj.iBitmapFormat];
+
     /* Calculate width of one dest line */
-    lDeltaDst = WIDTH_BYTES_ALIGN32(pbmi->bmiHeader.biWidth,
-                                    pbmi->bmiHeader.biBitCount);
+    lDeltaDst = WIDTH_BYTES_ALIGN32(pbmi->bmiHeader.biWidth, cBitsPixel);
 
     /* Calculate the image size */
     pbmi->bmiHeader.biSizeImage = lDeltaDst * abs(pbmi->bmiHeader.biHeight);
-
-    /* Set planes to 1 */
-    pbmi->bmiHeader.biPlanes = 1;
 
     /* Check if there is anything to do */
     if (pjBits == NULL)
@@ -1035,13 +1046,6 @@ GreGetDIBits(
     }
     else if (iStartScan < (ULONG)psurfBmp->SurfObj.sizlBitmap.cy)
     {
-        /* Calculate the maximum number of scan lines to be copied */
-        cScans = min(cScans, psurfBmp->SurfObj.sizlBitmap.cy - iStartScan);
-        cScans = min(cScans, cjMaxBits / lDeltaDst);
-
-        /* Get the bit depth of the bitmap */
-        cBitsPixel = gajBitsPerFormat[psurfBmp->SurfObj.iBitmapFormat];
-
         /* Get the compression of the bitmap */
         iCompression = SURFACE_iCompression(psurfBmp);
 
@@ -1049,6 +1053,11 @@ GreGetDIBits(
         if ((cBitsPixel == pbmi->bmiHeader.biBitCount) &&
             (iCompression == pbmi->bmiHeader.biCompression))
         {
+
+            /* Calculate the maximum number of scan lines to be copied */
+            cScans = min(cScans, psurfBmp->SurfObj.sizlBitmap.cy - iStartScan);
+            cScans = min(cScans, cjMaxBits / lDeltaDst);
+
             /* Calculate the maximum length of a line */
             cjLine = min(lDeltaDst, abs(psurfBmp->SurfObj.lDelta));
 
@@ -1189,6 +1198,7 @@ NtGdiGetDIBitsInternal(
     if ((pbmi->bmiHeader.biSize < sizeof(BITMAPINFOHEADER)) ||
         (pbmi->bmiHeader.biSize > cjMaxInfo))
     {
+        iResult = 0;
         goto cleanup;
     }
 
@@ -1204,7 +1214,7 @@ NtGdiGetDIBitsInternal(
     }
 
     /* Check if the bitcount member is initialized */
-    if (pbmi->bmiHeader.biBitCount != 0)
+    if (pjBits) // (pbmi->bmiHeader.biBitCount != 0)
     {
         /* Call the internal function */
         iResult = GreGetDIBits(hdc,
@@ -1395,7 +1405,7 @@ NtGdiSetDIBitsToDeviceInternal(
     _In_ INT ySrc,
     _In_ DWORD iStartScan,
     _In_ DWORD cNumScan,
-    _In_ LPBYTE pjBits,
+    _In_ LPBYTE pjInitBits,
     _In_ LPBITMAPINFO pbmiUser,
     _In_ DWORD iUsage,
     _In_ UINT cjMaxBits,
@@ -1405,20 +1415,7 @@ NtGdiSetDIBitsToDeviceInternal(
 {
     PBITMAPINFO pbmi;
     HANDLE hSecure;
-    ULONG cyDIB;
-    INT yTop, iResult;
-__debugbreak();
-    /* Check if parameters are valid */
-    if ((cNumScan == 0) || (cx >= INT_MAX) || (cy >= INT_MAX))
-    {
-        return 0;
-    }
-
-    /* Check if the bitmap buffer is not NULL and DWORD aligned */
-    if (!pjBits || ((ULONG_PTR)pjBits & (sizeof(DWORD) - 1)))
-    {
-        return 0;
-    }
+    INT iResult = 0;
 
     /* Capture a safe copy of the bitmap info */
     pbmi = DibProbeAndCaptureBitmapInfo(pbmiUser, iUsage, &cjMaxInfo);
@@ -1429,13 +1426,14 @@ __debugbreak();
     }
 
     /* Secure the user mode buffer for the bits */
-    hSecure = EngSecureMemForRead(pjBits, cjMaxBits);
+    hSecure = EngSecureMemForRead(pjInitBits, cjMaxBits);
     if (!hSecure)
     {
         iResult = 0;
         goto leave;
     }
 
+#if 1 // FIXME: move to Gre?
     /* Even when nothing is copied, the function returns the scanlines */
     iResult = cNumScan;
 
@@ -1478,7 +1476,7 @@ __debugbreak();
     {
         pbmi->bmiHeader.biHeight = cNumScan;
     }
-
+#endif
     /* Call the internal function with the secure pointers */
     iResult = GreStretchDIBitsInternal(hdcDest,
                                        xDst,
@@ -1489,7 +1487,7 @@ __debugbreak();
                                        ySrc,
                                        cx,
                                        cy,
-                                       pjBits,
+                                       pjInitBits,
                                        pbmi,
                                        iUsage,
                                        MAKEROP4(SRCCOPY, SRCCOPY),
