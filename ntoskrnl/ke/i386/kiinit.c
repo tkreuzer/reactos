@@ -9,11 +9,14 @@
 /* INCLUDES *****************************************************************/
 
 #include <ntoskrnl.h>
-#define NDEBUG
+//#define NDEBUG
 #include <debug.h>
 #include "internal/i386/trap_x.h"
 
 /* GLOBALS *******************************************************************/
+
+/* Function pointer for early debug prints */
+ULONG (*FrLdrDbgPrint)(const char *Format, ...);
 
 /* Boot and double-fault/NMI/DPC stack */
 UCHAR DECLSPEC_ALIGN(PAGE_SIZE) P0BootStackData[KERNEL_STACK_SIZE] = {0};
@@ -528,7 +531,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         /* FIXME */
         DPRINT1("SMP Boot support not yet present\n");
     }
-
+DPRINT1("KiInitializeKernel 1\n");
     /* Setup the Idle Thread */
     KeInitializeThread(InitProcess,
                        InitThread,
@@ -566,9 +569,10 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
     Prcb->CurrentThread = InitThread;
     Prcb->NextThread = NULL;
     Prcb->IdleThread = InitThread;
-
+DPRINT1("KiInitializeKernel 2\n");
     /* Initialize the Kernel Executive */
     ExpInitializeExecutive(Number, LoaderBlock);
+DPRINT1("KiInitializeKernel 3\n");
 
     /* Only do this on the boot CPU */
     if (!Number)
@@ -722,6 +726,10 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     PKTSS Tss;
     PKIPCR Pcr;
     KIRQL DummyIrql;
+
+    /* HACK */
+    FrLdrDbgPrint = LoaderBlock->u.I386.CommonDataArea;
+    FrLdrDbgPrint("Hello from KiSystemStartup!!!\n");
 
     /* Boot cycles timestamp */
     BootCycles = __rdtsc();
