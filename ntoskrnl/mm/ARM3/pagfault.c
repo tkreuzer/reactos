@@ -831,9 +831,6 @@ MiCompleteProtoPteFault(IN BOOLEAN StoreInstruction,
         *LockedProtoPfn = NULL;
     }
 
-    /* Release the PFN lock */
-    MiReleasePfnLock(OldIrql);
-
     /* Remove special/caching bits */
     Protection &= ~MM_PROTECT_SPECIAL;
 
@@ -1144,9 +1141,7 @@ MiResolveProtoPteFault(IN BOOLEAN StoreInstruction,
     /* Make sure there's some protection mask */
     if (TempPte.u.Long == 0)
     {
-        /* Release the lock */
         DPRINT1("Access on reserved section?\n");
-        MiReleasePfnLock(OldIrql);
         return STATUS_ACCESS_VIOLATION;
     }
 
@@ -1350,27 +1345,29 @@ MiDispatchFault(IN ULONG FaultCode,
             }
             else if (PointerPte->u.Hard.Valid == 1)
             {
-                ASSERT(FALSE);
+                /* Resolve the fault */
+                ASSERT(PointerPte->u.Hard.Valid == 0);
+                Status = MiResolveProtoPteFault(StoreInstruction,
+                                                Address,
+                                                PointerPte,
+                                                PointerProtoPte,
+                                                NULL,
+                                                NULL,
+                                                NULL,
+                                                Process,
+                                                LockIrql,
+                                                TrapInformation);
+                ASSERT(Status == STATUS_SUCCESS);
+
+                /* Release the PFN lock */
+                KeReleaseQueuedSpinLock(LockQueuePfnLock, OldIrql);
+
+                /* Complete this as a transition fault */
+                ASSERT(OldIrql == KeGetCurrentIrql());
+                ASSERT(OldIrql <= APC_LEVEL);
+                ASSERT(KeAreAllApcsDisabled() == TRUE);
+                return Status;
             }
-
-            /* Resolve the fault -- this will release the PFN lock */
-            Status = MiResolveProtoPteFault(!MI_IS_NOT_PRESENT_FAULT(FaultCode),
-                                            Address,
-                                            PointerPte,
-                                            PointerProtoPte,
-                                            &OutPfn,
-                                            NULL,
-                                            NULL,
-                                            Process,
-                                            LockIrql,
-                                            TrapInformation);
-            ASSERT(Status == STATUS_SUCCESS);
-
-            /* Complete this as a transition fault */
-            ASSERT(OldIrql == KeGetCurrentIrql());
-            ASSERT(OldIrql <= APC_LEVEL);
-            ASSERT(KeAreAllApcsDisabled() == TRUE);
-            return Status;
         }
         else
         {
@@ -1607,6 +1604,9 @@ MiDispatchFault(IN ULONG FaultCode,
         ASSERT(KeAreAllApcsDisabled() == TRUE);
         return Status;
     }
+
+    /* Check if the PTE is completely empty */
+    if (TempPte.u.Long == 0) return STATUS_ACCESS_VIOLATION;
 
     //
     // The PTE must be invalid but not completely empty. It must also not be a
