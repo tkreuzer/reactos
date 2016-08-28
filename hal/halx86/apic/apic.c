@@ -231,11 +231,13 @@ ApicSetIrql(KIRQL Irql)
 }
 #define ApicRaiseIrql ApicSetIrql
 
-#ifdef APIC_LAZY_IRQL
 FORCEINLINE
 VOID
 ApicLowerIrql(KIRQL Irql)
 {
+#ifdef _M_AMD64
+    __writecr8(Irql);
+#elif defined(APIC_LAZY_IRQL)
     __writefsbyte(FIELD_OFFSET(KPCR, Irql), Irql);
 
     /* Is the new Irql lower than set in the TPR? */
@@ -247,9 +249,9 @@ ApicLowerIrql(KIRQL Irql)
         /* Need to lower it back */
         ApicWrite(APIC_TPR, IrqlToTpr(Irql));
     }
-}
 #else
-#define ApicLowerIrql ApicSetIrql
+    /* Convert IRQL and write the TPR */
+    ApicWrite(APIC_TPR, IrqlToTpr(Irql));
 #endif
 
 UCHAR
