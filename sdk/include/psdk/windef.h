@@ -93,20 +93,6 @@ typedef int INT;
 #endif
 #endif
 
-#ifdef __GNUC__
-#define PACKED __attribute__((packed))
-#ifndef __declspec
-#define __declspec(e) __attribute__((e))
-#endif
-#ifndef _declspec
-#define _declspec(e) __attribute__((e))
-#endif
-#elif defined(__WATCOMC__)
-#define PACKED
-#else
-#define PACKED
-#endif
-
 #undef far
 #undef near
 #undef pascal
@@ -149,19 +135,7 @@ typedef int INT;
 #define CONST const
 #endif
 
-#ifndef _DEF_WINBOOL_
-#define _DEF_WINBOOL_
-typedef int WINBOOL;
-#pragma push_macro("BOOL")
-#undef BOOL
-#if !defined(__OBJC__) && !defined(__OBJC_BOOL) && !defined(__objc_INCLUDE_GNU)
 typedef int BOOL;
-#endif
-#define BOOL WINBOOL
-typedef BOOL *PBOOL;
-typedef BOOL *LPBOOL;
-#pragma pop_macro("BOOL")
-#endif /* _DEF_WINBOOL_ */
 
 typedef unsigned char BYTE;
 typedef unsigned short WORD;
@@ -172,6 +146,8 @@ typedef unsigned short WORD;
 #endif
 typedef float FLOAT;
 typedef FLOAT *PFLOAT;
+typedef BOOL *PBOOL;
+typedef BOOL *LPBOOL;
 typedef BYTE *PBYTE;
 typedef BYTE *LPBYTE;
 typedef int *PINT;
@@ -202,7 +178,7 @@ typedef unsigned int *LPUINT;
 #include <winnt.h>
 #endif
 
-//#include <specstrings.h>
+#include <specstrings.h>
 
 typedef UINT_PTR WPARAM;
 typedef LONG_PTR LPARAM;
