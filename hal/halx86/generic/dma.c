@@ -1045,7 +1045,7 @@ HalpScatterGatherAdapterControl(IN PDEVICE_OBJECT DeviceObject,
 	AdapterControlContext->Mdl = Mdl;
 	AdapterControlContext->CurrentVa = CurrentVa;
 	AdapterControlContext->Length = Length;
-	AdapterControlContext->MapRegisterCount = PAGE_ROUND_UP(Length) >> PAGE_SHIFT;
+	AdapterControlContext->MapRegisterCount = BYTES_TO_PAGES(Length);
 	AdapterControlContext->AdapterListControlRoutine = ExecutionRoutine;
 	AdapterControlContext->AdapterListControlContext = Context;
 	AdapterControlContext->WriteToDevice = WriteToDevice;
