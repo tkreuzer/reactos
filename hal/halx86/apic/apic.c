@@ -672,7 +672,7 @@ HalEnableSystemInterrupt(
     IN KINTERRUPT_MODE InterruptMode)
 {
     IOAPIC_REDIRECTION_REGISTER ReDirReg;
-    PKPRCB Prcb = KeGetCurrentPrcb();
+    ULONG ProcessorNumber = KeGetCurrentProcessorNumber();
     UCHAR Index;
     ASSERT(Irql <= HIGH_LEVEL);
     ASSERT((IrqlToTpr(Irql) & 0xF0) == (Vector & 0xF0));
@@ -703,7 +703,7 @@ HalEnableSystemInterrupt(
     if (ReDirReg.DestinationMode == APIC_DM_Logical)
     {
         /* Set the bit for this cpu */
-        ReDirReg.Destination |= ApicLogicalId(Prcb->Number);
+        ReDirReg.Destination |= ApicLogicalId(ProcessorNumber);
     }
 
     /* Set the trigger mode */
