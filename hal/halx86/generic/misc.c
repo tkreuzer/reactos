@@ -173,7 +173,7 @@ HalpFlushTLB(VOID)
     //
     // Check for CPUID support
     //
-    if (KeGetCurrentPrcb()->CpuID)
+    if (1)
     {
         //
         // Check for global bit in CPU features
