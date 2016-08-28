@@ -71,7 +71,7 @@ NTAPI
 HalInitSystem(IN ULONG BootPhase,
               IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
-    PKPRCB Prcb = KeGetCurrentPrcb();
+    PKPCR Pcr = KeGetPcr();
 
     /* Check the boot phase */
     if (BootPhase == 0)
@@ -83,17 +83,17 @@ HalInitSystem(IN ULONG BootPhase,
         HalpGetParameters(LoaderBlock);
 
         /* Check for PRCB version mismatch */
-        if (Prcb->MajorVersion != PRCB_MAJOR_VERSION)
+        if (Pcr->MajorVersion != 1)
         {
             /* No match, bugcheck */
-            KeBugCheckEx(MISMATCHED_HAL, 1, Prcb->MajorVersion, PRCB_MAJOR_VERSION, 0);
+            KeBugCheckEx(MISMATCHED_HAL, 1, Pcr->MajorVersion, 1, 0);
         }
 
         /* Checked/free HAL requires checked/free kernel */
-        if (Prcb->BuildType != HalpBuildType)
+        //if (Pcr->BuildType != HalpBuildType)
         {
             /* No match, bugcheck */
-            KeBugCheckEx(MISMATCHED_HAL, 2, Prcb->BuildType, HalpBuildType, 0);
+        //    KeBugCheckEx(MISMATCHED_HAL, 2, Pcr->BuildType, HalpBuildType, 0);
         }
 
         /* Initialize ACPI */
@@ -115,8 +115,8 @@ HalInitSystem(IN ULONG BootPhase,
         HalGetDmaAdapter = HalpGetDmaAdapter;
 
         HalGetInterruptTranslator = NULL;  // FIXME: TODO
-        HalResetDisplay = HalpBiosDisplayReset;
-        HalHaltSystem = HaliHaltSystem;
+        HalPrivateDispatchTable.HalResetDisplay = HalpBiosDisplayReset;
+        HalPrivateDispatchTable.HalHaltSystem = HaliHaltSystem;
 
         /* Setup I/O space */
         HalpDefaultIoSpace.Next = HalpAddressUsageList;
