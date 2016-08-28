@@ -30,6 +30,19 @@ int __mingw_init_ehandler(void)
     return 1;
 }
 
+int __mingw_init_ehandler (void)
+{
+    /* Nothing to do */
+    return 1;
+}
+
+void
+__do_global_ctors(void)
+{
+    __do_xtors(__xi_a, __xi_z);
+    __do_xtors(__xc_a, __xc_z);
+}
+
 BOOL
 WINAPI
 _CRT_INIT0(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
