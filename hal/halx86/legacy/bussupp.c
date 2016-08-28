@@ -161,7 +161,7 @@ HalpRegisterInternalBusHandlers(VOID)
     PBUS_HANDLER Bus;
 
     /* Only do processor 1 */
-    if (KeGetCurrentPrcb()->Number) return;
+    if (KeGetCurrentProcessorNumber()) return;
 
     /* Register root support */
     HalpInitBusHandler();
