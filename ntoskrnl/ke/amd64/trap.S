@@ -8,6 +8,7 @@
 /* INCLUDES ******************************************************************/
 
 #include <asm.inc>
+
 #include <ksamd64.inc>
 #include <trapamd64.inc>
 
@@ -32,9 +33,9 @@ EXTERN KdSetOwedBreakpoints:PROC
 MACRO(DispatchException, Status, Number, P1, P2, P3)
     mov eax, Status
     mov edx, Number
-    mov r9, P1
-    mov r10, P2
-    mov r11, P3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
     call InternalDispatchException
 ENDM
 
@@ -45,6 +46,186 @@ MACRO(Fatal, BugcheckCode)
     call KiSystemFatalException
 ENDM
 
+/*************************************************************************/
+
+#define TRAPFLAG_VOLATILES HEX(01)
+#define TRAPFLAG_NONVOLATILES HEX(02)
+#define TRAPFLAG_XMM HEX(04)
+#define TRAPFLAG_SEGMENTS HEX(08)
+#define TRAPFLAG_DEBUG HEX(10)
+#define TRAPFLAG_HAS_ERRORCODE HEX(100)
+
+#define TRAPFLAG_SYSTEMSERVICE (TRAPFLAG_VOLATILES|TRAPFLAG_DEBUG)
+#define TRAPFLAG_ALL HEX(ff)
+
+/*
+ * ENTER_TRAP_FRAME - Allocate KTRAP_FRAME_LENGTH and save registers to it
+ */
+MACRO(ENTER_TRAP_FRAME, Flags)
+LOCAL dont_swap
+
+    /* Save the trap flags for this trap */
+    TRAPFLAGS = VAL(Flags)
+
+    /* Size of hardware trap frame */
+if (TRAPFLAGS AND TRAPFLAG_HAS_ERRORCODE)
+    .pushframe code
+    SIZE_INITIAL_FRAME = 6 * 8
+else
+    .pushframe
+    SIZE_INITIAL_FRAME = 5 * 8
+endif
+
+    /* Make room for a KTRAP_FRAME */
+    sub rsp, (KTRAP_FRAME_LENGTH - SIZE_INITIAL_FRAME)
+    .allocstack (KTRAP_FRAME_LENGTH - SIZE_INITIAL_FRAME)
+    .endprolog
+
+    /* Save rbp */
+    mov [rsp + KTRAP_FRAME_Rbp], rbp
+
+    /* Point rbp to the KTRAP_FRAME */
+    lea rbp, [rsp]
+
+if (TRAPFLAGS AND TRAPFLAG_NONVOLATILES)
+    /* Save non-volatile registers */
+    mov [rbp + KTRAP_FRAME_Rbx], rbx
+    mov [rbp + KTRAP_FRAME_Rdi], rdi
+    mov [rbp + KTRAP_FRAME_Rsi], rsi
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_VOLATILES)
+    /* Save volatile registers */
+    mov [rbp + KTRAP_FRAME_Rax], rax
+    mov [rbp + KTRAP_FRAME_Rcx], rcx
+    mov [rbp + KTRAP_FRAME_Rdx], rdx
+    mov [rbp + KTRAP_FRAME_R8], r8
+    mov [rbp + KTRAP_FRAME_R9], r9
+    mov [rbp + KTRAP_FRAME_R10], r10
+    mov [rbp + KTRAP_FRAME_R11], r11
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_XMM)
+    /* Save xmm registers */
+    movdqa [rbp + KTRAP_FRAME_Xmm0], xmm0
+    movdqa [rbp + KTRAP_FRAME_Xmm1], xmm1
+    movdqa [rbp + KTRAP_FRAME_Xmm2], xmm2
+    movdqa [rbp + KTRAP_FRAME_Xmm3], xmm3
+    movdqa [rbp + KTRAP_FRAME_Xmm4], xmm4
+    movdqa [rbp + KTRAP_FRAME_Xmm5], xmm5
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_SEGMENTS)
+    /* Save segment selectors */
+    mov ax, ds
+    mov [rbp + KTRAP_FRAME_SegDs], ax
+    mov ax, es
+    mov [rbp + KTRAP_FRAME_SegEs], ax
+    mov ax, fs
+    mov [rbp + KTRAP_FRAME_SegFs], ax
+    mov ax, gs
+    mov [rbp + KTRAP_FRAME_SegGs], ax
+endif
+
+    /* Save previous mode and swap gs when it was UserMode */
+    mov ax, [rbp + KTRAP_FRAME_SegCs]
+    and al, 1
+    mov [rbp + KTRAP_FRAME_PreviousMode], al
+    jz dont_swap
+    swapgs
+dont_swap:
+
+    /* Save previous irql */
+    mov rax, cr8
+    mov [rbp + KTRAP_FRAME_PreviousIrql], al
+
+// KTRAP_FRAME_FaultIndicator
+// KTRAP_FRAME_ExceptionActive
+// KTRAP_FRAME_MxCsr
+
+if (TRAPFLAGS AND TRAPFLAG_DEBUG)
+    /* Save debug registers */
+    mov rax, dr0
+    mov [rbp + KTRAP_FRAME_Dr0], rax
+    mov rax, dr1
+    mov [rbp + KTRAP_FRAME_Dr1], rax
+    mov rax, dr2
+    mov [rbp + KTRAP_FRAME_Dr2], rax
+    mov rax, dr3
+    mov [rbp + KTRAP_FRAME_Dr3], rax
+    mov rax, dr6
+    mov [rbp + KTRAP_FRAME_Dr6], rax
+    mov rax, dr7
+    mov [rbp + KTRAP_FRAME_Dr7], rax
+endif
+
+// KTRAP_FRAME_DebugControl
+// KTRAP_FRAME_LastBranchToRip
+// KTRAP_FRAME_LastBranchFromRip
+// KTRAP_FRAME_LastExceptionToRip
+// KTRAP_FRAME_LastExceptionFromRip
+// KTRAP_FRAME_TrapFrame
+
+    /* Make sure the direction flag is cleared */
+    cld
+ENDM
+
+
+/*
+ *  LEAVE_TRAP_FRAME - Restore registers and free stack space
+ */
+MACRO(LEAVE_TRAP_FRAME)
+LOCAL dont_swap_back
+if (TRAPFLAGS AND TRAPFLAG_SEGMENTS)
+    /* Restore segment selectors */
+    mov ax, [rbp + KTRAP_FRAME_SegDs]
+    mov ds, ax
+    mov ax, [rbp + KTRAP_FRAME_SegEs]
+    mov es, ax
+    mov ax, [rbp + KTRAP_FRAME_SegFs]
+    mov fs, ax
+endif
+
+    test byte ptr [rbp + KTRAP_FRAME_PreviousMode], 1
+    jz dont_swap_back
+    swapgs
+dont_swap_back:
+
+if (TRAPFLAGS AND TRAPFLAG_NONVOLATILES)
+    /* Restore non-volatile registers */
+    mov rbx, [rbp + KTRAP_FRAME_Rbx]
+    mov rdi, [rbp + KTRAP_FRAME_Rdi]
+    mov rsi, [rbp + KTRAP_FRAME_Rsi]
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_VOLATILES)
+    /* Restore volatile registers */
+    mov rax, [rbp + KTRAP_FRAME_Rax]
+    mov rcx, [rbp + KTRAP_FRAME_Rcx]
+    mov rdx, [rbp + KTRAP_FRAME_Rdx]
+    mov r8, [rbp + KTRAP_FRAME_R8]
+    mov r9, [rbp + KTRAP_FRAME_R9]
+    mov r10, [rbp + KTRAP_FRAME_R10]
+    mov r11, [rbp + KTRAP_FRAME_R11]
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_XMM)
+    /* Restore xmm registers */
+    movdqa xmm0, [rbp + KTRAP_FRAME_Xmm0]
+    movdqa xmm1, [rbp + KTRAP_FRAME_Xmm1]
+    movdqa xmm2, [rbp + KTRAP_FRAME_Xmm2]
+    movdqa xmm3, [rbp + KTRAP_FRAME_Xmm3]
+    movdqa xmm4, [rbp + KTRAP_FRAME_Xmm4]
+    movdqa xmm5, [rbp + KTRAP_FRAME_Xmm5]
+endif
+
+    /* Restore rbp */
+    mov rbp, [rbp + KTRAP_FRAME_Rbp]
+
+    /* Adjust stack pointer */
+    add rsp, KTRAP_FRAME_Rip
+ENDM
+/***********************************************************/
 
 /* FUNCTIONS *****************************************************************/
 
@@ -211,6 +392,8 @@ FUNC KiBreakpointTrap
     /* Push pseudo error code */
     EnterTrap TF_SAVE_ALL
 
+    TRAPINFO KiBreakpointTrap
+
     /* Check if the frame was from kernelmode */
     test word ptr [rbp + KTRAP_FRAME_SegCs], 3
     jz KiBreakpointTrapKMode
@@ -306,7 +489,11 @@ FUNC KiNpxNotAvailableFault
     jz KiNpxNotAvailableFaultExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
 KiNpxNotAvailableFaultExit:
     /* Return */
@@ -386,7 +573,11 @@ FUNC KiGeneralProtectionFault
     jge KiGpfExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
 KiGpfFatal:
 
@@ -494,6 +685,9 @@ FUNC KiAlignmentFault
     /* We have an error code */
     EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
 
+    /* Enable interrupts */
+    sti
+
     /* Bugcheck */
     Fatal EXCEPTION_ALIGNMENT_CHECK
     jmp $
@@ -525,7 +719,11 @@ FUNC KiXmmException
     jge KiXmmExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
 KiXmmExit:
     /* Return */
@@ -534,6 +732,18 @@ ENDFUNC
 
 
 /* SOFTWARE INTERRUPT SERVICES ***********************************************/
+
+PUBLIC KiApcInterrupt
+FUNC KiApcInterrupt
+    /* We have an error code */
+    EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
+
+    UNIMPLEMENTED KiApcInterrupt
+    int 3
+
+    jmp $
+ENDFUNC KiApcInterrupt
+
 
 PUBLIC KiRaiseAssertion
 FUNC KiRaiseAssertion
