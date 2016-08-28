@@ -82,6 +82,115 @@
                 *((POINTER_TO_(y))Buffer));                             \
     TYPE2_END(y)
 
+/*****************************************************************************/
+#define HAL_SUPPORTED_RANGE_VERSION 1
+typedef struct _SUPPORTED_RANGE
+{
+    struct _SUPPORTED_RANGE *Next;
+    ULONG SystemAddressSpace;
+    LONGLONG SystemBase;
+    LONGLONG Base;
+    LONGLONG Limit;
+} SUPPORTED_RANGE, *PSUPPORTED_RANGE;
+
+typedef struct _SUPPORTED_RANGES
+{
+    USHORT Version;
+    BOOLEAN Sorted;
+    UCHAR Reserved;
+    ULONG NoIO;
+    SUPPORTED_RANGE IO;
+    ULONG NoMemory;
+    SUPPORTED_RANGE Memory;
+    ULONG NoPrefetchMemory;
+    SUPPORTED_RANGE PrefetchMemory;
+    ULONG NoDma;
+    SUPPORTED_RANGE Dma;
+} SUPPORTED_RANGES, *PSUPPORTED_RANGES;
+
+typedef
+ULONG
+(NTAPI *PGETSETBUSDATA)(
+    IN PBUS_HANDLER BusHandler,
+    IN PBUS_HANDLER RootHandler,
+    IN ULONG SlotNumber,
+    OUT PVOID Buffer,
+    IN ULONG Offset,
+    IN ULONG Length
+);
+
+typedef
+NTSTATUS
+(NTAPI *PADJUSTRESOURCELIST)(
+    IN PBUS_HANDLER BusHandler,
+    IN PBUS_HANDLER RootHandler,
+    IN OUT PIO_RESOURCE_REQUIREMENTS_LIST *Resources
+);
+
+typedef
+NTSTATUS
+(NTAPI *PASSIGNSLOTRESOURCES)(
+    IN PBUS_HANDLER BusHandler,
+    IN PBUS_HANDLER RootHandler,
+    IN PUNICODE_STRING RegistryPath,
+    IN PUNICODE_STRING DriverClassName,
+    IN PDRIVER_OBJECT DriverObject,
+    IN PDEVICE_OBJECT DeviceObject,
+    IN ULONG SlotNumber,
+    IN OUT PCM_RESOURCE_LIST *AllocatedResources
+);
+
+typedef
+ULONG
+(NTAPI *PGETINTERRUPTVECTOR)(
+    IN PBUS_HANDLER BusHandler,
+    IN PBUS_HANDLER RootHandler,
+    IN ULONG BusInterruptLevel,
+    IN ULONG BusInterruptVector,
+    OUT PKIRQL Irql,
+    OUT PKAFFINITY Affinity
+);
+
+typedef
+BOOLEAN
+(NTAPI *PTRANSLATEBUSADDRESS)(
+    IN PBUS_HANDLER BusHandler,
+    IN PBUS_HANDLER RootHandler,
+    IN PHYSICAL_ADDRESS BusAddress,
+    IN OUT PULONG AddressSpace,
+    OUT PPHYSICAL_ADDRESS TranslatedAddress
+);
+
+#define HAL_BUS_HANDLER_VERSION 1
+typedef struct _BUS_HANDLER
+{
+    ULONG Version;
+    INTERFACE_TYPE InterfaceType;
+    BUS_DATA_TYPE ConfigurationType;
+    ULONG BusNumber;
+    PDEVICE_OBJECT DeviceObject;
+    struct _BUS_HANDLER *ParentHandler;
+    PVOID BusData;
+    ULONG DeviceControlExtensionSize;
+    PSUPPORTED_RANGES BusAddresses;
+    ULONG Reserved[4];
+    PGETSETBUSDATA GetBusData;
+    PGETSETBUSDATA SetBusData;
+    PADJUSTRESOURCELIST AdjustResourceList;
+    PASSIGNSLOTRESOURCES AssignSlotResources;
+    PGETINTERRUPTVECTOR GetInterruptVector;
+    PTRANSLATEBUSADDRESS TranslateBusAddress;
+    PVOID Spare1;
+    PVOID Spare2;
+    PVOID Spare3;
+    PVOID Spare4;
+    PVOID Spare5;
+    PVOID Spare6;
+    PVOID Spare7;
+    PVOID Spare8;
+} BUS_HANDLER;
+
+/******************************************************************************/
 typedef NTSTATUS
 (NTAPI *PciIrqRange)(
     IN PBUS_HANDLER BusHandler,
