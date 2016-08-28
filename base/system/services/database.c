@@ -652,6 +652,18 @@ ScmRemoveServiceImage(PSERVICE_IMAGE pServiceImage)
     HeapFree(GetProcessHeap(), 0, pServiceImage);
 }
 
+static
+VOID
+ScmDereferenceServiceImage(
+    _Inout_ PSERVICE_IMAGE pServiceImage)
+{
+    pServiceImage->dwImageRunCount--;
+
+    if (pServiceImage->dwImageRunCount == 0)
+    {
+        ScmRemoveServiceImage(pServiceImage);
+    }
+}
 
 PSERVICE
 ScmGetServiceEntryByName(LPCWSTR lpServiceName)
@@ -825,13 +837,8 @@ ScmDeleteServiceRecord(PSERVICE lpService)
     /* Dereference the service image */
     if (lpService->lpImage)
     {
-        lpService->lpImage->dwImageRunCount--;
-
-        if (lpService->lpImage->dwImageRunCount == 0)
-        {
-            ScmRemoveServiceImage(lpService->lpImage);
-            lpService->lpImage = NULL;
-        }
+        ScmDereferenceServiceImage(lpService->lpImage);
+        lpService->lpImage = NULL;
     }
 
     /* Decrement the group reference counter */
@@ -2027,22 +2034,42 @@ ScmLoadService(PSERVICE Service,
 
     DPRINT("ScmLoadService() called\n");
     DPRINT("Start Service %p (%S)\n", Service, Service->lpServiceName);
-
-    if (Service->Status.dwCurrentState != SERVICE_STOPPED)
-    {
-        DPRINT("Service %S is already running\n", Service->lpServiceName);
-        return ERROR_SERVICE_ALREADY_RUNNING;
-    }
-
     DPRINT("Service->Type: %lu\n", Service->Status.dwServiceType);
 
     if (Service->Status.dwServiceType & SERVICE_DRIVER)
     {
+        /* Check if the driver is already loaded */
+        if (Service->Status.dwCurrentState != SERVICE_STOPPED)
+        {
+            DPRINT("Driver %S is already loaded!\n", Service->lpServiceName);
+            return ERROR_SERVICE_ALREADY_RUNNING;
+        }
+
         /* Start the driver */
         dwError = ScmStartDriver(Service);
     }
     else // if (Service->Status.dwServiceType & (SERVICE_WIN32 | SERVICE_INTERACTIVE_PROCESS))
     {
+        /* Check if the service is already running */
+        if (Service->Status.dwCurrentState != SERVICE_STOPPED)
+        {
+            /* Check if the service process is still alive */
+            dwError = ScmControlService(Service->lpImage->hControlPipe,
+                                        Service->lpServiceName,
+                                        (SERVICE_STATUS_HANDLE)Service,
+                                        SERVICE_CONTROL_INTERROGATE);
+            if (dwError == ERROR_SUCCESS)
+            {
+                DPRINT("Service %S is already running!\n", Service->lpServiceName);
+                return ERROR_SERVICE_ALREADY_RUNNING;
+            }
+
+            /* Service was terminated, cleanup */
+            ScmDereferenceServiceImage(Service->lpImage);
+            Service->lpImage = NULL;
+            Service->Status.dwCurrentState = SERVICE_STOPPED;
+        }
+
         /* Start user-mode service */
         dwError = ScmCreateOrReferenceServiceImage(Service);
         if (dwError == ERROR_SUCCESS)
