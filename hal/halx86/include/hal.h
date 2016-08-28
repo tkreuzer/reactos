@@ -26,15 +26,9 @@
 #endif
 
 /* IFS/DDK/NDK Headers */
-#include <ntifs.h>
-#include <arc/arc.h>
+#include <xdk/xdk.h>
 
-#include <ndk/asm.h>
-#include <ndk/halfuncs.h>
-#include <ndk/inbvfuncs.h>
-#include <ndk/iofuncs.h>
-#include <ndk/kefuncs.h>
-#include <ndk/rtlfuncs.h>
+#include <arc/arc.h>
 
 /* Internal shared PCI and ACPI header */
 #include <drivers/pci/pci.h>
@@ -43,14 +37,12 @@
 /* Internal kernel headers */
 #define KeGetCurrentThread _KeGetCurrentThread
 #ifdef _M_AMD64
-#include <internal/amd64/ke.h>
-#include <internal/amd64/mm.h>
-#include "internal/amd64/intrin_i.h"
+#include <reactos/arch/amd64/arch_amd64.h>
 #else
-#include <internal/i386/ke.h>
-#include <internal/i386/mm.h>
-#include "internal/i386/intrin_i.h"
+#error add me
 #endif
+
+#include <hackstuff.h>
 
 #define TAG_HAL    ' laH'
 #define TAG_BUS_HANDLER 'BusH'
