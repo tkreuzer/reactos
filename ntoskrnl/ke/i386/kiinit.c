@@ -9,14 +9,11 @@
 /* INCLUDES *****************************************************************/
 
 #include <ntoskrnl.h>
-//#define NDEBUG
+#define NDEBUG
 #include <debug.h>
 #include "internal/i386/trap_x.h"
 
 /* GLOBALS *******************************************************************/
-
-/* Function pointer for early debug prints */
-ULONG (*FrLdrDbgPrint)(const char *Format, ...);
 
 /* Boot and double-fault/NMI/DPC stack */
 UCHAR DECLSPEC_ALIGN(PAGE_SIZE) P0BootStackData[KERNEL_STACK_SIZE] = {0};
@@ -398,85 +395,44 @@ KiInitializePcr(IN ULONG ProcessorNumber,
 CODE_SEG("INIT")
 VOID
 NTAPI
-KiInitializeKernel(IN PKPROCESS InitProcess,
-                   IN PKTHREAD InitThread,
-                   IN PVOID IdleStack,
-                   IN PKPRCB Prcb,
-                   IN CCHAR Number,
-                   IN PLOADER_PARAMETER_BLOCK LoaderBlock)
+KiInitializeMachineDependent0(
+    IN PKPRCB Prcb,
+    IN CCHAR Number,
+    IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
     BOOLEAN NpxPresent;
-    ULONG FeatureBits;
-    ULONG PageDirectory[2];
-    PVOID DpcStack;
     ULONG Vendor[3];
     KIRQL DummyIrql;
 
     /* Detect and set the CPU Type */
     KiSetProcessorType();
 
-    /* Check if an FPU is present */
-    NpxPresent = KiIsNpxPresent();
-
-    /* Initialize the Power Management Support for this PRCB */
-    PoInitializePrcb(Prcb);
-
     /* Bugcheck if this is a 386 CPU */
     if (Prcb->CpuType == 3) KeBugCheckEx(UNSUPPORTED_PROCESSOR, 0x386, 0, 0, 0);
 
     /* Get the processor features for the CPU */
-    FeatureBits = KiGetFeatureBits();
+    Prcb->FeatureBits = KiGetFeatureBits();
 
-    /* Set the default NX policy (opt-in) */
-    SharedUserData->NXSupportPolicy = NX_SUPPORT_POLICY_OPTIN;
+    /* Detect 8-byte compare exchange support */
+    if (!(Prcb->FeatureBits & KF_CMPXCHG8B))
+    {
+        /* Copy the vendor string */
+        RtlCopyMemory(Vendor, Prcb->VendorString, sizeof(Vendor));
 
-    /* Check if NPX is always on */
-    if (strstr(KeLoaderBlock->LoadOptions, "NOEXECUTE=ALWAYSON"))
-    {
-        /* Set it always on */
-        SharedUserData->NXSupportPolicy = NX_SUPPORT_POLICY_ALWAYSON;
-        FeatureBits |= KF_NX_ENABLED;
-    }
-    else if (strstr(KeLoaderBlock->LoadOptions, "NOEXECUTE=OPTOUT"))
-    {
-        /* Set it in opt-out mode */
-        SharedUserData->NXSupportPolicy = NX_SUPPORT_POLICY_OPTOUT;
-        FeatureBits |= KF_NX_ENABLED;
-    }
-    else if ((strstr(KeLoaderBlock->LoadOptions, "NOEXECUTE=OPTIN")) ||
-             (strstr(KeLoaderBlock->LoadOptions, "NOEXECUTE")))
-    {
-        /* Set the feature bits */
-        FeatureBits |= KF_NX_ENABLED;
-    }
-    else if ((strstr(KeLoaderBlock->LoadOptions, "NOEXECUTE=ALWAYSOFF")) ||
-             (strstr(KeLoaderBlock->LoadOptions, "EXECUTE")))
-    {
-        /* Set disabled mode */
-        SharedUserData->NXSupportPolicy = NX_SUPPORT_POLICY_ALWAYSOFF;
-        FeatureBits |= KF_NX_DISABLED;
+        /* Bugcheck the system. Windows *requires* this */
+        KeBugCheckEx(0x5D,
+                     (1 << 24 ) | (Prcb->CpuType << 16) | Prcb->CpuStep,
+                     Vendor[0],
+                     Vendor[1],
+                     Vendor[2]);
     }
 
-    /* Save feature bits */
-    Prcb->FeatureBits = FeatureBits;
-
-    /* Save CPU state */
-    KiSaveProcessorControlState(&Prcb->ProcessorState);
-
-    /* Get cache line information for this CPU */
-    KiGetCacheInformation();
-
-    /* Initialize spinlocks and DPC data */
-    KiInitSpinLocks(Prcb, Number);
+    /* Check if an FPU is present (and enable it) */
+    NpxPresent = KiIsNpxPresent();
 
     /* Check if this is the Boot CPU */
-    if (!Number)
+    if (Number == 0)
     {
-        /* Set Node Data */
-        KeNodeBlock[0] = &KiNode0;
-        Prcb->ParentNode = KeNodeBlock[0];
-        KeNodeBlock[0]->ProcessorMask = Prcb->SetMember;
-
         /* Set boot-level flags */
         KeI386NpxPresent = NpxPresent;
         KeI386CpuType = Prcb->CpuType;
@@ -484,139 +440,30 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         KeProcessorArchitecture = PROCESSOR_ARCHITECTURE_INTEL;
         KeProcessorLevel = (USHORT)Prcb->CpuType;
         if (Prcb->CpuID) KeProcessorRevision = Prcb->CpuStep;
-        KeFeatureBits = FeatureBits;
-        KeI386FxsrPresent = (KeFeatureBits & KF_FXSR) ? TRUE : FALSE;
-        KeI386XMMIPresent = (KeFeatureBits & KF_XMMI) ? TRUE : FALSE;
+        KeI386FxsrPresent = (Prcb->FeatureBits & KF_FXSR) ? TRUE : FALSE;
+        KeI386XMMIPresent = (Prcb->FeatureBits & KF_XMMI) ? TRUE : FALSE;
+        KeFeatureBits = Prcb->FeatureBits;
 
-        /* Detect 8-byte compare exchange support */
-        if (!(KeFeatureBits & KF_CMPXCHG8B))
-        {
-            /* Copy the vendor string */
-            RtlCopyMemory(Vendor, Prcb->VendorString, sizeof(Vendor));
-
-            /* Bugcheck the system. Windows *requires* this */
-            KeBugCheckEx(UNSUPPORTED_PROCESSOR,
-                         (1 << 24 ) | (Prcb->CpuType << 16) | Prcb->CpuStep,
-                         Vendor[0],
-                         Vendor[1],
-                         Vendor[2]);
-        }
-
-        /* Set the current MP Master KPRCB to the Boot PRCB */
-        Prcb->MultiThreadSetMaster = Prcb;
-
-        /* Lower to APC_LEVEL */
-        KeLowerIrql(APC_LEVEL);
+        /* Set basic CPU Features that user mode can read */
+        SharedUserData->ProcessorFeatures[PF_MMX_INSTRUCTIONS_AVAILABLE] =
+            (KeFeatureBits & KF_MMX) ? TRUE: FALSE;
+        SharedUserData->ProcessorFeatures[PF_COMPARE_EXCHANGE_DOUBLE] =
+            (KeFeatureBits & KF_CMPXCHG8B) ? TRUE: FALSE;
+        SharedUserData->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE] =
+            ((KeFeatureBits & KF_FXSR) && (KeFeatureBits & KF_XMMI)) ? TRUE: FALSE;
+        SharedUserData->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE] =
+            ((KeFeatureBits & KF_FXSR) && (KeFeatureBits & KF_XMMI64)) ? TRUE: FALSE;
+        SharedUserData->ProcessorFeatures[PF_3DNOW_INSTRUCTIONS_AVAILABLE] =
+            (KeFeatureBits & KF_3DNOW) ? TRUE: FALSE;
+        SharedUserData->ProcessorFeatures[PF_RDTSC_INSTRUCTION_AVAILABLE] =
+            (KeFeatureBits & KF_RDTSC) ? TRUE: FALSE;
 
         /* Initialize some spinlocks */
         KeInitializeSpinLock(&KiFreezeExecutionLock);
         KeInitializeSpinLock(&Ki486CompatibilityLock);
 
-        /* Initialize portable parts of the OS */
-        KiInitSystem();
-
-        /* Initialize the Idle Process and the Process Listhead */
-        InitializeListHead(&KiProcessListHead);
-        PageDirectory[0] = 0;
-        PageDirectory[1] = 0;
-        KeInitializeProcess(InitProcess,
-                            0,
-                            0xFFFFFFFF,
-                            PageDirectory,
-                            FALSE);
-        InitProcess->QuantumReset = MAXCHAR;
-    }
-    else
-    {
-        /* FIXME */
-        DPRINT1("SMP Boot support not yet present\n");
-    }
-DPRINT1("KiInitializeKernel 1\n");
-    /* Setup the Idle Thread */
-    KeInitializeThread(InitProcess,
-                       InitThread,
-                       NULL,
-                       NULL,
-                       NULL,
-                       NULL,
-                       NULL,
-                       IdleStack);
-    InitThread->NextProcessor = Number;
-    InitThread->Priority = HIGH_PRIORITY;
-    InitThread->State = Running;
-    InitThread->Affinity = 1 << Number;
-    InitThread->WaitIrql = DISPATCH_LEVEL;
-    InitProcess->ActiveProcessors = 1 << Number;
-
-    /* HACK for MmUpdatePageDir */
-    ((PETHREAD)InitThread)->ThreadsProcess = (PEPROCESS)InitProcess;
-
-    /* Set basic CPU Features that user mode can read */
-    SharedUserData->ProcessorFeatures[PF_MMX_INSTRUCTIONS_AVAILABLE] =
-        (KeFeatureBits & KF_MMX) ? TRUE: FALSE;
-    SharedUserData->ProcessorFeatures[PF_COMPARE_EXCHANGE_DOUBLE] =
-        (KeFeatureBits & KF_CMPXCHG8B) ? TRUE: FALSE;
-    SharedUserData->ProcessorFeatures[PF_XMMI_INSTRUCTIONS_AVAILABLE] =
-        ((KeFeatureBits & KF_FXSR) && (KeFeatureBits & KF_XMMI)) ? TRUE: FALSE;
-    SharedUserData->ProcessorFeatures[PF_XMMI64_INSTRUCTIONS_AVAILABLE] =
-        ((KeFeatureBits & KF_FXSR) && (KeFeatureBits & KF_XMMI64)) ? TRUE: FALSE;
-    SharedUserData->ProcessorFeatures[PF_3DNOW_INSTRUCTIONS_AVAILABLE] =
-        (KeFeatureBits & KF_3DNOW) ? TRUE: FALSE;
-    SharedUserData->ProcessorFeatures[PF_RDTSC_INSTRUCTION_AVAILABLE] =
-        (KeFeatureBits & KF_RDTSC) ? TRUE: FALSE;
-
-    /* Set up the thread-related fields in the PRCB */
-    Prcb->CurrentThread = InitThread;
-    Prcb->NextThread = NULL;
-    Prcb->IdleThread = InitThread;
-DPRINT1("KiInitializeKernel 2\n");
-    /* Initialize the Kernel Executive */
-    ExpInitializeExecutive(Number, LoaderBlock);
-DPRINT1("KiInitializeKernel 3\n");
-
-    /* Only do this on the boot CPU */
-    if (!Number)
-    {
-        /* Calculate the time reciprocal */
-        KiTimeIncrementReciprocal =
-            KiComputeReciprocal(KeMaximumIncrement,
-                                &KiTimeIncrementShiftCount);
-
-        /* Update DPC Values in case they got updated by the executive */
-        Prcb->MaximumDpcQueueDepth = KiMaximumDpcQueueDepth;
-        Prcb->MinimumDpcRate = KiMinimumDpcRate;
-        Prcb->AdjustDpcThreshold = KiAdjustDpcThreshold;
-
-        /* Allocate the DPC Stack */
-        DpcStack = MmCreateKernelStack(FALSE, 0);
-        if (!DpcStack) KeBugCheckEx(NO_PAGES_AVAILABLE, 1, 0, 0, 0);
-        Prcb->DpcStack = DpcStack;
-
-        /* Allocate the IOPM save area */
-        Ki386IopmSaveArea = ExAllocatePoolWithTag(PagedPool,
-                                                  IOPM_SIZE,
-                                                  '  eK');
-        if (!Ki386IopmSaveArea)
-        {
-            /* Bugcheck. We need this for V86/VDM support. */
-            KeBugCheckEx(NO_PAGES_AVAILABLE, 2, IOPM_SIZE, 0, 0);
-        }
     }
 
-    /* Raise to Dispatch */
-    KeRaiseIrql(DISPATCH_LEVEL, &DummyIrql);
-
-    /* Set the Idle Priority to 0. This will jump into Phase 1 */
-    KeSetPriorityThread(InitThread, 0);
-
-    /* If there's no thread scheduled, put this CPU in the Idle summary */
-    KiAcquirePrcbLock(Prcb);
-    if (!Prcb->NextThread) KiIdleSummary |= 1 << Number;
-    KiReleasePrcbLock(Prcb);
-
-    /* Raise back to HIGH_LEVEL and clear the PRCB for the loader block */
-    KeRaiseIrql(HIGH_LEVEL, &DummyIrql);
-    LoaderBlock->Prcb = 0;
 }
 
 CODE_SEG("INIT")
@@ -663,17 +510,45 @@ KiGetMachineBootPointers(IN PKGDTENTRY *Gdt,
 CODE_SEG("INIT")
 VOID
 NTAPI
+KiInitializeKernel(IN PKPROCESS InitProcess,
+                   IN PKTHREAD InitThread,
+                   IN PVOID IdleStack,
+                   IN PKPRCB Prcb,
+                   IN CCHAR Number,
+                   IN PLOADER_PARAMETER_BLOCK LoaderBlock);
+
+VOID
+NTAPI
+INIT_FUNCTION
 KiSystemStartupBootStack(VOID)
 {
+    PKPRCB Prcb = KeGetCurrentPrcb();
     PKTHREAD Thread;
+
+    KiInitializeMachineDependent0(Prcb,
+                                  KeNumberProcessors - 1,
+                                  KeLoaderBlock);
 
     /* Initialize the kernel for the current CPU */
     KiInitializeKernel(&KiInitialProcess.Pcb,
                        (PKTHREAD)KeLoaderBlock->Thread,
                        (PVOID)(KeLoaderBlock->KernelStack & ~3),
-                       (PKPRCB)__readfsdword(KPCR_PRCB),
+                       Prcb,
                        KeNumberProcessors - 1,
                        KeLoaderBlock);
+
+    if (KeNumberProcessors == 1)
+    {
+        /* Allocate the IOPM save area. */
+        Ki386IopmSaveArea = ExAllocatePoolWithTag(PagedPool,
+                                                  PAGE_SIZE * 2,
+                                                  '  eK');
+        if (!Ki386IopmSaveArea)
+        {
+            /* Bugcheck. We need this for V86/VDM support. */
+            KeBugCheckEx(NO_PAGES_AVAILABLE, 2, PAGE_SIZE * 2, 0, 0);
+        }
+    }
 
     /* Set the priority of this thread to 0 */
     Thread = KeGetCurrentThread();
@@ -726,10 +601,6 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     PKTSS Tss;
     PKIPCR Pcr;
     KIRQL DummyIrql;
-
-    /* HACK */
-    FrLdrDbgPrint = LoaderBlock->u.I386.CommonDataArea;
-    FrLdrDbgPrint("Hello from KiSystemStartup!!!\n");
 
     /* Boot cycles timestamp */
     BootCycles = __rdtsc();
