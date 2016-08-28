@@ -17,15 +17,17 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#pragma makedep ident
-#pragma makedep register
-#pragma makedep regtypelib
-
 #include "msiserver_dispids.h"
 import "unknwn.idl";
-import "wtypes.idl";
-import "objidl.idl";
-import "oaidl.idl";
+//import "wtypes.idl";
+//import "objidl.idl";
+//import "oaidl.idl";
+
+#ifndef __WIDL__
+#define threading(model)
+#define progid(str)
+//#define vi_progid(str)
+#endif
 
 cpp_quote("#if 0")
 typedef unsigned long MSIHANDLE;
@@ -34,6 +36,16 @@ typedef int MSICONDITION;
 typedef int MSIRUNMODE;
 typedef int INSTALLSTATE;
 cpp_quote("#endif")
+
+[
+    uuid(000c1666-0000-0000-c000-000000000046),
+    oleautomation,
+    object
+]
+interface IMsiDummy : IUnknown
+{
+    /* dummy to satisfy forward declarations */
+}
 
 [
     uuid(7BDE2046-D03B-4ffc-B84C-A098F38CFF0B),
@@ -50,7 +62,7 @@ interface IWineMsiRemoteDatabase : IUnknown
 }
 
 [
-    uuid(902B3592-9D08-4dfd-A593-D07C52546421),
+    uuid(902B3592-9D08-4dfd-A593-D07C53446421), // FIXME: uuid!!!
     oleautomation,
     object
 ]
@@ -58,14 +70,14 @@ interface IWineMsiRemotePackage : IUnknown
 {
     HRESULT SetMsiHandle( [in] MSIHANDLE handle );
     HRESULT GetActiveDatabase( [out] MSIHANDLE *handle );
-    HRESULT GetProperty( [in] BSTR property, [out, size_is(*size)] BSTR value, [in, out] DWORD *size );
+    HRESULT GetProperty( [in] BSTR property, [out] BSTR *value, [out] DWORD *size );
     HRESULT SetProperty( [in] BSTR property, [in] BSTR value );
     HRESULT ProcessMessage( [in] INSTALLMESSAGE message, [in] MSIHANDLE record );
     HRESULT DoAction( [in] BSTR action );
     HRESULT Sequence( [in] BSTR table, [in] int sequence );
-    HRESULT GetTargetPath( [in] BSTR folder, [out, size_is(*size)] BSTR value, [in, out] DWORD *size );
+    HRESULT GetTargetPath( [in] BSTR folder, [out] BSTR *value, [out] DWORD *size );
     HRESULT SetTargetPath( [in] BSTR folder, [in] BSTR value );
-    HRESULT GetSourcePath( [in] BSTR folder, [out, size_is(*size)] BSTR value, [in, out] DWORD *size );
+    HRESULT GetSourcePath( [in] BSTR folder, [out] BSTR *value, [out] DWORD *size );
     HRESULT GetMode( [in] MSIRUNMODE mode, [out] BOOL *ret );
     HRESULT SetMode( [in] MSIRUNMODE mode, [in] BOOL state );
     HRESULT GetFeatureState( [in] BSTR feature, [out] INSTALLSTATE *installed, [out] INSTALLSTATE *action );
@@ -76,9 +88,7 @@ interface IWineMsiRemotePackage : IUnknown
     HRESULT SetInstallLevel( [in] int level );
     HRESULT FormatRecord( [in] MSIHANDLE record, [out] BSTR *value );
     HRESULT EvaluateCondition( [in] BSTR condition );
-    HRESULT GetFeatureCost( [in] BSTR feature, [in] INT cost_tree, [in] INSTALLSTATE state, [out] INT *cost );
-    HRESULT EnumComponentCosts( [in] BSTR component, [in] DWORD index, [in] INSTALLSTATE state,
-                                [out, size_is(*buflen)] BSTR drive, [in, out] DWORD *buflen, [out] INT *cost, [out] INT *temp );
+    HRESULT GetFeatureCost( [in] BSTR feature, [in] INT cost_tree, [in] INSTALLSTATE state, [out] INT *cost);
 }
 
 [
@@ -133,16 +143,21 @@ interface IMsiRemoteAPI : IUnknown
 }
 
 [
+    uuid(000C1092-0000-0000-C000-000000000046), version(1.0)
+]
+library WindowsInstaller
+{
+[
     helpstring("Msi install server"),
     progid("IMsiServer"),
-    uuid(000c101c-0000-0000-c000-000000000046)
+    uuid(030c101c-0000-0000-c000-000000000046) // error MIDL2270 : duplicate UUID. Same as : IMsiServer [ Coclass 'MsiServer'  ]
 ]
 coclass MsiServer { interface IMsiServer; }
 
 [
     helpstring("Microsoft Windows Installer Message RPC"),
     progid("WindowsInstaller.Message"),
-    uuid(000c101d-0000-0000-c000-000000000046)
+    uuid(030c101d-0000-0000-c000-000000000046) // error MIDL2270 : duplicate UUID. Same as : IMsiMessage [ Coclass 'MsiServerMessage'  ]
 ]
 coclass MsiServerMessage { interface IMsiMessage; }
 
@@ -150,30 +165,22 @@ coclass MsiServerMessage { interface IMsiMessage; }
     threading(both),
     uuid(000c103e-0000-0000-c000-000000000046)
 ]
-coclass PSFactoryBuffer { interface IPSFactoryBuffer; }
-
-[
-    helpstring("Microsoft Windows Installer"),
-    threading(apartment),
-    progid("WindowsInstaller.Installer"),
-    uuid(000c1090-0000-0000-c000-000000000046)
-]
-coclass MsiInstaller { interface Installer; }
+coclass PSFactoryBuffer { interface IMsiDummy; }
 
 [
     uuid(000c1082-0000-0000-c000-000000000046)
 ]
-coclass MsiTransform { interface IMsiTransform; }
+coclass MsiTransform { interface IMsiDummy; }
 
 [
     uuid(000c1084-0000-0000-c000-000000000046)
 ]
-coclass MsiDatabase { }
+coclass MsiDatabase { interface IMsiDummy; }
 
 [
     uuid(000c1086-0000-0000-c000-000000000046)
 ]
-coclass MsiPatch { }
+coclass MsiPatch { interface IMsiDummy; }
 
 [
     threading(apartment),
@@ -185,16 +192,13 @@ coclass MsiServerX3 { interface IMsiServer; }
 [
     uuid(ba26e6fa-4f27-4f56-953a-3f90272018aa)
 ]
-coclass WineMsiRemoteCustomAction { interface WineMsiRemoteCustomAction; }
+coclass WineMsiRemoteCustomAction { interface IWineMsiRemoteCustomAction; }
 
 [
     uuid(902b3592-9d08-4dfd-a593-d07c52546421)
 ]
-coclass WineMsiRemotePackage { interface WineMsiRemotePackage; }
+coclass WineMsiRemotePackage { interface IWineMsiRemotePackage; }
 
-[ uuid(000C1092-0000-0000-C000-000000000046), version(1.0) ]
-library WindowsInstaller
-{
     dispinterface Installer;
     dispinterface Record;
     dispinterface Session;
@@ -392,7 +396,7 @@ library WindowsInstaller
         msiViewModifyValidateNew = 9,
         msiViewModifyValidateField = 10,
         msiViewModifyValidateDelete = 11,
-    } _MsiViewModify;                                /* Added underscore to avoid conflict with function name */
+    } _MsiViewModify; /* Added underscore to avoid conflict with function name */
 
     [ uuid(000C109C-0000-0000-C000-000000000046) ]
     dispinterface View
@@ -558,4 +562,13 @@ library WindowsInstaller
         properties:
         methods:
     }
+
+    [
+       helpstring("Microsoft Windows Installer"),
+       threading(apartment),
+       progid("WindowsInstaller.Installer"),
+       uuid(006c1090-0000-0000-c000-000000000046) // error MIDL2270 : duplicate UUID. Same as : Installer [ Coclass 'MsiInstaller'  ]
+    ]
+    coclass MsiInstaller { interface Installer; }
 }
+
