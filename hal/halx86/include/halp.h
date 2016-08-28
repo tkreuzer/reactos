@@ -589,3 +589,106 @@ extern KAFFINITY HalpDefaultInterruptAffinity;
 extern IDTUsageFlags HalpIDTUsageFlags[MAXIMUM_IDTVECTOR+1];
 
 extern const USHORT HalpBuildType;
+
+#define INITIAL_STALL_COUNT 100
+
+typedef
+PBUS_HANDLER
+(FASTCALL *pHalHandlerForConfigSpace)(
+    IN BUS_DATA_TYPE ConfigSpace,
+    IN ULONG BusNumber
+);
+
+typedef
+VOID
+(NTAPI *pHalLocateHiberRanges)(
+    IN PVOID MemoryMap
+);
+
+typedef
+NTSTATUS
+(NTAPI *PINSTALL_BUS_HANDLER)(
+    IN PBUS_HANDLER Bus
+);
+
+typedef
+NTSTATUS
+(NTAPI *pHalRegisterBusHandler)(
+    IN INTERFACE_TYPE InterfaceType,
+    IN BUS_DATA_TYPE ConfigSpace,
+    IN ULONG BusNumber,
+    IN INTERFACE_TYPE ParentInterfaceType,
+    IN ULONG ParentBusNumber,
+    IN ULONG ContextSize,
+    IN PINSTALL_BUS_HANDLER InstallCallback,
+    OUT PBUS_HANDLER *BusHandler
+);
+
+typedef
+VOID
+(NTAPI *pHalSetWakeEnable)(
+    IN BOOLEAN Enable
+);
+
+typedef
+VOID
+(NTAPI *pHalSetWakeAlarm)(
+    IN ULONGLONG AlartTime,
+    IN PTIME_FIELDS TimeFields
+);
+
+typedef
+NTSTATUS
+(NTAPI *pHalAllocateMapRegisters)(
+    IN PADAPTER_OBJECT AdapterObject,
+    IN ULONG Unknown,
+    IN ULONG Unknown2,
+    PMAP_REGISTER_ENTRY Registers
+);
+
+#define HAL_PRIVATE_DISPATCH_VERSION        2
+typedef struct _HAL_PRIVATE_DISPATCH
+{
+    ULONG Version;
+    pHalHandlerForBus HalHandlerForBus;
+    pHalHandlerForConfigSpace HalHandlerForConfigSpace;
+    pHalLocateHiberRanges HalLocateHiberRanges;
+    pHalRegisterBusHandler HalRegisterBusHandler;
+    pHalSetWakeEnable HalSetWakeEnable;
+    pHalSetWakeAlarm HalSetWakeAlarm;
+    pHalTranslateBusAddress HalPciTranslateBusAddress;
+    pHalAssignSlotResources HalPciAssignSlotResources;
+    pHalHaltSystem HalHaltSystem;
+    pHalFindBusAddressTranslation HalFindBusAddressTranslation;
+    pHalResetDisplay HalResetDisplay;
+    pHalAllocateMapRegisters HalAllocateMapRegisters;
+    pKdSetupPciDeviceForDebugging KdSetupPciDeviceForDebugging;
+    pKdReleasePciDeviceForDebugging KdReleasePciDeviceforDebugging;
+    pKdGetAcpiTablePhase0 KdGetAcpiTablePhase0;
+    pKdCheckPowerButton KdCheckPowerButton;
+    pHalVectorToIDTEntry HalVectorToIDTEntry;
+    pKdMapPhysicalMemory64 KdMapPhysicalMemory64;
+    pKdUnmapVirtualAddress KdUnmapVirtualAddress;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    pKdGetPciDataByOffset KdGetPciDataByOffset;
+    pKdSetPciDataByOffset KdSetPciDataByOffset;
+    PVOID HalGetInterruptVectorOverride;
+    PVOID HalGetVectorInputOverride;
+#endif
+} HAL_PRIVATE_DISPATCH, *PHAL_PRIVATE_DISPATCH;
+
+
+NTSYSAPI HAL_PRIVATE_DISPATCH HalPrivateDispatchTable;
+
+typedef enum _FIRMWARE_REENTRY
+{
+    HalHaltRoutine,
+    HalPowerDownRoutine,
+    HalRestartRoutine,
+    HalRebootRoutine,
+    HalInteractiveModeRoutine,
+    HalMaximumRoutine
+} FIRMWARE_REENTRY, *PFIRMWARE_REENTRY;
+
+#define PRIMARY_VECTOR_BASE 0x30
+
