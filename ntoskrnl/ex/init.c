@@ -739,32 +739,6 @@ ExpInitSystemPhase1(VOID)
 CODE_SEG("INIT")
 BOOLEAN
 NTAPI
-ExInitSystem(VOID)
-{
-    /* Check the initialization phase */
-    switch (ExpInitializationPhase)
-    {
-        case 0:
-
-            /* Do Phase 0 */
-            return ExpInitSystemPhase0();
-
-        case 1:
-
-            /* Do Phase 1 */
-            return ExpInitSystemPhase1();
-
-        default:
-
-            /* Don't know any other phase! Bugcheck! */
-            KeBugCheck(UNEXPECTED_INITIALIZATION_CALL);
-            return FALSE;
-    }
-}
-
-CODE_SEG("INIT")
-BOOLEAN
-NTAPI
 ExpIsLoaderValid(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
     PLOADER_PARAMETER_EXTENSION Extension;
@@ -918,8 +892,7 @@ ExBurnMemory(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
 CODE_SEG("INIT")
 VOID
 NTAPI
-ExpInitializeExecutive(IN ULONG Cpu,
-                       IN PLOADER_PARAMETER_BLOCK LoaderBlock)
+ExpInitializeExecutive(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
     PNLS_DATA_BLOCK NlsData;
     CHAR Buffer[256];
@@ -943,23 +916,6 @@ ExpInitializeExecutive(IN ULONG Cpu,
                      LoaderBlock->Extension->Size,
                      LoaderBlock->Extension->MajorVersion,
                      LoaderBlock->Extension->MinorVersion);
-    }
-
-    /* Initialize PRCB pool lookaside pointers */
-    ExInitPoolLookasidePointers();
-
-    /* Check if this is an application CPU */
-    if (Cpu)
-    {
-        /* Then simply initialize it with HAL */
-        if (!HalInitSystem(ExpInitializationPhase, LoaderBlock))
-        {
-            /* Initialization failed */
-            KeBugCheck(HAL_INITIALIZATION_FAILED);
-        }
-
-        /* We're done */
-        return;
     }
 
     /* Assume no text-mode or remote boot */
@@ -1097,7 +1053,7 @@ ExpInitializeExecutive(IN ULONG Cpu,
     NtGlobalFlag |= CmNtGlobalFlag;
 
     /* Initialize the executive at phase 0 */
-    if (!ExInitSystem()) KeBugCheck(PHASE0_INITIALIZATION_FAILED);
+    if (!ExpInitSystemPhase0()) KeBugCheck(PHASE0_INITIALIZATION_FAILED);
 
     /* Initialize the memory manager at phase 0 */
     if (!MmArmInitSystem(0, LoaderBlock)) KeBugCheck(PHASE0_INITIALIZATION_FAILED);
@@ -1618,7 +1574,7 @@ Phase1InitializationDiscard(IN PVOID Context)
     if (!ObInitSystem()) KeBugCheck(OBJECT1_INITIALIZATION_FAILED);
 
     /* Initialize Basic System Objects and Worker Threads */
-    if (!ExInitSystem()) KeBugCheckEx(PHASE1_INITIALIZATION_FAILED, 0, 0, 1, 0);
+    if (!ExpInitSystemPhase1()) KeBugCheckEx(PHASE1_INITIALIZATION_FAILED, 0, 0, 1, 0);
 
     /* Initialize the later stages of the kernel */
     if (!KeInitSystem()) KeBugCheckEx(PHASE1_INITIALIZATION_FAILED, 0, 0, 2, 0);
