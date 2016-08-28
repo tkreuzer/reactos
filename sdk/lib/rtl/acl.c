@@ -416,6 +416,8 @@ RtlAddAccessDeniedObjectAce(IN OUT PACL Acl,
                                  ACCESS_DENIED_OBJECT_ACE_TYPE);
 }
 
+#define GetNextAce(Ace) ((PACE)((ULONG_PTR)Ace + Ace->Header.AceSize))
+
 /*
  * @implemented
  */
@@ -428,20 +430,70 @@ RtlAddAuditAccessAce(IN PACL Acl,
                      IN BOOLEAN Success,
                      IN BOOLEAN Failure)
 {
-    ULONG Flags = 0;
+    PACE Ace, CurrentAce, AceListEnd;
+    ULONG Index, NewAceCount;
     PAGED_CODE_RTL();
 
     /* Add flags */
     if (Success) Flags |= SUCCESSFUL_ACCESS_ACE_FLAG;
     if (Failure) Flags |= FAILED_ACCESS_ACE_FLAG;
 
-    /* Call the worker routine */
-    return RtlpAddKnownAce(Acl,
-                           Revision,
-                           Flags,
-                           AccessMask,
-                           Sid,
-                           SYSTEM_AUDIT_ACE_TYPE);
+    /* Check if the ACL revision is smaller than the given one */
+    if (Acl->AclRevision <= AclRevision)
+    {
+        /* Update the revision to the given one */
+        AclRevision = Acl->AclRevision;
+    }
+
+    /* Calculate end of the list and check for overflow */
+    AceListEnd = (PACE)((ULONG_PTR)AceList + AceListLength);
+    if (AceListEnd <= AceList)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    CurrentAce = AceList;
+    NextAce = GetNextAce(CurrentAce);
+    NewAceCount = 0;
+
+    /* Iterate through the list */
+    while (NextAce <= AceListEnd)
+    {
+        /* Check if the ACE is valid */
+        if (CurrentAce->Header.AceType == ACCESS_ALLOWED_COMPOUND_ACE_TYPE &&
+            AclRevision < ACL_REVISION3)
+        {
+            /* This is not allowed */
+            return STATUS_INVALID_PARAMETER;
+        }
+
+        /* Count this one and go to the next */
+        NewAceCount++;
+        CurrentAce = NextAce;
+        NextAce = GetNextAce(CurrentAce);
+    }
+
+    if (Ace == NULL ||
+        ((ULONG_PTR)Ace + AceListLength) > ((ULONG_PTR)Acl + Acl->AclSize))
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    CurrentAce = (PACE)(Acl + 1);
+    for (Index = 0; Index < StartingIndex && Index < Acl->AceCount; Index++)
+    {
+        CurrentAce = GetNextAce(CurrentAce);
+    }
+
+    RtlpAddData(AceList,
+                AceListLength,
+                CurrentAce,
+               (ULONG)((ULONG_PTR)Ace - (ULONG_PTR)CurrentAce));
+
+    Acl->AceCount = Acl->AceCount + NewAceCount;
+    Acl->AclRevision = (BYTE)AclRevision;
+
+    return STATUS_SUCCESS;
 }
 
 /*
