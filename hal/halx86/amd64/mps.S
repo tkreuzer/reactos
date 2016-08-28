@@ -1,4 +1,4 @@
-/* 
+/*
  * COPYRIGHT:       See COPYING in the top level directory
  * PROJECT:         ReactOS kernel
  * FILE:            hal/halx86/amd64/mps.S
@@ -24,7 +24,7 @@
   push rdi; \
   push fs; \
   push gs; \
-  
+
 #define AFTER \
   pop  gs; \
   pop  fs; \
@@ -38,7 +38,7 @@
 #ifdef CONFIG_SMP
 PUBLIC MpsIpiInterrupt
 MpsIpiInterrupt:
-    /* Save registers */	
+    /* Save registers */
     BEFORE
 
     /* Call the C handler */
@@ -48,10 +48,10 @@ MpsIpiInterrupt:
     AFTER
     iret
 #endif
-  
+
 PUBLIC MpsErrorInterrupt
 MpsErrorInterrupt:
-    /* Save registers */	
+    /* Save registers */
     BEFORE
 
     /* Call the C handler */
@@ -64,7 +64,7 @@ MpsErrorInterrupt:
 
 PUBLIC MpsSpuriousInterrupt
 MpsSpuriousInterrupt:
-    /* Save registers */	
+    /* Save registers */
     BEFORE
 
     /* Call the C handler */
@@ -76,7 +76,7 @@ MpsSpuriousInterrupt:
 
 PUBLIC MpsTimerInterrupt
 MpsTimerInterrupt:
-    /* Save registers */	
+    /* Save registers */
     BEFORE
 
     mov	ebx, 0xef
@@ -92,6 +92,6 @@ MpsTimerInterrupt:
     /* Return to the caller */
   	AFTER
   	iret
-  
+
 END
 /* EOF */
