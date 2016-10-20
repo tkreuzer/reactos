@@ -199,14 +199,14 @@
 @ stdcall ExInitializeRundownProtectionCacheAwareEx(ptr long)
 @ stdcall ExInitializeZone(ptr long ptr long)
 @ stdcall ExInterlockedAddLargeInteger(ptr long long ptr)
-; ??? @ fastcall -arch=i386,arm ExInterlockedAddLargeStatistic(ptr long)
+@ fastcall -arch=i386,arm ExInterlockedAddLargeStatistic(ptr long)
 @ fastcall ExInterlockedAddUlong(ptr long ptr)
 @ fastcall -arch=i386 ExInterlockedCompareExchange64(ptr ptr ptr)
-; ??? @ stdcall -stub -arch=i386 ExInterlockedDecrementLong(ptr ptr)
-; ??? @ stdcall -stub -arch=i386 ExInterlockedExchangeUlong(ptr long ptr)
-@ stdcall ExInterlockedExtendZone(ptr ptr long ptr)
 @ fastcall -arch=i386,arm ExInterlockedFlushSList(ptr) InterlockedFlushSList
-; ??? @ stdcall -stub -arch=i386,arm ExInterlockedIncrementLong(ptr ptr)
+@ stdcall -stub -arch=i386 ExInterlockedDecrementLong(ptr ptr)
+@ stdcall -stub -arch=i386 ExInterlockedExchangeUlong(ptr long ptr)
+@ stdcall ExInterlockedExtendZone(ptr ptr long ptr)
+@ stdcall -stub -arch=i386,arm ExInterlockedIncrementLong(ptr ptr)
 @ fastcall ExInterlockedInsertHeadList(ptr ptr ptr)
 @ fastcall ExInterlockedInsertTailList(ptr ptr ptr)
 @ fastcall ExInterlockedPopEntryList(ptr ptr)
@@ -763,7 +763,7 @@
 @ stdcall IoRaiseInformationalHardError(long ptr ptr)
 @ stdcall IoReadDiskSignature(ptr long ptr)
 @ extern IoReadOperationCount
-#@ fastcall IoReadPartitionTable(ptr long long ptr)
+@ fastcall -stub IoReadPartitionTable(ptr long long ptr)
 @ stdcall IoReadPartitionTableEx(ptr ptr)
 @ extern IoReadTransferCount
 @ stdcall IoRegisterBootDriverCallback(ptr ptr)
@@ -787,7 +787,7 @@
 @ stdcall IoReplaceFileObjectName(ptr wstr long)
 @ stdcall IoReplacePartitionUnit(ptr ptr long)
 @ stdcall IoReportDetectedDevice(ptr long long long ptr ptr long ptr)
-#@ stdcall IoReportHalResourceUsage(ptr ptr ptr long)
+@ stdcall IoReportHalResourceUsage(ptr ptr ptr long)
 @ stdcall IoReportInterruptActive(ptr)
 @ stdcall IoReportInterruptInactive(ptr)
 @ stdcall IoReportResourceForDetection(ptr ptr long ptr ptr long ptr)
@@ -825,7 +825,7 @@
 @ stdcall IoSetIoPriorityHintIntoThread(ptr long)
 @ stdcall IoSetIrpExtraCreateParameter(ptr ptr)
 @ stdcall IoSetMasterIrpStatus(ptr long)
-#@ fastcall IoSetPartitionInformation(ptr long long long)
+@ fastcall IoSetPartitionInformation(ptr long long long)
 @ stdcall IoSetPartitionInformationEx(ptr long ptr)
 @ stdcall IoSetShareAccess(long long ptr ptr)
 @ stdcall IoSetShareAccessEx(long long ptr ptr ptr)
@@ -885,7 +885,7 @@
 @ stdcall IoWithinStackLimits(ptr ptr)
 @ stdcall IoWriteErrorLogEntry(ptr)
 @ extern IoWriteOperationCount
-#@ fastcall IoWritePartitionTable(ptr long long long ptr)
+@ fastcall IoWritePartitionTable(ptr long long long ptr)
 @ stdcall IoWritePartitionTableEx(ptr ptr)
 @ extern IoWriteTransferCount
 @ fastcall IofCallDriver(ptr ptr)
@@ -1034,7 +1034,7 @@
 @ stdcall KeIsSingleGroupAffinityEx(ptr ptr)
 @ stdcall KeIsSubsetAffinityEx(ptr ptr)
 @ stdcall KeIsWaitListEmpty(ptr)
-;@ cdecl -arch=x86_64 KeLastBranchMSR()
+@ extern -arch=x86_64 KeLastBranchMSR
 @ stdcall KeLeaveCriticalRegion()
 @ stdcall KeLeaveGuardedRegion()
 @ stdcall KeLoadMTRR(ptr)
@@ -1068,7 +1068,7 @@
 @ stdcall KeQueryNodeActiveAffinity(long ptr ptr)
 @ stdcall KeQueryNodeMaximumProcessorCount(long)
 @ stdcall -arch=i386,arm KeQueryInterruptTime()
-;@ cdecl -arch=x86_64 KeQueryPrcbAddress
+@ cdecl -arch=x86_64 KeQueryPrcbAddress(long)
 @ stdcall KeQueryPriorityThread(ptr)
 @ stdcall KeQueryRuntimeThread(ptr ptr)
 @ stdcall KeQuerySystemTimePrecise(ptr)
@@ -1332,7 +1332,6 @@
 @ extern NlsOemLeadByteInfo
 @ stdcall NtAddAtom(wstr long ptr)
 @ stdcall NtAdjustPrivilegesToken(ptr long ptr long ptr ptr)
-; ??? @ stdcall -stub -arch=i386,arm NtAlertThread(ptr)
 @ stdcall NtAllocateLocallyUniqueId(ptr)
 @ stdcall NtAllocateUuids(ptr ptr ptr ptr)
 @ stdcall NtAllocateVirtualMemory(ptr ptr long ptr long long)
