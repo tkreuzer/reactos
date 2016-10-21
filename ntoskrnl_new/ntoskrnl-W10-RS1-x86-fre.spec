@@ -1,11 +1,70 @@
 @ stdcall -noname PsCaptureUserProcessParameters()
 @ stdcall -noname ZwCreateUserProcess()
 @ stdcall -noname ExAllocateTimerInternal()
+@ stdcall ExAcquireAutoExpandPushLockExclusive()
+@ stdcall ExAcquireAutoExpandPushLockShared()
+@ stdcall ExAcquireCacheAwarePushLockExclusiveEx()
+@ stdcall ExAcquireCacheAwarePushLockSharedEx()
+@ stdcall ExAcquireFastMutex()
+@ stdcall ExAcquireFastMutexUnsafe()
+@ stdcall ExAcquirePushLockExclusiveEx()
+@ stdcall ExAcquirePushLockSharedEx()
+@ stdcall ExAcquireRundownProtection()
+@ stdcall ExAcquireRundownProtectionCacheAware()
+@ stdcall ExAcquireRundownProtectionCacheAwareEx()
+@ stdcall ExAcquireRundownProtectionEx()
+@ stdcall ExBlockOnAddressPushLock()
+@ stdcall ExBlockPushLock()
+@ stdcall ExEnterCriticalRegionAndAcquireFastMutexUnsafe()
+@ stdcall ExInitializeRundownProtection()
 @ fastcall -arch=i386,arm ExInterlockedAddLargeStatistic(ptr long)
+@ stdcall ExInterlockedAddUlong()
 @ fastcall -arch=i386 ExInterlockedCompareExchange64(ptr ptr ptr)
 @ fastcall -arch=i386,arm ExInterlockedFlushSList(ptr) InterlockedFlushSList
+@ stdcall ExInterlockedInsertHeadList()
+@ stdcall ExInterlockedInsertTailList()
+@ stdcall ExInterlockedPopEntryList()
 @ fastcall -arch=i386,arm ExInterlockedPopEntrySList(ptr ptr) InterlockedPopEntrySList
+@ stdcall ExInterlockedPushEntryList()
 @ fastcall -arch=i386,arm ExInterlockedPushEntrySList(ptr ptr ptr) InterlockedPushEntrySList
+@ stdcall ExInterlockedRemoveHeadList()
+@ stdcall ExReInitializeRundownProtection()
+@ stdcall ExReInitializeRundownProtectionCacheAware()
+@ stdcall ExReleaseAutoExpandPushLockExclusive()
+@ stdcall ExReleaseAutoExpandPushLockShared()
+@ stdcall ExReleaseCacheAwarePushLockExclusiveEx()
+@ stdcall ExReleaseCacheAwarePushLockSharedEx()
+@ stdcall ExReleaseFastMutex()
+@ stdcall ExReleaseFastMutexUnsafe()
+@ stdcall ExReleaseFastMutexUnsafeAndLeaveCriticalRegion()
+@ stdcall ExReleasePushLockEx()
+@ stdcall ExReleasePushLockExclusiveEx()
+@ stdcall ExReleasePushLockSharedEx()
+@ stdcall ExReleaseResourceAndLeaveCriticalRegion()
+@ stdcall ExReleaseResourceAndLeavePriorityRegion()
+@ stdcall ExReleaseResourceLite()
+@ stdcall ExReleaseRundownProtection()
+@ stdcall ExReleaseRundownProtectionCacheAware()
+@ stdcall ExReleaseRundownProtectionCacheAwareEx()
+@ stdcall ExReleaseRundownProtectionEx()
+@ stdcall ExRundownCompleted()
+@ stdcall ExRundownCompletedCacheAware()
+@ stdcall ExTimedWaitForUnblockPushLock()
+@ stdcall ExTryAcquireAutoExpandPushLockExclusive()
+@ stdcall ExTryAcquireAutoExpandPushLockShared()
+@ stdcall ExTryAcquireCacheAwarePushLockExclusiveEx()
+@ stdcall ExTryAcquireCacheAwarePushLockSharedEx()
+@ stdcall ExTryAcquirePushLockExclusiveEx()
+@ stdcall ExTryAcquirePushLockSharedEx()
+@ stdcall ExTryConvertPushLockSharedToExclusiveEx()
+@ stdcall ExTryToAcquireFastMutex()
+@ stdcall ExUnblockOnAddressPushLockEx()
+@ stdcall ExUnblockPushLockEx()
+@ stdcall ExWaitForRundownProtectionRelease()
+@ stdcall ExWaitForRundownProtectionReleaseCacheAware()
+@ stdcall ExWaitForUnblockPushLock()
+@ stdcall ExfAcquirePushLockExclusive()
+@ stdcall ExfAcquirePushLockShared()
 @ fastcall -arch=i386,arm ExfInterlockedAddUlong(ptr long ptr) ExInterlockedAddUlong
 @ fastcall -arch=i386,arm ExfInterlockedCompareExchange64(ptr ptr ptr) ExInterlockedCompareExchange64
 @ fastcall -arch=i386,arm ExfInterlockedInsertHeadList(ptr ptr ptr) ExInterlockedInsertHeadList
@@ -13,12 +72,19 @@
 @ fastcall -arch=i386,arm ExfInterlockedPopEntryList(ptr ptr) ExInterlockedPopEntryList
 @ fastcall -arch=i386,arm ExfInterlockedPushEntryList(ptr ptr ptr) ExInterlockedPushEntryList
 @ fastcall -arch=i386,arm ExfInterlockedRemoveHeadList(ptr ptr) ExInterlockedRemoveHeadList
+@ stdcall ExfReleasePushLock()
+@ stdcall ExfReleasePushLockExclusive()
+@ stdcall ExfReleasePushLockShared()
+@ stdcall ExfTryAcquirePushLockShared()
+@ stdcall ExfTryToWakePushLock()
+@ stdcall ExfUnblockPushLock()
 @ fastcall -arch=i386 Exfi386InterlockedDecrementLong(ptr)
 @ fastcall -arch=i386 Exfi386InterlockedExchangeUlong(ptr long)
 @ fastcall -arch=i386 Exfi386InterlockedIncrementLong(ptr)
 @ fastcall -arch=i386 ExiAcquireFastMutex(ptr) ExAcquireFastMutex
 @ fastcall -arch=i386 ExiReleaseFastMutex(ptr) ExReleaseFastMutex
 @ fastcall -arch=i386 ExiTryToAcquireFastMutex(ptr) ExTryToAcquireFastMutex
+@ stdcall HalExamineMBR()
 @ fastcall -arch=i386,arm InterlockedCompareExchange(ptr long long)
 @ fastcall -arch=i386,arm InterlockedDecrement(ptr)
 @ fastcall -arch=i386,arm InterlockedExchange(ptr long)
@@ -26,16 +92,64 @@
 @ fastcall -arch=i386,arm InterlockedIncrement(ptr)
 @ fastcall -arch=i386,arm InterlockedPopEntrySList(ptr)
 @ fastcall -arch=i386,arm InterlockedPushEntrySList(ptr ptr)
+@ stdcall InterlockedPushListSList()
+@ stdcall IoGetPagingIoPriority()
+@ stdcall IoReadPartitionTable()
+@ stdcall IoSetPartitionInformation()
+@ stdcall IoWritePartitionTable()
+@ stdcall IofCallDriver()
+@ stdcall IofCompleteRequest()
+@ stdcall KeAcquireGuardedMutex()
+@ stdcall KeAcquireGuardedMutexUnsafe()
+@ stdcall KeAcquireInStackQueuedSpinLock()
+@ stdcall KeAcquireInStackQueuedSpinLockAtDpcLevel()
+@ stdcall KeAcquireInStackQueuedSpinLockForDpc()
+@ stdcall KeAcquireInStackQueuedSpinLockRaiseToSynch()
+@ stdcall KeAcquireQueuedSpinLock()
+@ stdcall KeAcquireQueuedSpinLockRaiseToSynch()
+@ stdcall KeAcquireSpinLockForDpc()
+@ stdcall KeAcquireSpinLockRaiseToSynch()
+@ stdcall KeClockInterruptNotify()
+@ stdcall KeInitializeGuardedMutex()
+@ stdcall KeInvalidateRangeAllCaches()
+@ stdcall KeQueryHeteroCpuPolicyThread()
+@ stdcall KeReleaseGuardedMutex()
+@ stdcall KeReleaseGuardedMutexUnsafe()
+@ stdcall KeReleaseInStackQueuedSpinLock()
+@ stdcall KeReleaseInStackQueuedSpinLockForDpc()
+@ stdcall KeReleaseInStackQueuedSpinLockFromDpcLevel()
+@ stdcall KeReleaseQueuedSpinLock()
+@ stdcall KeReleaseSpinLockForDpc()
+@ stdcall KeTestSpinLock()
+@ stdcall KeTryToAcquireGuardedMutex()
+@ stdcall KeTryToAcquireQueuedSpinLock()
+@ stdcall KeTryToAcquireQueuedSpinLockRaiseToSynch()
+@ stdcall KeTryToAcquireSpinLockAtDpcLevel()
 @ fastcall -arch=i386,arm KefAcquireSpinLockAtDpcLevel(ptr)
 @ fastcall -arch=i386,arm KefReleaseSpinLockFromDpcLevel(ptr)
 @ fastcall -arch=i386 KfAcquireSpinLock(ptr)
 @ fastcall -arch=i386 KfReleaseSpinLock(ptr ptr)
+@ stdcall KiAccumulateCycleStats()
 @ fastcall -arch=i386,arm KiAcquireSpinLock(ptr) KefAcquireSpinLockAtDpcLevel
+@ stdcall KiBeginThreadAccountingPeriod()
 @ stub -arch=i386,arm KiCheckForSListAddress
+@ stdcall KiEndThreadAccountingPeriod()
+@ stdcall KiEntropyQueueDpc()
 @ fastcall -arch=i386,arm KiReleaseSpinLock(ptr) KefReleaseSpinLockFromDpcLevel
+@ stdcall ObReferenceObjectSafe()
+@ stdcall ObReferenceObjectSafeWithTag()
+@ stdcall ObfDereferenceObject()
+@ stdcall ObfDereferenceObjectWithTag()
+@ stdcall ObfReferenceObject()
+@ stdcall ObfReferenceObjectWithTag()
+@ stdcall PoNotifyMediaBuffering()
+@ stdcall PoNotifyVSyncChange()
+@ stdcall RtlPrefetchMemoryNonTemporal()
 @ fastcall -arch=i386,arm RtlUlongByteSwap(long)
 @ fastcall -arch=i386,arm RtlUlonglongByteSwap(long long)
 @ fastcall -arch=i386,arm RtlUshortByteSwap()
+@ stdcall SeAuditingWithTokenForSubcategory()
+@ stdcall WmiGetClock()
 @ stdcall -stub -arch=i386 Kei386EoiHelper()
 @ stub AlpcGetHeaderSize
 @ stub AlpcGetMessageAttribute
@@ -158,21 +272,9 @@
 @ stub EtwWriteStartScenario
 @ stdcall EtwWriteString(double long double ptr wstr)
 @ stdcall EtwWriteTransfer(double ptr ptr ptr long ptr)
-@ fastcall ExAcquireAutoExpandPushLockExclusive(ptr long)
-@ fastcall ExAcquireAutoExpandPushLockShared(ptr long)
 @ stdcall ExAcquireCacheAwarePushLockExclusive(ptr)
-@ fastcall ExAcquireCacheAwarePushLockExclusiveEx(ptr long)
-@ fastcall ExAcquireCacheAwarePushLockSharedEx(ptr long)
-@ stdcall -arch=x86_64 ExAcquireFastMutex(ptr)
-@ fastcall ExAcquireFastMutexUnsafe(ptr)
-@ fastcall ExAcquirePushLockExclusiveEx(ptr long)
-@ fastcall ExAcquirePushLockSharedEx(ptr long)
 @ stdcall ExAcquireResourceExclusiveLite(ptr long)
 @ stdcall ExAcquireResourceSharedLite(ptr long)
-@ fastcall ExAcquireRundownProtection(ptr)
-@ fastcall ExAcquireRundownProtectionCacheAware(ptr)
-@ fastcall ExAcquireRundownProtectionCacheAwareEx(ptr long)
-@ fastcall ExAcquireRundownProtectionEx(ptr long)
 @ stdcall ExAcquireSharedStarveExclusive(ptr long)
 @ stdcall ExAcquireSharedWaitForExclusive(ptr long)
 @ stdcall ExAcquireSpinLockExclusive(ptr)
@@ -182,14 +284,13 @@
 @ stdcall ExAllocateAutoExpandPushLock(long)
 @ stdcall ExAllocateCacheAwarePushLock(long)
 @ stdcall ExAllocateCacheAwareRundownProtection(long long)
+@ stdcall ExAllocateFromPagedLookasideList()
 @ stdcall ExAllocatePool(long long)
 @ stdcall ExAllocatePoolWithQuota(long long)
 @ stdcall ExAllocatePoolWithQuotaTag(long long long)
 @ stdcall ExAllocatePoolWithTag(long long long)
 @ stdcall ExAllocatePoolWithTagPriority(long long long long)
 @ stdcall ExAllocateTimer(ptr ptr long)
-@ fastcall ExBlockOnAddressPushLock(ptr ptr ptr ptr ptr)
-@ fastcall ExBlockPushLock(ptr ptr)
 @ stdcall ExCancelTimer(ptr ptr)
 @ stdcall ExCleanupAutoExpandPushLock(ptr)
 @ stdcall ExCleanupRundownProtectionCacheAware(ptr)
@@ -205,7 +306,6 @@
 @ stdcall ExDeleteTimer(ptr long long ptr)
 @ extern ExDesktopObjectType
 @ stdcall ExDisableResourceBoostLite(ptr)
-@ fastcall ExEnterCriticalRegionAndAcquireFastMutexUnsafe(ptr)
 @ stdcall ExEnterCriticalRegionAndAcquireResourceExclusive(ptr)
 @ stdcall ExEnterCriticalRegionAndAcquireResourceShared(ptr)
 @ stdcall ExEnterCriticalRegionAndAcquireSharedWaitForExclusive(ptr)
@@ -222,6 +322,7 @@
 @ stdcall ExFreeCacheAwareRundownProtection(ptr)
 @ stdcall ExFreePool(ptr)
 @ stdcall ExFreePoolWithTag(ptr long)
+@ stdcall ExFreeToPagedLookasideList()
 @ stdcall ExGetCurrentProcessorCounts(ptr ptr ptr)
 @ stdcall ExGetCurrentProcessorCpuUsage(ptr)
 @ stdcall ExGetExclusiveWaiterCount(ptr)
@@ -236,21 +337,14 @@
 @ stdcall ExInitializePagedLookasideList(ptr ptr ptr long long long long)
 @ stdcall ExInitializePushLock(ptr)
 @ stdcall ExInitializeResourceLite(ptr)
-@ fastcall ExInitializeRundownProtection(ptr)
 @ stdcall ExInitializeRundownProtectionCacheAware(ptr long)
 @ stdcall ExInitializeRundownProtectionCacheAwareEx(ptr long)
 @ stdcall ExInitializeZone(ptr long ptr long)
 @ stdcall ExInterlockedAddLargeInteger(ptr long long ptr)
-@ fastcall ExInterlockedAddUlong(ptr long ptr)
 @ stdcall -stub -arch=i386 ExInterlockedDecrementLong(ptr ptr)
 @ stdcall -stub -arch=i386 ExInterlockedExchangeUlong(ptr long ptr)
 @ stdcall ExInterlockedExtendZone(ptr ptr long ptr)
 @ stdcall -stub -arch=i386,arm ExInterlockedIncrementLong(ptr ptr)
-@ fastcall ExInterlockedInsertHeadList(ptr ptr ptr)
-@ fastcall ExInterlockedInsertTailList(ptr ptr ptr)
-@ fastcall ExInterlockedPopEntryList(ptr ptr)
-@ fastcall ExInterlockedPushEntryList(ptr ptr ptr)
-@ fastcall ExInterlockedRemoveHeadList(ptr ptr)
 @ stdcall ExIsManufacturingModeEnabled()
 @ stdcall ExIsProcessorFeaturePresent(long)
 @ stdcall ExIsResourceAcquiredExclusiveLite(ptr)
@@ -258,8 +352,6 @@
 @ stdcall ExLocalTimeToSystemTime(ptr ptr)
 @ stdcall ExNotifyBootDeviceRemoval(ptr)
 @ stdcall ExNotifyCallback(ptr ptr ptr)
-@ stdcall -arch=x86_64 ExQueryDepthSList(ptr) RtlQueryDepthSList
-# @ stdcall ExQueryFastCacheAppOrigin(ptr ptr) no longer exported since RS1
 @ stdcall ExQueryFastCacheDevLicense()
 @ stdcall ExQueryPoolBlockSize(ptr ptr)
 @ stdcall ExQueryTimerResolution(ptr ptr ptr)
@@ -271,38 +363,17 @@
 @ stdcall ExRaiseHardError(long long long ptr long ptr)
 @ stdcall ExRaiseStatus(long) RtlRaiseStatus
 @ extern ExRawInputManagerObjectType
-@ fastcall ExReInitializeRundownProtection(ptr)
-@ fastcall ExReInitializeRundownProtectionCacheAware(ptr)
 @ stub ExRealTimeIsUniversal
 @ stdcall ExRegisterBootDevice(ptr ptr)
 @ stdcall ExRegisterCallback(ptr ptr ptr)
 @ stdcall ExRegisterExtension(ptr long ptr)
 @ stdcall ExReinitializeResourceLite(ptr)
-@ fastcall ExReleaseAutoExpandPushLockExclusive(ptr long)
-@ fastcall ExReleaseAutoExpandPushLockShared(ptr long)
 @ stdcall ExReleaseCacheAwarePushLockExclusive(ptr)
-@ fastcall ExReleaseCacheAwarePushLockExclusiveEx(ptr long)
-@ fastcall ExReleaseCacheAwarePushLockSharedEx(ptr long)
-@ stdcall -arch=x86_64 ExReleaseFastMutex(ptr)
-@ fastcall ExReleaseFastMutexUnsafe(ptr)
-@ fastcall ExReleaseFastMutexUnsafeAndLeaveCriticalRegion(ptr)
-@ fastcall ExReleasePushLockEx(ptr long)
-@ fastcall ExReleasePushLockExclusiveEx(ptr long)
-@ fastcall ExReleasePushLockSharedEx(ptr long)
-@ fastcall ExReleaseResourceAndLeaveCriticalRegion(ptr)
-@ fastcall ExReleaseResourceAndLeavePriorityRegion(ptr)
 @ stdcall ExReleaseResourceForThreadLite(ptr long)
-@ fastcall ExReleaseResourceLite(ptr)
-@ fastcall ExReleaseRundownProtection(ptr)
-@ fastcall ExReleaseRundownProtectionCacheAware(ptr)
-@ fastcall ExReleaseRundownProtectionCacheAwareEx(ptr long)
-@ fastcall ExReleaseRundownProtectionEx(ptr long)
 @ stdcall ExReleaseSpinLockExclusive(ptr long)
 @ stdcall ExReleaseSpinLockExclusiveFromDpcLevel(ptr)
 @ stdcall ExReleaseSpinLockShared(ptr long)
 @ stdcall ExReleaseSpinLockSharedFromDpcLevel(ptr)
-@ fastcall ExRundownCompleted(ptr)
-@ fastcall ExRundownCompletedCacheAware(ptr)
 @ extern ExSemaphoreObjectType
 @ stdcall ExSetFirmwareEnvironmentVariable(ptr ptr ptr long long)
 @ stdcall ExSetLicenseTamperState(long)
@@ -316,44 +387,19 @@
 @ stdcall ExSubscribeWnfStateChange()
 @ stdcall ExSystemExceptionFilter()
 @ stdcall ExSystemTimeToLocalTime(ptr ptr)
-@ fastcall ExTimedWaitForUnblockPushLock(ptr ptr ptr)
 @ extern ExTimerObjectType
-@ fastcall ExTryAcquireAutoExpandPushLockExclusive(ptr long)
-@ fastcall ExTryAcquireAutoExpandPushLockShared(ptr long)
-@ fastcall ExTryAcquireCacheAwarePushLockExclusiveEx(ptr long)
-@ fastcall ExTryAcquireCacheAwarePushLockSharedEx(ptr long)
-@ fastcall ExTryAcquirePushLockExclusiveEx(ptr long)
-@ fastcall ExTryAcquirePushLockSharedEx(ptr long)
 @ stdcall ExTryAcquireSpinLockExclusiveAtDpcLevel() # RS1+
 @ stdcall ExTryAcquireSpinLockSharedAtDpcLevel() # RS1+
-@ fastcall ExTryConvertPushLockSharedToExclusiveEx(ptr long)
 @ stdcall ExTryConvertSharedSpinLockExclusive(ptr)
 @ stdcall ExTryQueueWorkItem(ptr long)
-@ stdcall -arch=x86_64 ExTryToAcquireFastMutex(ptr)
 @ stdcall ExTryToAcquireResourceExclusiveLite(ptr)
-@ fastcall ExUnblockOnAddressPushLockEx(ptr long)
-@ fastcall ExUnblockPushLockEx(ptr long)
 @ stdcall ExUnregisterCallback(ptr)
 @ stdcall ExUnregisterExtension(ptr)
 @ stdcall ExUnsubscribeWnfStateChange()
 @ stdcall -arch=i386 ExUpdateLicenseData(long ptr)
 @ stdcall ExUuidCreate(ptr)
 @ stdcall ExVerifySuite(long)
-@ fastcall ExWaitForRundownProtectionRelease(ptr)
-@ fastcall ExWaitForRundownProtectionReleaseCacheAware(ptr)
-@ fastcall ExWaitForUnblockPushLock(ptr ptr)
 @ extern ExWindowStationObjectType
-@ fastcall ExfAcquirePushLockExclusive(ptr)
-@ fastcall ExfAcquirePushLockShared(ptr)
-@ fastcall ExfReleasePushLock(ptr)
-@ fastcall ExfReleasePushLockExclusive(ptr)
-@ fastcall ExfReleasePushLockShared(ptr)
-@ fastcall ExfTryAcquirePushLockShared(ptr)
-@ fastcall ExfTryToWakePushLock(ptr)
-@ fastcall ExfUnblockPushLock(ptr ptr)
-@ stdcall -arch=x86_64 ExpInterlockedFlushSList(ptr) InterlockedFlushSList
-@ stdcall -arch=x86_64 ExpInterlockedPopEntrySList(ptr ptr) InterlockedPopEntrySList
-@ stdcall -arch=x86_64 ExpInterlockedPushEntrySList(ptr ptr) InterlockedPushEntrySList
 @ stdcall -arch=i386 Exi386InterlockedDecrementLong(ptr)
 @ stdcall -arch=i386 Exi386InterlockedExchangeUlong(ptr long)
 @ stdcall -arch=i386 Exi386InterlockedIncrementLong(ptr)
@@ -535,8 +581,8 @@
 @ stdcall FsRtlRegisterFltMgrCalls(ptr)
 @ stub FsRtlRegisterMupCalls
 @ stdcall FsRtlRegisterUncProvider(ptr ptr long)
-@ stdcall FsRtlRegisterUncProviderEx(ptr ptr ptr long)
 @ stdcall FsRtlRegisterUncProviderEx2() # RS1+
+@ stdcall FsRtlRegisterUncProviderEx(ptr ptr ptr long)
 @ stdcall FsRtlReleaseEofLock(ptr)
 @ stdcall FsRtlReleaseFile(ptr)
 @ stdcall FsRtlReleaseFileNameInformation(ptr)
@@ -576,7 +622,6 @@
 @ stdcall FsRtlValidateReparsePointBuffer(long ptr)
 @ stdcall FsRtlVolumeDeviceToCorrelationId() # RS1+
 @ extern HalDispatchTable
-@ fastcall HalExamineMBR(ptr long long ptr)
 @ extern HalPrivateDispatchTable
 @ stdcall -stub HeadlessDispatch(long ptr long ptr ptr)
 @ stdcall HviGetDebugDeviceOptions() # RS1+
@@ -592,7 +637,6 @@
 @ stdcall HviIsHypervisorVendorMicrosoft() # RS1+
 @ stdcall HviIsIommuInUse() # RS1+
 @ stub HvlGetLpIndexFromApicId
-@ stub -arch=x86_64 HvlPerformEndOfInterrupt
 @ stub HvlQueryActiveHypervisorProcessorCount
 @ stub HvlQueryActiveProcessors
 @ stub HvlQueryConnection
@@ -622,8 +666,6 @@
 @ stdcall InbvSetVirtualFrameBuffer() # RS1+
 @ stdcall InbvSolidColorFill(long long long long long)
 @ extern InitSafeBootMode
-@ stdcall -arch=x86_64 InitializeSListHead(ptr) RtlInitializeSListHead
-@ fastcall InterlockedPushListSList(ptr ptr ptr long)
 @ stdcall IoAcquireCancelSpinLock(ptr)
 @ stdcall IoAcquireRemoveLockEx(ptr ptr str long long)
 @ stdcall IoAcquireVpbSpinLock(ptr)
@@ -682,8 +724,8 @@
 @ stdcall IoCreateFileSpecifyDeviceObjectHint(ptr long ptr ptr ptr long long long long ptr long long ptr long ptr)
 @ stdcall IoCreateNotificationEvent(ptr ptr)
 @ stdcall IoCreateStreamFileObject(ptr ptr)
-@ stdcall IoCreateStreamFileObjectEx(ptr ptr ptr)
 @ stdcall IoCreateStreamFileObjectEx2(ptr ptr ptr ptr ptr)
+@ stdcall IoCreateStreamFileObjectEx(ptr ptr ptr)
 @ stdcall IoCreateStreamFileObjectLite(ptr ptr)
 @ stdcall IoCreateSymbolicLink(ptr ptr)
 @ stdcall IoCreateSynchronizationEvent(ptr ptr)
@@ -758,7 +800,6 @@
 @ stdcall IoGetLowerDeviceObject(ptr)
 @ stdcall IoGetOplockKeyContext(ptr)
 @ stdcall IoGetOplockKeyContextEx(ptr)
-@ fastcall IoGetPagingIoPriority(ptr)
 @ stdcall IoGetRelatedDeviceObject(ptr)
 @ stdcall IoGetRequestorProcess(ptr)
 @ stdcall IoGetRequestorProcessId(ptr)
@@ -780,17 +821,14 @@
 @ stdcall IoInvalidateDeviceRelations(ptr long)
 @ stdcall IoInvalidateDeviceState(ptr)
 @ stdcall IoIrpHasFsTrackOffsetExtensionType() # RS1+
-@ stdcall -arch=x86_64 IoIs32bitProcess(ptr)
 @ stdcall IoIsActivityTracingEnabled()
 @ stdcall IoIsFileObjectIgnoringSharing(ptr)
 @ stdcall IoIsFileOriginRemote(ptr)
-@ stdcall -arch=x86_64 IoIsInitiator32bitProcess(ptr)
 @ stdcall IoIsOperationSynchronous(ptr)
 @ stdcall IoIsSystemThread(ptr)
 @ stdcall IoIsValidIrpStatus(long)
 @ stdcall IoIsValidNameGraftingBuffer(ptr ptr)
 @ stdcall IoIsWdmVersionAvailable(long long)
-@ stdcall -arch=x86_64 IoLoadCrashDumpDriver(ptr ptr ptr)
 @ stdcall IoMakeAssociatedIrp(ptr long)
 @ stdcall IoMakeAssociatedIrpEx() # RS1+
 @ stdcall IoOpenDeviceInterfaceRegistryKey(ptr long ptr)
@@ -813,7 +851,6 @@
 @ stdcall IoRaiseInformationalHardError(long ptr ptr)
 @ stdcall IoReadDiskSignature(ptr long ptr)
 @ extern IoReadOperationCount
-@ fastcall -stub IoReadPartitionTable(ptr long long ptr)
 @ stdcall IoReadPartitionTableEx(ptr ptr)
 @ extern IoReadTransferCount
 @ stdcall IoRecordIoAttribution() # RS1+
@@ -877,7 +914,6 @@
 @ stdcall IoSetIoPriorityHintIntoThread(ptr long)
 @ stdcall IoSetIrpExtraCreateParameter(ptr ptr)
 @ stdcall IoSetMasterIrpStatus(ptr long)
-@ fastcall IoSetPartitionInformation(ptr long long long)
 @ stdcall IoSetPartitionInformationEx(ptr long ptr)
 @ stdcall IoSetShareAccess(long long ptr ptr)
 @ stdcall IoSetShareAccessEx(long long ptr ptr ptr)
@@ -924,7 +960,6 @@
 @ stdcall IoVolumeDeviceToGuidPath(ptr ptr)
 @ stdcall IoWMIAllocateInstanceIds(ptr long ptr)
 @ stdcall IoWMIDeviceObjectToInstanceName(ptr ptr ptr)
-@ stdcall -arch=x86_64 IoWMIDeviceObjectToProviderId(ptr)
 @ stdcall IoWMIExecuteMethod(ptr ptr long long ptr ptr)
 @ stdcall IoWMIHandleToInstanceName(ptr ptr ptr)
 @ stdcall IoWMIOpenBlock(ptr long ptr)
@@ -941,11 +976,8 @@
 @ stdcall IoWithinStackLimits(ptr ptr)
 @ stdcall IoWriteErrorLogEntry(ptr)
 @ extern IoWriteOperationCount
-@ fastcall IoWritePartitionTable(ptr long long long ptr)
 @ stdcall IoWritePartitionTableEx(ptr ptr)
 @ extern IoWriteTransferCount
-@ fastcall IofCallDriver(ptr ptr)
-@ fastcall IofCompleteRequest(ptr long)
 @ stub KdAcquireDebuggerLock
 @ stdcall KdChangeOption(long long ptr long ptr ptr)
 @ extern KdDebuggerEnabled
@@ -967,20 +999,9 @@
 @ stdcall -arch=i386 Ke386IoSetAccessProcess(ptr long)
 @ stdcall -arch=i386 Ke386QueryIoAccessMap(long ptr)
 @ stdcall -arch=i386 Ke386SetIoAccessMap(long ptr)
-@ fastcall KeAcquireGuardedMutex(ptr)
-@ fastcall KeAcquireGuardedMutexUnsafe(ptr)
-@ fastcall KeAcquireInStackQueuedSpinLock(ptr ptr)
-@ fastcall KeAcquireInStackQueuedSpinLockAtDpcLevel(ptr ptr)
-@ fastcall KeAcquireInStackQueuedSpinLockForDpc(ptr ptr)
-@ fastcall KeAcquireInStackQueuedSpinLockRaiseToSynch(ptr ptr)
 @ stdcall KeAcquireInterruptSpinLock(ptr)
-@ fastcall KeAcquireQueuedSpinLock(long)
-@ fastcall KeAcquireQueuedSpinLockRaiseToSynch(long)
 @ stdcall -arch=i386 KeAcquireSpinLock(ptr) Ke386AcquireSpinLock
 @ stdcall KeAcquireSpinLockAtDpcLevel(ptr)
-@ fastcall KeAcquireSpinLockForDpc(ptr)
-@ stdcall -arch=x86_64 KeAcquireSpinLockRaiseToDpc(ptr)
-@ fastcall KeAcquireSpinLockRaiseToSynch(ptr)
 @ stdcall KeAddGroupAffinityEx(ptr long long)
 @ stdcall KeAddProcessorAffinityEx(ptr long)
 @ stdcall KeAddProcessorGroupAffinity(ptr long)
@@ -995,16 +1016,14 @@
 @ stdcall KeAttachProcess(ptr)
 @ stdcall KeBugCheck(long)
 @ stdcall KeBugCheckEx(long ptr ptr ptr ptr)
-@ stdcall KeCancelTimer(ptr) # x86: after KeCancelTimer2
 @ stub KeCancelTimer2
+@ stdcall KeCancelTimer(ptr) # x86: after KeCancelTimer2
 @ stdcall -stub KeCapturePersistentThreadState(ptr long long long long long ptr)
 @ stdcall KeCheckProcessorAffinityEx(ptr long)
 @ stdcall KeCheckProcessorGroupAffinity(ptr long)
 @ stdcall KeClearEvent(ptr)
-@ stub KeClockInterruptNotify
 @ stub KeClockTimerPowerChange
 @ stdcall KeComplementAffinityEx(ptr ptr)
-@ stdcall -arch=x86_64 KeConnectInterruptForHal() # RS1+
 @ stdcall KeConvertAuxiliaryCounterToPerformanceCounter(double ptr ptr)
 @ stdcall KeConvertPerformanceCounterToAuxiliaryCounter(double ptr ptr)
 @ stdcall KeCopyAffinityEx(ptr ptr)
@@ -1039,7 +1058,6 @@
 @ stdcall KeGenericCallDpc(ptr ptr)
 @ stub KeGetClockOwner
 @ stub KeGetClockTimerResolution
-@ stdcall -arch=x86_64 KeGetCurrentIrql()
 @ stdcall KeGetCurrentNodeNumber()
 @ stdcall KeGetCurrentProcessorNumberEx(ptr)
 @ stdcall KeGetCurrentThread()
@@ -1061,7 +1079,6 @@
 @ stub KeInitializeEnumerationContextFromAffinity
 @ stdcall KeInitializeEnumerationContextFromGroup(ptr ptr)
 @ stdcall KeInitializeEvent(ptr long long)
-@ fastcall KeInitializeGuardedMutex(ptr)
 @ stdcall -stub KeInitializeInterrupt(ptr ptr ptr ptr long long long long long long long)
 @ stdcall KeInitializeMutant(ptr long)
 @ stdcall KeInitializeMutex(ptr long)
@@ -1070,8 +1087,8 @@
 @ stdcall KeInitializeSemaphore(ptr long long)
 @ stdcall KeInitializeSpinLock(ptr)
 @ stdcall KeInitializeThreadedDpc(ptr ptr ptr)
-@ stdcall KeInitializeTimer(ptr)
 @ stub KeInitializeTimer2
+@ stdcall KeInitializeTimer(ptr) # switched on x86 vs x64
 @ stdcall KeInitializeTimerEx(ptr long)
 @ stdcall KeInsertByKeyDeviceQueue(ptr ptr long)
 @ stdcall KeInsertDeviceQueue(ptr ptr)
@@ -1082,7 +1099,6 @@
 @ stdcall KeInterlockedClearProcessorAffinityEx(ptr long)
 @ stdcall KeInterlockedSetProcessorAffinityEx(ptr long)
 @ stdcall KeInvalidateAllCaches()
-@ fastcall KeInvalidateRangeAllCaches(ptr long)
 @ stdcall KeIpiGenericCall(ptr ptr)
 @ stdcall KeIsAttachedProcess()
 @ stdcall KeIsEmptyAffinityEx(ptr)
@@ -1091,12 +1107,10 @@
 @ stdcall KeIsSingleGroupAffinityEx(ptr ptr)
 @ stdcall KeIsSubsetAffinityEx(ptr ptr)
 @ stdcall KeIsWaitListEmpty(ptr)
-@ extern -arch=x86_64 KeLastBranchMSR
 @ stdcall KeLeaveCriticalRegion()
 @ stdcall KeLeaveGuardedRegion()
 @ stdcall KeLoadMTRR(ptr)
 @ extern KeLoaderBlock
-@ stdcall -arch=x86_64 -private KeLowerIrql(long)
 @ stub KeNotifyProcessorFreezeSupported
 @ extern KeNumberProcessors
 @ stdcall KeOrAffinityEx(ptr ptr ptr)
@@ -1115,7 +1129,6 @@
 @ stdcall KeQueryGroupAffinity(long)
 @ stdcall KeQueryGroupAffinityEx(ptr long)
 @ stdcall KeQueryHardwareCounterConfiguration(ptr long ptr)
-@ fastcall KeQueryHeteroCpuPolicyThread(ptr long)
 @ stdcall KeQueryHighestNodeNumber()
 @ stdcall -arch=i386,arm KeQueryInterruptTime()
 @ stdcall KeQueryInterruptTimePrecise(ptr)
@@ -1125,7 +1138,6 @@
 @ stdcall KeQueryMaximumProcessorCountEx(long)
 @ stdcall KeQueryNodeActiveAffinity(long ptr ptr)
 @ stdcall KeQueryNodeMaximumProcessorCount(long)
-@ cdecl -arch=x86_64 KeQueryPrcbAddress(long)
 @ stdcall KeQueryPriorityThread(ptr)
 @ stdcall KeQueryRuntimeThread(ptr ptr)
 @ stdcall -arch=i386,arm KeQuerySystemTime(ptr)
@@ -1135,7 +1147,6 @@
 @ stdcall KeQueryTotalCycleTimeThread(ptr ptr)
 @ stdcall KeQueryUnbiasedInterruptTime()
 @ stdcall KeQueryUnbiasedInterruptTimePrecise() # RS1+
-@ stdcall -arch=x86_64 -private KeRaiseIrqlToDpcLevel()
 @ stdcall -stub KeRaiseUserException(long)
 @ stdcall KeReadStateEvent(ptr)
 @ stdcall KeReadStateMutant(ptr)
@@ -1148,18 +1159,11 @@
 @ stdcall KeRegisterBugCheckReasonCallback(ptr ptr ptr ptr)
 @ stdcall KeRegisterNmiCallback(ptr ptr)
 @ stdcall KeRegisterProcessorChangeCallback(ptr ptr long)
-@ fastcall KeReleaseGuardedMutex(ptr)
-@ fastcall KeReleaseGuardedMutexUnsafe(ptr)
-@ fastcall KeReleaseInStackQueuedSpinLock(ptr)
-@ fastcall KeReleaseInStackQueuedSpinLockForDpc(ptr)
-@ fastcall KeReleaseInStackQueuedSpinLockFromDpcLevel(ptr)
 @ stdcall KeReleaseInterruptSpinLock(ptr long)
 @ stdcall KeReleaseMutant(ptr long long long)
 @ stdcall KeReleaseMutex(ptr long)
-@ fastcall KeReleaseQueuedSpinLock(long long)
 @ stdcall KeReleaseSemaphore(ptr long long long)
 @ stdcall KeReleaseSpinLock(ptr long)
-@ fastcall KeReleaseSpinLockForDpc(ptr long)
 @ stdcall KeReleaseSpinLockFromDpcLevel(ptr)
 @ stdcall KeRemoveByKeyDeviceQueue(ptr long)
 @ stdcall KeRemoveByKeyDeviceQueueIfBusy(ptr long)
@@ -1205,8 +1209,8 @@
 @ stdcall KeSetSystemGroupAffinityThread(ptr ptr)
 @ stdcall KeSetTargetProcessorDpc(ptr long)
 @ stdcall KeSetTargetProcessorDpcEx(ptr ptr)
+@ stub KeSetTimer2 # exchanged x86 vs x64
 @ stdcall KeSetTimer(ptr long long ptr)
-@ stub KeSetTimer2
 @ stdcall KeSetTimerEx(ptr long long long ptr)
 @ stdcall KeShouldYieldProcessor()
 @ stdcall KeSignalCallDpcDone(ptr)
@@ -1220,12 +1224,7 @@
 @ stub KeSynchronizeTimeToQpc
 @ stub KeSystemFullyCacheCoherent
 @ stdcall KeTestAlertThread(long)
-@ fastcall KeTestSpinLock(ptr)
 @ extern -arch=i386,arm KeTickCount
-@ fastcall KeTryToAcquireGuardedMutex(ptr)
-@ fastcall KeTryToAcquireQueuedSpinLock(long long)
-@ fastcall KeTryToAcquireQueuedSpinLockRaiseToSynch(long ptr)
-@ fastcall KeTryToAcquireSpinLockAtDpcLevel(ptr)
 @ stdcall KeUnstackDetachProcess(ptr)
 @ stdcall KeUpdateThreadTag(ptr long)
 @ stdcall KeUserModeCallback(long ptr long ptr ptr)
@@ -1233,17 +1232,12 @@
 @ stdcall KeWaitForMutexObject(ptr long long long ptr) KeWaitForSingleObject
 @ stdcall KeWaitForSingleObject(ptr long long long ptr)
 @ stdcall KeWriteProtectPAT()
-@ stdcall -arch=x86_64 -private KfRaiseIrql(long)
-# @ stub KiAccumulateCycleStats no longer since RS1
-# @ stub KiBeginThreadAccountingPeriod no longer since RS1
 @ extern KiBugCheckData
 @ stdcall KiCheckForKernelApcDelivery()
 @ stdcall -arch=i386,arm KiDeliverApc(long ptr ptr)
 @ stdcall -stub -arch=i386 KiDispatchInterrupt()
 @ stdcall -arch=i386,arm KiIpiServiceRoutine(ptr ptr)
 @ cdecl -stub -arch=i386,arm KiUnexpectedInterrupt()
-# @ stub KiEndThreadAccountingPeriod no longer since RS1
-# @ stub KiEntropyQueueDpc no longer since RS1
 @ stub KitLogFeatureUsage
 @ stub KseQueryDeviceData
 @ stub KseQueryDeviceDataList
@@ -1524,8 +1518,6 @@
 @ stdcall ObReferenceObjectByName(ptr long ptr long ptr long ptr ptr)
 @ stdcall ObReferenceObjectByPointer(ptr long ptr long)
 @ stdcall ObReferenceObjectByPointerWithTag(ptr long ptr long long)
-@ fastcall ObReferenceObjectSafe(ptr)
-@ fastcall ObReferenceObjectSafeWithTag(ptr long)
 @ stdcall ObReferenceSecurityDescriptor(ptr long)
 @ stdcall ObRegisterCallbacks(ptr ptr)
 @ stdcall ObReleaseObjectSecurity(ptr long)
@@ -1535,10 +1527,6 @@
 @ stdcall ObUnRegisterCallbacks(ptr)
 @ stdcall ObWaitForMultipleObjects(long ptr long long long ptr)
 @ stdcall ObWaitForSingleObject(ptr long long ptr)
-@ fastcall ObfDereferenceObject(ptr)
-@ fastcall ObfDereferenceObjectWithTag(ptr long)
-@ fastcall ObfReferenceObject(ptr)
-@ fastcall ObfReferenceObjectWithTag(ptr long)
 @ stub POGOBuffer
 @ stdcall PcwAddInstance(ptr ptr long long ptr)
 @ stdcall PcwCloseInstance(ptr)
@@ -1593,8 +1581,6 @@
 @ stdcall PoGetThermalRequestSupport() # RS1+
 @ stub PoInitiateProcessorWake
 @ stdcall PoLatencySensitivityHint(long)
-@ fastcall PoNotifyMediaBuffering(long)
-@ fastcall PoNotifyVSyncChange(long)
 @ stdcall PoQueryWatchdogTime(ptr ptr)
 @ stdcall PoQueueShutdownWorkItem(ptr)
 @ stdcall PoReenableSleepStates(ptr)
@@ -1653,7 +1639,6 @@
 @ stdcall PsGetCurrentProcessId()
 @ stdcall PsGetCurrentProcessSessionId()
 @ stdcall PsGetCurrentProcessWin32Process()
-@ stdcall -arch=x86_64 PsGetCurrentProcessWow64Process()
 @ stdcall PsGetCurrentServerSilo() # RS1+
 @ stdcall PsGetCurrentServerSiloName() # RS1+
 @ stdcall PsGetCurrentSilo() # RS1+
@@ -1699,7 +1684,6 @@
 @ stdcall PsGetProcessSignatureLevel(ptr ptr)
 @ stdcall PsGetProcessWin32Process(ptr)
 @ stdcall PsGetProcessWin32WindowStation(ptr)
-@ stdcall -arch=x86_64 PsGetProcessWow64Process(ptr)
 @ stdcall PsGetServerSiloServiceSessionId() # RS1+
 @ stdcall PsGetSiloContext() # RS1+
 @ stdcall PsGetSiloIdentifier() # RS1+
@@ -1771,8 +1755,8 @@
 @ stdcall PsRevertToSelf()
 @ stdcall PsSetContextThread(ptr ptr long)
 @ stdcall PsSetCreateProcessNotifyRoutine(ptr long)
-@ stdcall PsSetCreateProcessNotifyRoutineEx(ptr long)
-@ stdcall PsSetCreateProcessNotifyRoutineEx2() # RS1+
+@ stdcall PsSetCreateProcessNotifyRoutineEx2()
+@ stdcall PsSetCreateProcessNotifyRoutineEx()
 @ stdcall PsSetCreateThreadNotifyRoutine(ptr)
 @ stdcall PsSetCreateThreadNotifyRoutineEx() # RS1+
 @ stdcall PsSetCurrentThreadPrefetching(long)
@@ -1832,9 +1816,7 @@
 @ stdcall RtlAreAllAccessesGranted(long long)
 @ stdcall RtlAreAnyAccessesGranted(long long)
 @ stdcall RtlAreBitsClear(ptr long long)
-@ stdcall -arch=x86_64 RtlAreBitsClearEx(ptr long long) RtlAreBitsClear64
 @ stdcall RtlAreBitsSet(ptr long long)
-@ stdcall -arch=x86_64 RtlAreBitsSetEx(ptr long long) RtlAreBitsSet64
 @ stdcall RtlAssert(str str long str)
 @ stdcall RtlAvlInsertNodeEx(ptr ptr ptr ptr) # FIXME
 @ stdcall RtlAvlRemoveNode(ptr ptr) # FIXME
@@ -1848,11 +1830,8 @@
 @ stdcall RtlCheckTokenMembership(ptr long long)
 @ stdcall RtlCheckTokenMembershipEx(ptr long long long)
 @ stdcall RtlClearAllBits(ptr)
-@ stdcall -arch=x86_64 RtlClearAllBitsEx(ptr) RtlClearAllBits64
 @ stdcall RtlClearBit(ptr long)
-@ stdcall -arch=x86_64 RtlClearBitEx(ptr long) RtlClearBit64
 @ stdcall RtlClearBits(ptr long long)
-@ stdcall -arch=x86_64 RtlClearBitsEx(ptr long long) RtlClearBits64
 @ stdcall RtlCmDecodeMemIoResource(ptr ptr)
 @ stdcall RtlCmEncodeMemIoResource(ptr long double double)
 @ stdcall RtlCompareAltitudes(ptr ptr)
@@ -1871,8 +1850,6 @@
 @ stdcall RtlCopyBitMap(ptr ptr long)
 @ stdcall RtlCopyLuid(ptr ptr)
 @ stdcall RtlCopyLuidAndAttributesArray(long ptr ptr)
-@ stdcall -arch=x86_64 RtlCopyMemory(ptr ptr int64) memmove
-@ stdcall -arch=x86_64 RtlCopyMemoryNonTemporal(ptr ptr int64)
 @ stdcall RtlCopyRangeList(ptr ptr)
 @ stdcall RtlCopySid(long ptr ptr)
 @ stdcall RtlCopySidAndAttributesArray(long ptr long ptr ptr ptr ptr)
@@ -1894,8 +1871,8 @@
 @ stdcall RtlCultureNameToLCID(ptr ptr)
 @ stdcall RtlCustomCPToUnicodeN(ptr wstr long ptr ptr long)
 @ stdcall RtlDecompressBuffer(long ptr long ptr long ptr)
-@ stdcall RtlDecompressBufferEx(long ptr long ptr long ptr ptr)
 @ stdcall RtlDecompressBufferEx2(long ptr long ptr long long ptr ptr)
+@ stdcall RtlDecompressBufferEx(long ptr long ptr long ptr ptr)
 @ stdcall RtlDecompressChunks(ptr long ptr long ptr long ptr)
 @ stdcall RtlDecompressFragment(long ptr long ptr long long ptr ptr)
 @ stdcall RtlDecompressFragmentEx(long ptr long ptr long long long ptr ptr)
@@ -1949,8 +1926,6 @@
 @ stdcall RtlFindAceByType(ptr long ptr)
 @ stdcall RtlFindClearBits(ptr long long)
 @ stdcall RtlFindClearBitsAndSet(ptr long long)
-@ stdcall -arch=x86_64 RtlFindClearBitsAndSetEx(ptr long long) RtlFindClearBitsAndSet64
-@ stdcall -arch=x86_64 RtlFindClearBitsEx(ptr long long) RtlFindClearBits64
 @ stdcall RtlFindClearRuns(ptr ptr long long)
 @ stdcall RtlFindClosestEncodableLength(double ptr)
 @ stdcall RtlFindExportedRoutineByName() # RS1+
@@ -1962,12 +1937,9 @@
 @ stdcall RtlFindMostSignificantBit(long long)
 @ stdcall RtlFindNextForwardRunClear(ptr long ptr)
 @ stdcall RtlFindNextForwardRunClearCapped() # RS1+
-@ stdcall -arch=x86_64 RtlFindNextForwardRunClearEx(ptr long ptr) RtlFindNextForwardRunClear64
 @ stdcall RtlFindRange(ptr long long long long long long long long ptr ptr ptr)
 @ stdcall RtlFindSetBits(ptr long long)
 @ stdcall RtlFindSetBitsAndClear(ptr long long)
-@ stdcall -arch=x86_64 RtlFindSetBitsAndClearEx(ptr long long) RtlFindSetBitsAndClear64
-@ stdcall -arch=x86_64 RtlFindSetBitsEx(ptr long long) RtlFindSetBits64
 @ stdcall RtlFindUnicodePrefix(ptr ptr long)
 @ stdcall RtlFirstFreeAce(ptr ptr)
 @ stdcall RtlFormatCurrentUserKeyPath(ptr)
@@ -2028,7 +2000,6 @@
 @ stdcall RtlInitUnicodeStringEx(ptr wstr)
 @ stdcall RtlInitWeakEnumerationHashTable(ptr ptr)
 @ stdcall RtlInitializeBitMap(ptr ptr long)
-@ stdcall -arch=x86_64 RtlInitializeBitMapEx(ptr ptr long) RtlInitializeBitMap64
 @ stdcall RtlInitializeGenericTable(ptr ptr ptr ptr ptr)
 @ stdcall RtlInitializeGenericTableAvl(ptr ptr ptr ptr ptr)
 @ stdcall RtlInitializeRangeList(ptr)
@@ -2102,7 +2073,6 @@
 @ stdcall RtlLookupElementGenericTableFullAvl(ptr ptr ptr ptr)
 @ stdcall RtlLookupEntryHashTable(ptr ptr ptr)
 @ stdcall RtlLookupFirstMatchingElementGenericTableAvl(ptr ptr ptr)
-@ cdecl -arch=x86_64 RtlLookupFunctionEntry(double ptr ptr)
 @ stdcall RtlMapGenericMask(ptr ptr)
 @ stdcall RtlMapSecurityErrorToNtStatus(long)
 @ stdcall RtlMergeRangeLists(ptr ptr ptr long)
@@ -2116,10 +2086,8 @@
 @ stdcall RtlNumberGenericTableElements(ptr)
 @ stdcall RtlNumberGenericTableElementsAvl(ptr)
 @ stdcall RtlNumberOfClearBits(ptr)
-@ stdcall -arch=x86_64 RtlNumberOfClearBitsEx(ptr) RtlNumberOfClearBits64
 @ stdcall RtlNumberOfClearBitsInRange(ptr long long)
 @ stdcall RtlNumberOfSetBits(ptr)
-@ stdcall -arch=x86_64 RtlNumberOfSetBitsEx(ptr) RtlNumberOfSetBits64
 @ stdcall RtlNumberOfSetBitsInRange(ptr long long)
 @ stdcall RtlNumberOfSetBitsUlongPtr(ptr)
 @ stdcall RtlOemStringToCountedUnicodeString(ptr ptr long)
@@ -2129,9 +2097,8 @@
 @ stdcall RtlOpenCurrentUser(long ptr)
 @ stdcall RtlOsDeploymentState() # RS1+
 @ stdcall RtlOwnerAcesPresent(ptr)
-@ cdecl -arch=x86_64 RtlPcToFileHeader(ptr ptr)
+@ stdcall RtlPcToFileHeader()
 @ stdcall RtlPinAtomInAtomTable(ptr ptr)
-@ fastcall RtlPrefetchMemoryNonTemporal(ptr long)
 @ stdcall RtlPrefixString(ptr ptr long)
 @ stdcall RtlPrefixUnicodeString(ptr ptr long)
 @ stdcall RtlQueryAtomInAtomTable(ptr ptr ptr ptr ptr ptr)
@@ -2158,22 +2125,18 @@
 @ stdcall RtlRemoveUnicodePrefix(ptr ptr)
 @ stdcall RtlReplaceSidInSd(ptr ptr ptr ptr)
 @ stdcall RtlReserveChunk(long ptr ptr ptr long)
-@ cdecl -arch=x86_64 RtlRestoreContext(ptr ptr)
 @ stdcall RtlRunOnceBeginInitialize(ptr long ptr)
 @ stdcall RtlRunOnceComplete(ptr long ptr)
 @ stdcall RtlRunOnceExecuteOnce(ptr ptr ptr ptr)
 @ stdcall RtlRunOnceInitialize(ptr)
 @ stdcall RtlSecondsSince1970ToTime(long ptr)
 @ stdcall RtlSecondsSince1980ToTime(long ptr)
-@ stdcall RtlSelfRelativeToAbsoluteSD(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr)
 @ stdcall RtlSelfRelativeToAbsoluteSD2(ptr long)
+@ stdcall RtlSelfRelativeToAbsoluteSD(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr)
 @ stdcall RtlSetActiveConsoleId() # RS1+
 @ stdcall RtlSetAllBits(ptr)
-@ stdcall -arch=x86_64 RtlSetAllBitsEx(ptr) RtlSetAllBits64
 @ stdcall RtlSetBit(ptr long)
-@ stdcall -arch=x86_64 RtlSetBitEx(ptr long) RtlSetBit64
 @ stdcall RtlSetBits(ptr long long)
-@ stdcall -arch=x86_64 RtlSetBitsEx(ptr long long) RtlSetBits64
 @ stdcall RtlSetConsoleSessionForegroundProcessId() # RS1+
 @ stdcall RtlSetControlSecurityDescriptor(ptr long long)
 @ stdcall RtlSetDaclSecurityDescriptor(ptr long ptr long)
@@ -2196,7 +2159,6 @@
 @ stdcall RtlSuffixUnicodeString() # RS1+
 @ stdcall RtlSystemTimeToLocalTime(ptr ptr)
 @ stdcall RtlTestBit(ptr long)
-@ stdcall -arch=x86_64 RtlTestBitEx(ptr long) RtlTestBit64
 @ stdcall RtlTimeFieldsToTime(ptr ptr)
 @ stdcall RtlTimeToElapsedTimeFields(ptr ptr)
 @ stdcall RtlTimeToSecondsSince1970(ptr ptr)
@@ -2225,7 +2187,6 @@
 @ stdcall RtlUnicodeToUTF8N(ptr long ptr ptr long)
 @ stdcall RtlUnlockBootStatusData(ptr)
 @ stdcall RtlUnwind(ptr ptr ptr ptr)
-@ cdecl -arch=x86_64 RtlUnwindEx(double double ptr ptr ptr ptr)
 @ stdcall RtlUpcaseUnicodeChar(long)
 @ stdcall RtlUpcaseUnicodeString(ptr ptr long)
 @ stdcall RtlUpcaseUnicodeStringToAnsiString(ptr ptr long)
@@ -2236,14 +2197,12 @@
 @ stdcall RtlUpcaseUnicodeToOemN(ptr long ptr wstr long)
 @ stdcall RtlUpperChar(long)
 @ stdcall RtlUpperString(ptr ptr)
-@ fastcall -arch=i386,arm RtlUshortByteSwap(long)
 @ stdcall RtlValidAcl(ptr)
 @ stdcall RtlValidRelativeSecurityDescriptor(ptr long long)
 @ stdcall RtlValidSecurityDescriptor(ptr)
 @ stdcall RtlValidSid(ptr)
 @ stdcall RtlValidateUnicodeString(long ptr)
 @ stdcall RtlVerifyVersionInfo(ptr long long long)
-@ cdecl -arch=x86_64 RtlVirtualUnwind(long double double ptr ptr ptr ptr ptr)
 @ stdcall RtlVolumeDeviceToDosName(ptr ptr) IoVolumeDeviceToDosName
 @ stdcall RtlWalkFrameChain(ptr long long)
 @ stdcall RtlWeaklyEnumerateEntryHashTable(ptr ptr)
@@ -2275,7 +2234,6 @@
 @ stdcall -stub SeAuditingFileOrGlobalEvents(long ptr ptr)
 @ stdcall -stub SeAuditingHardLinkEvents(long ptr)
 @ stdcall -stub SeAuditingHardLinkEventsWithContext(long ptr ptr)
-@ stub SeAuditingWithTokenForSubcategory
 @ stdcall -stub SeCaptureSecurityDescriptor(ptr long long long ptr)
 @ stdcall -stub SeCaptureSubjectContext(ptr)
 @ stub SeCaptureSubjectContextEx
@@ -2435,17 +2393,10 @@
 @ stdcall -arch=i386 WRITE_REGISTER_ULONG(ptr long)
 @ stdcall -arch=i386 WRITE_REGISTER_USHORT(ptr long)
 @ stub WheaAddErrorSource
-@ stub -arch=x86_64 WheaAttemptPhysicalPageOffline
 @ stub WheaConfigureErrorSource
-@ stub -arch=x86_64 WheaDeferredRecoveryService
 @ stub WheaGetErrorSource
-@ stub -arch=x86_64 WheaInitializeDeferredRecoveryObject
 @ stub WheaInitializeRecordHeader
-@ stub -arch=x86_64 WheaRegisterInUsePageOfflineNotification
 @ stub WheaReportHwError
-@ stub -arch=x86_64 WheaRequestDeferredRecovery
-@ stub -arch=x86_64 WheaUnregisterInUsePageOfflineNotification
-@ stub WmiGetClock
 @ stdcall WmiQueryTraceInformation(long ptr long ptr ptr)
 @ cdecl WmiTraceMessage()
 @ stdcall WmiTraceMessageVa(double long ptr long ptr)
@@ -2681,8 +2632,8 @@
 @ stdcall ZwTraceEvent(long long long ptr)
 @ stdcall ZwTranslateFilePath(ptr long ptr long)
 @ stdcall ZwUnloadDriver(ptr)
-@ stdcall ZwUnloadKey(ptr)
 @ stdcall ZwUnloadKey2() # RS1+
+@ stdcall ZwUnloadKey(ptr)
 @ stdcall ZwUnloadKeyEx(ptr ptr)
 @ stdcall ZwUnlockFile(long ptr ptr ptr ptr)
 @ stdcall ZwUnlockVirtualMemory(long ptr ptr long)
@@ -2692,9 +2643,6 @@
 @ stdcall ZwWaitForSingleObject(ptr long ptr)
 @ stdcall ZwWriteFile(ptr ptr ptr ptr ptr ptr long ptr ptr)
 @ stdcall ZwYieldExecution()
-@ cdecl -arch=x86_64 __C_specific_handler(ptr long ptr ptr)
-@ cdecl -arch=x86_64 __chkstk()
-@ cdecl -stub -arch=x86_64 __misaligned_access()
 @ cdecl -stub -arch=i386 _CIcos()
 @ cdecl -stub -arch=i386 _CIsin()
 @ cdecl -stub -arch=i386 _CIsqrt()
@@ -2724,13 +2672,10 @@
 @ cdecl _itow()
 @ cdecl _itow_s()
 @ cdecl -arch=i386,arm _local_unwind2()
-@ cdecl -stub -arch=x86_64 _local_unwind()
 @ cdecl _ltoa_s()
 @ cdecl _ltow_s()
 @ stub _makepath_s
 @ cdecl -stub _purecall()
-@ cdecl -arch=x86_64 _setjmp(ptr ptr)
-@ cdecl -arch=x86_64 _setjmpex(ptr ptr)
 @ cdecl _snprintf()
 @ stub _snprintf_s
 @ stub _snscanf_s
@@ -2784,11 +2729,10 @@
 @ cdecl iswdigit()
 @ cdecl iswspace()
 @ cdecl isxdigit()
-@ cdecl -arch=x86_64 longjmp(ptr long)
 @ cdecl mbstowcs()
 @ cdecl mbtowc()
 @ cdecl memchr()
-@ cdecl -arch=x86_64 memcmp()
+@ stdcall memcmp()
 @ cdecl memcpy() memmove
 @ stub memcpy_s
 @ cdecl memmove()
@@ -2799,8 +2743,6 @@
 @ cdecl rand()
 @ cdecl sprintf()
 @ stub sprintf_s
-@ cdecl -arch=x86_64 sqrt(double)
-@ cdecl -stub -arch=x86_64 sqrtf(double)
 @ cdecl srand()
 @ stub sscanf_s
 @ cdecl strcat()

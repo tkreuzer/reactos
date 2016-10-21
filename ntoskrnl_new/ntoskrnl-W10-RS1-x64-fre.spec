@@ -1,42 +1,6 @@
 @ stdcall -noname PsCaptureUserProcessParameters()
 @ stdcall -noname ZwCreateUserProcess()
 @ stdcall -noname ExAllocateTimerInternal()
-@ fastcall -arch=i386,arm ExInterlockedAddLargeStatistic(ptr long)
-@ fastcall -arch=i386 ExInterlockedCompareExchange64(ptr ptr ptr)
-@ fastcall -arch=i386,arm ExInterlockedFlushSList(ptr) InterlockedFlushSList
-@ fastcall -arch=i386,arm ExInterlockedPopEntrySList(ptr ptr) InterlockedPopEntrySList
-@ fastcall -arch=i386,arm ExInterlockedPushEntrySList(ptr ptr ptr) InterlockedPushEntrySList
-@ fastcall -arch=i386,arm ExfInterlockedAddUlong(ptr long ptr) ExInterlockedAddUlong
-@ fastcall -arch=i386,arm ExfInterlockedCompareExchange64(ptr ptr ptr) ExInterlockedCompareExchange64
-@ fastcall -arch=i386,arm ExfInterlockedInsertHeadList(ptr ptr ptr) ExInterlockedInsertHeadList
-@ fastcall -arch=i386,arm ExfInterlockedInsertTailList(ptr ptr ptr) ExInterlockedInsertTailList
-@ fastcall -arch=i386,arm ExfInterlockedPopEntryList(ptr ptr) ExInterlockedPopEntryList
-@ fastcall -arch=i386,arm ExfInterlockedPushEntryList(ptr ptr ptr) ExInterlockedPushEntryList
-@ fastcall -arch=i386,arm ExfInterlockedRemoveHeadList(ptr ptr) ExInterlockedRemoveHeadList
-@ fastcall -arch=i386 Exfi386InterlockedDecrementLong(ptr)
-@ fastcall -arch=i386 Exfi386InterlockedExchangeUlong(ptr long)
-@ fastcall -arch=i386 Exfi386InterlockedIncrementLong(ptr)
-@ fastcall -arch=i386 ExiAcquireFastMutex(ptr) ExAcquireFastMutex
-@ fastcall -arch=i386 ExiReleaseFastMutex(ptr) ExReleaseFastMutex
-@ fastcall -arch=i386 ExiTryToAcquireFastMutex(ptr) ExTryToAcquireFastMutex
-@ fastcall -arch=i386,arm InterlockedCompareExchange(ptr long long)
-@ fastcall -arch=i386,arm InterlockedDecrement(ptr)
-@ fastcall -arch=i386,arm InterlockedExchange(ptr long)
-@ fastcall -arch=i386,arm InterlockedExchangeAdd(ptr long)
-@ fastcall -arch=i386,arm InterlockedIncrement(ptr)
-@ fastcall -arch=i386,arm InterlockedPopEntrySList(ptr)
-@ fastcall -arch=i386,arm InterlockedPushEntrySList(ptr ptr)
-@ fastcall -arch=i386,arm KefAcquireSpinLockAtDpcLevel(ptr)
-@ fastcall -arch=i386,arm KefReleaseSpinLockFromDpcLevel(ptr)
-@ fastcall -arch=i386 KfAcquireSpinLock(ptr)
-@ fastcall -arch=i386 KfReleaseSpinLock(ptr ptr)
-@ fastcall -arch=i386,arm KiAcquireSpinLock(ptr) KefAcquireSpinLockAtDpcLevel
-@ stub -arch=i386,arm KiCheckForSListAddress
-@ fastcall -arch=i386,arm KiReleaseSpinLock(ptr) KefReleaseSpinLockFromDpcLevel
-@ fastcall -arch=i386,arm RtlUlongByteSwap(long)
-@ fastcall -arch=i386,arm RtlUlonglongByteSwap(long long)
-@ fastcall -arch=i386,arm RtlUshortByteSwap()
-@ stdcall -stub -arch=i386 Kei386EoiHelper()
 @ stub AlpcGetHeaderSize
 @ stub AlpcGetMessageAttribute
 @ stub AlpcInitializeMessageAttribute
@@ -242,10 +206,7 @@
 @ stdcall ExInitializeZone(ptr long ptr long)
 @ stdcall ExInterlockedAddLargeInteger(ptr long long ptr)
 @ fastcall ExInterlockedAddUlong(ptr long ptr)
-@ stdcall -stub -arch=i386 ExInterlockedDecrementLong(ptr ptr)
-@ stdcall -stub -arch=i386 ExInterlockedExchangeUlong(ptr long ptr)
 @ stdcall ExInterlockedExtendZone(ptr ptr long ptr)
-@ stdcall -stub -arch=i386,arm ExInterlockedIncrementLong(ptr ptr)
 @ fastcall ExInterlockedInsertHeadList(ptr ptr ptr)
 @ fastcall ExInterlockedInsertTailList(ptr ptr ptr)
 @ fastcall ExInterlockedPopEntryList(ptr ptr)
@@ -259,7 +220,6 @@
 @ stdcall ExNotifyBootDeviceRemoval(ptr)
 @ stdcall ExNotifyCallback(ptr ptr ptr)
 @ stdcall -arch=x86_64 ExQueryDepthSList(ptr) RtlQueryDepthSList
-# @ stdcall ExQueryFastCacheAppOrigin(ptr ptr) no longer exported since RS1
 @ stdcall ExQueryFastCacheDevLicense()
 @ stdcall ExQueryPoolBlockSize(ptr ptr)
 @ stdcall ExQueryTimerResolution(ptr ptr ptr)
@@ -354,9 +314,6 @@
 @ stdcall -arch=x86_64 ExpInterlockedFlushSList(ptr) InterlockedFlushSList
 @ stdcall -arch=x86_64 ExpInterlockedPopEntrySList(ptr ptr) InterlockedPopEntrySList
 @ stdcall -arch=x86_64 ExpInterlockedPushEntrySList(ptr ptr) InterlockedPushEntrySList
-@ stdcall -arch=i386 Exi386InterlockedDecrementLong(ptr)
-@ stdcall -arch=i386 Exi386InterlockedExchangeUlong(ptr long)
-@ stdcall -arch=i386 Exi386InterlockedIncrementLong(ptr)
 @ stdcall FirstEntrySList(ptr) RtlFirstEntrySList
 @ stdcall FsRtlAcknowledgeEcp(ptr)
 @ stdcall FsRtlAcquireEofLock(ptr)
@@ -592,7 +549,7 @@
 @ stdcall HviIsHypervisorVendorMicrosoft() # RS1+
 @ stdcall HviIsIommuInUse() # RS1+
 @ stub HvlGetLpIndexFromApicId
-@ stub -arch=x86_64 HvlPerformEndOfInterrupt
+@ stub HvlPerformEndOfInterrupt
 @ stub HvlQueryActiveHypervisorProcessorCount
 @ stub HvlQueryActiveProcessors
 @ stub HvlQueryConnection
@@ -784,13 +741,13 @@
 @ stdcall IoIsActivityTracingEnabled()
 @ stdcall IoIsFileObjectIgnoringSharing(ptr)
 @ stdcall IoIsFileOriginRemote(ptr)
-@ stdcall -arch=x86_64 IoIsInitiator32bitProcess(ptr)
+@ stdcall IoIsInitiator32bitProcess(ptr)
 @ stdcall IoIsOperationSynchronous(ptr)
 @ stdcall IoIsSystemThread(ptr)
 @ stdcall IoIsValidIrpStatus(long)
 @ stdcall IoIsValidNameGraftingBuffer(ptr ptr)
 @ stdcall IoIsWdmVersionAvailable(long long)
-@ stdcall -arch=x86_64 IoLoadCrashDumpDriver(ptr ptr ptr)
+@ stdcall IoLoadCrashDumpDriver(ptr ptr ptr)
 @ stdcall IoMakeAssociatedIrp(ptr long)
 @ stdcall IoMakeAssociatedIrpEx() # RS1+
 @ stdcall IoOpenDeviceInterfaceRegistryKey(ptr long ptr)
@@ -964,9 +921,6 @@
 @ stub KdReleaseDebuggerLock
 @ stub KdSetEventLoggingPresent
 @ stdcall KdSystemDebugControl(long ptr long ptr long ptr long)
-@ stdcall -arch=i386 Ke386IoSetAccessProcess(ptr long)
-@ stdcall -arch=i386 Ke386QueryIoAccessMap(long ptr)
-@ stdcall -arch=i386 Ke386SetIoAccessMap(long ptr)
 @ fastcall KeAcquireGuardedMutex(ptr)
 @ fastcall KeAcquireGuardedMutexUnsafe(ptr)
 @ fastcall KeAcquireInStackQueuedSpinLock(ptr ptr)
@@ -976,7 +930,6 @@
 @ stdcall KeAcquireInterruptSpinLock(ptr)
 @ fastcall KeAcquireQueuedSpinLock(long)
 @ fastcall KeAcquireQueuedSpinLockRaiseToSynch(long)
-@ stdcall -arch=i386 KeAcquireSpinLock(ptr) Ke386AcquireSpinLock
 @ stdcall KeAcquireSpinLockAtDpcLevel(ptr)
 @ fastcall KeAcquireSpinLockForDpc(ptr)
 @ stdcall -arch=x86_64 KeAcquireSpinLockRaiseToDpc(ptr)
@@ -1004,7 +957,7 @@
 @ stub KeClockInterruptNotify
 @ stub KeClockTimerPowerChange
 @ stdcall KeComplementAffinityEx(ptr ptr)
-@ stdcall -arch=x86_64 KeConnectInterruptForHal() # RS1+
+@ stdcall KeConnectInterruptForHal() # RS1+
 @ stdcall KeConvertAuxiliaryCounterToPerformanceCounter(double ptr ptr)
 @ stdcall KeConvertPerformanceCounterToAuxiliaryCounter(double ptr ptr)
 @ stdcall KeCopyAffinityEx(ptr ptr)
@@ -1045,13 +998,11 @@
 @ stdcall KeGetCurrentThread()
 @ stdcall KeGetEffectiveIrql()
 @ stub KeGetNextClockTickDuration
-@ stdcall -arch=i386 KeGetPreviousMode()
 @ stdcall KeGetProcessorIndexFromNumber(ptr)
 @ stdcall KeGetProcessorNumberFromIndex(long ptr)
 @ stdcall KeGetRecommendedSharedDataAlignment()
 @ stub KeGetXSaveFeatureFlags
 @ stub KeHwPolicyLocateResource
-@ extern -arch=i386 KeI386MachineType
 @ stdcall KeInitializeAffinityEx(ptr)
 @ stdcall KeInitializeApc(ptr ptr long ptr ptr ptr long ptr)
 @ stdcall KeInitializeCrashDumpHeader(long long ptr long ptr)
@@ -1100,7 +1051,6 @@
 @ stub KeNotifyProcessorFreezeSupported
 @ extern KeNumberProcessors
 @ stdcall KeOrAffinityEx(ptr ptr ptr)
-# @ stub KePollFreezeExecution no longer since RS1
 @ stdcall KeProcessorGroupAffinity(ptr long)
 @ stdcall KeProfileInterruptWithSource(ptr long)
 @ stdcall KePulseEvent(ptr long long)
@@ -1117,7 +1067,6 @@
 @ stdcall KeQueryHardwareCounterConfiguration(ptr long ptr)
 @ fastcall KeQueryHeteroCpuPolicyThread(ptr long)
 @ stdcall KeQueryHighestNodeNumber()
-@ stdcall -arch=i386,arm KeQueryInterruptTime()
 @ stdcall KeQueryInterruptTimePrecise(ptr)
 @ stdcall KeQueryLogicalProcessorRelationship(ptr long ptr ptr)
 @ stdcall KeQueryMaximumGroupCount()
@@ -1128,9 +1077,7 @@
 @ cdecl -arch=x86_64 KeQueryPrcbAddress(long)
 @ stdcall KeQueryPriorityThread(ptr)
 @ stdcall KeQueryRuntimeThread(ptr ptr)
-@ stdcall -arch=i386,arm KeQuerySystemTime(ptr)
 @ stdcall KeQuerySystemTimePrecise(ptr)
-@ stdcall -arch=i386,arm KeQueryTickCount(ptr)
 @ stdcall KeQueryTimeIncrement()
 @ stdcall KeQueryTotalCycleTimeThread(ptr ptr)
 @ stdcall KeQueryUnbiasedInterruptTime()
@@ -1184,7 +1131,6 @@
 @ stdcall KeSaveExtendedProcessorState(double ptr)
 @ stdcall KeSaveFloatingPointState(ptr)
 @ cdecl KeSaveStateForHibernate(ptr)
-@ extern -arch=i368 KeServiceDescriptorTable
 @ stdcall KeSetActualBasePriorityThread(ptr long)
 @ stdcall -stub KeSetAffinityThread(ptr long)
 @ stdcall KeSetBasePriorityThread(ptr long)
@@ -1221,7 +1167,6 @@
 @ stub KeSystemFullyCacheCoherent
 @ stdcall KeTestAlertThread(long)
 @ fastcall KeTestSpinLock(ptr)
-@ extern -arch=i386,arm KeTickCount
 @ fastcall KeTryToAcquireGuardedMutex(ptr)
 @ fastcall KeTryToAcquireQueuedSpinLock(long long)
 @ fastcall KeTryToAcquireQueuedSpinLockRaiseToSynch(long ptr)
@@ -1234,16 +1179,8 @@
 @ stdcall KeWaitForSingleObject(ptr long long long ptr)
 @ stdcall KeWriteProtectPAT()
 @ stdcall -arch=x86_64 -private KfRaiseIrql(long)
-# @ stub KiAccumulateCycleStats no longer since RS1
-# @ stub KiBeginThreadAccountingPeriod no longer since RS1
 @ extern KiBugCheckData
 @ stdcall KiCheckForKernelApcDelivery()
-@ stdcall -arch=i386,arm KiDeliverApc(long ptr ptr)
-@ stdcall -stub -arch=i386 KiDispatchInterrupt()
-@ stdcall -arch=i386,arm KiIpiServiceRoutine(ptr ptr)
-@ cdecl -stub -arch=i386,arm KiUnexpectedInterrupt()
-# @ stub KiEndThreadAccountingPeriod no longer since RS1
-# @ stub KiEntropyQueueDpc no longer since RS1
 @ stub KitLogFeatureUsage
 @ stub KseQueryDeviceData
 @ stub KseQueryDeviceDataList
@@ -1801,12 +1738,6 @@
 @ stdcall PsUpdateDiskCounters(ptr double double long long long)
 @ stdcall PsWow64GetProcessMachine() # RS1+
 @ stdcall PsWrapApcWow64Thread(ptr ptr)
-@ stdcall -arch=i386 READ_REGISTER_BUFFER_UCHAR(ptr ptr long)
-@ stdcall -arch=i386 READ_REGISTER_BUFFER_ULONG(ptr ptr long)
-@ stdcall -arch=i386 READ_REGISTER_BUFFER_USHORT(ptr ptr long)
-@ stdcall -arch=i386 READ_REGISTER_UCHAR(ptr)
-@ stdcall -arch=i386 READ_REGISTER_ULONG(ptr)
-@ stdcall -arch=i386 READ_REGISTER_USHORT(ptr)
 @ stdcall RtlAbsoluteToSelfRelativeSD(ptr ptr ptr)
 @ stdcall RtlAddAccessAllowedAce(ptr long long ptr)
 @ stdcall RtlAddAccessAllowedAceEx(ptr long long long ptr)
@@ -1865,9 +1796,7 @@
 @ stdcall RtlCompressChunks(ptr long ptr long ptr long ptr)
 @ stdcall RtlComputeCrc32(long ptr long)
 @ stdcall RtlContractHashTable(ptr)
-@ stdcall -arch=i386 RtlConvertLongToLargeInteger()
 @ stdcall RtlConvertSidToUnicodeString(ptr ptr long)
-@ stdcall -arch=i386 RtlConvertUlongToLargeInteger()
 @ stdcall RtlCopyBitMap(ptr ptr long)
 @ stdcall RtlCopyLuid(ptr ptr)
 @ stdcall RtlCopyLuidAndAttributesArray(long ptr ptr)
@@ -1920,9 +1849,6 @@
 @ stdcall RtlEndEnumerationHashTable(ptr ptr)
 @ stdcall RtlEndStrongEnumerationHashTable() # RS1+
 @ stdcall RtlEndWeakEnumerationHashTable(ptr ptr)
-@ stdcall -arch=win32 RtlEnlargedIntegerMultiply(long long)
-@ stdcall -arch=win32 RtlEnlargedUnsignedDivide(long long long ptr)
-@ stdcall -arch=win32 RtlEnlargedUnsignedMultiply(long long)
 @ stdcall RtlEnumerateEntryHashTable(ptr ptr)
 @ stdcall RtlEnumerateGenericTable(ptr long)
 @ stdcall RtlEnumerateGenericTableAvl(ptr long)
@@ -1939,13 +1865,8 @@
 @ stdcall RtlEthernetStringToAddressA(ptr ptr ptr)
 @ stdcall RtlEthernetStringToAddressW(ptr ptr ptr)
 @ stdcall RtlExpandHashTable(ptr)
-@ stdcall -arch=win32 RtlExtendedIntegerMultiply(long long long)
-@ stdcall -arch=win32 RtlExtendedLargeIntegerDivide(long long long ptr)
-@ stdcall -arch=win32 RtlExtendedMagicDivide(long long long long long)
 @ stdcall RtlExtractBitMap(ptr ptr long long)
 @ stdcall RtlFillMemory(ptr long long)
-@ stdcall -arch=i386,arm RtlFillMemoryUlong(ptr long long)
-@ stdcall -arch=i386,arm RtlFillMemoryUlonglong(ptr long double) _RtlFillMemoryUlonglong
 @ stdcall RtlFindAceByType(ptr long ptr)
 @ stdcall RtlFindClearBits(ptr long long)
 @ stdcall RtlFindClearBitsAndSet(ptr long long)
@@ -2081,13 +2002,6 @@
 @ stdcall RtlIsUntrustedObject(ptr ptr ptr)
 @ stdcall RtlIsValidOemCharacter(ptr)
 @ stdcall RtlLCIDToCultureName(ptr ptr)
-@ stdcall -arch=win32 RtlLargeIntegerAdd(long long long long)
-@ stdcall -arch=win32 RtlLargeIntegerArithmeticShift(long long long)
-@ stdcall -arch=win32 RtlLargeIntegerDivide(long long long long ptr)
-@ stdcall -arch=win32 RtlLargeIntegerNegate(long long)
-@ stdcall -arch=win32 RtlLargeIntegerShiftLeft(long long long)
-@ stdcall -arch=win32 RtlLargeIntegerShiftRight(long long long)
-@ stdcall -arch=win32 RtlLargeIntegerSubtract(long long long long)
 @ stdcall RtlLargeIntegerToChar() # RS1+
 @ stdcall RtlLengthRequiredSid(long)
 @ stdcall RtlLengthSecurityDescriptor(ptr)
@@ -2236,7 +2150,6 @@
 @ stdcall RtlUpcaseUnicodeToOemN(ptr long ptr wstr long)
 @ stdcall RtlUpperChar(long)
 @ stdcall RtlUpperString(ptr ptr)
-@ fastcall -arch=i386,arm RtlUshortByteSwap(long)
 @ stdcall RtlValidAcl(ptr)
 @ stdcall RtlValidRelativeSecurityDescriptor(ptr long long)
 @ stdcall RtlValidSecurityDescriptor(ptr)
@@ -2428,23 +2341,17 @@
 @ stdcall VmPauseResumeNotify() # RS1+
 @ stdcall VslExchangeEntropy() # RS1+
 @ stdcall VslRetrieveMailbox() # RS1+
-@ stdcall -arch=i386 WRITE_REGISTER_BUFFER_UCHAR(ptr ptr long)
-@ stdcall -arch=i386 WRITE_REGISTER_BUFFER_ULONG(ptr ptr long)
-@ stdcall -arch=i386 WRITE_REGISTER_BUFFER_USHORT(ptr ptr long)
-@ stdcall -arch=i386 WRITE_REGISTER_UCHAR(ptr long)
-@ stdcall -arch=i386 WRITE_REGISTER_ULONG(ptr long)
-@ stdcall -arch=i386 WRITE_REGISTER_USHORT(ptr long)
 @ stub WheaAddErrorSource
-@ stub -arch=x86_64 WheaAttemptPhysicalPageOffline
+@ stub WheaAttemptPhysicalPageOffline
 @ stub WheaConfigureErrorSource
-@ stub -arch=x86_64 WheaDeferredRecoveryService
+@ stub WheaDeferredRecoveryService
 @ stub WheaGetErrorSource
-@ stub -arch=x86_64 WheaInitializeDeferredRecoveryObject
+@ stub WheaInitializeDeferredRecoveryObject
 @ stub WheaInitializeRecordHeader
-@ stub -arch=x86_64 WheaRegisterInUsePageOfflineNotification
+@ stub WheaRegisterInUsePageOfflineNotification
 @ stub WheaReportHwError
-@ stub -arch=x86_64 WheaRequestDeferredRecovery
-@ stub -arch=x86_64 WheaUnregisterInUsePageOfflineNotification
+@ stub WheaRequestDeferredRecovery
+@ stub WheaUnregisterInUsePageOfflineNotification
 @ stub WmiGetClock
 @ stdcall WmiQueryTraceInformation(long ptr long ptr ptr)
 @ cdecl WmiTraceMessage()
@@ -2695,35 +2602,13 @@
 @ cdecl -arch=x86_64 __C_specific_handler(ptr long ptr ptr)
 @ cdecl -arch=x86_64 __chkstk()
 @ cdecl -stub -arch=x86_64 __misaligned_access()
-@ cdecl -stub -arch=i386 _CIcos()
-@ cdecl -stub -arch=i386 _CIsin()
-@ cdecl -stub -arch=i386 _CIsqrt()
-@ cdecl -arch=i386,arm _abnormal_termination()
-@ cdecl -stub -arch=i386 _alldiv()
-@ cdecl -stub -arch=i386 _alldvrm()
-@ cdecl -stub -arch=i386 _allmul()
-@ cdecl -stub -arch=i386 _alloca_probe()
-@ cdecl -stub -arch=i386 _alloca_probe_16()
-@ cdecl -stub -arch=i386 _alloca_probe_8()
-@ cdecl -stub -arch=i386 _allrem()
-@ cdecl -stub -arch=i386 _allshl()
-@ cdecl -stub -arch=i386 _allshr()
-@ cdecl -stub -arch=i386 _aulldiv()
-@ cdecl -stub -arch=i386 _aulldvrm()
-@ cdecl -stub -arch=i386 _aullrem()
-@ cdecl -stub -arch=i386 _aullshr()
-@ cdecl -arch=i386 _chkstk()
-@ cdecl -arch=i386,arm _except_handler2()
-@ cdecl -arch=i386,arm _except_handler3()
 @ cdecl _finite()
-@ cdecl -arch=i386,arm _global_unwind2()
 @ cdecl _i64toa_s()
 @ cdecl _i64tow_s()
 @ cdecl _itoa()
 @ cdecl _itoa_s()
 @ cdecl _itow()
 @ cdecl _itow_s()
-@ cdecl -arch=i386,arm _local_unwind2()
 @ cdecl -stub -arch=x86_64 _local_unwind()
 @ cdecl _ltoa_s()
 @ cdecl _ltow_s()

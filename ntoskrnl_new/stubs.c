@@ -265,7 +265,7 @@ CcZeroDataOnDisk (
     PLARGE_INTEGER StartOffset,
     PLARGE_INTEGER EndOffset)
 {
-    __debzgbreak();
+    __debugbreak();
     return STATUS_NOT_IMPLEMENTED;
 }
 
@@ -308,7 +308,7 @@ NTAPI
 FsRtlRegisterMupCalls (
     PVOID P1)
 {
-    __debzgbreak();
+    __debugbreak();
     return STATUS_NOT_IMPLEMENTED;
 }
 
