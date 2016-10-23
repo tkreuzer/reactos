@@ -2513,7 +2513,7 @@ RtlDuplicateUnicodeString(
 
     if (SourceString == NULL || DestinationString == NULL ||
         SourceString->Length > SourceString->MaximumLength ||
-        (SourceString->Length == 0 && SourceString->MaximumLength > 0 && SourceString->Buffer == NULL) ||
+        (/*SourceString->Length == 0 &&*/ SourceString->MaximumLength > 0 && SourceString->Buffer == NULL) ||
         Flags == RTL_DUPLICATE_UNICODE_STRING_ALLOCATE_NULL_STRING || Flags >= 4)
     {
         return STATUS_INVALID_PARAMETER;
@@ -2540,7 +2540,14 @@ RtlDuplicateUnicodeString(
         if (DestinationString->Buffer == NULL)
             return STATUS_NO_MEMORY;
 
-        RtlCopyMemory(DestinationString->Buffer, SourceString->Buffer, SourceString->Length);
+        if (SourceString->Buffer && SourceString->Length)
+        {
+            RtlCopyMemory(DestinationString->Buffer, SourceString->Buffer, SourceString->Length);
+        }
+        else
+        {
+            DPRINT1("trying to copy invalid unicode buffer!\n");
+        }
         DestinationString->Length = SourceString->Length;
         DestinationString->MaximumLength = DestMaxLength;
 
@@ -2779,7 +2786,7 @@ RtlDnsHostNameToComputerName(PUNICODE_STRING ComputerName, PUNICODE_STRING DnsHo
         /* status STATUS_BUFFER_OVERFLOW is not a problem since the computername shoud only
            have MAX_COMPUTERNAME_LENGTH characters */
         if ((Status == STATUS_SUCCESS) ||
-                (Status == STATUS_BUFFER_OVERFLOW))
+            (Status == STATUS_BUFFER_OVERFLOW))
         {
             /* set the termination for the oem string */
             ComputerNameOemN[MAX_COMPUTERNAME_LENGTH] = 0;
