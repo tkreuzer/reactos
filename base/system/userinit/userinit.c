@@ -332,8 +332,9 @@ StartShell(VOID)
     }
     return TRUE;
 }
+#define NUM_SYSCOLORS 31
 
-const WCHAR g_RegColorNames[][32] = {
+const WCHAR g_RegColorNames[NUM_SYSCOLORS][32] = {
     L"Scrollbar",             /* 00 = COLOR_SCROLLBAR */
     L"Background",            /* 01 = COLOR_DESKTOP */
     L"ActiveTitle",           /* 02 = COLOR_ACTIVECAPTION  */
@@ -367,6 +368,31 @@ const WCHAR g_RegColorNames[][32] = {
     L"MenuBar"                /* 30 = COLOR_MENUBAR */
 };
 
+BOOL StrToRGB(WCHAR * RGB, COLORREF * Color)
+{
+	int i, j;
+	BYTE byRGB[3] = {0,0,0};
+	j = 0;
+	for (i = 0; i <= 12 && j <=2; i++)
+	{
+		if((RGB[i] >= L'0') && (RGB[i] <= L'9'))
+		{
+			byRGB[j] *= 10;
+			byRGB[j] += (RGB[i] - L'0');
+		} else
+		{
+			j++;		
+		}
+	}
+	if (i > 12 || j < 2)  // CHECKME: <= 2 ?
+	{
+		*Color = RGB(0, 0, 0);
+		return FALSE;
+	}
+	*Color = RGB(byRGB[0], byRGB[1], byRGB[2]);
+	return TRUE;
+}
+
 static COLORREF
 StrToColorref(
     IN LPWSTR lpszCol)
@@ -385,7 +411,7 @@ static VOID
 SetUserSysColors(VOID)
 {
     HKEY hKey;
-    INT i;
+    INT i, c = 0;
     WCHAR szColor[25];
     DWORD Type, Size;
     COLORREF crColor;
@@ -408,8 +434,11 @@ SetUserSysColors(VOID)
                               (LPBYTE)szColor, &Size);
         if (rc == ERROR_SUCCESS && Type == REG_SZ)
         {
-            crColor = StrToColorref(szColor);
-            SetSysColors(1, &i, &crColor);
+            if (StrToRGB(szColor, &crColor))
+            {
+                c++;
+                SetSysColors(1, &i, &crColor);
+            }
         }
         else
         {
@@ -419,6 +448,102 @@ SetUserSysColors(VOID)
     }
 
     RegCloseKey(hKey);
+}
+
+DWORD
+WINAPI
+UpdatePerUserSystemParameters(DWORD dw1, BOOL bEnable);
+
+static
+void IntGetUserFontMetricSetting(
+    IN LPWSTR lpValueName,
+    OUT PLOGFONTW pFont)
+{
+    HKEY hKey;
+    DWORD Type, Size;
+    static LOGFONTW DefaultFont = { -11, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE, ANSI_CHARSET,
+                                    0, 0, DEFAULT_QUALITY, VARIABLE_PITCH | FF_SWISS,
+                                    L"MS Sans Serif"};
+    LONG rc;
+
+
+    Size = sizeof(LOGFONTW);
+    *pFont = DefaultFont;
+    rc = RegOpenKeyEx(HKEY_CURRENT_USER, REGSTR_PATH_METRICS,
+                      0, KEY_QUERY_VALUE, &hKey);
+    if (rc != ERROR_SUCCESS)
+    {
+        WARN("RegOpenKeyEx() failed with error %lu\n", rc);
+        return;
+    }
+    rc = RegQueryValueEx(hKey, lpValueName, NULL, &Type, (LPBYTE)pFont, &Size);
+    if (rc != ERROR_SUCCESS || Type != REG_BINARY)
+    {
+       *pFont = DefaultFont;
+        WARN("RegQueryValueEx() failed with error %lu\n", rc);
+        return;
+    }
+    RegCloseKey(hKey);
+}
+
+static
+VOID LoadUserMetricSetting(
+    IN LPWSTR lpValueName,
+    OUT INT *pValue)
+{
+    HKEY hKey;
+    DWORD Type, Size;
+    WCHAR strValue[8];
+    LONG rc;
+
+    TRACE("(%s, %p)\n", debugstr_w(lpValueName), pValue);
+
+    Size = sizeof(strValue);
+    rc = RegOpenKeyEx(HKEY_CURRENT_USER, REGSTR_PATH_METRICS,
+                      0, KEY_QUERY_VALUE, &hKey);
+    if (rc != ERROR_SUCCESS)
+    {
+        WARN("RegOpenKeyEx() failed with error %lu\n", rc);
+        return;
+    }
+    rc = RegQueryValueEx(hKey, lpValueName, NULL, &Type, (LPBYTE)&strValue, &Size);
+    if (rc != ERROR_SUCCESS || Type != REG_SZ)
+    {
+        WARN("RegQueryValueEx() failed with error %lu\n", rc);
+        return;
+    }
+    RegCloseKey(hKey);
+    *pValue = StrToInt(strValue);
+}
+
+static
+VOID SetUserMetrics(VOID)
+{
+    NONCLIENTMETRICSW ncmetrics;
+    MINIMIZEDMETRICS mmmetrics;
+
+    TRACE("()\n");
+
+    IntGetUserFontMetricSetting(L"CaptionFont", &ncmetrics.lfCaptionFont);
+    IntGetUserFontMetricSetting(L"SmCaptionFont", &ncmetrics.lfSmCaptionFont);
+    IntGetUserFontMetricSetting(L"MenuFont", &ncmetrics.lfMenuFont);
+    IntGetUserFontMetricSetting(L"StatusFont", &ncmetrics.lfStatusFont);
+    IntGetUserFontMetricSetting(L"MessageFont", &ncmetrics.lfMessageFont);
+//    IntGetUserFontMetricSetting(L"IconFont", &IconFont);
+
+    ncmetrics.iBorderWidth = 1;
+    ncmetrics.iScrollWidth = GetSystemMetrics(SM_CXVSCROLL);
+    ncmetrics.iScrollHeight = GetSystemMetrics(SM_CYHSCROLL);
+    ncmetrics.iCaptionWidth = GetSystemMetrics(SM_CXSIZE);
+    ncmetrics.iCaptionHeight = GetSystemMetrics(SM_CYSIZE);
+    ncmetrics.iSmCaptionWidth = GetSystemMetrics(SM_CXSMSIZE);
+    ncmetrics.iSmCaptionHeight = GetSystemMetrics(SM_CYSMSIZE);
+    ncmetrics.iMenuWidth = GetSystemMetrics(SM_CXMENUSIZE);
+    ncmetrics.iMenuHeight = GetSystemMetrics(SM_CYMENUSIZE);
+    ncmetrics.cbSize = sizeof(NONCLIENTMETRICSW);
+
+
+    SystemParametersInfoW(SPI_SETNONCLIENTMETRICS, sizeof(NONCLIENTMETRICSW), &ncmetrics, 0);
 }
 
 static VOID
