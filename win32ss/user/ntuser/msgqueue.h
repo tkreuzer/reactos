@@ -4,7 +4,6 @@
 #define MSQ_NORMAL      0
 #define MSQ_ISHOOK      1
 #define MSQ_INJECTMODULE 2
-//#define MSQ_INJECTMODULE 3 ???
 
 typedef struct _USER_MESSAGE
 {
@@ -31,7 +30,7 @@ typedef struct _USER_SENT_MESSAGE
   SENDASYNCPROC CompletionCallback;
   PTHREADINFO ptiCallBackSender;
   ULONG_PTR CompletionCallbackContext;
-  BOOL HookMessage;
+  INT HookMessage;
   BOOL HasPackedLParam;
   KEVENT CompletionEvent;
 } USER_SENT_MESSAGE, *PUSER_SENT_MESSAGE;
@@ -58,8 +57,6 @@ typedef struct _USER_MESSAGE_QUEUE
 
   /* Queue for hardware messages for the queue. */
   LIST_ENTRY HardwareMessagesListHead;
-  /* KTIMER to signal a timer expiry */
-  KTIMER TimerExpiry;
   /* Last click message for translating double clicks */
   MSG msgDblClk;
   /* Current capture window for this queue. */
@@ -133,22 +130,22 @@ extern LIST_ENTRY usmList;
 BOOL FASTCALL MsqIsHung(PTHREADINFO pti, DWORD TimeOut);
 VOID CALLBACK HungAppSysTimerProc(HWND,UINT,UINT_PTR,DWORD);
 NTSTATUS FASTCALL co_MsqSendMessage(PTHREADINFO ptirec,
-	       HWND Wnd, UINT Msg, WPARAM wParam, LPARAM lParam,
-           UINT uTimeout, BOOL Block, BOOL HookMessage, ULONG_PTR *uResult);
+           HWND Wnd, UINT Msg, WPARAM wParam, LPARAM lParam,
+           UINT uTimeout, BOOL Block, INT HookMessage, ULONG_PTR *uResult);
 PUSER_MESSAGE FASTCALL MsqCreateMessage(LPMSG Msg);
 VOID FASTCALL MsqDestroyMessage(PUSER_MESSAGE Message);
 VOID FASTCALL MsqPostMessage(PTHREADINFO, MSG*, BOOLEAN, DWORD, DWORD, LONG_PTR);
 VOID FASTCALL MsqPostQuitMessage(PTHREADINFO pti, ULONG ExitCode);
 BOOLEAN APIENTRY
 MsqPeekMessage(IN PTHREADINFO pti,
-	       IN BOOLEAN Remove,
-	              IN PWND Window,
-	       IN UINT MsgFilterLow,
-	       IN UINT MsgFilterHigh,
-	              IN UINT QSflags,
-	              OUT LONG_PTR *ExtraInfo,
-	              OUT DWORD *dwQEvent,
-	              OUT PMSG Message);
+               IN BOOLEAN Remove,
+               IN PWND Window,
+               IN UINT MsgFilterLow,
+               IN UINT MsgFilterHigh,
+               IN UINT QSflags,
+               OUT LONG_PTR *ExtraInfo,
+               OUT DWORD *dwQEvent,
+               OUT PMSG Message);
 BOOL APIENTRY
 co_MsqPeekHardwareMessage(IN PTHREADINFO pti,
 	                      IN BOOL Remove,
@@ -251,20 +248,6 @@ VOID APIENTRY MsqRemoveWindowMessagesFromQueue(PWND pWindow);
 
 HANDLE FASTCALL IntMsqSetWakeMask(DWORD WakeMask);
 BOOL FASTCALL IntMsqClearWakeMask(VOID);
-
-BOOLEAN FASTCALL
-MsqSetTimer(PUSER_MESSAGE_QUEUE MessageQueue, HWND Wnd,
-            UINT_PTR IDEvent, UINT Period, TIMERPROC TimerFunc,
-            UINT Msg);
-BOOLEAN FASTCALL
-MsqKillTimer(PUSER_MESSAGE_QUEUE MessageQueue, HWND Wnd,
-             UINT_PTR IDEvent, UINT Msg);
-BOOLEAN FASTCALL
-MsqGetTimerMessage(PUSER_MESSAGE_QUEUE MessageQueue,
-                   PWINDOW_OBJECT WindowFilter, UINT MsgFilterMin, UINT MsgFilterMax,
-                   MSG *Msg, BOOLEAN Restart);
-VOID FASTCALL
-MsqRemoveTimersWindow(PUSER_MESSAGE_QUEUE MessageQueue, HWND Wnd);
 
 VOID FASTCALL IdlePing(VOID);
 VOID FASTCALL IdlePong(VOID);

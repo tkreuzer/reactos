@@ -1256,6 +1256,7 @@ co_MsqSendMessage(PTHREADINFO ptirec,
                {
                   Message->pkCompletionEvent = NULL;
                   RemoveEntryList(&Message->ListEntry);
+                  InitializeListHead(&Message->DispatchingListEntry);
                   ClearMsgBitsMask(ptirec, Message->QS_Flags);
                   InsertTailList(&usmList, &Message->ListEntry);
                   break;

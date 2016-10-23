@@ -252,20 +252,20 @@ IntSetDIBits(
 
     if (!bmi || !Bits) return 0;
 
-    /* Check for uncompressed formats */
-    if ((bmi->bmiHeader.biCompression == BI_RGB) ||
+    /* Check if the header provided an image size */
+    if (bmi->bmiHeader.biSizeImage != 0)
+    {
+        /* Use the given size */
+        cjSizeImage = bmi->bmiHeader.biSizeImage;
+    }
+    /* Otherwise check for uncompressed formats */
+    else if ((bmi->bmiHeader.biCompression == BI_RGB) ||
              (bmi->bmiHeader.biCompression == BI_BITFIELDS))
     {
         /* Calculate the image size */
         cjSizeImage = DIB_GetDIBImageBytes(bmi->bmiHeader.biWidth,
                                            ScanLines,
                                            bmi->bmiHeader.biBitCount);
-    }
-    /* Check if the header provided an image size */
-    else if (bmi->bmiHeader.biSizeImage != 0)
-    {
-        /* Use the given size */
-        cjSizeImage = bmi->bmiHeader.biSizeImage;
     }
     else
     {

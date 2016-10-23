@@ -337,6 +337,13 @@ ConSrvTermReadStream(IN OUT PTERMINAL This,
              */
             ReadControl->nInitialChars = min(ReadControl->nInitialChars, NumCharsToRead);
 
+            /*
+             * Fixup ReadControl->nInitialChars in case the number of initial
+             * characters is bigger than the number of characters to be read.
+             * It will always be, lesser than or equal to Console->LineMaxSize.
+             */
+            ReadControl->nInitialChars = min(ReadControl->nInitialChars, NumCharsToRead);
+
             Console->LineBuffer = ConsoleAllocHeap(0, Console->LineMaxSize * sizeof(WCHAR));
             if (Console->LineBuffer == NULL) return STATUS_NO_MEMORY;
 

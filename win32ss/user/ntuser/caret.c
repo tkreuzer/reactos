@@ -224,6 +224,7 @@ co_IntSetCaretPos(int X, int Y)
             ThreadQueue->CaretInfo.Showing = 1;
             co_IntDrawCaret(pWnd, &ThreadQueue->CaretInfo);
          }
+         co_IntDrawCaret(pWnd, ThreadQueue->CaretInfo);
 
          IntSetTimer(pWnd, IDCARETTIMER, gpsi->dtCaretBlink, CaretSystemTimerProc, TMRF_SYSTEM);
          IntNotifyWinEvent(EVENT_OBJECT_LOCATIONCHANGE, pWnd, OBJID_CARET, CHILDID_SELF, 0);

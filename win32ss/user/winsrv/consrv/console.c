@@ -542,6 +542,7 @@ ConSrvInitConsole(OUT PHANDLE NewConsoleHandle,
     PCONSOLE_STATE_INFO ConsoleInfo = (PCONSOLE_STATE_INFO)&ConsoleInfoBuffer;
     CONSOLE_INFO DrvConsoleInfo; // Console information for CONDRV
 
+    ULONG ConsoleLeaderProcessId = HandleToUlong(ConsoleLeaderProcess->ClientId.UniqueProcess);
     SIZE_T Length = 0;
 
     TERMINAL Terminal; /* The ConSrv terminal for this console */

@@ -100,8 +100,6 @@ extern "C" {
 #define InterlockedIncrementUL(Value) InterlockedIncrement((PLONG)Value)
 #define InterlockedDecrementUL(Value) InterlockedDecrement((PLONG)Value)
 
-#define GDI_DEBUG 1
-
 /* Internal Win32K header */
 #include "win32kp.h"
 

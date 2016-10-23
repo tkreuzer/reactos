@@ -454,11 +454,6 @@ UserThreadDestroy(PETHREAD Thread)
 
 NTSTATUS NTAPI
 InitThreadCallback(PETHREAD Thread)
-#define TAG_THREADINFO TAG('W', '3', '2', 't')
-
-NTSTATUS
-APIENTRY
-CreateWin32Thread(PETHREAD Thread)
 {
     PEPROCESS Process;
     PCLIENTINFO pci;
