@@ -8,5 +8,21 @@ Signature = "$Windows NT$"
 ; Display driver section
 ;
 
+; VBE SVGA driver // FIXME move to individual inf
+HKLM,"SYSTEM\CurrentControlSet\Services\VBE","Start",0x00010001,0x00000001
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.VRefresh",0x00010001,1
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.BitsPerPel",0x00010001,32
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.XResolution",0x00010001,800
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.YResolution",0x00010001,600
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.FixedOutput",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.Flags",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.Orientation",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.XPanning",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","DefaultSettings.YPanning",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","Attach.RelativeX",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","Attach.RelativeY",0x00010001,0
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","Attach.ToDesktop",0x00010001,1
+HKLM,"SYSTEM\CurrentControlSet\Hardware Profiles\Current\System\CurrentControlSet\Services\VBE\Device0","Attach.PrimaryDevice",0x00010001,1
+
 ; VGA miniport driver
 HKLM,"SYSTEM\CurrentControlSet\Services\VgaSave","Start",0x00010001,0x00000001
