@@ -1,0 +1,91 @@
+
+#include <asm.inc>
+
+.code
+
+MACRO(STUB, name)
+    PUBLIC name
+    name:
+    int 3
+ENDM
+
+STUB HalAcpiGetTableEx
+STUB HalAcquireDisplayOwnership
+STUB HalAdjustResourceList
+STUB HalAllocateAdapterChannel
+STUB HalAllocateCommonBuffer
+STUB HalAllocateCrashDumpRegisters
+STUB HalAllocateHardwareCounters
+STUB HalAssignSlotResources
+STUB HalBugCheckSystem
+STUB HalConvertDeviceIdtToIrql
+STUB HalDisableInterrupt
+STUB HalDisplayString
+STUB HalDmaFreeCrashDumpRegisters
+STUB HalEnableInterrupt
+STUB HalEnumerateEnvironmentVariablesEx
+STUB HalEnumerateProcessors
+STUB HalFlushCommonBuffer
+STUB HalFreeCommonBuffer
+STUB HalFreeHardwareCounters
+STUB HalGetAdapter
+STUB HalGetBusData
+STUB HalGetBusDataByOffset
+STUB HalGetEnvironmentVariable
+STUB HalGetEnvironmentVariableEx
+STUB HalGetInterruptTargetInformation
+STUB HalGetInterruptVector
+STUB HalGetMemoryCachingRequirements
+STUB HalGetMessageRoutingInfo
+STUB HalGetProcessorIdByNtNumber
+STUB HalGetVectorInput
+STUB HalHandleMcheck
+STUB HalHandleNMI
+STUB HalInitializeOnResume
+STUB HalIsHyperThreadingEnabled
+STUB HalMakeBeep
+STUB HalPerformEndOfInterrupt
+STUB HalQueryDisplayParameters
+STUB HalQueryEnvironmentVariableInfoEx
+STUB HalQueryMaximumProcessorCount
+STUB HalQueryRealTimeClock
+STUB HalReadDmaCounter
+STUB HalRegisterDynamicProcessor
+STUB HalRegisterErrataCallbacks
+STUB HalReportResourceUsage
+STUB HalRequestClockInterrupt
+STUB HalRequestDeferredRecoveryServiceInterrupt
+STUB HalReturnToFirmware
+STUB HalSendNMI
+STUB HalSendSoftwareInterrupt
+STUB HalSetBusData
+STUB HalSetBusDataByOffset
+STUB HalSetDisplayParameters
+STUB HalSetEnvironmentVariable
+STUB HalSetEnvironmentVariableEx
+STUB HalSetRealTimeClock
+STUB HalSystemVectorDispatchEntry
+STUB HalTranslateBusAddress
+STUB IoFlushAdapterBuffers
+STUB IoFreeAdapterChannel
+STUB IoFreeMapRegisters
+STUB IoMapTransfer
+STUB IoReadPartitionTable
+STUB IoSetPartitionInformation
+STUB IoWritePartitionTable
+STUB KdComPortInUse
+STUB KdHvComPortInUse
+STUB KeFlushWriteBuffer
+
+STUB HalMcUpdateReadPCIConfig
+STUB HalpReadPartitionTable
+STUB HalpSetPartitionInformation
+STUB HalpWritePartitionTable
+
+
+STUB HalpRegisterVector
+STUB HalpEnableInterruptHandler
+STUB HalpInitDma
+
+
+END
