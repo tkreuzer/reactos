@@ -399,10 +399,10 @@ HBITMAP
 WINAPI
 CreateDIBitmap(
     HDC hDC,
-    const BITMAPINFOHEADER *Header,
-    DWORD Init,
-    LPCVOID Bits,
-    const BITMAPINFO *Data,
+    const BITMAPINFOHEADER *pbmih,
+    DWORD fdwInit,
+    LPCVOID lpbInit,
+    const BITMAPINFO *pbmi,
     UINT ColorUse)
 {
     LONG Width, Height, Compression, DibSize;
@@ -414,28 +414,12 @@ CreateDIBitmap(
     UINT cjInfoSize;
 
     /* Convert the BITMAPINFO if it is a COREINFO */
-    pbmiConverted = ConvertBitmapInfo(Data, ColorUse, &cjInfoSize, FALSE);
+    pbmiConverted = ConvertBitmapInfo(pbmi, ColorUse, &cjInfoSize, FALSE);
 
     /* Check for CBM_CREATDIB */
-    if (Init & CBM_CREATDIB)
+    if (fdwInit & CBM_CREATDIB)
     {
-        if (cjInfoSize == 0)
-        {
-            goto Exit;
-        }
-        else if (Init & CBM_INIT)
-        {
-            if (Bits == NULL)
-            {
-                goto Exit;
-            }
-        }
-        else
-        {
-            Bits = NULL;
-        }
-
-        /* CBM_CREATDIB needs Data. */
+        /* CBM_CREATDIB needs the BITMAPINFO. */
         if (pbmiConverted == NULL)
         {
             DPRINT1("CBM_CREATDIB needs a BITMAPINFO!\n");
@@ -451,28 +435,20 @@ CreateDIBitmap(
         }
 
         /* Use the header from the data */
-        Header = &Data->bmiHeader;
+        pbmih = &pbmi->bmiHeader;
     }
     else
     {
-        if (Init & CBM_INIT)
+        /* Check if we have bits */
+        if (lpbInit == NULL)
         {
-            if (Bits != NULL)
-            {
-                if (cjInfoSize == 0)
-                {
-                    goto Exit;
-                }
-            }
-            else
-            {
-                Init &= ~CBM_INIT;
-            }
+            /* No bits, no init */
+            fdwInit &= ~CBM_INIT;
         }
     }
 
     /* Header is required */
-    if (!Header)
+    if (!pbmih)
     {
         DPRINT1("Header is NULL\n");
         GdiSetLastError(ERROR_INVALID_PARAMETER);
@@ -480,7 +456,7 @@ CreateDIBitmap(
     }
 
     /* Get the bitmap format and dimensions */
-    if (DIB_GetBitmapInfo(Header, &Width, &Height, &Planes, &BitsPerPixel, &Compression, &DibSize) == -1)
+    if (DIB_GetBitmapInfo(pbmih, &width, &height, &planes, &bpp, &compr, &dibsize) == -1)
     {
         DPRINT1("DIB_GetBitmapInfo failed!\n");
         GdiSetLastError(ERROR_INVALID_PARAMETER);
@@ -494,6 +470,28 @@ CreateDIBitmap(
         goto Exit;
     }
 
+    /* If either width or height is 0, the default bitmap is returned */
+    if ((width == 0) || (height == 0))
+    {
+        hBmp = GetStockObject(DEFAULT_BITMAP);
+        goto Exit;
+    }
+
+    if ((fdwInit & CBM_INIT) != 0)
+    {
+        /* We need bits! */
+        if (lpbInit == NULL)
+        {
+            goto Exit;
+        }
+
+
+    }
+    else
+    {
+        lpbInit = NULL;
+    }
+
     /* Only DIB_RGB_COLORS (0), DIB_PAL_COLORS (1) and 2 are valid. */
     if (ColorUse > DIB_PAL_COLORS + 1)
     {
@@ -502,8 +500,8 @@ CreateDIBitmap(
         goto Exit;
     }
 
-    /* If some Bits are given, only DIB_PAL_COLORS and DIB_RGB_COLORS are valid */
-    if (Bits && (ColorUse > DIB_PAL_COLORS))
+    /* If some bits are given, only DIB_PAL_COLORS and DIB_RGB_COLORS are valid */
+    if (lpbInit && (ColorUse > DIB_PAL_COLORS))
     {
         DPRINT1("Invalid ColorUse: %lu\n", ColorUse);
         GdiSetLastError(ERROR_INVALID_PARAMETER);
@@ -523,7 +521,20 @@ CreateDIBitmap(
 // For Icm support.
 // GdiGetHandleUserData(hdc, GDI_OBJECT_TYPE_DC, (PVOID)&pDc_Attr))
 
-    cjBmpScanSize = GdiGetBitmapBitsSize(pbmiConverted);
+    /* Check if we have a BITMAPINFO */
+    if (pbmiConverted != NULL)
+    {
+        /* We don't support JPEG/PNG here */
+        if ((pbmiConverted->bmiHeader.biCompression == BI_JPEG) ||
+            (pbmiConverted->bmiHeader.biCompression == BI_PNG))
+        {
+            goto Exit;
+        }
+
+        cjBmpScanSize = GdiGetBitmapBitsSize(pbmiConverted);
+        CalculateColorTableSize(&pbmiConverted->bmiHeader, &ColorUse, &InfoSize);
+        InfoSize += pbmiConverted->bmiHeader.biSize;
+    }
 
     DPRINT("pBMI %p, Size bpp %u, dibsize %d, Conv %u, BSS %u\n",
            Data, BitsPerPixel, DibSize, cjInfoSize, cjBmpScanSize);
@@ -532,23 +543,25 @@ CreateDIBitmap(
     {
         hBitmap = GetStockObject(DEFAULT_BITMAP);
     }
-    else
-    {
-        hBitmap = NtGdiCreateDIBitmapInternal(hDC,
-                                              Width,
-                                              Height,
-                                              Init,
-                                              (LPBYTE)Bits,
-                                              (LPBITMAPINFO)pbmiConverted,
-                                              ColorUse,
-                                              cjInfoSize,
-                                              cjBmpScanSize,
-                                              0, 0);
-    }
+
+    DPRINT("pbmi %p, Size bpp %u, dibsize %d, Conv %u, BSS %u\n",
+           pbmi, bpp, dibsize, InfoSize, cjBmpScanSize);
+
+    hBmp = NtGdiCreateDIBitmapInternal(hDC,
+                                       width,
+                                       height,
+                                       fdwInit,
+                                       (LPBYTE)lpbInit,
+                                       pbmiConverted,
+                                       ColorUse,
+                                       InfoSize,
+                                       cjBmpScanSize,
+                                       0,
+                                       0);
 
 Exit:
     /* Cleanup converted BITMAPINFO */
-    if ((pbmiConverted != NULL) && (pbmiConverted != Data))
+    if ((pbmiConverted != NULL) && (pbmiConverted != pbmi))
     {
         RtlFreeHeap(RtlGetProcessHeap(), 0, pbmiConverted);
     }
