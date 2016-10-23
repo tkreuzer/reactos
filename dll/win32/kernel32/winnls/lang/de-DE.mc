@@ -109,7 +109,7 @@ Severity=Success
 Facility=System
 SymbolicName=ERROR_BAD_ENVIRONMENT
 Language=German
-ERROR_BAD_ENVIRONMENT - Die Umgebung ist falsch.
+ERROR_BAD_ENVIRONMENT - Die Umgebung ist inkorrekt.
 .
 
 MessageId=11
@@ -213,7 +213,7 @@ Severity=Success
 Facility=System
 SymbolicName=ERROR_CRC
 Language=German
-ERROR_CRC - CRC-Fehler.
+ERROR_CRC - Datenfehler (CRC).
 .
 
 MessageId=24
