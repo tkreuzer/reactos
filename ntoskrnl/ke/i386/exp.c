@@ -167,9 +167,17 @@ KiEspToTrapFrame(IN PKTRAP_FRAME TrapFrame,
     KIRQL OldIrql;
     ULONG Previous;
 
-    /* Raise to APC_LEVEL if needed */
-    OldIrql = KeGetCurrentIrql();
-    if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
+    /* Check if we have interrupts enabled */
+    if (__readeflags() & EFLAGS_INTERRUPT_MASK)
+    {
+        /* Raise to APC_LEVEL if needed */
+        OldIrql = KeGetCurrentIrql();
+        if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
+    }
+    else
+    {
+        OldIrql = HIGH_LEVEL;
+    }
 
     /* Get the old ESP */
     Previous = KiEspFromTrapFrame(TrapFrame);
@@ -323,9 +331,17 @@ KeContextToTrapFrame(IN PCONTEXT Context,
     KIRQL OldIrql;
     ULONG DrMask = 0;
 
-    /* Do this at APC_LEVEL */
-    OldIrql = KeGetCurrentIrql();
-    if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
+    /* Check if we have interrupts enabled */
+    if (__readeflags() & EFLAGS_INTERRUPT_MASK)
+    {
+        /* Do this at APC_LEVEL */
+        OldIrql = KeGetCurrentIrql();
+        if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
+    }
+    else
+    {
+        OldIrql = HIGH_LEVEL;
+    }
 
     /* Start with the basic Registers */
     if ((ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL)
@@ -617,9 +633,17 @@ KeTrapFrameToContext(IN PKTRAP_FRAME TrapFrame,
     KIRQL OldIrql;
     ULONG i;
 
-    /* Do this at APC_LEVEL */
-    OldIrql = KeGetCurrentIrql();
-    if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
+    /* Check if we have interrupts enabled */
+    if (__readeflags() & EFLAGS_INTERRUPT_MASK)
+    {
+        /* Do this at APC_LEVEL */
+        OldIrql = KeGetCurrentIrql();
+        if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
+    }
+    else
+    {
+        OldIrql = HIGH_LEVEL;
+    }
 
     /* Start with the Control flags */
     if ((Context->ContextFlags & CONTEXT_CONTROL) == CONTEXT_CONTROL)
