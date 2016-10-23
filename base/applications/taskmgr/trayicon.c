@@ -37,6 +37,29 @@ HICON TrayIcon_GetProcessorUsageIcon(void)
     HBRUSH    hBitmapBrush = NULL;
     RECT      rc;
 
+BITMAPINFO bmi;
+BYTE Data[20000];
+
+//hBitmap = LoadBitmapW(hInst, MAKEINTRESOURCEW(IDB_TRAYICON));
+bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+bmi.bmiHeader.biWidth = 100;
+bmi.bmiHeader.biHeight = 100;
+bmi.bmiHeader.biPlanes = 1;
+bmi.bmiHeader.biBitCount = 16;
+bmi.bmiHeader.biCompression = BI_RGB;
+bmi.bmiHeader.biSizeImage = 20000;
+bmi.bmiHeader.biXPelsPerMeter = 1000;
+bmi.bmiHeader.biYPelsPerMeter = 1000;
+bmi.bmiHeader.biClrUsed = 0;
+bmi.bmiHeader.biClrImportant = 0;
+//bmi.bmiColors[1] = 0;
+
+hScreenDC = CreateCompatibleDC(NULL);
+      hBitmap = CreateDIBitmap(hScreenDC, &bmi.bmiHeader, CBM_INIT,
+                               Data, &bmi, DIB_RGB_COLORS);
+DeleteDC(hScreenDC);
+DeleteObject(hBitmap);
+return NULL;
     /*
      * Get a handle to the screen DC
      */
@@ -54,8 +77,8 @@ HICON TrayIcon_GetProcessorUsageIcon(void)
     /*
      * Load the bitmaps
      */
-    hBitmap = LoadBitmapW(hInst, MAKEINTRESOURCEW(IDB_TRAYICON));
-    hBitmapMask = LoadBitmapW(hInst, MAKEINTRESOURCEW(IDB_TRAYMASK));
+//    hBitmap = LoadBitmapW(hInst, MAKEINTRESOURCEW(IDB_TRAYICON));
+//    hBitmapMask = LoadBitmapW(hInst, MAKEINTRESOURCEW(IDB_TRAYMASK));
     if (!hBitmap || !hBitmapMask)
         goto done;
 
@@ -194,8 +217,8 @@ BOOL TrayIcon_ShellUpdateTrayIcon(void)
     LoadStringW(hInst, IDS_MSG_TRAYICONCPUUSAGE, szTemp, sizeof(szTemp)/sizeof(szTemp[0]));
     wsprintfW(nid.szTip, szTemp, PerfDataGetProcessorUsage());
 
-    bRetVal = Shell_NotifyIconW(NIM_MODIFY, &nid);
-
+//    bRetVal = Shell_NotifyIconW(NIM_MODIFY, &nid);
+bRetVal = 1;
     if (hIcon)
         DestroyIcon(hIcon);
 
