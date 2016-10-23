@@ -463,13 +463,14 @@ CreateDIBitmap(
         goto Exit;
     }
 
+#if 0 // Check me!
     /* Check if the Compr is incompatible */
     if ((Compression == BI_JPEG) || (Compression == BI_PNG))
     {
         DPRINT1("Invalid compression: %lu!\n", Compression);
         goto Exit;
     }
-
+#endif
     /* If either width or height is 0, the default bitmap is returned */
     if ((width == 0) || (height == 0))
     {
