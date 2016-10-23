@@ -527,7 +527,7 @@ co_IntUpdateWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
 {
    HWND hWnd = Wnd->head.h;
 
-   if ( Wnd->hrgnUpdate != NULL || Wnd->state & WNDS_INTERNALPAINT )
+   if ((Wnd->hrgnUpdate != NULL) || (Wnd->state & WNDS_INTERNALPAINT))
    {
       if (Wnd->hrgnUpdate)
       {
@@ -2162,6 +2162,7 @@ UserDrawCaptionText(
 
    if (Text->Length/sizeof(WCHAR) > Length)
    {
+      Ret = FALSE;
       Ret = FALSE;
    }
 

@@ -2,6 +2,7 @@
     //
     // Funcs order should match Windows 2003 Service Pack 2
     // Note: these MUST be indented for the ARM assembler!
+    // Note: these MUST be indented for the ARM assembler!
     //
     SVC_(GdiAbortDoc, 1)
     SVC_(GdiAbortPath, 1)

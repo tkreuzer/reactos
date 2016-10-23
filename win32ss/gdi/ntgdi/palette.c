@@ -421,7 +421,7 @@ PALOBJ_cGetColors(PALOBJ *PalObj, ULONG Start, ULONG Colors, ULONG *PaletteEntry
 {
     PALETTE *PalGDI;
 
-    PalGDI = CONTAINING_RECORD(PalObj, PALETTE, PalObj);
+    PalGDI = (PALETTE*)PalObj;
 
     if (Start >= PalGDI->NumColors)
         return 0;
