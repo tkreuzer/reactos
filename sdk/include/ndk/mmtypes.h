@@ -1052,3 +1052,159 @@ extern POBJECT_TYPE NTSYSAPI MmSectionObjectType;
 #endif
 
 #endif // _MMTYPES_H
+
+#if 0
+
+typedef struct _MM_PAGED_POOL_INFO
+{
+    PRTL_BITMAP PagedPoolAllocationMap;
+    PRTL_BITMAP EndOfPagedPoolBitmap;
+    PMMPTE FirstPteForPagedPool;
+    PMMPTE LastPteForPagedPool;
+    PMMPTE NextPdeForPagedPoolExpansion;
+    ULONG PagedPoolHint;
+    ULONG_PTR PagedPoolCommit;
+    ULONG_PTR AllocatedPagedPool;
+} MM_PAGED_POOL_INFO, *PMM_PAGED_POOL_INFO;
+
+typedef struct _POOL_DESCRIPTOR
+{
+    POOL_TYPE PoolType;
+    ULONG PoolIndex;
+    ULONG RunningAllocs;
+    ULONG RunningDeAllocs;
+    ULONG TotalPages;
+    ULONG TotalBigPages;
+    ULONG Threshold;
+    PVOID LockAddress;
+    PVOID PendingFrees;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    LONG ThreadsProcessingDeferrals
+#endif
+    LONG PendingFreeDepth;
+    ULONG_PTR TotalBytes;
+    ULONG_PTR Spare0;
+    LIST_ENTRY ListHeads[PAGE_SIZE / sizeof(LIST_ENTRY)];
+} POOL_DESCRIPTOR, *PPOOL_DESCRIPTOR;
+
+//
+// Session Information
+//
+typedef struct _MMVIEW
+{
+    ULONG_PTR Entry;
+    PCONTROL_AREA ControlArea;
+} MMVIEW, *PMMVIEW;
+
+typedef struct _MMSESSION
+{
+    KGUARDED_MUTEX SystemSpaceViewLock;
+    PKGUARDED_MUTEX SystemSpaceViewLockPointer;
+    PMMVIEW SystemSpaceViewTable;
+    ULONG SystemSpaceHashSize;
+    ULONG SystemSpaceHashEntries;
+    ULONG SystemSpaceHashKey;
+    ULONG BitmapFailures;
+#if (NTDDI_VERSION < NTDDI_LONGHORN)
+    RTL_BITMAP* SystemSpaceBitMap;
+#endif
+} MMSESSION, *PMMSESSION;
+
+typedef struct _MM_SESSION_SPACE_FLAGS
+{
+    ULONG Initialized : 1;
+    ULONG DeletePending : 1;
+    ULONG PoolInitialized : 1;
+    ULONG DynamicVaInitialized : 1;
+    ULONG WsInitialized : 1;
+    ULONG PoolDestroyed : 1;
+    ULONG ObjectInitialized : 1;
+    ULONG Filler : 25;
+} MM_SESSION_SPACE_FLAGS;                                    
+
+typedef struct _MM_SESSION_SPACE
+{
+#if (NTDDI_VERSION < NTDDI_LONGHORN)
+    struct _MM_SESSION_SPACE* GlobalVirtualAddress;
+#endif
+    LONG ReferenceCount;
+    union
+    {
+        ULONG LongFlags;
+        MM_SESSION_SPACE_FLAGS Flags;
+    } u;
+    ULONG SessionId;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    LONG ProcessReferenceToSession;
+#else
+    //UCHAR _PADDING0_[0x4];
+#endif
+    LIST_ENTRY ProcessList;
+    LARGE_INTEGER LastProcessSwappedOutTime;
+    UINT64 SessionPageDirectoryIndex;
+    UINT64 NonPagablePages;
+    UINT64 CommittedPages;
+    PVOID PagedPoolStart;
+    PVOID PagedPoolEnd;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    PVOID SessionObject;
+    HANDLE SessionObjectHandle;
+#else
+    PMMPTE PagedPoolBasePde;
+    ULONG Color;
+#endif
+    LONG ResidentProcessCount;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    LONG ImageLoadingCount
+#endif
+    ULONG SessionPoolAllocationFailures[4];
+    LIST_ENTRY ImageList;
+    ULONG LocaleId;
+    ULONG AttachCount;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    KGATE AttachGate;
+#else
+    KEVENT AttachEvent;
+    PEPROCESS LastProcess;
+    LONG ProcessReferenceToSession;
+    //UCHAR _PADDING1_[0x4];
+#endif
+    LIST_ENTRY WsListEntry;
+    //UCHAR _PADDING2_[0x38];
+    GENERAL_LOOKASIDE Lookaside[21]; // 2k3_32: 26
+    MMSESSION Session;
+    KGUARDED_MUTEX PagedPoolMutex;
+    MM_PAGED_POOL_INFO PagedPoolInfo;
+    MMSUPPORT Vm;
+    PMMWSLE Wsle;
+    PDRIVER_UNLOAD Win32KDriverUnload;
+    POOL_DESCRIPTOR PagedPool;
+    MMPTE PageDirectory;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    KGUARDED_MUTEX SessionVaLock;
+    RTL_BITMAP DynamicVaBitMap;
+    ULONG  DynamicVaHint;
+    //UCHAR _PADDING1_[0x4];
+    MI_SPECIAL_POOL SpecialPool;
+    KGUARDED_MUTEX SessionPteLock;
+    LONG PoolBigEntriesInUse;
+    ULONG PagedPoolPdeCount;
+    ULONG SpecialPoolPdeCount;
+    ULONG DynamicSessionPdeCount;
+    MI_SYSTEM_PTE_TYPE SystemPteInfo;
+    PVOID PoolTrackTableExpansion;
+    UINT64 PoolTrackTableExpansionSize;
+    PVOID PoolTrackBigPages;
+    UINT64 PoolTrackBigPagesSize;
+    //UCHAR _PADDING2_[0x8];
+#else
+    PMMPTE SpecialPoolFirstPte;
+    PMMPTE SpecialPoolLastPte;
+    PMMPTE NextPdeForSpecialPoolExpansion;
+    PMMPTE LastPdeForSpecialPoolExpansion;
+    UINT64 SpecialPagesInUse;
+    LONG ImageLoadingCount;
+    //UCHAR _PADDING3_[0x3C];
+#endif
+} MM_SESSION_SPACE, *PMM_SESSION_SPACE;                                                                         
+#endif
