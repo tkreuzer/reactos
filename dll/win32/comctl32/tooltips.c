@@ -1270,8 +1270,11 @@ TOOLTIPS_GetBubbleSize (const TOOLTIPS_INFO *infoPtr, const TTTOOLINFOW *lpToolI
 static LRESULT
 TOOLTIPS_GetCurrentToolT (const TOOLTIPS_INFO *infoPtr, TTTOOLINFOW *ti, BOOL isW)
 {
+    if (ti == NULL)
+        return FALSE;
+
     if (ti) {
-        if (ti->cbSize < TTTOOLINFOW_V1_SIZE)
+        if (ti->cbSize < TTTOOLINFOA_V1_SIZE)
             return FALSE;
 
         if (infoPtr->nCurrentTool != -1)
