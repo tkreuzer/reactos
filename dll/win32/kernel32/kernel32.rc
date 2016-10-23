@@ -6,6 +6,8 @@
 
 //#include "windows.h"
 #include <errcodes.rc>
+#include "lang/de-DE.rc"
+//#include "lang/pl-PL.rc"
 
 #include "winnls/locale_rc.rc"
 
