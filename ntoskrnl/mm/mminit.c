@@ -196,6 +196,8 @@ MmInitBsmThread(VOID)
     return Status;
 }
 
+VOID MmInitHyperSpaceFreeList(MMPTE *Pte);
+
 CODE_SEG("INIT")
 BOOLEAN
 NTAPI
@@ -234,6 +236,29 @@ MmInitSystem(IN ULONG Phase,
 
     MmInitGlobalKernelPageDirectory();
     MmInitializeMemoryConsumer(MC_USER, MmTrimUserMemory);
+
+    /* Initialize the user mode image list */
+    InitializeListHead(&MmLoadedUserImageList);
+
+//MmInitHyperSpaceFreeList();
+
+    /* Initialize the Loader Lock */
+    KeInitializeMutant(&MmSystemLoadLock, FALSE);
+
+    /* Reload boot drivers */
+    MiReloadBootLoadedDrivers(LoaderBlock);
+
+    /* Initialize the loaded module list */
+    MiInitializeLoadedModuleList(LoaderBlock);
+
+    /* Setup shared user data settings that NT does as well */
+    ASSERT(SharedUserData->NumberOfPhysicalPages == 0);
+    SharedUserData->NumberOfPhysicalPages = MmNumberOfPhysicalPages;
+    SharedUserData->LargePageMinimum = 0;
+
+    /* For now, we assume that we're always Server */
+    SharedUserData->NtProductType = NtProductServer;
+
     MmInitializeRmapList();
     MmInitSectionImplementation();
     MmInitPagingFile();

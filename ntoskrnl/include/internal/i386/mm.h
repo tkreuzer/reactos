@@ -62,6 +62,15 @@
 #define MI_ALLOCATION_FRAGMENT                  (64 * _1KB)
 #define MI_MAX_ALLOCATION_FRAGMENT              (2  * _1MB)
 
+//
+// Convert a PTE into a corresponding address
+//
+#define MiPteToAddress(x) \
+    ((PVOID)(((ULONG)(x) - PAGETABLE_MAP) << 10))
+#define MiPdeToAddress(PDE) ((PVOID)((ULONG)(PDE) << 20))
+#define MiPdeToPte(PDE) ((PMMPTE)MiPteToAddress(PDE))
+#define MiPteToPde(PTE) ((PMMPDE)MiAddressToPte(PTE))
+
 /* Misc constants */
 #define MM_PTE_SOFTWARE_PROTECTION_BITS         5
 #define MI_MIN_SECONDARY_COLORS                 8

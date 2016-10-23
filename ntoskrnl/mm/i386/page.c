@@ -43,7 +43,16 @@
 #define PTE_TO_PFN(X)  ((X) >> PAGE_SHIFT)
 #define PFN_TO_PTE(X)  ((X) << PAGE_SHIFT)
 
-#define PAGE_MASK(x)		((x)&(~0xfff))
+#define MiPteToAddress(x) \
+    ((PVOID)(((ULONG)(x) - PAGETABLE_MAP) << 10))
+
+typedef struct _MMPTE_LISTHEAD
+{
+    MMPTE_LIST *Base;
+    MMPTE_LIST *FirstEntry;
+} MMPTE_LISTHEAD, *PMMPTE_LISTHEAD;
+
+MMPTE_LIST *MmHyperspaceFreeListHead;
 
 const
 ULONG
@@ -135,6 +144,149 @@ ULONG MmProtectToValue[32] =
 /* FUNCTIONS ***************************************************************/
 
 static BOOLEAN MmUnmapPageTable(PULONG Pt, KIRQL OldIrql);
+BOOLEAN HasDebug = 0;
+#define DPRINT0 if(HasDebug) DbgPrint
+
+#define USE_FREELIST 1
+
+#if USE_FREELIST
+
+BOOLEAN HyperspaceInitialized = 0;
+
+ULONG BackTrace[30];
+VOID NTAPI KeRosDumpStackFrames(PULONG, ULONG);
+
+#define VALIDATE if (!MiValidateFreeList() && HasDebug) ASSERT(FALSE)
+static
+BOOLEAN
+MiValidateFreeList()
+{
+    PULONG p;
+    INT i;
+
+if (HyperspaceInitialized)
+{
+    p = (PULONG)MiAddressToPte(HYPERSPACE);
+    for (i = 0; i < 1024; i++)
+    {
+        if (p[i] == 0)
+        {
+            DPRINT1("Found 0 entry in index %d\n", i);
+            return FALSE;
+        }
+    }
+    return TRUE;
+}
+return TRUE;
+}
+
+#if 0
+static
+PMMPTE
+MiInterlockedPopPteListEntry(MMPTE_LIST **ListHead)
+{
+    MMPTE_LIST *FirstEntry, *NextEntry, *PrevEntry;
+
+    do
+    {
+        FirstEntry = *ListHead;
+        if (!FirstEntry)
+        {
+            return NULL;
+        }
+        NextEntry = FirstEntry->NextEntry ?
+            (PVOID)((ULONG_PTR)FirstEntry + (INT)FirstEntry->NextEntry) : NULL;
+
+        PrevEntry = InterlockedCompareExchangePointer((PVOID*)ListHead,
+                                                      (PVOID)NextEntry,
+                                                      (PVOID)FirstEntry);
+    }
+    while (PrevEntry != FirstEntry);
+//DPRINT0("MiInterlockedPopPteListEntry returns %p, NextEntry = %p\n", FirstEntry, NextEntry);
+if (!MiValidateFreeList() && HasDebug)
+{
+    DPRINT1("we have a problem !\n");
+    KeRosDumpStackFrames(BackTrace, 20);
+    ASSERT(FALSE);
+}
+
+    return (PMMPTE)FirstEntry;
+}
+#else
+static
+PMMPTE
+MiInterlockedPopPteListEntry(MMPTE_LIST *ListHead)
+{
+    MMPTE_LIST *FirstEntry, *NextEntry, *PrevEntry;
+
+    do
+    {
+        FirstEntry = ListHead->NextEntry ?
+            (PVOID)((ULONG_PTR)ListHead + (INT)ListHead->NextEntry) : NULL;
+        if (!FirstEntry)
+        {
+            return NULL;
+        }
+        NextEntry = FirstEntry->NextEntry ?
+            (PVOID)((ULONG_PTR)FirstEntry + (INT)FirstEntry->NextEntry) : NULL;
+
+        PrevEntry = InterlockedCompareExchangePointer((PVOID*)ListHead,
+                                                      (PVOID)*NextEntry,
+                                                      (PVOID)*FirstEntry);
+    }
+    while (PrevEntry != *FirstEntry);
+
+//DPRINT0("MiInterlockedPopPteListEntry returns %p, NextEntry = %p\n", FirstEntry, NextEntry);
+if (!MiValidateFreeList() && HasDebug)
+{
+    DPRINT1("we have a problem !\n");
+    KeRosDumpStackFrames(BackTrace, 20);
+    ASSERT(FALSE);
+}
+
+    return (PMMPTE)FirstEntry;
+}
+#endif
+
+static
+void
+MiInterlockedPushPteListEntry(MMPTE_LIST **ListHead, MMPTE *Entry)
+{
+    MMPTE_LIST *FirstEntry, *PrevEntry;
+//VALIDATE;
+    do
+    {
+        FirstEntry = *ListHead;
+        Entry->u.List.NextEntry = FirstEntry ? 
+            (LONG_PTR)FirstEntry - (LONG_PTR)Entry : 0;
+        PrevEntry = InterlockedCompareExchangePointer((PVOID*)ListHead,
+                                                      (PVOID)Entry,
+                                                      (PVOID)FirstEntry);
+    }
+    while (PrevEntry != FirstEntry);
+    RtlCaptureStackBackTrace(0, 20, (PVOID*)BackTrace, NULL);
+//DPRINT0("MiInterlockedPushPteListEntry pushed %p\n", Entry);
+}
+#endif
+
+VOID
+MmInitHyperSpaceFreeList(MMPTE *Pte)
+{
+    INT i;
+
+//DPRINT1("Enter MmInitHyperSpaceFreeList\n");
+
+//    Pte = MiAddressToPte(HYPERSPACE);
+    MmHyperspaceFreeListHead = &Pte->u.List;
+    for (i = 0; i < 1024; i++)
+    {
+        Pte[i].u.Long = 0;
+        Pte[i].u.List.NextEntry = 4;
+    }
+//DPRINT1("Leave MmInitHyperSpaceFreeList\n");
+    HyperspaceInitialized = 1;
+
+}
 
 VOID
 MiFlushTlb(PULONG Pt, PVOID Address, KIRQL OldIrql)
@@ -201,6 +353,118 @@ NTSTATUS
 NTAPI
 MiFillSystemPageDirectory(IN PVOID Base,
                           IN SIZE_T NumberOfBytes);
+
+NTSTATUS
+NTAPI
+Mmi386ReleaseMmInfo(PEPROCESS Process)
+{
+    PUSHORT LdtDescriptor;
+    ULONG LdtBase;
+    PULONG PageDir;
+    ULONG i;
+    
+    DPRINT("Mmi386ReleaseMmInfo(Process %x)\n",Process);
+    
+    LdtDescriptor = (PUSHORT) &Process->Pcb.LdtDescriptor;
+    LdtBase = LdtDescriptor[1] |
+    ((LdtDescriptor[2] & 0xff) << 16) |
+    ((LdtDescriptor[3] & ~0xff) << 16);
+    
+    DPRINT("LdtBase: %x\n", LdtBase);
+    
+    if (LdtBase)
+    {
+        ExFreePool((PVOID) LdtBase);
+    }
+    
+    PageDir = MmCreateHyperspaceMapping(PTE_TO_PFN(Process->Pcb.DirectoryTableBase[0]));
+    for (i = 0; i < ADDR_TO_PDE_OFFSET(MmSystemRangeStart); i++)
+    {
+        if (PageDir[i] != 0)
+        {
+            MiZeroPage(PTE_TO_PFN(PageDir[i]));
+            MmReleasePageMemoryConsumer(MC_NPPOOL, PTE_TO_PFN(PageDir[i]));
+        }
+    }
+    MmReleasePageMemoryConsumer(MC_NPPOOL, PTE_TO_PFN(PageDir[ADDR_TO_PDE_OFFSET(HYPERSPACE)]));
+    MmDeleteHyperspaceMapping(PageDir);
+    MmReleasePageMemoryConsumer(MC_NPPOOL, PTE_TO_PFN(Process->Pcb.DirectoryTableBase[0]));
+
+    Process->Pcb.DirectoryTableBase[0] = 0;
+    Process->Pcb.DirectoryTableBase[1] = 0;
+
+    DPRINT("Finished Mmi386ReleaseMmInfo()\n");
+    return(STATUS_SUCCESS);
+}
+
+NTSTATUS
+NTAPI
+MmInitializeHandBuiltProcess(IN PEPROCESS Process,
+                             IN PULONG DirectoryTableBase)
+{
+    /* Share the directory base with the idle process */
+    DirectoryTableBase[0] = PsGetCurrentProcess()->Pcb.DirectoryTableBase[0];
+    DirectoryTableBase[1] = PsGetCurrentProcess()->Pcb.DirectoryTableBase[1];
+
+    /* Initialize the Addresss Space */
+    KeInitializeGuardedMutex(&Process->AddressCreationLock);
+    Process->Vm.WorkingSetExpansionLinks.Flink = NULL;
+    ASSERT(Process->VadRoot.NumberGenericTableElements == 0);
+    Process->VadRoot.BalancedRoot.u1.Parent = &Process->VadRoot.BalancedRoot;
+
+    /* The process now has an address space */
+    Process->HasAddressSpace = TRUE;
+    return STATUS_SUCCESS;
+}
+
+BOOLEAN
+NTAPI
+MmCreateProcessAddressSpace(IN ULONG MinWs,
+                            IN PEPROCESS Process,
+                            IN PULONG DirectoryTableBase)
+{
+    NTSTATUS Status;
+    ULONG i, j;
+    PFN_TYPE Pfn[2];
+    PULONG PageDirectory, Hyperspace;
+    
+    DPRINT("MmCopyMmInfo(Src %x, Dest %x)\n", MinWs, Process);
+    
+    for (i = 0; i < 2; i++)
+    {
+        Status = MmRequestPageMemoryConsumer(MC_NPPOOL, FALSE, &Pfn[i]);
+        if (!NT_SUCCESS(Status))
+        {
+            for (j = 0; j < i; j++)
+            {
+                MmReleasePageMemoryConsumer(MC_NPPOOL, Pfn[j]);
+            }
+            
+            return FALSE;
+        }
+    }
+    
+    PageDirectory = MmCreateHyperspaceMapping(Pfn[0]);
+    
+    memcpy(PageDirectory + ADDR_TO_PDE_OFFSET(MmSystemRangeStart),
+           MmGlobalKernelPageDirectory + ADDR_TO_PDE_OFFSET(MmSystemRangeStart),
+           (1024 - ADDR_TO_PDE_OFFSET(MmSystemRangeStart)) * sizeof(ULONG));
+    
+    DPRINT("Addr %x\n",ADDR_TO_PDE_OFFSET(PAGETABLE_MAP));
+    PageDirectory[ADDR_TO_PDE_OFFSET(PAGETABLE_MAP)] = PFN_TO_PTE(Pfn[0]) | PA_PRESENT | PA_READWRITE;
+    PageDirectory[ADDR_TO_PDE_OFFSET(HYPERSPACE)] = PFN_TO_PTE(Pfn[1]) | PA_PRESENT | PA_READWRITE;
+    
+    MmDeleteHyperspaceMapping(PageDirectory);
+
+    Hyperspace = MmCreateHyperspaceMapping(Pfn[1]);
+    MmInitHyperSpaceFreeList((MMPTE*)Hyperspace);
+    MmDeleteHyperspaceMapping(Hyperspace);
+
+    DirectoryTableBase[0] = PFN_TO_PTE(Pfn[0]);
+    DirectoryTableBase[1] = 0;
+    DPRINT("Finished MmCopyMmInfo(): 0x%x\n", DirectoryTableBase[0]);
+    return TRUE;
+}
 
 static PULONG
 MmGetPageTableForProcess(PEPROCESS Process, PVOID Address, BOOLEAN Create, PKIRQL OldIrql)
@@ -764,7 +1028,7 @@ MmCreateVirtualMappingUnsafe(PEPROCESS Process,
     if (Address >= MmSystemRangeStart)
     {
         Attributes &= ~PA_USER;
-    }
+        }
     else
     {
         Attributes |= PA_USER;
@@ -911,7 +1175,7 @@ MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
     if (Address >= MmSystemRangeStart)
     {
         Attributes &= ~PA_USER;
-    }
+        }
     else
     {
         Attributes |= PA_USER;
@@ -937,12 +1201,171 @@ MmSetPageProtect(PEPROCESS Process, PVOID Address, ULONG flProtect)
         MmUnmapPageTable(Pt, OldIrql);
 }
 
+PVOID
+NTAPI
+MmCreateHyperspaceMapping(PFN_TYPE Page)
+{
+    PVOID Address;
+    ULONG i;
+    
+    ULONG Entry;
+    PULONG Pte;
+    Entry = PFN_TO_PTE(Page) | PA_PRESENT | PA_READWRITE;
+
+#if USE_FREELIST
+
+if (!HyperspaceInitialized)
+{
+    MmInitHyperSpaceFreeList(MiAddressToPte(HYPERSPACE));
+}
+
+    Pte = (PULONG)MiInterlockedPopPteListEntry(&MmHyperspaceFreeListHead);
+if (!Pte)
+{
+    PULONG p;
+    DPRINT1("Pte == 0\n");
+
+    p = (PULONG)MiAddressToPte(HYPERSPACE);
+    for (i = 0; i < 1024; i++)
+    {
+        DbgPrint("%x ", p[i]);
+    }
+}
+    *Pte = Entry;
+    Address = MiPteToAddress(Pte);
+
+#else
+
+    Pte = (PULONG)MiAddressToPte(HYPERSPACE) + Page % 1024;
+    if (Page & 1024)
+    {
+        for (i = Page % 1024; i < 1024; i++, Pte++)
+        {
+            if (0 == InterlockedCompareExchange((PLONG)Pte, (LONG)Entry, 0))
+            {
+                break;
+            }
+        }
+        if (i >= 1024)
+        {
+            Pte = (PULONG)MiAddressToPte(HYPERSPACE);
+            for (i = 0; i < Page % 1024; i++, Pte++)
+            {
+                if (0 == InterlockedCompareExchange((PLONG)Pte, (LONG)Entry, 0))
+                {
+                    break;
+                }
+            }
+            if (i >= Page % 1024)
+            {
+                KeBugCheck(MEMORY_MANAGEMENT);
+            }
+        }
+    }
+    else
+    {
+        for (i = Page % 1024; (LONG)i >= 0; i--, Pte--)
+        {
+            if (0 == InterlockedCompareExchange((PLONG)Pte, (LONG)Entry, 0))
+            {
+                break;
+            }
+        }
+        if ((LONG)i < 0)
+        {
+            Pte = (PULONG)MiAddressToPte(HYPERSPACE) + 1023;
+            for (i = 1023; i > Page % 1024; i--, Pte--)
+            {
+                if (0 == InterlockedCompareExchange((PLONG)Pte, (LONG)Entry, 0))
+                {
+                    break;
+                }
+            }
+            if (i <= Page % 1024)
+            {
+                KeBugCheck(MEMORY_MANAGEMENT);
+            }
+        }
+    }
+    Address = (PVOID)((ULONG_PTR)HYPERSPACE + i * PAGE_SIZE);
+#endif
+    __invlpg(Address);
+    return Address;
+}
+
+PFN_TYPE
+NTAPI
+MmDeleteHyperspaceMapping(PVOID Address)
+{
+    PFN_TYPE Pfn;
+    ULONG Entry;
+    
+    ASSERT (IS_HYPERSPACE(Address));
+    
+    Entry = InterlockedExchangePte(MiAddressToPte(Address), 0);
+    Pfn = PTE_TO_PFN(Entry);
+#if USE_FREELIST
+    MiInterlockedPushPteListEntry(&MmHyperspaceFreeListHead,
+                                  MiAddressToPte(Address));
+#endif
+    __invlpg(Address);
+    return Pfn;
+}
+
 CODE_SEG("INIT")
 VOID
 NTAPI
 MmInitGlobalKernelPageDirectory(VOID)
 {
     /* Nothing to do here */
+}
+
+VOID
+INIT_FUNCTION
+NTAPI
+MiInitPageDirectoryMap(VOID)
+{
+    MEMORY_AREA* kernel_map_desc = NULL;
+    MEMORY_AREA* hyperspace_desc = NULL;
+    PHYSICAL_ADDRESS BoundaryAddressMultiple;
+    PVOID BaseAddress;
+    NTSTATUS Status;
+    
+    DPRINT1("MiInitPageDirectoryMap()\n");
+    
+    BoundaryAddressMultiple.QuadPart = 0;
+    BaseAddress = (PVOID)PAGETABLE_MAP;
+    Status = MmCreateMemoryArea(MmGetKernelAddressSpace(),
+                                MEMORY_AREA_SYSTEM | MEMORY_AREA_STATIC,
+                                &BaseAddress,
+                                0x400000,
+                                PAGE_READWRITE,
+                                &kernel_map_desc,
+                                TRUE,
+                                0,
+                                BoundaryAddressMultiple);
+    if (!NT_SUCCESS(Status))
+    {
+        KeBugCheck(MEMORY_MANAGEMENT);
+    }
+    BaseAddress = (PVOID)HYPERSPACE;
+    Status = MmCreateMemoryArea(MmGetKernelAddressSpace(),
+                                MEMORY_AREA_SYSTEM | MEMORY_AREA_STATIC,
+                                &BaseAddress,
+                                0x400000,
+                                PAGE_READWRITE,
+                                &hyperspace_desc,
+                                TRUE,
+                                0,
+                                BoundaryAddressMultiple);
+    if (!NT_SUCCESS(Status))
+    {
+        KeBugCheck(MEMORY_MANAGEMENT);
+    }
+    HasDebug = 1;
+
+    DPRINT1("Leave MiInitPageDirectoryMap\n");
+    if (!MiValidateFreeList()) DPRINT1("not valid!");
 }
 
 /* EOF */
