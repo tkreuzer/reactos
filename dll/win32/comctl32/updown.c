@@ -62,7 +62,8 @@ typedef struct
 #define AUTOPRESS_DELAY	250    /* time to keep arrow pressed on KEY_DOWN */
 #define REPEAT_DELAY	50     /* delay between auto-increments */
 
-#define DEFAULT_WIDTH	    16 /* default width of the ctrl */
+#define DEFAULT_WIDTH	    16 /* default width of the ctrl (14,15,16?) */
+#define DEFAULT_WIDTHNOBUDDY 16 /* default width, when no buddy is there */
 #define DEFAULT_XSEP         0 /* default separation between buddy and ctrl */
 #define DEFAULT_ADDTOP       0 /* amount to extend above the buddy window */
 #define DEFAULT_ADDBOT       0 /* amount to extend below the buddy window */
@@ -176,7 +177,7 @@ static void UPDOWN_GetArrowRect (const UPDOWN_INFO* infoPtr, RECT *rect, int arr
 {
     HTHEME theme = GetWindowTheme (infoPtr->Self);
     const int border = theme ? DEFAULT_BUDDYBORDER_THEMED : DEFAULT_BUDDYBORDER;
-    const int spacer = theme ? DEFAULT_BUDDYSPACER_THEMED : DEFAULT_BUDDYSPACER;
+//    const int spacer = theme ? DEFAULT_BUDDYSPACER_THEMED : DEFAULT_BUDDYSPACER;
     GetClientRect (infoPtr->Self, rect);
 
     /*
@@ -192,29 +193,32 @@ static void UPDOWN_GetArrowRect (const UPDOWN_INFO* infoPtr, RECT *rect, int arr
         InflateRect(rect, 0, -border);
     }
 
+#if 0
     /* now figure out if we need a space away from the buddy */
     if (IsWindow(infoPtr->Buddy) ) {
 	if (infoPtr->dwStyle & UDS_ALIGNLEFT) rect->right -= spacer;
-	else if (infoPtr->dwStyle & UDS_ALIGNRIGHT) rect->left += spacer;
+	else
+		{
+			rect->left += spacer;
+		}
     }
-
+#endif
     /*
      * We're calculating the midpoint to figure-out where the
-     * separation between the buttons will lay. We make sure that we
-     * round the uneven numbers by adding 1.
+     * separation between the buttons will lay. 
      */
     if (infoPtr->dwStyle & UDS_HORZ) {
-        int len = rect->right - rect->left + 1; /* compute the width */
+        int len = rect->right - rect->left; /* compute the width */
         if (arrow & FLAG_INCR)
-            rect->left = rect->left + len/2;
+            rect->left = rect->right - len/2;
         if (arrow & FLAG_DECR)
-            rect->right =  rect->left + len/2 - (theme ? 0 : 1);
+            rect->right =  rect->left + len/2;// - (theme ? 0 : 1);
     } else {
-        int len = rect->bottom - rect->top + 1; /* compute the height */
+        int len = rect->bottom - rect->top; /* compute the height */
         if (arrow & FLAG_INCR)
-            rect->bottom =  rect->top + len/2 - (theme ? 0 : 1);
+            rect->bottom =  rect->top + len/2;// - (theme ? 0 : 1);
         if (arrow & FLAG_DECR)
-            rect->top =  rect->top + len/2;
+            rect->top =  rect->bottom - len/2;
     }
 }
 
@@ -356,7 +360,7 @@ static BOOL UPDOWN_SetBuddyInt (const UPDOWN_INFO *infoPtr)
  */
 static BOOL UPDOWN_DrawBuddyBackground (const UPDOWN_INFO *infoPtr, HDC hdc)
 {
-    RECT br, r;
+    RECT br, rect;
     HTHEME buddyTheme = GetWindowTheme (infoPtr->Buddy);
     if (!buddyTheme) return FALSE;
 
@@ -369,7 +373,13 @@ static BOOL UPDOWN_DrawBuddyBackground (const UPDOWN_INFO *infoPtr, HDC hdc)
     else if (infoPtr->dwStyle & UDS_ALIGNRIGHT)
         br.right = r.right;
     /* FIXME: take disabled etc. into account */
-    DrawThemeBackground (buddyTheme, hdc, 0, 0, &br, NULL);
+    DrawThemeBackgroundEx (buddyTheme, hdc, 0, 0, &br, NULL);
+    GetClientRect(infoPtr->Self, &rect);
+    DrawThemeBackgroundEx (buddyTheme, hdc, EP_EDITTEXT, ETS_FOCUSED, &br, NULL);
+    /* Draw */
+    /* FIXME: Colors don't look correct */
+    DrawThemeEdge(buddyTheme, hdc, EP_EDITTEXT, 0, &rect, EDGE_SUNKEN, 
+                  (infoPtr->dwStyle & UDS_ALIGNLEFT ? LEFTBORDER : RIGHTBORDER) | BF_FLAT, NULL);
     return TRUE;
 }
 
@@ -631,7 +641,8 @@ static HWND UPDOWN_SetBuddy (UPDOWN_INFO* infoPtr, HWND bud)
 
     old_buddy = infoPtr->Buddy;
 
-    UPDOWN_ResetSubclass (infoPtr);
+    //UPDOWN_ResetSubclass (infoPtr);
+        RemovePropW(infoPtr->Buddy, BUDDY_UPDOWN_HWND);
 
     if (!IsWindow(bud)) bud = NULL;
 
@@ -684,10 +695,11 @@ static HWND UPDOWN_SetBuddy (UPDOWN_INFO* infoPtr, HWND bud)
          * We nudge the control or change its size to overlap.
          */
         if (UPDOWN_HasBuddyBorder(infoPtr)) {
-            if(infoPtr->dwStyle & UDS_ALIGNLEFT)
-                width += DEFAULT_BUDDYBORDER;
-            else
+            width += DEFAULT_BUDDYBORDER;
+            if(!(infoPtr->dwStyle & UDS_ALIGNLEFT))
+            {
                 x -= DEFAULT_BUDDYBORDER;
+            }
         }
 
         SetWindowPos(infoPtr->Self, 0, x,
@@ -698,7 +710,13 @@ static HWND UPDOWN_SetBuddy (UPDOWN_INFO* infoPtr, HWND bud)
         RECT rect;
         GetWindowRect(infoPtr->Self, &rect);
         MapWindowPoints(HWND_DESKTOP, GetParent(infoPtr->Self), (POINT *)&rect, 2);
-        SetWindowPos(infoPtr->Self, 0, rect.left, rect.top, DEFAULT_WIDTH, rect.bottom - rect.top,
+        if (infoPtr->dwStyle & UDS_HORZ)
+        {
+            width = rect.right - rect.left;
+        } else {
+            width = DEFAULT_WIDTHNOBUDDY;
+        }
+        SetWindowPos(infoPtr->Self, 0, rect.left, rect.top, width, rect.bottom - rect.top,
                      SWP_NOACTIVATE|SWP_FRAMECHANGED|SWP_NOZORDER);
     }
 
@@ -928,7 +946,11 @@ static LRESULT WINAPI UpDownWindowProc(HWND hwnd, UINT message, WPARAM wParam, L
 
             /* Do we pick the buddy win ourselves? */
 	    if (infoPtr->dwStyle & UDS_AUTOBUDDY)
+            {
 		UPDOWN_SetBuddy (infoPtr, GetWindow (hwnd, GW_HWNDPREV));
+            } else {
+                UPDOWN_SetBuddy (infoPtr, NULL);
+            }
 
 	    OpenThemeData (hwnd, themeClass);
 
@@ -937,7 +959,8 @@ static LRESULT WINAPI UpDownWindowProc(HWND hwnd, UINT message, WPARAM wParam, L
 	    break;
 
 	case WM_DESTROY:
-	    heap_free (infoPtr->AccelVect);
+        if (infoPtr->AccelVect)
+	        heap_free (infoPtr->AccelVect);
             UPDOWN_ResetSubclass (infoPtr);
 	    heap_free (infoPtr);
 	    SetWindowLongPtrW (hwnd, 0, 0);
@@ -1089,7 +1112,7 @@ static LRESULT WINAPI UpDownWindowProc(HWND hwnd, UINT message, WPARAM wParam, L
 	    return infoPtr->Base;
 
 	case UDM_SETBASE:
-	    TRACE("UpDown Ctrl new base(%ld), hwnd=%p\n", wParam, hwnd);
+	    TRACE("UpDown Ctrl new base(%d), hwnd=%p\n", wParam, hwnd);
 	    if (wParam==10 || wParam==16) {
 		WPARAM old_base = infoPtr->Base;
 		infoPtr->Base = wParam;
@@ -1160,7 +1183,7 @@ static LRESULT WINAPI UpDownWindowProc(HWND hwnd, UINT message, WPARAM wParam, L
 	}
 	default:
 	    if ((message >= WM_USER) && (message < WM_APP) && !COMCTL32_IsReflectedMessage(message))
-		ERR("unknown msg %04x wp=%04lx lp=%08lx\n", message, wParam, lParam);
+		ERR("unknown msg %04x wp=%04x lp=%08lx\n", message, wParam, lParam);
 	    return DefWindowProcW (hwnd, message, wParam, lParam);
     }
 
