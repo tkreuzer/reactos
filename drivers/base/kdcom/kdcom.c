@@ -29,6 +29,10 @@
 #define DEFAULT_BAUD_RATE       19200
 #endif
 
+#define LSR_OE   0x02
+#define LSR_PE   0x04
+#define LSR_FE   0x08
+
 #if defined(_M_IX86) || defined(_M_AMD64)
 #if defined(SARCH_PC98)
 const ULONG BaseArray[] = {0, 0x30, 0x238};
@@ -242,31 +246,8 @@ KdDebuggerInitialize0(IN PLOADER_PARAMETER_BLOCK LoaderBlock OPTIONAL)
         }
     }
 
-#ifdef KDDEBUG
-    /*
-     * Try to find a free COM port and use it as the KD debugging port.
-     * NOTE: Inspired by reactos/boot/freeldr/freeldr/comm/rs232.c, Rs232PortInitialize(...)
-     */
-    {
-    /*
-     * Start enumerating COM ports from the last one to the first one,
-     * and break when we find a valid port.
-     * If we reach the first element of the list, the invalid COM port,
-     * then it means that no valid port was found.
-     */
-    ULONG ComPort;
-    for (ComPort = MAX_COM_PORTS; ComPort > 0; ComPort--)
-    {
-        /* Check if the port exist; skip the KD port */
-        if ((ComPort != ComPortNumber) && CpDoesPortExist(UlongToPtr(BaseArray[ComPort])))
-            break;
-    }
-    if (ComPort != 0)
-        CpInitialize(&KdDebugComPort, UlongToPtr(BaseArray[ComPort]), DEFAULT_BAUD_RATE);
-    }
-#endif
-
-    KDDBGPRINT("KdDebuggerInitialize0\n");
+    /* Get base address */
+    ComPortBase = UlongToPtr(BaseArray[ComPortNumber]);
 
     /* Initialize the port */
     return KdpPortInitialize(ComPortNumber, ComPortBaudRate);
@@ -290,6 +271,17 @@ VOID
 NTAPI
 KdpSendByte(IN UCHAR Byte)
 {
+    // Timing fix!
+    READ_PORT_UCHAR(ComPortBase + COM_MSR);
+
+    /* Wait for the port to be ready */
+    while ((READ_PORT_UCHAR(ComPortBase + COM_LSR) & LSR_TBE) == 0);
+    READ_PORT_UCHAR(ComPortBase + COM_MSR);
+    while ((READ_PORT_UCHAR(ComPortBase + COM_LSR) & LSR_TBE) == 0);
+
+    // Timing fix!
+    READ_PORT_UCHAR(ComPortBase + COM_MSR);
+
     /* Send the byte */
     CpPutByte(&KdComPort, Byte);
 }
@@ -298,22 +290,31 @@ KDP_STATUS
 NTAPI
 KdpPollByte(OUT PUCHAR OutByte)
 {
-    USHORT Status;
+    UCHAR lsr;
 
-    /* Poll the byte */
-    Status = CpGetByte(&KdComPort, OutByte, FALSE, FALSE);
-    switch (Status)
+    READ_PORT_UCHAR(ComPortBase + COM_MSR); // Timing
+    lsr = READ_PORT_UCHAR(ComPortBase + COM_LSR);
+
+    /* Check if data is available */
+    if (lsr & LSR_DR)
     {
-        case CP_GET_SUCCESS:
-            return KDP_PACKET_RECEIVED;
+        /* Check for error */
+        if (lsr & (LSR_FE|LSR_PE|LSR_OE))
+        {
+            *OutByte = 0;
+            return KDP_PACKET_RESEND;
+        }
 
-        case CP_GET_NODATA:
-            return KDP_PACKET_TIMEOUT;
+        /* Return the byte */
+        return KDP_PACKET_RECEIVED;
+    }
+
+    /* No data available. */
+    return KDP_PACKET_TIMEOUT;
 
         case CP_GET_ERROR:
         default:
             return KDP_PACKET_RESEND;
-    }
 }
 
 KDP_STATUS
@@ -327,10 +328,10 @@ KdpReceiveByte(OUT PUCHAR OutByte)
     switch (Status)
     {
         case CP_GET_SUCCESS:
-            return KDP_PACKET_RECEIVED;
+        return KDP_PACKET_RECEIVED;
 
         case CP_GET_NODATA:
-            return KDP_PACKET_TIMEOUT;
+        return KDP_PACKET_TIMEOUT;
 
         case CP_GET_ERROR:
         default:
