@@ -58,20 +58,16 @@ IntIntersectWithParents(PWND Child, RECTL *WindowRect)
    return TRUE;
 }
 
-VOID FASTCALL
-IntValidateParent(PWND Child, PREGION ValidateRgn)
+BOOL FASTCALL
+IntValidateParent(PWND Child, BOOL Recurse)
 {
    RECTL ParentRect, Rect;
    BOOL Start, Ret = TRUE;
    PWND ParentWnd = Child;
    PREGION Rgn = NULL;
 
-   if (ParentWnd->style & WS_CHILD)
-   {
-      do
-         ParentWnd = ParentWnd->spwndParent;
-      while (ParentWnd->style & WS_CHILD);
-   }
+   while (ParentWindow && ParentWindow->Style & WS_CHILD)
+      ParentWindow = ParentWindow->Parent;
 
    // No pending nonclient paints.
    if (!(ParentWnd->state & WNDS_SYNCPAINTPENDING)) Recurse = FALSE;
@@ -85,14 +81,18 @@ IntValidateParent(PWND Child, PREGION ValidateRgn)
 
       if (ParentWnd->hrgnUpdate != 0)
       {
-         NtGdiCombineRgn(ParentWindow->UpdateRegion, ParentWindow->UpdateRegion,
-            ValidRegion, RGN_DIFF);
-         /* FIXME: If the resulting region is empty, remove fake posted paint message */
+         if (Recurse)
+            return FALSE;
+
+         IntInvalidateWindows(ParentWindow, Child->UpdateRegion,
+                              RDW_VALIDATE | RDW_NOCHILDREN);
       }
       ParentWnd = ParentWnd->spwndParent;
    }
 
    if (Rgn) REGION_Delete(Rgn);
+
+   return TRUE;
 }
 
 /*
@@ -370,7 +370,7 @@ IntSendChildNCPaint(PWND pWnd)
  */
 
 VOID FASTCALL
-co_IntPaintWindows(PWND Wnd, ULONG Flags)
+co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
 {
    HDC hDC;
    HWND hWnd = Wnd->head.h;
@@ -424,6 +424,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags)
 
                   Wnd->state &= ~(WNDS_SENDERASEBACKGROUND|WNDS_ERASEBACKGROUND);
                   // Kill the loop, so Clear before we send.
+                  DPRINT1("WM_ERASEBKGND 1\n");
                   if (!co_IntSendMessage(hWnd, WM_ERASEBKGND, (WPARAM)hDC, 0))
                   {
                      Wnd->state |= (WNDS_SENDERASEBACKGROUND|WNDS_ERASEBACKGROUND);
@@ -458,6 +459,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags)
 
       if ((List = IntWinListChildren(Wnd)))
       {
+         /* FIXME: Handle WS_EX_TRANSPARENT */
          for (phWnd = List; *phWnd; ++phWnd)
          {
             if ((Wnd = UserGetWindowObject(*phWnd)) == NULL)
@@ -470,7 +472,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags)
             {
                USER_REFERENCE_ENTRY Ref;
                UserRefObjectCo(Wnd, &Ref);
-               co_IntPaintWindows(Wnd, Flags);
+               co_IntPaintWindows(Wnd, Flags, TRUE);
                UserDerefObjectCo(Wnd);
             }
          }
@@ -1481,6 +1483,19 @@ IntBeginPaint(PWND Window, PPAINTSTRUCT Ps)
         (!(Window->pcls->style & CS_PARENTDC) || // not parent dc or
          RECTL_bIntersectRect( &Rect, &Rect, &Ps->rcPaint) ) ) // intersecting.
    {
+
+      /* First redraw parent if needed  *
+      PWINDOW_OBJECT Parent = Window->Parent;
+      if ((Window->Style & WS_CHILD) &&
+          (Parent) &&
+          !(Parent->Style & WS_CLIPCHILDREN))
+      {
+         DPRINT1("Invalidating Parent!\n");
+         IntInvalidateWindows(Parent, Window->UpdateRegion,
+                              RDW_INVALIDATE | RDW_NOCHILDREN);
+      }
+*/
+DPRINT1("WM_ERASEBKGND 2\n");
       Ps->fErase = !co_IntSendMessage(UserHMGetHandle(Window), WM_ERASEBKGND, (WPARAM)Ps->hdc, 0);
       if ( Ps->fErase )
       {
