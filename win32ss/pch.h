@@ -10,6 +10,7 @@
 
 /* INCLUDES ******************************************************************/
 
+#define GDI_DEBUG
 #define _NO_COM
 #define STRICT
 

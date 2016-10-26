@@ -282,6 +282,8 @@ co_IntInitializeDesktopGraphics(VOID)
         return FALSE;
     }
 
+    UserAcquireOrReleaseInputOwnership(FALSE);
+
     hSystemBM = NtGdiCreateCompatibleDC(ScreenDeviceContext);
 
     NtGdiSelectFont(hSystemBM, NtGdiGetStockObject(SYSTEM_FONT));
@@ -355,6 +357,7 @@ co_IntInitializeDesktopGraphics(VOID)
 VOID FASTCALL
 IntEndDesktopGraphics(VOID)
 {
+    UserAcquireOrReleaseInputOwnership(TRUE);
     if (NULL != ScreenDeviceContext)
     {  // No need to allocate a new dcattr.
         GreSetDCOwner(ScreenDeviceContext, GDI_OBJ_HMGR_POWNED);

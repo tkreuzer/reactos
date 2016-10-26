@@ -296,7 +296,7 @@ POLYGONFILL_UpdateScanline(FILL_EDGE* pEdge, int Scanline)
     if (0 == pEdge->dy)
         return;
 
-    ASSERT(pEdge->FromY <= Scanline && pEdge->ToY > Scanline);
+    ASSERT ( pEdge->FromY <= Scanline && pEdge->ToY >= Scanline );
 
     if (pEdge->xmajor)
     {
@@ -371,7 +371,7 @@ POLYGONFILL_BuildActiveList(
     {
         FILL_EDGE* pEdge = list->Edges[i];
         ASSERT(pEdge);
-        if (pEdge->FromY <= Scanline && pEdge->ToY > Scanline)
+        if (pEdge->FromY <= Scanline && pEdge->ToY >= Scanline)
         {
             POLYGONFILL_UpdateScanline(pEdge, Scanline);
             POLYGONFILL_ActiveListInsert(ActiveHead, pEdge);
@@ -573,7 +573,7 @@ FillPolygon(
     /* For each Scanline from BoundRect.bottom to BoundRect.top,
      * determine line segments to draw
      */
-    for (ScanLine = BoundRect.top; ScanLine < BoundRect.bottom; ++ScanLine)
+    for (ScanLine = BoundRect.top; ScanLine <= BoundRect.bottom; ++ScanLine)
     {
         POLYGONFILL_BuildActiveList(ScanLine, list, &ActiveHead);
         //DEBUG_PRINT_ACTIVE_EDGELIST(ActiveHead);

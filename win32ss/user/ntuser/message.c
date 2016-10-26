@@ -895,6 +895,13 @@ IntDispatchMessage(PMSG pMsg)
 
     if (pMsg->message == WM_PAINT) Window->state |= WNDS_PAINTNOTPROCESSED;
 
+    if (pMsg->message == WM_PAINT)
+    {
+        MsgInfo.HandledByKernel = TRUE;
+        retval = co_IntSendMessage(hWnd, WM_PAINT, 0, 0);
+        co_IntSendMessage(hWnd, WM_NCPAINT, (WPARAM)TempRegion, 0);
+    }
+
     if ( Window->state & WNDS_SERVERSIDEWINDOWPROC )
     {
        TRACE("Dispatch: Server Side Window Procedure\n");

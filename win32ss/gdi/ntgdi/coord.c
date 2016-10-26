@@ -92,40 +92,30 @@ VOID
 FASTCALL
 DC_vFixIsotropicMapping(PDC pdc)
 {
-    PDC_ATTR pdcattr;
-    LONG64 fx, fy;
-    LONG s;
-    SIZEL szlWindowExt, szlViewportExt;
-    ASSERT(pdc->pdcattr->iMapMode == MM_ISOTROPIC);
+DPRINT1("Enter IntFixIsotropicMapping()\n");
+  FLOAT xrate = (FLOAT)dc->Dc_Attr.szlViewportExt.cx / (FLOAT)dc->wndExtX;
+  FLOAT yrate = (FLOAT)dc->Dc_Attr.szlViewportExt.cy / (FLOAT)dc->wndExtY;
+  FLOAT horz = (FLOAT)dc->GDIInfo->ulHorzSize / (FLOAT)dc->GDIInfo->ulHorzRes;
+  FLOAT vert = (FLOAT)dc->GDIInfo->ulVertSize / (FLOAT)dc->GDIInfo->ulVertRes;
+  FLOAT xdim = xrate * horz;
+  FLOAT ydim = yrate * vert;
 
     /* Get a pointer to the DC_ATTR */
     pdcattr = pdc->pdcattr;
 
-    /* Read the extents, we rely on non-null values */
-    szlWindowExt = pdcattr->szlWindowExt;
-    szlViewportExt = pdcattr->szlViewportExt;
-
-    /* Check if all values are valid */
-    if ((szlWindowExt.cx == 0) || (szlWindowExt.cy == 0) ||
-        (szlViewportExt.cx == 0) || (szlViewportExt.cy == 0))
-    {
-        /* Someone put rubbish into the fields, just ignore it. */
-        return;
-    }
-
-    fx = abs((LONG64)szlWindowExt.cx * szlViewportExt.cy);
-    fy = abs((LONG64)szlWindowExt.cy * szlViewportExt.cx);
-
-    if (fx < fy)
-    {
-        s = (szlWindowExt.cy ^ szlViewportExt.cx) > 0 ? 1 : -1;
-        pdcattr->szlViewportExt.cx = (LONG)(fx * s / szlWindowExt.cy);
-    }
-    else if (fx > fy)
-    {
-        s = (szlWindowExt.cx ^ szlViewportExt.cy) > 0 ? 1 : -1;
-        pdcattr->szlViewportExt.cy = (LONG)(fy * s / szlWindowExt.cx);
-    }
+  if (xdim > ydim)
+  {
+    dc->Dc_Attr.szlViewportExt.cx = (int)((FLOAT)dc->Dc_Attr.szlViewportExt.cx * fabsf((FLOAT)ydim / (FLOAT)xdim));
+    DPRINT1("dc->Dc_Attr.szlViewportExt.cx = %d * %d = %d\n", dc->Dc_Attr.szlViewportExt.cx, abs(ydim / xdim), dc->Dc_Attr.szlViewportExt.cx);
+    if (!dc->Dc_Attr.szlViewportExt.cx) dc->Dc_Attr.szlViewportExt.cx = 1;
+  }
+  else
+  {
+    dc->Dc_Attr.szlViewportExt.cy = (int)((FLOAT)dc->Dc_Attr.szlViewportExt.cy * fabsf((FLOAT)xdim / (FLOAT)ydim));
+    DPRINT1("dc->Dc_Attr.szlViewportExt.cy = %d * %d = %d\n", dc->Dc_Attr.szlViewportExt.cy, abs(xdim / ydim), dc->Dc_Attr.szlViewportExt.cy);
+    if (!dc->Dc_Attr.szlViewportExt.cy) dc->Dc_Attr.szlViewportExt.cy = 1;
+  }
+DPRINT1("Exit IntFixIsotropicMapping()\n");
 
     /* Reset the flag */
     pdc->pdcattr->flXform &= ~PAGE_EXTENTS_CHANGED;
@@ -943,6 +933,117 @@ GreSetViewportOrgEx(
     return TRUE;
 }
 
+/**********************************************************************
+ * NtGdiSetViewportExtEx
+ *
+ *   Sets the viewport extension of the given device context.
+ *
+ * @implemented
+ *
+ * @param
+ *    hDC
+ *       [IN] Handle to the device context for wich the viewport extension should be set.
+ *
+ *    XExtent
+ *       [IN] New horizontal extension in device units.
+ *
+ *    YExtent
+ *       [IN] New vertical extension in device units.
+ *
+ *    Size
+ *       [OUT] Pointer to a SIZE structure that recieves the old extension. This parameter
+ *             can be NULL.
+ *
+ * @return
+ *    TRUE
+ *       If the function succeeds.
+ *
+ *    FALSE
+ *       If the function fails.
+ *
+ * @remarks
+ *    If one of XExtent or YExtent is 0, the function fails.
+ *    If the DC's mapping mode is one of MM_HIENGLISH, MM_HIMETRIC, MM_LOENGLISH, MM_LOMETRIC,
+ *    MM_TEXT or MM_TWIPS, the function returns TRUE without changing the extensions.
+ *    If the DC's mapping mode is MM_ISOTROPIC, one of the viewport extensions will be adjusted, 
+ *    so that the DC's viewport aspect ratio matches the DC's current window aspect ratio.
+ */
+BOOL
+APIENTRY
+NtGdiSetViewportExtEx(HDC  hDC,
+                      int  XExtent,
+                      int  YExtent,
+                      LPSIZE  Size)
+{
+  PDC dc;
+  PDC_ATTR Dc_Attr;
+
+   if (XExtent == 0 || YExtent == 0)
+   {
+      return FALSE;
+   }
+
+  dc = DC_LockDc(hDC);
+  if ( !dc )
+  {
+    SetLastWin32Error(ERROR_INVALID_HANDLE);
+    return FALSE;
+  }
+  Dc_Attr = dc->pDc_Attr;
+  if(!Dc_Attr) Dc_Attr = &dc->Dc_Attr;
+
+  switch (Dc_Attr->iMapMode)
+    {
+      case MM_HIENGLISH:
+      case MM_HIMETRIC:
+      case MM_LOENGLISH:
+      case MM_LOMETRIC:
+      case MM_TEXT:
+      case MM_TWIPS:
+         DC_UnlockDc(dc);
+         return TRUE;
+   }
+
+   if (Size)
+   {
+    NTSTATUS Status = STATUS_SUCCESS;
+
+      _SEH2_TRY
+      {
+         ProbeForWrite(Size,
+                       sizeof(SIZE),
+                       1);
+         Size->cx = Dc_Attr->szlViewportExt.cx;
+         Size->cy = Dc_Attr->szlViewportExt.cy;
+      }
+      _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+      {
+         Status = _SEH2_GetExceptionCode();
+      }
+      _SEH2_END;
+
+      if(!NT_SUCCESS(Status))
+      {
+        SetLastNtError(Status);
+        DC_UnlockDc(dc);
+        return FALSE;
+      }
+   }
+
+   Dc_Attr.szlViewportExt.cx = XExtent;
+   Dc_Attr.szlViewportExt.cy = YExtent;
+
+   if (dc->w.MapMode == MM_ISOTROPIC)
+   {
+      IntFixIsotropicMapping(dc);
+   }
+
+   DC_UpdateXforms(dc);
+   DC_UnlockDc(dc);
+
+   return TRUE;
+}
+
 BOOL
 APIENTRY
 NtGdiSetViewportOrgEx(
@@ -993,6 +1094,118 @@ NtGdiSetViewportOrgEx(
     DC_UnlockDc(dc);
 
     return TRUE;
+}
+
+
+/**********************************************************************
+ * NtGdiSetWindowExtEx
+ *
+ *   Sets the window extension of the given device context.
+ *
+ * @implemented
+ *
+ * @param
+ *    hDC
+ *       [IN] Handle to the device context for wich the viewport extension should be set.
+ *
+ *    XExtent
+ *       [IN] New horizontal extension in logical units.
+ *
+ *    YExtent
+ *       [IN] New vertical extension in logical units.
+ *
+ *    Size
+ *       [OUT] Pointer to a SIZE structure that recieves the old extension. This parameter
+ *             can be NULL.
+ *
+ * @return
+ *    TRUE
+ *       If the function succeeds.
+ *
+ *    FALSE
+ *       If the function fails.
+ *
+ * @remarks
+ *    If one of XExtent or YExtent is 0, the function fails.
+ *    If the DC's mapping mode is one of MM_HIENGLISH, MM_HIMETRIC, MM_LOENGLISH, MM_LOMETRIC,
+ *    MM_TEXT or MM_TWIPS, the function returns TRUE without changing the extensions.
+ *    If the DC's mapping mode is MM_ISOTROPIC, one of the viewport extensions will be adjusted, 
+ *    so that the DC's viewport aspect ratio matches the DC's new window aspect ratio.
+ */
+BOOL
+APIENTRY
+NtGdiSetWindowExtEx(HDC  hDC,
+                   int  XExtent,
+                   int  YExtent,
+                   LPSIZE  Size)
+{
+   PDC dc;
+  PDC_ATTR Dc_Attr;
+
+   if (XExtent == 0 || YExtent == 0)
+   {
+      return FALSE;
+   }
+
+   dc = DC_LockDc(hDC);
+   if (!dc)
+   {
+      SetLastWin32Error(ERROR_INVALID_HANDLE);
+      return FALSE;
+   }
+  Dc_Attr = dc->pDc_Attr;
+  if(!Dc_Attr) Dc_Attr = &dc->Dc_Attr;
+
+  switch (Dc_Attr->iMapMode)
+    {
+      case MM_HIENGLISH:
+      case MM_HIMETRIC:
+      case MM_LOENGLISH:
+      case MM_LOMETRIC:
+      case MM_TEXT:
+      case MM_TWIPS:
+         DC_UnlockDc(dc);
+         return TRUE;
+   }
+
+   if (Size)
+   {
+      NTSTATUS Status = STATUS_SUCCESS;
+
+      _SEH2_TRY
+      {
+         ProbeForWrite(Size,
+                       sizeof(SIZE),
+                       1);
+         Size->cx = Dc_Attr->szlWindowExt.cx;
+         Size->cy = Dc_Attr->szlWindowExt.cy;
+      }
+      _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+      {
+         Status = _SEH2_GetExceptionCode();
+      }
+      _SEH2_END;
+
+      if(!NT_SUCCESS(Status))
+      {
+         SetLastNtError(Status);
+         DC_UnlockDc(dc);
+         return FALSE;
+      }
+   }
+
+    Dc_Attr->ptlViewportOrg.x = X;
+    Dc_Attr->ptlViewportOrg.y = Y;
+
+   if (dc->w.MapMode == MM_ISOTROPIC)
+   {
+      IntFixIsotropicMapping(dc);
+   }
+
+   DC_UpdateXforms(dc);
+   DC_UnlockDc(dc);
+
+   return TRUE;
 }
 
 BOOL
