@@ -1809,8 +1809,6 @@ DPRINT1("Enter co_WinPosSetWindowPos, hwnd = 0x%x\n", (UINT)Window->hSelf);
    /* Fix up the flags. */
    if (!WinPosFixupFlags(&WinPos, Window))
    {
-//      DPRINT1("Leave co_WinPosSetWindowPos\n");
-
       // See Note.
       return TRUE;
    }
@@ -1863,6 +1861,7 @@ DPRINT1("Enter co_WinPosSetWindowPos, hwnd = 0x%x\n", (UINT)Window->hSelf);
              }
          }
       }
+      DPRINT1("VisBefore = 0x%x\n", (UINT)VisBefore);
    }
 
    //// HACK 3
@@ -1964,6 +1963,7 @@ DPRINT1("Enter co_WinPosSetWindowPos, hwnd = 0x%x\n", (UINT)Window->hSelf);
 
    if (!(WinPos.flags & SWP_NOREDRAW))
    {
+       DPRINT1("determin new visible region\n");
       /* Determine the new visible region */
       VisAfter = VIS_ComputeVisibleRegion(Window, FALSE, FALSE,
                                           (Window->style & WS_CLIPSIBLINGS) ? TRUE : FALSE);
@@ -2085,6 +2085,7 @@ DPRINT1("Enter co_WinPosSetWindowPos, hwnd = 0x%x\n", (UINT)Window->hSelf);
       /* We need to redraw what wasn't visible before or force a redraw */
       if (VisAfter != NULL)
       {
+          DPRINT1("VisAfter != NULL\n");
          PREGION DirtyRgn = IntSysCreateRectpRgn(0, 0, 0, 0);
          if (DirtyRgn)
          {
@@ -2116,7 +2117,7 @@ DPRINT1("begin drawing parent\n");
 DPRINT1("end drawing parent\n");
                 }
 
-DPRINT1("begin drawing window\n");
+DPRINT1("begin drawing window (0x%x)\n", (UINT)Window->hSelf);
 //               if (Parent)
 //                  co_IntPaintWindows(Parent, RDW_ERASENOW, FALSE);
                     IntInvalidateWindows( Window,
