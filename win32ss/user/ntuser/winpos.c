@@ -1270,15 +1270,6 @@ co_WinPosDoWinPosChanging(PWND Window,
 {
    ASSERT_REFS_CO(Window);
 
-   /* Send WM_WINDOWPOSCHANGING message */
-
-   if (!(WinPos->flags & SWP_NOSENDCHANGING)
-          && !((WinPos->flags & SWP_AGG_NOCLIENTCHANGE) && (WinPos->flags & SWP_SHOWWINDOW)))
-   {
-      TRACE("Sending WM_WINDOWPOSCHANGING to hwnd %p flags %04x.\n", Window->head.h,WinPos->flags);
-      co_IntSendMessage(Window->head.h, WM_WINDOWPOSCHANGING, 0, (LPARAM) WinPos);
-   }
-
    /* Calculate new position and size */
 
    *WindowRect = Window->rcWindow;
@@ -1334,7 +1325,14 @@ co_WinPosDoWinPosChanging(PWND Window,
    TRACE("WindowRect: %d %d %d %d\n", WindowRect->left,WindowRect->top,WindowRect->right,WindowRect->bottom);
    TRACE("ClientRect: %d %d %d %d\n", ClientRect->left,ClientRect->top,ClientRect->right,ClientRect->bottom);
 
-   return TRUE;
+   if ((WindowRect->left != Window->WindowRect.left) ||
+       (WindowRect->top != Window->WindowRect.top) ||
+       (WindowRect->right != Window->WindowRect.right) ||
+       (WindowRect->bottom != Window->WindowRect.bottom))
+   {
+       return TRUE;
+   }
+   return FALSE;
 }
 
 /*
@@ -1651,7 +1649,7 @@ WinPosFixupFlags(WINDOWPOS *WinPos, PWND Wnd)
          }
       }
    }
-
+// FIXME: add NOSIZE / NOMOVE 
    return TRUE;
 }
 
@@ -1745,8 +1743,10 @@ co_WinPosSetWindowPos(
    PWND Ancestor;
    BOOL bPointerInWindow, PosChanged = FALSE;
    PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
+   BOOL bWinPosChanged;
 
    ASSERT_REFS_CO(Window);
+DPRINT1("Enter co_WinPosSetWindowPos, hwnd = 0x%x\n", (UINT)Window->hSelf);
 
    TRACE("pwnd %p, after %p, %d,%d (%dx%d), flags %s",
           Window, WndInsertAfter, x, y, cx, cy, flags);
@@ -1787,27 +1787,38 @@ co_WinPosSetWindowPos(
       return FALSE;
    }
 
-   co_WinPosDoWinPosChanging(Window, &WinPos, &NewWindowRect, &NewClientRect);
+   bWinPosChanged = co_WinPosDoWinPosChanging(Window, &WinPos, &NewWindowRect, &NewClientRect);
+
+   if (!(WinPos.flags & SWP_NOSENDCHANGING) &&
+       (bWinPosChanged || !(WinPos.flags & SWP_NOZORDER)))
+   {
+      co_IntPostOrSendMessage(Window->hSelf, WM_WINDOWPOSCHANGING, 0, (LPARAM)&WinPos);
+   }
 
    /* Does the window still exist? */
    if (!IntIsWindow(WinPos.hwnd))
    {
       TRACE("WinPosSetWindowPos: Invalid handle 0x%p!\n",WinPos.hwnd);
       EngSetLastError(ERROR_INVALID_WINDOW_HANDLE);
+//      DPRINT1("Leave co_WinPosSetWindowPos\n");
+
       return FALSE;
    }
 
    /* Fix up the flags. */
    if (!WinPosFixupFlags(&WinPos, Window))
    {
+//      DPRINT1("Leave co_WinPosSetWindowPos\n");
+
       // See Note.
       return TRUE;
    }
-
+//DPRINT1("---1\n");
    Ancestor = UserGetAncestor(Window, GA_PARENT);
    if ( (WinPos.flags & (SWP_NOZORDER | SWP_HIDEWINDOW | SWP_SHOWWINDOW)) != SWP_NOZORDER &&
          Ancestor && Ancestor->head.h == IntGetDesktopWindow() )
    {
+//   	DPRINT1("---2\n");
       WinPos.hwndInsertAfter = WinPosDoOwnedPopups(Window, WinPos.hwndInsertAfter);
    }
 
@@ -2045,6 +2056,7 @@ co_WinPosSetWindowPos(
                          0);
 
             UserReleaseDC(Window, Dc, FALSE);
+            IntValidateParent(Window, CopyRgn, FALSE);
             GreDeleteObject(DcRgn);
          }
       }
@@ -2070,27 +2082,32 @@ co_WinPosSetWindowPos(
 
              if (RgnType != ERROR && RgnType != NULLREGION) // Regions moved.
              {
-            /* old code
-                NtGdiOffsetRgn(DirtyRgn, Window->rcWindow.left, Window->rcWindow.top);
-                IntInvalidateWindows( Window,
-                                      DirtyRgn,
-                   RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
-             }
-             GreDeleteObject(DirtyRgn);
-             */
-
                 PWND Parent = Window->spwndParent;
 
                 REGION_bOffsetRgn( DirtyRgn, Window->rcWindow.left, Window->rcWindow.top);
 
                 if ( (Window->style & WS_CHILD) && (Parent) && !(Parent->style & WS_CLIPCHILDREN))
                 {
-                   IntInvalidateWindows( Parent, DirtyRgn, RDW_ERASE | RDW_INVALIDATE);
-                   co_IntPaintWindows(Parent, RDW_NOCHILDREN, FALSE);
+DPRINT1("begin drawing parent\n");
+                   IntInvalidateWindows( Parent,
+                                         DirtyRgn,
+                                         RDW_ERASE | RDW_INVALIDATE | RDW_NOCHILDREN);
+                   co_IntPaintWindows(Parent, RDW_ERASENOW | RDW_NOCHILDREN, FALSE);
+                  IntInvalidateWindows(Window, DirtyRgn,
+                     RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+//                  IntValidateParent(Window, Window->UpdateRegion, FALSE);//notwendig?
+DPRINT1("end drawing parent\n");
                 }
                 else
                 {
-                   IntInvalidateWindows( Window, DirtyRgn, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+DPRINT1("begin drawing window\n");
+//               if (Parent)
+//                  co_IntPaintWindows(Parent, RDW_ERASENOW, FALSE);
+                    IntInvalidateWindows( Window,
+                                          DirtyRgn,
+                        RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+               co_IntPaintWindows(Window, RDW_ERASENOW, FALSE);
+DPRINT1("end drawing window\n");
                 }
              }
              else if ( RgnType != ERROR && RgnType == NULLREGION ) // Must be the same. See CORE-7166 & CORE-15934, NC HACK fix.
@@ -2132,6 +2149,7 @@ co_WinPosSetWindowPos(
       /* Expose what was covered before but not covered anymore */
       if ( VisBefore != NULL )
       {
+//          DPRINT1("Begin expose\n");
          PREGION ExposedRgn = IntSysCreateRectpRgn(0, 0, 0, 0);
          if (ExposedRgn)
          {
@@ -2150,6 +2168,7 @@ co_WinPosSetWindowPos(
              REGION_Delete(ExposedRgn);
          }
          REGION_Delete(VisBefore);
+//         DPRINT1("End expose\n");
       }
 
       if (VisAfter != NULL)
@@ -2166,7 +2185,7 @@ co_WinPosSetWindowPos(
       }
       else
       {
-         //ERR("SetWindowPos Set FG Window!\n");
+         ERR("SetWindowPos Set FG Window!\n");
          if ( pti->MessageQueue->spwndActive != Window ||
               pti->MessageQueue != gpqForeground )
          {
@@ -2176,6 +2195,7 @@ co_WinPosSetWindowPos(
                co_IntSetForegroundWindow(Window); // Fixes SW_HIDE issues. Wine win test_SetActiveWindow & test_SetForegroundWindow.
             }
          }
+         DPRINT1("after co_IntSetForegroundWindow\n");
       }
    }
 
@@ -2226,8 +2246,9 @@ co_WinPosSetWindowPos(
 
    TRACE("\tstatus hwnd %p flags = %04x\n",Window?Window->head.h:NULL,WinPos.flags & SWP_AGG_STATUSFLAGS);
 
-   if (((WinPos.flags & SWP_AGG_STATUSFLAGS) != SWP_AGG_NOPOSCHANGE)
-            && !((flags & SWP_AGG_NOCLIENTCHANGE) && (flags & SWP_SHOWWINDOW)))
+/*
+   if (((WinPos.flags & SWP_AGG_STATUSFLAGS) != SWP_AGG_NOPOSCHANGE))// &&
+//       ((flags & (SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER)) != (SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER)))
    {
       /* WM_WINDOWPOSCHANGED is sent even if SWP_NOSENDCHANGING is set
          and always contains final window position.
@@ -2239,13 +2260,37 @@ co_WinPosSetWindowPos(
       TRACE("WM_WINDOWPOSCHANGED hwnd %p Flags %04x\n",WinPos.hwnd,WinPos.flags);
       co_IntSendMessageNoWait(WinPos.hwnd, WM_WINDOWPOSCHANGED, 0, (LPARAM) &WinPos);
    }
-
-   if ( WinPos.flags & SWP_FRAMECHANGED  || WinPos.flags & SWP_STATECHANGED ||
-      !(WinPos.flags & SWP_NOCLIENTSIZE) || !(WinPos.flags & SWP_NOCLIENTMOVE) )
+*/
+   if (bWinPosChanged || !(WinPos.flags & SWP_NOZORDER))
    {
-      PWND pWnd = ValidateHwndNoErr(WinPos.hwnd);
-      if (pWnd)
-         IntNotifyWinEvent(EVENT_OBJECT_LOCATIONCHANGE, pWnd, OBJID_WINDOW, CHILDID_SELF, WEF_SETBYWNDPTI);
+      co_IntPostOrSendMessage(WinPos.hwnd, WM_WINDOWPOSCHANGED, 0, (LPARAM) &WinPos);
+   }
+
+   if ((Window->Flags & WINDOWOBJECT_NEED_SIZE) &&
+         !(Window->Status & WINDOWSTATUS_DESTROYING))
+   {
+      WPARAM wParam = SIZE_RESTORED;
+
+      Window->Flags &= ~WINDOWOBJECT_NEED_SIZE;
+      if (Window->Style & WS_MAXIMIZE)
+      {
+         wParam = SIZE_MAXIMIZED;
+      }
+      else if (Window->Style & WS_MINIMIZE)
+      {
+         wParam = SIZE_MINIMIZED;
+      }
+
+      co_IntSendMessage(Window->hSelf, WM_SIZE, wParam,
+                        MAKELONG(Window->ClientRect.right -
+                                 Window->ClientRect.left,
+                                 Window->ClientRect.bottom -
+                                 Window->ClientRect.top));
+      co_IntSendMessage(Window->hSelf, WM_MOVE, 0,
+                        MAKELONG(Window->ClientRect.left,
+                                 Window->ClientRect.top));
+      IntEngWindowChanged(Window, WOC_RGN_CLIENT);
+      
    }
 
    if(bPointerInWindow != IntPtInWindow(Window, gpsi->ptCursor.x, gpsi->ptCursor.y))
@@ -2259,6 +2304,7 @@ co_WinPosSetWindowPos(
       co_MsqInsertMouseMessage(&msg, 0, 0, TRUE);
    }
 
+DPRINT1("Leave co_WinPosSetWindowPos\n");
    return TRUE;
 }
 
@@ -2474,8 +2520,11 @@ co_WinPosShowWindow(PWND Wnd, INT Cmd)
    //HRGN VisibleRgn;
    BOOL ShowOwned = FALSE;
    BOOL FirstTime = FALSE;
+DPRINT1("Enter co_WinPosShowWindow, hwnd = 0x%x\n", (UINT)Wnd->hSelf);
    ASSERT_REFS_CO(Wnd);
    //KeRosDumpStackFrames(NULL, 20);
+   if (!Wnd) return FALSE; /// from where is this?
+   
    pti = PsGetCurrentThreadWin32Thread();
    WasVisible = (Wnd->style & WS_VISIBLE) != 0;
    style = Wnd->style;
@@ -2730,7 +2779,9 @@ co_WinPosShowWindow(PWND Wnd, INT Cmd)
    if ((Wnd->state & WNDS_SENDSIZEMOVEMSGS) &&
        !(Wnd->state2 & WNDS2_INDESTROY))
    {
+   	    DPRINT1("before co_WinPosSendSizeMove\n");
         co_WinPosSendSizeMove(Wnd);
+        DPRINT1("after co_WinPosSendSizeMove\n");
    }
 
    /* if previous state was minimized Windows sets focus to the window */
@@ -2740,7 +2791,7 @@ co_WinPosShowWindow(PWND Wnd, INT Cmd)
       // Fix wine Win test_SetFocus todo #3,
       if (!(style & WS_CHILD)) co_IntSendMessage(UserHMGetHandle(Wnd), WM_ACTIVATE, WA_ACTIVE, 0);
    }
-   //ERR("co_WinPosShowWindow EXIT\n");
+   ERR("co_WinPosShowWindow EXIT\n");
    return WasVisible;
 }
 
