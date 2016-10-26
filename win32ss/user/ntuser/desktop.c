@@ -1787,6 +1787,8 @@ IntFreeDesktopHeap(IN OUT PDESKTOP Desktop)
 #endif
 }
 
+HGDIOBJ FASTCALL IntGetSysColorBrush(INT Object);
+
 BOOL FASTCALL
 IntPaintDesktop(HDC hDC)
 {
@@ -1813,7 +1815,9 @@ IntPaintDesktop(HDC hDC)
 
     if (!InSafeMode)
     {
-        DesktopBrush = (HBRUSH)WndDesktop->pcls->hbrBackground;
+        CreateSysColorObjects();
+//        DesktopBrush = (HBRUSH)WndDesktop->pcls->hbrBackground;
+        DesktopBrush = (HBRUSH)IntGetSysColorBrush(COLOR_BACKGROUND);
 
         /*
          * Paint desktop background
