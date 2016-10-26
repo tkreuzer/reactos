@@ -59,15 +59,15 @@ IntIntersectWithParents(PWND Child, RECTL *WindowRect)
 }
 
 BOOL FASTCALL
-IntValidateParent(PWND Child, BOOL Recurse)
+IntValidateParent(PWND Child, HRGN hValidateRgn, BOOL Recurse)
 {
    RECTL ParentRect, Rect;
    BOOL Start, Ret = TRUE;
    PWND ParentWnd = Child;
    PREGION Rgn = NULL;
 
-   while (ParentWindow && ParentWindow->Style & WS_CHILD)
-      ParentWindow = ParentWindow->Parent;
+//   while (ParentWindow && ParentWindow->Style & WS_CHILD)
+//      ParentWindow = ParentWindow->Parent;
 
    // No pending nonclient paints.
    if (!(ParentWnd->state & WNDS_SYNCPAINTPENDING)) Recurse = FALSE;
@@ -84,8 +84,8 @@ IntValidateParent(PWND Child, BOOL Recurse)
          if (Recurse)
             return FALSE;
 
-         IntInvalidateWindows(ParentWindow, Child->UpdateRegion,
-                              RDW_VALIDATE | RDW_NOCHILDREN);
+         IntInvalidateWindows(ParentWindow, hValidateRgn,
+                              RDW_VALIDATE | RDW_NOCHILDREN); // RDW_NOERASE?
       }
       ParentWnd = ParentWnd->spwndParent;
    }
@@ -376,6 +376,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
    HWND hWnd = Wnd->head.h;
    HRGN TempRegion = NULL;
 
+//DPRINT1("Enter co_IntPaintWindows, hwnd = 0x%x\n", (UINT)Wnd->hSelf);
    Wnd->state &= ~WNDS_PAINTNOTPROCESSED;
 
    if (Wnd->state & WNDS_SENDNCPAINT ||
@@ -408,7 +409,9 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
                }
             }
 
-            if (Wnd->state & WNDS_SENDERASEBACKGROUND)
+            if ((Wnd->state & WNDS_SENDERASEBACKGROUND))// ||
+//                (Wnd->UpdateRegion != 0))
+
             {
                PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
                if (Wnd->hrgnUpdate)
@@ -424,7 +427,8 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
 
                   Wnd->state &= ~(WNDS_SENDERASEBACKGROUND|WNDS_ERASEBACKGROUND);
                   // Kill the loop, so Clear before we send.
-                  DPRINT1("WM_ERASEBKGND 1\n");
+               DPRINT1("WM_ERASEBKGND 1\n");
+//               DPRINT1("WNDS_SENDERASEBACKGROUND 1, hwnd = 0x%x\n", (UINT)hWnd);
                   if (!co_IntSendMessage(hWnd, WM_ERASEBKGND, (WPARAM)hDC, 0))
                   {
                      Wnd->state |= (WNDS_SENDERASEBACKGROUND|WNDS_ERASEBACKGROUND);
@@ -436,6 +440,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
 
       }
    }
+//      	DPRINT1("Window->UpdateRegion = 0x%x\n", Window->UpdateRegion);
 
    /*
     * Check that the window is still valid at this point
@@ -451,12 +456,12 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
 
    if (!(Flags & RDW_NOCHILDREN) &&
        !(Wnd->style & WS_MINIMIZE) &&
-        ( Flags & RDW_ALLCHILDREN ||
-         (Flags & RDW_CLIPCHILDREN && Wnd->style & WS_CLIPCHILDREN) ) )
+        ((Flags & RDW_ALLCHILDREN)))// || !(Wnd->style & WS_CLIPCHILDREN))) // lieber && ?
    {
       HWND *List, *phWnd;
       PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
 
+//DPRINT1("begin painting child windows\n");
       if ((List = IntWinListChildren(Wnd)))
       {
          /* FIXME: Handle WS_EX_TRANSPARENT */
@@ -478,6 +483,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
          }
          ExFreePoolWithTag(List, USERTAG_WINDOWLIST);
       }
+//DPRINT1("end painting child windows\n");
    }
 }
 
@@ -615,6 +621,7 @@ IntInvalidateWindows(PWND Wnd, PREGION Rgn, ULONG Flags)
 {
    INT RgnType = NULLREGION;
    BOOL HadPaintMessage;
+//DPRINT1("Enter IntInvalidateWindows, hwnd = 0x%x\n", (UINT)Window->hSelf);
 
    TRACE("IntInvalidateWindows start Rgn %p\n",Rgn);
 
@@ -1483,19 +1490,8 @@ IntBeginPaint(PWND Window, PPAINTSTRUCT Ps)
         (!(Window->pcls->style & CS_PARENTDC) || // not parent dc or
          RECTL_bIntersectRect( &Rect, &Rect, &Ps->rcPaint) ) ) // intersecting.
    {
+//       DPRINT1("window (0x%x) needs erase, RegionBox = {%d,%d,%d,%d}\n", Wnd->hSelf, Ps.rcPaint.left, Ps.rcPaint.top, Ps.rcPaint.right, Ps.rcPaint.bottom);
 
-      /* First redraw parent if needed  *
-      PWINDOW_OBJECT Parent = Window->Parent;
-      if ((Window->Style & WS_CHILD) &&
-          (Parent) &&
-          !(Parent->Style & WS_CLIPCHILDREN))
-      {
-         DPRINT1("Invalidating Parent!\n");
-         IntInvalidateWindows(Parent, Window->UpdateRegion,
-                              RDW_INVALIDATE | RDW_NOCHILDREN);
-      }
-*/
-DPRINT1("WM_ERASEBKGND 2\n");
       Ps->fErase = !co_IntSendMessage(UserHMGetHandle(Window), WM_ERASEBKGND, (WPARAM)Ps->hdc, 0);
       if ( Ps->fErase )
       {
