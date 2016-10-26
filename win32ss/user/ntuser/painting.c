@@ -66,9 +66,6 @@ IntValidateParent(PWND Child, HRGN hValidateRgn, BOOL Recurse)
    PWND ParentWnd = Child;
    PREGION Rgn = NULL;
 
-//   while (ParentWindow && ParentWindow->Style & WS_CHILD)
-//      ParentWindow = ParentWindow->Parent;
-
    // No pending nonclient paints.
    if (!(ParentWnd->state & WNDS_SYNCPAINTPENDING)) Recurse = FALSE;
 
@@ -85,7 +82,7 @@ IntValidateParent(PWND Child, HRGN hValidateRgn, BOOL Recurse)
             return FALSE;
 
          IntInvalidateWindows(ParentWindow, hValidateRgn,
-                              RDW_VALIDATE | RDW_NOCHILDREN); // RDW_NOERASE?
+                              RDW_VALIDATE | RDW_NOCHILDREN);
       }
       ParentWnd = ParentWnd->spwndParent;
    }
@@ -456,7 +453,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
 
    if (!(Flags & RDW_NOCHILDREN) &&
        !(Wnd->style & WS_MINIMIZE) &&
-        ((Flags & RDW_ALLCHILDREN)))// || !(Wnd->style & WS_CLIPCHILDREN))) // lieber && ?
+        ((Flags & RDW_ALLCHILDREN) || !(Wnd->style & WS_CLIPCHILDREN))) // lieber ohne ws_clipch ?
    {
       HWND *List, *phWnd;
       PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
