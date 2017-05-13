@@ -31,7 +31,8 @@ static TEST TestList[] =
     { L"alpha", L"Alpha Blend", AlphaBlendInit, AlphaBlendProc, NullCleanup, AlphaBlendCleanup },
     { L"hgradient", L"Horizontal Gradient", NullInit, GradientHorizontalProc, NullCleanup, NullCleanup },
     { L"vgradient", L"Vertical Gradient", NullInit, GradientVerticalProc, NullCleanup, NullCleanup },
-    { L"gradient", L"Gradient", NullInit, GradientProc, NullCleanup, NullCleanup }
+    { L"gradient", L"Gradient", NullInit, GradientProc, NullCleanup, NullCleanup },
+    { L"heap", L"Heap", NullInit, HeapProc, NullCleanup, NullCleanup }
   };
 
 

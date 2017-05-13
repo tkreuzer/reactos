@@ -70,6 +70,7 @@ void GradientVerticalProc(void *Context, PPERF_INFO PerfInfo, unsigned Reps);
 void GradientProc(void *Context, PPERF_INFO PerfInfo, unsigned Reps);
 
 void ScrollProc(void *Context, PPERF_INFO PerfInfo, unsigned Reps);
+void HeapProc(void *Context, PPERF_INFO PerfInfo, unsigned Reps);
 
 #endif /* ROSPERF_H_INCLUDED */
 
