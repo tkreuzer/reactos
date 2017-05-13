@@ -58,8 +58,8 @@ IntIntersectWithParents(PWND Child, RECTL *WindowRect)
    return TRUE;
 }
 
-BOOL FASTCALL
-IntValidateParents(PWND Child, BOOL Recurse)
+VOID FASTCALL
+IntValidateParent(PWND Child)
 {
    RECTL ParentRect, Rect;
    BOOL Start, Ret = TRUE;
@@ -85,11 +85,6 @@ IntValidateParents(PWND Child, BOOL Recurse)
 
       if (ParentWnd->hrgnUpdate != 0)
       {
-         if (Recurse)
-         {
-            Ret = FALSE;
-            break;
-         }
          // Start with child clipping.
          if (Start)
          {
@@ -113,16 +108,14 @@ IntValidateParents(PWND Child, BOOL Recurse)
 
          if (!IntIntersectWithParents(ParentWnd, &ParentRect)) break;
 
-         IntInvalidateWindows( ParentWnd,
-                               Rgn,
-                               RDW_VALIDATE | RDW_NOCHILDREN | RDW_NOUPDATEDIRTY);
+         NtGdiCombineRgn(ParentWindow->UpdateRegion, ParentWindow->UpdateRegion,
+            hValidateRgn, RGN_DIFF);
+         /* FIXME: If the resulting region is empty, remove fake posted paint message */
       }
       ParentWnd = ParentWnd->spwndParent;
    }
 
    if (Rgn) REGION_Delete(Rgn);
-
-   return Ret;
 }
 
 /*
@@ -400,7 +393,7 @@ IntSendChildNCPaint(PWND pWnd)
  */
 
 VOID FASTCALL
-co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
+co_IntPaintWindows(PWND Wnd, ULONG Flags)
 {
    HDC hDC;
    HWND hWnd = Wnd->head.h;
@@ -500,7 +493,7 @@ co_IntPaintWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
             {
                USER_REFERENCE_ENTRY Ref;
                UserRefObjectCo(Wnd, &Ref);
-               co_IntPaintWindows(Wnd, Flags, TRUE);
+               co_IntPaintWindows(Wnd, Flags);
                UserDerefObjectCo(Wnd);
             }
          }
@@ -548,7 +541,7 @@ co_IntUpdateWindows(PWND Wnd, ULONG Flags, BOOL Recurse)
       {
          USER_REFERENCE_ENTRY Ref;
          UserRefObjectCo(Wnd, &Ref);
-         co_IntPaintWindows(Wnd, RDW_NOCHILDREN, FALSE);
+         co_IntPaintWindows(Wnd, RDW_NOCHILDREN);
          UserDerefObjectCo(Wnd);
       }
    }
@@ -629,7 +622,7 @@ UserSyncAndPaintWindows(PWND pWnd, ULONG Flags)
    }
 
    IntSendSyncPaint(pWnd, Flags);
-   co_IntPaintWindows(pWnd, Flags, FALSE);
+   co_IntPaintWindows(pWnd, Flags);
 }
 
 /*
@@ -1794,7 +1787,7 @@ co_UserGetUpdateRgn(PWND Window, HRGN hRgn, BOOL bErase)
    {
       USER_REFERENCE_ENTRY Ref;
       UserRefObjectCo(Window, &Ref);
-      co_IntPaintWindows(Window, RDW_NOCHILDREN, FALSE);
+      co_IntPaintWindows(Window, RDW_NOCHILDREN);
       UserDerefObjectCo(Window);
    }
 
@@ -1863,7 +1856,7 @@ co_UserGetUpdateRect(PWND Window, PRECT pRect, BOOL bErase)
    {
       USER_REFERENCE_ENTRY Ref;
       UserRefObjectCo(Window, &Ref);
-      co_IntPaintWindows(Window, RDW_NOCHILDREN, FALSE);
+      co_IntPaintWindows(Window, RDW_NOCHILDREN);
       UserDerefObjectCo(Window);
    }
 

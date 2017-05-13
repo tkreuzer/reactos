@@ -101,6 +101,15 @@ DC_vFixIsotropicMapping(PDC pdc)
     /* Get a pointer to the DC_ATTR */
     pdcattr = pdc->pdcattr;
 
+DPRINT1("Enter IntFixIsotropicMapping()\n");
+
+    FLOAT xrate = (FLOAT)pdcattr->szlViewportExt.cx / (FLOAT)pdcattr->szlWindowExt.cx;
+    FLOAT yrate = (FLOAT)pdcattr->szlViewportExt.cy / (FLOAT)pdcattr->szlWindowExt.cy;
+    FLOAT horz = (FLOAT)pdc->GDIInfo->ulHorzSize / (FLOAT)pdc->GDIInfo->ulHorzRes;
+    FLOAT vert = (FLOAT)pdc->GDIInfo->ulVertSize / (FLOAT)pdc->GDIInfo->ulVertRes;
+    FLOAT xdim = xrate * horz;
+    FLOAT ydim = yrate * vert;
+
     /* Read the extents, we rely on non-null values */
     szlWindowExt = pdcattr->szlWindowExt;
     szlViewportExt = pdcattr->szlViewportExt;
@@ -109,8 +118,9 @@ DC_vFixIsotropicMapping(PDC pdc)
     if ((szlWindowExt.cx == 0) || (szlWindowExt.cy == 0) ||
         (szlViewportExt.cx == 0) || (szlViewportExt.cy == 0))
     {
-        /* Someone put rubbish into the fields, just ignore it. */
-        return;
+        pdcattr->szlViewportExt.cx = (int)((FLOAT)pdcattr->szlViewportExt.cx * fabsf((FLOAT)ydim / (FLOAT)xdim));
+        DPRINT1("pdcattr->szlViewportExt.cx = %d * %d = %d\n", pdcattr->szlViewportExt.cx, abs(ydim / xdim), pdcattr->szlViewportExt.cx);
+        if (!pdcattr->szlViewportExt.cx) pdcattr->szlViewportExt.cx = 1;
     }
 
     fx = abs((LONG64)szlWindowExt.cx * szlViewportExt.cy);
@@ -118,14 +128,17 @@ DC_vFixIsotropicMapping(PDC pdc)
 
     if (fx < fy)
     {
-        s = (szlWindowExt.cy ^ szlViewportExt.cx) > 0 ? 1 : -1;
-        pdcattr->szlViewportExt.cx = (LONG)(fx * s / szlWindowExt.cy);
+        pdcattr->szlViewportExt.cy = (int)((FLOAT)pdcattr->szlViewportExt.cy * fabsf((FLOAT)xdim / (FLOAT)ydim));
+        DPRINT1("pdcattr->szlViewportExt.cy = %d * %d = %d\n", pdcattr->szlViewportExt.cy, abs(xdim / ydim), pdcattr->szlViewportExt.cy);
+        if (!pdcattr->szlViewportExt.cy) pdcattr->szlViewportExt.cy = 1;
     }
     else if (fx > fy)
     {
         s = (szlWindowExt.cx ^ szlViewportExt.cy) > 0 ? 1 : -1;
         pdcattr->szlViewportExt.cy = (LONG)(fy * s / szlWindowExt.cx);
     }
+
+    DPRINT1("Exit IntFixIsotropicMapping()\n");
 
     /* Reset the flag */
     pdc->pdcattr->flXform &= ~PAGE_EXTENTS_CHANGED;
@@ -995,6 +1008,41 @@ NtGdiSetViewportOrgEx(
     return TRUE;
 }
 
+/**********************************************************************
+ * NtGdiSetWindowExtEx
+ *
+ *   Sets the window extension of the given device context.
+ *
+ * @implemented
+ *
+ * @param
+ *    hDC
+ *       [IN] Handle to the device context for wich the viewport extension should be set.
+ *
+ *    XExtent
+ *       [IN] New horizontal extension in logical units.
+ *
+ *    YExtent
+ *       [IN] New vertical extension in logical units.
+ *
+ *    Size
+ *       [OUT] Pointer to a SIZE structure that recieves the old extension. This parameter
+ *             can be NULL.
+ *
+ * @return
+ *    TRUE
+ *       If the function succeeds.
+ *
+ *    FALSE
+ *       If the function fails.
+ *
+ * @remarks
+ *    If one of XExtent or YExtent is 0, the function fails.
+ *    If the DC's mapping mode is one of MM_HIENGLISH, MM_HIMETRIC, MM_LOENGLISH, MM_LOMETRIC,
+ *    MM_TEXT or MM_TWIPS, the function returns TRUE without changing the extensions.
+ *    If the DC's mapping mode is MM_ISOTROPIC, one of the viewport extensions will be adjusted, 
+ *    so that the DC's viewport aspect ratio matches the DC's new window aspect ratio.
+ */
 BOOL
 APIENTRY
 NtGdiSetWindowOrgEx(
