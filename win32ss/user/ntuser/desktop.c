@@ -1813,7 +1813,9 @@ IntPaintDesktop(HDC hDC)
 
     if (!InSafeMode)
     {
-        DesktopBrush = (HBRUSH)WndDesktop->pcls->hbrBackground;
+        CreateSysColorObjects();
+//        DesktopBrush = (HBRUSH)WndDesktop->pcls->hbrBackground;
+        DesktopBrush = (HBRUSH)IntGetSysColorBrush(COLOR_BACKGROUND);
 
         /*
          * Paint desktop background
@@ -2714,6 +2716,8 @@ CLEANUP:
     UserLeave();
     END_CLEANUP;
 }
+
+HGDIOBJ FASTCALL IntGetSysColorBrush(INT Object);
 
 /*
  * NtUserPaintDesktop

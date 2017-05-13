@@ -313,6 +313,8 @@ co_IntInitializeDesktopGraphics(VOID)
     /* Attach monitor */
     UserAttachMonitor((HDEV)gppdevPrimary);
 
+    UserAcquireOrReleaseInputOwnership(FALSE);
+
     /* Setup the cursor */
     co_IntLoadDefaultCursors();
 
@@ -333,6 +335,7 @@ co_IntInitializeDesktopGraphics(VOID)
 VOID FASTCALL
 IntEndDesktopGraphics(VOID)
 {
+    UserAcquireOrReleaseInputOwnership(TRUE);
     if (NULL != ScreenDeviceContext)
     {  // No need to allocate a new dcattr.
         GreSetDCOwner(ScreenDeviceContext, GDI_OBJ_HMGR_POWNED);
