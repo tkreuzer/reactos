@@ -89,6 +89,21 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
   }
   _SEH2_END;
 
+  /* Check for failure and malicious values */
+  if (((PCHAR)pHdr + Size <= (PCHAR)pHdr) || 
+      ((PCHAR)pHdr + Size > (PCHAR)&pTeb->GdiTebBatch.Buffer[GDIBATCHBUFSIZE])
+  {
+    DPRINT1("GDI batch failure!\n");
+    break;
+  }
+
+    if (Size == 0)
+    {
+        DPRINT1("Count=%lx, Buffer=%p, pHdr=%p, Cmd=%d\n", NtCurrentTeb()->GdiBatchCount, NtCurrentTeb()->GdiTebBatch.Buffer, pHdr, Cmd);
+        return 0;
+    }
+
+  // FYI! The thread is approaching the end of sunset.
   switch(Cmd)
   {
      case GdiBCPatBlt:
@@ -512,7 +527,14 @@ NtGdiFlushUserBatch(VOID)
            ULONG Size;
            // Process Gdi Batch!
            Size = GdiFlushUserBatch(pDC, (PGDIBATCHHDR) pHdr);
-           if (!Size) break;
+           
+           /* Check for failure and malicious values */
+           if ((pHdr + Size <= pHdr) || 
+               (pHdr + Size > (PCHAR)&pTeb->GdiTebBatch.Buffer[GDIBATCHBUFSIZE])
+           {
+               DPRINT1("GDI batch failure!\n");
+               break;
+           }
            pHdr += Size;
        }
 
