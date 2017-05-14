@@ -461,8 +461,7 @@ NTAPI
 MiFreeContiguousMemory(IN PVOID BaseAddress)
 {
     KIRQL OldIrql;
-    PFN_NUMBER PageFrameIndex, LastPage, PageCount;
-    PMMPFN Pfn1, StartPfn;
+    PFN_NUMBER PageFrameIndex, FirstPage, PageCount;
     PMMPTE PointerPte;
     PAGED_CODE();
 
@@ -484,13 +483,12 @@ MiFreeContiguousMemory(IN PVOID BaseAddress)
 
     /* Get the PTE and frame number for the allocation*/
     PointerPte = MiAddressToPte(BaseAddress);
-    PageFrameIndex = PFN_FROM_PTE(PointerPte);
+    FirstPage = PFN_FROM_PTE(PointerPte);
 
     //
-    // Now get the PFN entry for this, and make sure it's the correct one
+    // Make sure it's the correct one
     //
-    Pfn1 = MiGetPfnEntry(PageFrameIndex);
-    if ((!Pfn1) || (Pfn1->u3.e1.StartOfAllocation == 0))
+    if (!MiIsStartOfAllocation(FirstPage))
     {
         //
         // This probably means you did a free on an address that was in between
@@ -505,12 +503,16 @@ MiFreeContiguousMemory(IN PVOID BaseAddress)
     //
     // Now this PFN isn't the start of any allocation anymore, it's going out
     //
-    StartPfn = Pfn1;
+    PageFrameIndex = FirstPage;
+    Mi
     Pfn1->u3.e1.StartOfAllocation = 0;
 
     /* Loop the PFNs until we find the one that marks the end of the allocation */
     do
     {
+        /* Free each one, and move on */
+        MmReleasePageMemoryConsumer(MC_NPPOOL, PageFrameIndex);
+
         /* Make sure these are the pages we setup in the allocation routine */
         ASSERT(Pfn1->u3.e2.ReferenceCount == 1);
         ASSERT(Pfn1->u2.ShareCount == 1);
@@ -524,18 +526,17 @@ MiFreeContiguousMemory(IN PVOID BaseAddress)
 
         /* Keep going for assertions */
         PointerPte++;
-    } while (Pfn1++->u3.e1.EndOfAllocation == 0);
+    } while (!MiIsEndOfAllocation(PageFrameIndex++));
 
     //
     // Found it, unmark it
     //
-    Pfn1--;
     Pfn1->u3.e1.EndOfAllocation = 0;
 
     //
     // Now compute how many pages this represents
     //
-    PageCount = (ULONG)(Pfn1 - StartPfn + 1);
+    PageCount = (PageFrameIndex - StartIndex);
 
     //
     // So we can know how much to unmap (recall we piggyback on I/O mappings)
