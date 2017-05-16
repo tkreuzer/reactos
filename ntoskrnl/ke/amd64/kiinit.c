@@ -373,6 +373,93 @@ KiInitModuleList(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 }
 
+void
+UnmapDuplicatePfnMappings(PFN_NUMBER PageFrameNumber, PMMPTE OriginalPte)
+{
+    PMMPTE PointerPxe, PointerPpe, PointerPde, PointerPte;
+    PVOID Address = 0;
+    ULONG i, j, k, l;
+
+    PointerPxe = MiAddressToPxe(0);
+    for (i = 0; i < 512; i++, PointerPxe++)
+    {
+        if (!PointerPxe->u.Hard.Valid) continue;
+        Address = MiPxeToAddress(PointerPxe);
+        PointerPpe = MiAddressToPpe(Address);
+        for (j = 0; j < 512; j++, PointerPpe++)
+        {
+            if (!PointerPpe->u.Hard.Valid) continue;
+            Address = MiPpeToAddress(PointerPpe);
+            PointerPde = MiAddressToPde(Address);
+            for (k = 0; k < 512; k++, PointerPde++)
+            {
+                if (!PointerPde->u.Hard.Valid) continue;
+                Address = MiPdeToAddress(PointerPde);
+                PointerPte = MiAddressToPte(Address);
+                for (l = 0; l < 512; l++, PointerPte++)
+                {
+                    if (!PointerPte->u.Hard.Valid) continue;
+                    if (PointerPte->u.Hard.PageFrameNumber == PageFrameNumber)
+                    {
+                        if ((LONG64)MiPteToAddress(PointerPte) > 0) continue;
+                        if (PointerPte != OriginalPte)
+                        {
+                            MMPTE TmpPte = *PointerPte;
+                            FrLdrDbgPrint(" -> touching duplicate mapping, PTE @ %p, VA %p\n",
+                                     PointerPte, MiPteToAddress(PointerPte));
+                            //PointerPte->u.Long = 0;
+                            *PointerPte = TmpPte;
+                            __invlpg(MiPteToAddress(PointerPte));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+void
+MmCleanupMappings()
+{
+    PMMPTE PointerPxe, PointerPpe, PointerPde, PointerPte;
+    PVOID Address = 0;
+    ULONG i, j, k, l;
+
+    PointerPxe = MiAddressToPxe(0);
+    for (i = 0; i < 512; i++, PointerPxe++)
+    {
+        if (!PointerPxe->u.Hard.Valid) continue;
+        Address = MiPxeToAddress(PointerPxe);
+        if ((ULONG64)Address <  0xFFFF800000000000ULL) continue;
+        if ((ULONG64)Address >= 0xFFFFF80000000000ULL) return;
+        PointerPpe = MiAddressToPpe(Address);
+        for (j = 0; j < 512; j++, PointerPpe++)
+        {
+            if (!PointerPpe->u.Hard.Valid) continue;
+            Address = MiPpeToAddress(PointerPpe);
+            PointerPde = MiAddressToPde(Address);
+            for (k = 0; k < 512; k++, PointerPde++)
+            {
+                if (!PointerPde->u.Hard.Valid) continue;
+                Address = MiPdeToAddress(PointerPde);
+                PointerPte = MiAddressToPte(Address);
+                for (l = 0; l < 512; l++, PointerPte++)
+                {
+                    if (!PointerPte->u.Hard.Valid) continue;
+                    Address = MiPteToAddress(PointerPte);
+                    if ((ULONG64)Address > 0xFFFFF68000004000ULL) return;
+                    //if ((ULONG64)Address == 0xFFFFF68000002000ULL) continue;
+                    FrLdrDbgPrint("Unmapping duplicate mappings for PTE @ %p, VA %p\n",
+                                PointerPte, MiPteToAddress(PointerPte));
+                    UnmapDuplicatePfnMappings(PointerPte->u.Hard.PageFrameNumber,
+                                              PointerPte);
+                }
+            }
+        }
+    }
+}
+
+INIT_FUNCTION
 CODE_SEG("INIT")
 DECLSPEC_NORETURN
 VOID
@@ -440,6 +527,10 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
         /* Setup the IDT */
         KeInitExceptions();
+
+    MmCleanupMappings();
+    __writecr3(__readcr3());
+    __debugbreak();
 
          /* Initialize debugging system */
         KdInitSystem(0, KeLoaderBlock);
