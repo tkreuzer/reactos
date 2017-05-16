@@ -84,7 +84,11 @@
 #endif
 
 #ifndef _WCHAR_T_DEFINED
+#ifdef _MSC_VER
+typedef __wchar_t wchar_t;
+#else
 typedef unsigned short wchar_t;
+#endif
 #define _WCHAR_T_DEFINED
 #endif
 
