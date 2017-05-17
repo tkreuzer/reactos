@@ -344,78 +344,23 @@ PsChangeQuantumTable(IN BOOLEAN Immediate,
 
 NTSTATUS
 NTAPI
-PspCreateProcess(OUT PHANDLE ProcessHandle,
-                 IN ACCESS_MASK DesiredAccess,
-                 IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
-                 IN HANDLE ParentProcess OPTIONAL,
-                 IN ULONG Flags,
-                 IN HANDLE SectionHandle OPTIONAL,
-                 IN HANDLE DebugPort OPTIONAL,
-                 IN HANDLE ExceptionPort OPTIONAL,
-                 IN BOOLEAN InJob)
+PspCreateProcessLite(
+    OUT HANDLE *ProcessHandle,
+    OUT PEPROCESS *ProcessObject,
+    IN ACCESS_MASK DesiredAccess,
+    IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    IN PEPROCESS Parent,
+    IN KPROCESSOR_MODE PreviousMode)
 {
-    HANDLE hProcess;
-    PEPROCESS Process, Parent;
-    PVOID ExceptionPortObject;
-    PDEBUG_OBJECT DebugObject;
-    PSECTION SectionObject;
-    NTSTATUS Status, AccessStatus;
-    ULONG_PTR DirectoryTableBase[2] = {0,0};
-    KAFFINITY Affinity;
-    HANDLE_TABLE_ENTRY CidEntry;
-    PETHREAD CurrentThread = PsGetCurrentThread();
-    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
     PEPROCESS CurrentProcess = PsGetCurrentProcess();
-    ULONG MinWs, MaxWs;
-    ACCESS_STATE LocalAccessState;
-    PACCESS_STATE AccessState = &LocalAccessState;
-    AUX_ACCESS_DATA AuxData;
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    ULONG_PTR DirectoryTableBase[2] = {0,0};
+    NTSTATUS Status;
+    PEPROCESS Process;
+    HANDLE_TABLE_ENTRY CidEntry;
     UCHAR Quantum;
-    BOOLEAN Result, SdAllocated;
-    PSECURITY_DESCRIPTOR SecurityDescriptor;
-    SECURITY_SUBJECT_CONTEXT SubjectContext;
-    BOOLEAN NeedsPeb = FALSE;
-    INITIAL_PEB InitialPeb;
-    PAGED_CODE();
-    PSTRACE(PS_PROCESS_DEBUG,
-            "ProcessHandle: %p Parent: %p\n", ProcessHandle, ParentProcess);
-
-    /* Validate flags */
-    if (Flags & ~PROCESS_CREATE_FLAGS_LEGAL_MASK) return STATUS_INVALID_PARAMETER;
-
-    /* Check for parent */
-    if (ParentProcess)
-    {
-        /* Reference it */
-        Status = ObReferenceObjectByHandle(ParentProcess,
-                                           PROCESS_CREATE_PROCESS,
-                                           PsProcessType,
-                                           PreviousMode,
-                                           (PVOID*)&Parent,
-                                           NULL);
-        if (!NT_SUCCESS(Status)) return Status;
-
-        /* If this process should be in a job but the parent isn't */
-        if ((InJob) && (!Parent->Job))
-        {
-            /* This is illegal. Dereference the parent and fail */
-            ObDereferenceObject(Parent);
-            return STATUS_INVALID_PARAMETER;
-        }
-
-        /* Inherit Parent process's Affinity. */
-        Affinity = Parent->Pcb.Affinity;
-    }
-    else
-    {
-        /* We have no parent */
-        Parent = NULL;
-        Affinity = KeActiveProcessors;
-    }
-
-    /* Save working set data */
-    MinWs = PsMinimumWorkingSet;
-    MaxWs = PsMaximumWorkingSet;
+    ACCESS_STATE LocalAccessState;
+    AUX_ACCESS_DATA AuxData;
 
     /* Create the Object */
     Status = ObCreateObject(PreviousMode,
@@ -427,10 +372,21 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                             0,
                             0,
                             (PVOID*)&Process);
-    if (!NT_SUCCESS(Status)) goto Cleanup;
+    if (!NT_SUCCESS(Status)) return Status;
 
     /* Clean up the Object */
     RtlZeroMemory(Process, sizeof(EPROCESS));
+
+    /* Create a handle for the Process */
+    CidEntry.Object = Process;
+    CidEntry.GrantedAccess = 0;
+    Process->UniqueProcessId = ExCreateHandle(PspCidTable, &CidEntry);
+    if (!Process->UniqueProcessId)
+    {
+        /* Fail */
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Cleanup;
+    }
 
     /* Initialize pushlock and rundown protection */
     ExInitializeRundownProtection(&Process->RundownProtect);
@@ -439,24 +395,213 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     /* Setup the Thread List Head */
     InitializeListHead(&Process->ThreadListHead);
 
+    /* Set default exit code */
+    Process->ExitStatus = STATUS_PENDING;
+
+    /* Now initialize the Kernel Process */
+    KeInitializeProcess(&Process->Pcb,
+                        PROCESS_PRIORITY_NORMAL,
+                        Parent ? Parent->Pcb.Affinity : KeActiveProcessors,
+                        DirectoryTableBase,
+                        (BOOLEAN)(Process->DefaultHardErrorProcessing & 4));
+
+    /* Set default priority class */
+    Process->PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
+
+    /* Compute Quantum and Priority */
+    Process->Pcb.BasePriority =
+        (SCHAR)PspComputeQuantumAndPriority(Process,
+                                            PsProcessPriorityBackground,
+                                            &Quantum);
+    Process->Pcb.QuantumReset = Quantum;
+
+    /* Duplicate Parent Token */
+    Status = PspInitializeProcessSecurity(Process, Parent);
+    if (!NT_SUCCESS(Status)) goto Cleanup;
+
+    /* Create an access state */
+    Status = SeCreateAccessStateEx(CurrentThread,
+                                   ((Parent) &&
+                                   (Parent == PsInitialSystemProcess)) ?
+                                    Parent : CurrentProcess,
+                                   &LocalAccessState,
+                                   &AuxData,
+                                   DesiredAccess,
+                                   &PsProcessType->TypeInfo.GenericMapping);
+    if (!NT_SUCCESS(Status)) goto Cleanup;
+
+    /* Insert the Process into the Object Directory */
+    Status = ObInsertObject(Process,
+                            &LocalAccessState,
+                            DesiredAccess,
+                            1,
+                            NULL,
+                            ProcessHandle);
+
+    /* Free the access state */
+    SeDeleteAccessState(&LocalAccessState);
+
+    /* Cleanup on failure */
+    if (!NT_SUCCESS(Status)) goto Cleanup;
+
+    /* Set the Creation Time */
+    KeQuerySystemTime(&Process->CreateTime);
+
+    *ProcessObject = Process;
+    return STATUS_SUCCESS;
+
+Cleanup:
+    /* Dereference the process */
+    ObDereferenceObject(Process);
+    return Status;
+}
+
+
+NTSTATUS
+NTAPI
+PspCreateInitialSystemProcess(
+    OUT PHANDLE ProcessHandle)
+{
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    PEPROCESS Process;
+    NTSTATUS Status;
+    ULONG_PTR DirectoryTableBase[2] = {0,0};
+    PAGED_CODE();
+    PSTRACE(PS_PROCESS_DEBUG,
+            "ProcessHandle: %p Parent: %p\n", ProcessHandle, 0);
+
+    /* Setup default object attributes */
+    InitializeObjectAttributes(&ObjectAttributes, NULL, 0, NULL, NULL);
+
+    /* Create the process */
+    Status = PspCreateProcessLite(ProcessHandle,
+                                  &Process,
+                                  PROCESS_ALL_ACCESS,
+                                  NULL,
+                                  NULL,
+                                  KernelMode);
+    if (!NT_SUCCESS(Status)) return Status;
+
+    /* Set up the default Quota Block */
+    Process->QuotaBlock = &PspDefaultQuotaBlock;
+
+    /* Set up Dos Device Map */
+    ObInheritDeviceMap(NULL, Process);
+
+    /* Use default hard error processing */
+    Process->DefaultHardErrorProcessing = TRUE;
+
+    /* Initial process has no section object */
+    Process->SectionObject = NULL;
+
+    /* We are the boot process, we're already semi-initialized */
+    Process->ObjectTable = PsGetCurrentProcess()->ObjectTable;
+    Status = MmInitializeHandBuiltProcess(Process, DirectoryTableBase);
+    ASSERT(NT_SUCCESS(Status));
+
+    /* We already have an address space */
+    InterlockedOr((PLONG)&Process->Flags, PSF_HAS_ADDRESS_SPACE_BIT);
+
+    /* Set the maximum WS */
+    Process->Vm.MaximumWorkingSetSize = PsMaximumWorkingSet;
+
+    /* Do the second part of the boot process memory setup */
+    Status = MmInitializeHandBuiltProcess2(Process);
+    ASSERT(NT_SUCCESS(Status));
+
+    /* Set the handle table PID */
+    Process->ObjectTable->UniqueProcessId = Process->UniqueProcessId;
+
+    /* Set full granted access */
+    Process->GrantedAccess = PROCESS_ALL_ACCESS;
+
+    /* The process can now be activated */
+    KeAcquireGuardedMutex(&PspActiveProcessMutex);
+    InsertTailList(&PsActiveProcessHead, &Process->ActiveProcessLinks);
+    KeReleaseGuardedMutex(&PspActiveProcessMutex);
+
+    /* Return success to caller */
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+NTAPI
+PspCreateProcess(OUT PHANDLE ProcessHandle,
+                 IN ACCESS_MASK DesiredAccess,
+                 IN POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+                 IN HANDLE ParentProcess OPTIONAL,
+                 IN ULONG Flags,
+                 IN HANDLE SectionHandle OPTIONAL,
+                 IN HANDLE DebugPort OPTIONAL,
+                 IN HANDLE ExceptionPort OPTIONAL,
+                 IN BOOLEAN InJob)
+{
+    HANDLE hProcess;
+    PEPROCESS Process = NULL, Parent;
+    PVOID ExceptionPortObject;
+    PDEBUG_OBJECT DebugObject;
+    PSECTION SectionObject;
+    NTSTATUS Status;
+    ULONG_PTR DirectoryTableBase[2] = {0,0};
+    KPROCESSOR_MODE PreviousMode = ExGetPreviousMode();
+    BOOLEAN Result, SdAllocated;
+    PSECURITY_DESCRIPTOR SecurityDescriptor;
+    SECURITY_SUBJECT_CONTEXT SubjectContext;
+    BOOLEAN NeedsPeb = FALSE;
+    INITIAL_PEB InitialPeb;
+    PAGED_CODE();
+    PSTRACE(PS_PROCESS_DEBUG,
+            "ProcessHandle: %p Parent: %p\n", ProcessHandle, ParentProcess);
+
+    /* Special handling for the initial system process */
+    if (!ParentProcess) return PspCreateInitialSystemProcess(ProcessHandle);
+
+    /* Make sure we have a parent */
+    ASSERT(ParentProcess);
+
+    /* Validate flags */
+    if (Flags & ~PROCESS_CREATE_FLAGS_LEGAL_MASK) return STATUS_INVALID_PARAMETER;
+
+    /* Reference the parent process */
+    Status = ObReferenceObjectByHandle(ParentProcess,
+                                       PROCESS_CREATE_PROCESS,
+                                       PsProcessType,
+                                       PreviousMode,
+                                       (PVOID*)&Parent,
+                                       NULL);
+    if (!NT_SUCCESS(Status)) return Status;
+
+    /* If this process should be in a job but the parent isn't */
+    if ((InJob) && (!Parent->Job))
+    {
+        /* This is illegal. Dereference the parent and fail */
+        Status = STATUS_INVALID_PARAMETER;
+        goto Cleanup;
+    }
+
+    /* Create the process */
+    Status = PspCreateProcessLite(&hProcess,
+                                  &Process,
+                                  DesiredAccess,
+                                  ObjectAttributes,
+                                  Parent,
+                                  PreviousMode);
+    if (!NT_SUCCESS(Status))
+    {
+        /* Dereference the parent and return failure */
+        ObDereferenceObject(Parent);
+        return Status;
+    }
+
     /* Set up the Quota Block from the Parent */
     PspInheritQuota(Process, Parent);
 
     /* Set up Dos Device Map from the Parent */
     ObInheritDeviceMap(Parent, Process);
 
-    /* Check if we have a parent */
-    if (Parent)
-    {
-        /* Inherit PID and hard-error processing */
-        Process->InheritedFromUniqueProcessId = Parent->UniqueProcessId;
-        Process->DefaultHardErrorProcessing = Parent->DefaultHardErrorProcessing;
-    }
-    else
-    {
-        /* Use default hard-error processing */
-        Process->DefaultHardErrorProcessing = SEM_FAILCRITICALERRORS;
-    }
+    /* Inherit PID and Hard Error Processing */
+    Process->InheritedFromUniqueProcessId = Parent->UniqueProcessId;
+    Process->DefaultHardErrorProcessing = Parent->DefaultHardErrorProcessing;
 
     /* Check for a section handle */
     if (SectionHandle)
@@ -468,16 +613,15 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                            PreviousMode,
                                            (PVOID*)&SectionObject,
                                            NULL);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+        if (!NT_SUCCESS(Status)) goto Cleanup;
     }
     else
     {
         /* Assume no section object */
         SectionObject = NULL;
 
-        /* Is the parent the initial process?
-         * Check for NULL also, as at initialization PsInitialSystemProcess is NULL */
-        if (Parent != PsInitialSystemProcess && (Parent != NULL))
+        /* Is the parent the initial process? */
+        if (Parent != PsInitialSystemProcess)
         {
             /* It's not, so acquire the process rundown */
             if (ExAcquireRundownProtection(&Parent->RundownProtect))
@@ -495,7 +639,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
             {
                 /* Then the process is in termination, so fail */
                 Status = STATUS_PROCESS_IS_TERMINATING;
-                goto CleanupWithRef;
+                goto Cleanup;
             }
         }
     }
@@ -513,7 +657,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                            PreviousMode,
                                            (PVOID*)&DebugObject,
                                            NULL);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+        if (!NT_SUCCESS(Status)) goto Cleanup;
 
         /* Save the debug object */
         Process->DebugPort = DebugObject;
@@ -527,8 +671,8 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     }
     else
     {
-        /* Do we have a parent? Copy his debug port */
-        if (Parent) DbgkCopyProcessDebugPort(Process, Parent);
+        /* Copy the parent's debug port */
+        DbgkCopyProcessDebugPort(Process, Parent);
     }
 
     /* Now check for an exception port */
@@ -541,86 +685,40 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                            PreviousMode,
                                            (PVOID*)&ExceptionPortObject,
                                            NULL);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+        if (!NT_SUCCESS(Status)) goto Cleanup;
 
         /* Save the exception port */
         Process->ExceptionPort = ExceptionPortObject;
     }
 
-    /* Save the pointer to the section object */
-    Process->SectionObject = SectionObject;
-
-    /* Set default exit code */
-    Process->ExitStatus = STATUS_PENDING;
-
-    /* Check if this is the initial process being built */
-    if (Parent)
+    /* Create the address space for the child */
+    if (!MmCreateProcessAddressSpace(PsMinimumWorkingSet,
+                                     Process,
+                                     DirectoryTableBase))
     {
-        /* Create the address space for the child */
-        if (!MmCreateProcessAddressSpace(MinWs,
-                                         Process,
-                                         DirectoryTableBase))
-        {
-            /* Failed */
-            Status = STATUS_INSUFFICIENT_RESOURCES;
-            goto CleanupWithRef;
-        }
-    }
-    else
-    {
-        /* Otherwise, we are the boot process, we're already semi-initialized */
-        Process->ObjectTable = CurrentProcess->ObjectTable;
-        Status = MmInitializeHandBuiltProcess(Process, DirectoryTableBase);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+        /* Failed */
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Cleanup;
     }
 
     /* We now have an address space */
     InterlockedOr((PLONG)&Process->Flags, PSF_HAS_ADDRESS_SPACE_BIT);
 
     /* Set the maximum WS */
-    Process->Vm.MaximumWorkingSetSize = MaxWs;
+    Process->Vm.MaximumWorkingSetSize = PsMaximumWorkingSet;
 
-    /* Now initialize the Kernel Process */
-    KeInitializeProcess(&Process->Pcb,
-                        PROCESS_PRIORITY_NORMAL,
-                        Affinity,
-                        DirectoryTableBase,
-                        BooleanFlagOn(Process->DefaultHardErrorProcessing,
-                                      SEM_NOALIGNMENTFAULTEXCEPT));
-
-    /* Duplicate Parent Token */
-    Status = PspInitializeProcessSecurity(Process, Parent);
-    if (!NT_SUCCESS(Status)) goto CleanupWithRef;
-
-    /* Set default priority class */
-    Process->PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
-
-    /* Check if we have a parent */
-    if (Parent)
+    /* Check our priority class */
+    if (Parent->PriorityClass == PROCESS_PRIORITY_CLASS_IDLE ||
+        Parent->PriorityClass == PROCESS_PRIORITY_CLASS_BELOW_NORMAL)
     {
-        /* Check our priority class */
-        if (Parent->PriorityClass == PROCESS_PRIORITY_CLASS_IDLE ||
-            Parent->PriorityClass == PROCESS_PRIORITY_CLASS_BELOW_NORMAL)
-        {
-            /* Normalize it */
-            Process->PriorityClass = Parent->PriorityClass;
-        }
-
-        /* Initialize object manager for the process */
-        Status = ObInitProcess(Flags & PROCESS_CREATE_FLAGS_INHERIT_HANDLES ?
-                               Parent : NULL,
-                               Process);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
-    }
-    else
-    {
-        /* Do the second part of the boot process memory setup */
-        Status = MmInitializeHandBuiltProcess2(Process);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+        /* Normalize it */
+        Process->PriorityClass = Parent->PriorityClass;
     }
 
-    /* Set success for now */
-    Status = STATUS_SUCCESS;
+    /* Initialize object manager for the process */
+    Status = ObInitProcess(Flags & PROCESS_CREATE_FLAGS_INHERIT_HANDLES ? Parent : NULL,
+                           Process);
+    if (!NT_SUCCESS(Status)) goto Cleanup;
 
     /* Check if this is a real user-mode process */
     if (SectionHandle)
@@ -633,21 +731,17 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                                  &Process->
                                                  SeAuditProcessCreationInfo.
                                                  ImageFileName);
-        if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+        if (!NT_SUCCESS(Status)) goto Cleanup;
 
-        //
-        // We need a PEB
-        //
+        /* We need a PEB */
         NeedsPeb = TRUE;
     }
-    else if (Parent)
+    else
     {
         /* Check if this is a child of the system process */
         if (Parent != PsInitialSystemProcess)
         {
-            //
-            // We need a PEB
-            //
+            /* We need a PEB */
             NeedsPeb = TRUE;
 
             /* This is a clone! */
@@ -655,14 +749,14 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
         }
         else
         {
-            /* This is the initial system process */
+            /* Parent is the initial system process */
             Flags &= ~PROCESS_CREATE_FLAGS_LARGE_PAGES;
             Status = MmInitializeProcessAddressSpace(Process,
                                                      NULL,
                                                      NULL,
                                                      &Flags,
                                                      NULL);
-            if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+            if (!NT_SUCCESS(Status)) goto Cleanup;
 
             /* Create a dummy image file name */
             Process->SeAuditProcessCreationInfo.ImageFileName =
@@ -673,7 +767,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
             {
                 /* Fail */
                 Status = STATUS_INSUFFICIENT_RESOURCES;
-                goto CleanupWithRef;
+                goto Cleanup;
             }
 
             /* Zero it out */
@@ -692,17 +786,6 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     /* Check if we have a section object and map the system DLL */
     if (SectionObject) PspMapSystemDll(Process, NULL, FALSE);
 
-    /* Create a handle for the Process */
-    CidEntry.Object = Process;
-    CidEntry.GrantedAccess = 0;
-    Process->UniqueProcessId = ExCreateHandle(PspCidTable, &CidEntry);
-    if (!Process->UniqueProcessId)
-    {
-        /* Fail */
-        Status = STATUS_INSUFFICIENT_RESOURCES;
-        goto CleanupWithRef;
-    }
-
     /* Set the handle table PID */
     Process->ObjectTable->UniqueProcessId = Process->UniqueProcessId;
 
@@ -710,38 +793,30 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     if (SeDetailedAuditingWithToken(NULL)) SeAuditProcessCreate(Process);
 
     /* Check if the parent had a job */
-    if ((Parent) && (Parent->Job))
+    if (Parent->Job)
     {
         /* FIXME: We need to insert this process */
         DPRINT1("Jobs not yet supported\n");
     }
 
     /* Create PEB only for User-Mode Processes */
-    if ((Parent) && (NeedsPeb))
+    if (NeedsPeb)
     {
-        //
-        // Set up the initial PEB
-        //
+        /* Set up the initial PEB */
         RtlZeroMemory(&InitialPeb, sizeof(INITIAL_PEB));
         InitialPeb.Mutant = (HANDLE)-1;
         InitialPeb.ImageUsesLargePages = 0; // FIXME: Not yet supported
 
-        //
-        // Create it only if we have an image section
-        //
+        /* Create it only if we have an image section */
         if (SectionHandle)
         {
-            //
-            // Create it
-            //
+            /* Create it */
             Status = MmCreatePeb(Process, &InitialPeb, &Process->Peb);
-            if (!NT_SUCCESS(Status)) goto CleanupWithRef;
+            if (!NT_SUCCESS(Status)) goto Cleanup;
         }
         else
         {
-            //
-            // We have to clone it
-            //
+            /* We have to clone it */
             ASSERTMSG("No support for cloning yet\n", FALSE);
         }
 
@@ -752,52 +827,19 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     InsertTailList(&PsActiveProcessHead, &Process->ActiveProcessLinks);
     KeReleaseGuardedMutex(&PspActiveProcessMutex);
 
-    /* Create an access state */
-    Status = SeCreateAccessStateEx(CurrentThread,
-                                   ((Parent) &&
-                                   (Parent == PsInitialSystemProcess)) ?
-                                    Parent : CurrentProcess,
-                                   &LocalAccessState,
-                                   &AuxData,
-                                   DesiredAccess,
-                                   &PsProcessType->TypeInfo.GenericMapping);
-    if (!NT_SUCCESS(Status)) goto CleanupWithRef;
-
-    /* Insert the Process into the Object Directory */
-    Status = ObInsertObject(Process,
-                            AccessState,
-                            DesiredAccess,
-                            1,
-                            NULL,
-                            &hProcess);
-
-    /* Free the access state */
-    if (AccessState) SeDeleteAccessState(AccessState);
-
-    /* Cleanup on failure */
-    if (!NT_SUCCESS(Status)) goto Cleanup;
-
-    /* Compute Quantum and Priority */
-    ASSERT(IsListEmpty(&Process->ThreadListHead) == TRUE);
-    Process->Pcb.BasePriority =
-        (SCHAR)PspComputeQuantumAndPriority(Process,
-                                            PsProcessPriorityBackground,
-                                            &Quantum);
-    Process->Pcb.QuantumReset = Quantum;
-
     /* Check if we have a parent other then the initial system process */
-    Process->GrantedAccess = PROCESS_TERMINATE;
-    if ((Parent) && (Parent != PsInitialSystemProcess))
+    if (Parent != PsInitialSystemProcess)
     {
+        Process->GrantedAccess = PROCESS_TERMINATE;
+
         /* Get the process's SD */
         Status = ObGetObjectSecurity(Process,
                                      &SecurityDescriptor,
                                      &SdAllocated);
         if (!NT_SUCCESS(Status))
         {
-            /* We failed, close the handle and clean up */
-            ObCloseHandle(hProcess, PreviousMode);
-            goto CleanupWithRef;
+            /* We failed, clean up */
+            goto Cleanup;
         }
 
         /* Create the subject context */
@@ -815,7 +857,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
                                &PsProcessType->TypeInfo.GenericMapping,
                                PreviousMode,
                                &Process->GrantedAccess,
-                               &AccessStatus);
+                               &Status);
 
         /* Dereference the token and let go the SD */
         ObFastDereferenceObject(&Process->Token,
@@ -844,18 +886,9 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
         Process->GrantedAccess = PROCESS_ALL_ACCESS;
     }
 
-    /* Set the Creation Time */
-    KeQuerySystemTime(&Process->CreateTime);
-
     /* Protect against bad user-mode pointer */
     _SEH2_TRY
     {
-        /* Hacky way of returning the PEB to the user-mode creator */
-        if ((Process->Peb) && (CurrentThread->Tcb.Teb))
-        {
-            CurrentThread->Tcb.Teb->NtTib.ArbitraryUserPointer = Process->Peb;
-        }
-
         /* Save the process handle */
        *ProcessHandle = hProcess;
     }
@@ -863,6 +896,7 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     {
         /* Get the exception code */
        Status = _SEH2_GetExceptionCode();
+       _SEH2_YIELD(goto Cleanup);
     }
     _SEH2_END;
 
@@ -872,23 +906,30 @@ PspCreateProcess(OUT PHANDLE ProcessHandle,
     /* If 12 processes have been created, enough of user-mode is ready */
     if (++ProcessCount == 12) Ki386PerfEnd();
 
-CleanupWithRef:
-    /*
-     * Dereference the process. For failures, kills the process and does
-     * cleanup present in PspDeleteProcess. For success, kills the extra
-     * reference added by ObInsertObject.
-     */
+    /* Close the reference on our process */
     ObDereferenceObject(Process);
 
-Cleanup:
     /* Dereference the parent */
-    if (Parent) ObDereferenceObject(Parent);
+    ObDereferenceObject(Parent);
+
+    /* Return success */
+    return STATUS_SUCCESS;
+
+Cleanup:
+    /* Close the handle and dereference the process */
+    ObCloseHandle(hProcess, PreviousMode);
+    ObDereferenceObject(Process);
+
+    /* Dereference the parent */
+    ObDereferenceObject(Parent);
 
     /* Return status to caller */
     return Status;
 }
 
 /* PUBLIC FUNCTIONS **********************************************************/
+
+extern HANDLE PspInitialSystemProcessHandle;
 
 /*
  * @implemented
@@ -903,7 +944,7 @@ PsCreateSystemProcess(OUT PHANDLE ProcessHandle,
     return PspCreateProcess(ProcessHandle,
                             DesiredAccess,
                             ObjectAttributes,
-                            NULL,
+                            PspInitialSystemProcessHandle,
                             0,
                             NULL,
                             NULL,
