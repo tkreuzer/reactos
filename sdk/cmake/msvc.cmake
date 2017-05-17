@@ -1,4 +1,29 @@
 
+# DBG REL Opt
+#  +   +  /hotpatch Hotpatchable images
+#  +   +  /GF String pooling
+#      +  /GL Whole program optimization (LTCG)
+#  +      /Gm Minimal rebuild
+#  +   +  /Gs Stack probes
+#  +      /GS Buffer security checks
+#  +   +  /Gy Function level linking
+#      +  /Gw Whole-program global data optimization
+#         /G? Calling Convention
+#         /guard:cf Control Flow Guard
+#  1   2  /Ob? Inline expansion
+#  d   2  /O? Optimization
+#      +  /Og Use global optimizations (Deprecated since VS 2015)
+#      +  /Oi Generate intrinsic funtions
+#      +  /Ot Favor fast code
+#      +  /Oy Omit frame pointer
+# iso iso /volatile
+#  +   +  /WL Additional warning information
+
+#         /RTC1 Runtime checks
+
+#         /arch:
+#         /favour:
+
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # no optimization
@@ -7,6 +32,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
     add_compile_flags("/Ox /Ob2 /Ot /Oy /GT /GF")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_flags("/Ox /Ob2 /Ot /Oy /GT")
+    #add_compile_flags("/O2 /GT /GL") # /O2 implies /Og /Oi /Ot /Oy /Ob2 /Gs /GF /Gy
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /OPT:REF /OPT:ICF")
 elseif(OPTIMIZE STREQUAL "1")
     add_compile_flags("/O1")
@@ -49,6 +75,17 @@ add_compile_flags("/GR- /EHs-c- /GS-")
 if(USE_CLANG_CL)
     set(CMAKE_CL_SHOWINCLUDES_PREFIX "Note: including file: ")
 endif()
+
+# Check these:
+# remove GS- : needs additional runtime support!
+#add_compile_flags("/Ob1") # need only for debug
+#add_compile_flags("/WL")
+#add_compile_flags("/volatile:iso")
+#add_compile_flags("/GF")
+#add_compile_flags("/Gm")
+#add_compile_flags("/GS")
+#add_compile_flags("/Gs")
+#add_compile_flags("/Gw") # only for release
 
 # HACK: for VS 11+ we need to explicitly disable SSE, which is off by
 # default for older compilers. See CORE-6507
