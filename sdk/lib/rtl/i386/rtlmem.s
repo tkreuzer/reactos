@@ -17,6 +17,7 @@ PUBLIC _RtlFillMemoryUlong@12
 PUBLIC _RtlFillMemoryUlonglong@16
 PUBLIC _RtlMoveMemory@12
 PUBLIC _RtlZeroMemory@8
+PUBLIC @RtlPrefetchMemoryNonTemporal@8
 
 /* FUNCTIONS *****************************************************************/
 .code
@@ -29,9 +30,9 @@ _RtlCompareMemory@12:
 
     /* Clear direction flag and load pointers and size in ULONGs */
     cld
+    mov ecx, [esp+20]
     mov esi, [esp+12]
     mov edi, [esp+16]
-    mov ecx, [esp+20]
     shr ecx, 2
     jz NoUlongs
 
@@ -66,13 +67,13 @@ NotEqual:
 NotEqual2:
 
     /* Remember how many matched */
-    dec esi
     sub esi, [esp+12]
 
     /* Return count */
     mov eax, esi
     pop edi
     pop esi
+    dec eax
     ret 12
 
 
@@ -92,9 +93,9 @@ _RtlCompareMemoryUlong@12:
 
     /* Return count */
 Done:
-    sub edi, [esp+8]
     mov eax, edi
     pop edi
+    sub eax, [esp+8]
     ret 12
 
 
@@ -113,10 +114,10 @@ _RtlFillMemory@12:
     mov ah, al
 
     /* Clear direction flag and set ULONG size and UCHAR remainder */
-    cld
     mov edx, ecx
-    and edx, 3
+    cld
     shr ecx, 2
+    and edx, 3
 
     /* Do the fill */
     rep stosd
@@ -130,6 +131,7 @@ _RtlFillMemory@12:
 ByteFill:
     /* Fill what's left */
     rep stosb
+    /* Return */
     pop edi
     ret 12
 
@@ -156,14 +158,14 @@ _RtlFillMemoryUlonglong@16:
     push esi
 
     /* Get pointer, size and pattern */
-    mov ecx, [esp+16]
     mov esi, [esp+12]
+    mov ecx, [esp+16]
     mov eax, [esp+20]
     shr ecx, 2
-    sub ecx, 2
 
     /* Save the first part */
     mov [esi], eax
+    sub ecx, 2
 
     /* Read second part */
     mov eax, [esp+24]
@@ -188,10 +190,10 @@ _RtlZeroMemory@8:
     xor eax, eax
 
     /* Clear direction flag and set ULONG size and UCHAR remainder */
-    cld
     mov edx, ecx
-    and edx, 3
+    cld
     shr ecx, 2
+    and edx, 3
 
     /* Do the fill */
     rep stosd
@@ -222,68 +224,52 @@ _RtlMoveMemory@12:
 	mov	esi, [ebp + 12]
 	mov	ecx, [ebp + 16]
 
-    /* Use downward copy if source < dest and overlapping */
-	cmp	edi, esi
-	jbe	.CopyUp
-	mov	eax, ecx
-	add	eax, esi
-	cmp	edi, eax
-	jb .CopyDown
+    /* Save original size and prepare ecx for moving dwords */
+    mov edx, ecx
+    shr ecx, 2
 
-.CopyUp:
-	cld
+    /* Check if the source is higher */
+    cmp esi, edi
+    ja DoMove
 
-    /* Check for small moves */
-	cmp	ecx, 16
-	jb .CopyUpBytes
+    /* Do move backwards to not overwrite our source */
+    std
+    add esi, edx
+    add edi, edx
+    jcxz ByteMoveBackward
 
-    /* Check if its already aligned */
-	mov edx, ecx
-	test edi, 3
-	je .CopyUpDwords
+    sub si,4
+    sub di,4
 
-    /* Make the destination dword aligned */
-	mov ecx, edi
-	and ecx, 3
-	sub ecx, 5
-	not ecx
-	sub edx, ecx
-	rep movsb
-	mov ecx, edx
+DoMove:
 
-.CopyUpDwords:
-	shr ecx, 2
-	rep movsd
-	mov ecx, edx
-	and ecx, 3
+    /* Do the move */
+    rep movsd
+    and edx, 3
+    jnz ByteMove
 
-.CopyUpBytes:
-	test ecx, ecx
-	je .CopyUpEnd
-	rep movsb
+    /* Return */
+    cld
+    pop edi
+    pop esi
+    ret 12
 
-.CopyUpEnd:
-	mov eax, [ebp + 8]
-	pop edi
-	pop esi
-	pop ebp
-	ret 12
+ByteMoveBackward:
+    dec esi
+    dec edi
+    and edx, 3
 
-.CopyDown:
-	std
+ByteMove:
+    /* Move what's left */
+    mov ecx, edx
+    rep movsb
 
-    /* Go to the end of the region */
-	add edi, ecx
-	add esi, ecx
+    /* Return */
+    cld
+    pop edi
+    pop esi
+    ret 12
 
-    /* Check for small moves */
-	cmp ecx, 16
-	jb .CopyDownSmall
-
-    /* Check if its already aligned */
-	mov edx, ecx
-	test edi, 3
-	je .CopyDownAligned
 
     /* Make the destination dword aligned */
 	mov ecx, edi
@@ -327,5 +313,36 @@ _RtlMoveMemory@12:
 	dec esi
 	dec edi
 	jmp .CopyDownBytes
+
+
+
+@RtlPrefetchMemoryNonTemporal@8:
+
+    /*
+     * Overwritten by ntoskrnl/ke/i386/kernel.c if SSE is supported
+     * (see Ki386SetProcessorFeatures())
+     */
+    ret
+
+    /* Get granularity */
+    mov eax, [_Ke386CacheAlignment]
+
+FetchLine:
+
+    /* Prefetch this line */
+    prefetchnta byte ptr [ecx]
+
+    /* Update address and count */
+    add ecx, eax
+    sub edx, eax
+
+    /* Keep looping for the next line, or return if done */
+    ja FetchLine
+    ret
+
+
+/* FIXME: HACK */
+_Ke386CacheAlignment:
+    .long   64
 
 END
