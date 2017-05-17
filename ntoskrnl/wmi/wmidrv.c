@@ -69,9 +69,22 @@ typedef struct _WMI_SET_MARK
     WCHAR Mark[1];
 } WMI_SET_MARK, *PWMI_SET_MARK;
 
+UNICODE_STRING WmipRegistryPath =
+    RTL_CONSTANT_STRING(L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\WMI");
+
+KSPIN_LOCK WmipRegistrationSpinLock;
+WORK_QUEUE_ITEM WmipRegWorkQueue;
+WORK_QUEUE_ITEM WmipEventWorkQueueItem;
+LONG WmipRegWorkItemCount = 1;
+KMUTEX WmipSMMutex;
+KMUTEX WmipTLMutex;
+NPAGED_LOOKASIDE_LIST WmipRegLookaside;
 PDEVICE_OBJECT WmipServiceDeviceObject;
 PDEVICE_OBJECT WmipAdminDeviceObject;
 FAST_IO_DISPATCH WmipFastIoDispatch;
+ULONG WmipRefCount[64];
+ULONG WmipLoggerContext[64];
+PVOID WmipDockUndockNotificationEntry;
 
 
 /* FUNCTIONS *****************************************************************/
@@ -119,10 +132,10 @@ WmiTraceUserMessage(
 static
 NTSTATUS
 WmipCaptureGuidObjectAttributes(
-    _In_ POBJECT_ATTRIBUTES GuidObjectAttributes,
+    _In_ const OBJECT_ATTRIBUTES *GuidObjectAttributes,
     _Out_ POBJECT_ATTRIBUTES CapuredObjectAttributes,
     _Out_ PUNICODE_STRING CapturedObjectName,
-    _Out_ PWSTR ObjectNameBuffer,
+    _Out_writes_z_(45) PWSTR ObjectNameBuffer,
     _In_ KPROCESSOR_MODE AccessMode)
 {
     ASSERT(AccessMode != KernelMode);
@@ -157,12 +170,12 @@ WmipCaptureGuidObjectAttributes(
 
         /* Fix pointers */
         CapturedObjectName->Buffer = ObjectNameBuffer;
-        GuidObjectAttributes->ObjectName = CapturedObjectName;
+        CapuredObjectAttributes->ObjectName = CapturedObjectName;
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
         DPRINT1("Got exception!\n");
-        _SEH2_YIELD(return _SEH2_GetExceptionCode());
+        return _SEH2_GetExceptionCode();
     }
     _SEH2_END;
 
@@ -182,9 +195,9 @@ WmipRegisterGuids(
     OBJECT_ATTRIBUTES LocalObjectAttributes;
     UNICODE_STRING LocalObjectName;
     WCHAR LocalObjectNameBuffer[45 + 1];
-    KPROCESSOR_MODE PreviousMode;
     HANDLE GuidObjectHandle;
     PVOID GuidObject;
+    //PWMIREGINFOW RegInfo;
     NTSTATUS Status;
 
     /* Make sure the input buffer is large enough */
@@ -443,6 +456,158 @@ WmiSetMark(
     return STATUS_SUCCESS;
 }
 
+VOID
+NTAPI
+WmipRegistrationWorker(
+    IN PVOID Parameter)
+{
+    UNIMPLEMENTED_DBGBREAK();
+}
+
+VOID
+NTAPI
+WmipEventNotification(
+    IN PVOID Parameter)
+{
+    UNIMPLEMENTED_DBGBREAK();
+}
+
+static
+NTSTATUS
+WmipInitializeDataStructs(
+    VOID)
+{
+    return STATUS_SUCCESS;
+}
+
+static
+NTSTATUS
+WmipInitializeSecurity(
+    VOID)
+{
+
+}
+
+static
+NTSTATUS
+WmipCreateAdminSD(
+    PSECURITY_DESCRIPTOR *OutSecurityDescriptor)
+{
+    ULONG DaclSize;
+    PISECURITY_DESCRIPTOR SecurityDescriptor;
+    PACL Dacl;
+    NTSTATUS Status;
+    PAGED_CODE();
+
+    /* Calculate size of the DACL */
+    DaclSize = sizeof(ACL) +
+                 sizeof(ACCESS_ALLOWED_ACE) + SeLengthSid(SeAliasAdminsSid) +
+                 sizeof(ACCESS_ALLOWED_ACE) + SeLengthSid(SeLocalSystemSid);
+
+    /* Allocate memory for the security descriptor */
+    SecurityDescriptor = ExAllocatePoolWithTag(PagedPool,
+                                               sizeof(*SecurityDescriptor) + DaclSize,
+                                               WMIP_TAG);
+    if (SecurityDescriptor == NULL)
+    {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    /* The DACL starts after the SD */
+    Dacl = (PACL)&SecurityDescriptor[1];
+
+    /* Create the DACL */
+    Status = RtlCreateAcl(Dacl, DaclSize, ACL_REVISION2);
+    if (!NT_SUCCESS(Status))
+    {
+        goto Failure;
+    }
+
+    Status = RtlAddAccessAllowedAce(Dacl,
+                                    ACL_REVISION2,
+                                    STANDARD_RIGHTS_ALL | 0x1FF,
+                                    SeAliasAdminsSid);
+    if (!NT_SUCCESS(Status))
+    {
+        goto Failure;
+    }
+
+
+    Status = RtlAddAccessAllowedAce(Dacl,
+                                    ACL_REVISION2,
+                                    STANDARD_RIGHTS_ALL | 0x1FF,
+                                    SeLocalSystemSid);
+    if (!NT_SUCCESS(Status))
+    {
+        goto Failure;
+    }
+
+    /* Create the security descriptor */
+    Status = RtlCreateSecurityDescriptor(SecurityDescriptor,
+                                         SECURITY_DESCRIPTOR_REVISION);
+    if (!NT_SUCCESS(Status))
+    {
+        goto Failure;
+    }
+
+    /* Set the DACL */
+    Status = RtlSetDaclSecurityDescriptor(SecurityDescriptor, TRUE, Dacl, FALSE);
+    if (!NT_SUCCESS(Status))
+    {
+        goto Failure;
+    }
+
+    /* Set the owner SID */
+    Status = RtlSetOwnerSecurityDescriptor(SecurityDescriptor,
+                                           SeAliasAdminsSid,
+                                           FALSE);
+    if (!NT_SUCCESS(Status))
+    {
+        goto Failure;
+    }
+
+    /* Return the security descriptor */
+    *OutSecurityDescriptor = SecurityDescriptor;
+
+    return STATUS_SUCCESS;
+
+Failure:
+    ExFreePoolWithTag(SecurityDescriptor, WMIP_TAG);
+    return Status;
+}
+
+static
+VOID
+WmipStartGlobalLogger(
+    VOID)
+{
+}
+
+
+
+
+//static
+NTSTATUS
+WmipProbeWmiRegRequest(
+    _In_ PDEVICE_OBJECT DeviceObject,
+    _In_ PVOID Buffer,
+    _In_ ULONG InputLength,
+    _In_ ULONG OutputLength,
+    _Out_ PBOOLEAN Unknown)
+{
+    *Unknown = FALSE;
+
+    if (InputLength < 0x2C)
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+
+    return STATUS_SUCCESS;
+}
+
+
+
 NTSTATUS
 NTAPI
 WmipIoControl(
@@ -623,8 +788,50 @@ WmipDriverEntry(
     static UNICODE_STRING ServiceDosDeviceName = RTL_CONSTANT_STRING(L"\\DosDevices\\WMIDataDevice");
     static UNICODE_STRING AdminDeviceName = RTL_CONSTANT_STRING(L"\\Device\\WMIAdminDevice");
     static UNICODE_STRING AdminDosDeviceName = RTL_CONSTANT_STRING(L"\\DosDevices\\WMIAdminDevice");
+    PSECURITY_DESCRIPTOR SecurityDescriptor;
     NTSTATUS Status;
     PAGED_CODE();
+
+    KeInitializeMutex(&WmipSMMutex, 0);
+    KeInitializeMutex(&WmipTLMutex, 0);
+
+    RtlZeroMemory(&WmipRefCount, sizeof(WmipRefCount));
+    RtlZeroMemory(&WmipLoggerContext, sizeof(WmipLoggerContext));
+
+    ExInitializeNPagedLookasideList(&WmipRegLookaside,
+                                    0,
+                                    0,
+                                    0,
+                                    0x38u,
+                                    'RimW',
+                                    0);
+    KeInitializeSpinLock(&WmipRegistrationSpinLock);
+
+    /* WmipInitializeNotifications(); */
+    ExInitializeWorkItem(&WmipEventWorkQueueItem,
+                         WmipEventNotification,
+                         NULL);
+
+    Status = WmipInitializeDataStructs();
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("WmipInitializeDataStructs() failed: 0x%lx\n", Status);
+        return Status;
+    }
+
+    Status = WmipInitializeSecurity();
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("WmipInitializeSecurity() failed: 0x%lx\n", Status);
+        return Status;
+    }
+
+    Status = WmipCreateAdminSD(&SecurityDescriptor);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("WmipCreateAdminSD() failed: 0x%lx\n", Status);
+        return Status;
+    }
 
     /* Create the service device object */
     Status = IoCreateDevice(DriverObject,
@@ -637,6 +844,7 @@ WmipDriverEntry(
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("Failed to create service device: 0x%lx\n", Status);
+        ExFreePoolWithTag(SecurityDescriptor, WMIP_TAG);
         return Status;
     }
 
@@ -646,6 +854,7 @@ WmipDriverEntry(
     {
         DPRINT1("IoCreateSymbolicLink() failed: 0x%lx\n", Status);
         IoDeleteDevice(WmipServiceDeviceObject);
+        ExFreePoolWithTag(SecurityDescriptor, WMIP_TAG);
         return Status;
     }
 
@@ -662,6 +871,24 @@ WmipDriverEntry(
         DPRINT1("Failed to create admin device: 0x%lx\n", Status);
         IoDeleteDevice(WmipServiceDeviceObject);
         IoDeleteSymbolicLink(&ServiceDosDeviceName);
+        ExFreePoolWithTag(SecurityDescriptor, WMIP_TAG);
+        return Status;
+    }
+
+    /* Set security for the admin device */
+    Status = ObSetSecurityObjectByPointer(WmipAdminDeviceObject,
+                                          DACL_SECURITY_INFORMATION | OWNER_SECURITY_INFORMATION,
+                                          SecurityDescriptor);
+
+    ExFreePoolWithTag(SecurityDescriptor, WMIP_TAG);
+    SecurityDescriptor = NULL;
+
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("ObSetSecurityObjectByPointer() failed: 0x%lx\n", Status);
+        IoDeleteDevice(WmipServiceDeviceObject);
+        IoDeleteDevice(WmipAdminDeviceObject);
+        IoDeleteSymbolicLink(&ServiceDosDeviceName);
         return Status;
     }
 
@@ -675,6 +902,10 @@ WmipDriverEntry(
         IoDeleteDevice(WmipAdminDeviceObject);
         return Status;
     }
+
+    /* Set stack size */
+    WmipServiceDeviceObject->StackSize = 2;
+    WmipAdminDeviceObject->StackSize = 2;
 
     /* Initialize dispatch routines */
     DriverObject->MajorFunction[IRP_MJ_CREATE] = WmipOpenCloseCleanup;
@@ -693,6 +924,15 @@ WmipDriverEntry(
     /* Register the WMI service device */
     IoWMIRegistrationControl(WmipServiceDeviceObject, WMIREG_ACTION_REGISTER);
 
+    /* Register PnP notifications */
+    IoRegisterPlugPlayNotification(EventCategoryHardwareProfileChange,
+                                   0,
+                                   NULL,
+                                   DriverObject,
+                                   WmipDockUndockEventCallback,
+                                   NULL,
+                                   &WmipDockUndockNotificationEntry);
+
     /* Register a shutdown notification */
     IoRegisterShutdownNotification(WmipServiceDeviceObject);
 
@@ -700,7 +940,68 @@ WmipDriverEntry(
     WmipServiceDeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
     WmipAdminDeviceObject->Flags &= ~DO_DEVICE_INITIALIZING;
 
+    IoWMIRegistrationControl(WmipServiceDeviceObject, WMIREG_ACTION_REGISTER);
+
+    WmipStartGlobalLogger();
+
+    IoRegisterShutdownNotification(WmipServiceDeviceObject);
+
+    //vFFDF0520 = 0;
+
     return STATUS_SUCCESS;
 }
 
+VOID
+WmipRegisterFirmwareProviders()
+{
+}
 
+VOID
+WmipRegisterMcaHandler(
+    ULONG InitializationPhase)
+{
+}
+
+BOOLEAN
+NTAPI
+WMIInitialize(
+    _In_ ULONG InitializationPhase,
+    _In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
+{
+    UNICODE_STRING DriverName = RTL_CONSTANT_STRING(L"\\Driver\\WMIxWDM");
+    NTSTATUS Status;
+
+    /* Check which phase this is */
+    if (InitializationPhase == 0)
+    {
+        /* There shouldn't be a device object yet, but a loader block */
+        ASSERT(WmipServiceDeviceObject == NULL);
+        ASSERT(LoaderBlock != NULL);
+
+        /* Create the WMI driver */
+        Status = IoCreateDriver(&DriverName, WmipDriverEntry);
+
+        /* Register MCA handler in phase 0 */
+        WmipRegisterMcaHandler(0);
+        return NT_SUCCESS(Status);
+    }
+    else
+    {
+        /* There shouldn't be a loader block in phase 1 */
+        ASSERT(LoaderBlock == NULL);
+
+        /* Initialize the registration work queue */
+        ExInitializeWorkItem(&WmipRegWorkQueue,
+                             WmipRegistrationWorker,
+                             NULL);
+
+        if (InterlockedDecrement(&WmipRegWorkItemCount))
+        {
+            ExQueueWorkItem(&WmipRegWorkQueue, DelayedWorkQueue);
+        }
+
+        WmipRegisterFirmwareProviders();
+        WmipRegisterMcaHandler(1);
+        return TRUE;
+    }
+}
