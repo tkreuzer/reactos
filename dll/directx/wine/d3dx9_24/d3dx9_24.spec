@@ -159,8 +159,8 @@
 @ stdcall D3DXGetShaderSamplers(ptr ptr ptr)
 @ stdcall D3DXGetShaderSize(ptr)
 @ stdcall D3DXGetShaderVersion(ptr)
-@ stub D3DXGetTargetDescByName
-@ stub D3DXGetTargetDescByVersion
+@ stdcall -stub D3DXGetTargetDescByName(long long long)
+@ stdcall -stub D3DXGetTargetDescByVersion(long long long)
 @ stdcall D3DXGetVertexShaderProfile(ptr)
 @ stdcall D3DXIntersect(ptr ptr ptr ptr ptr ptr ptr ptr ptr ptr)
 @ stub D3DXIntersectSubset(ptr long ptr ptr ptr ptr ptr ptr ptr ptr ptr)
