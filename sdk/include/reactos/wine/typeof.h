@@ -31,7 +31,7 @@ struct _xmlDict;
 enum xsltLoadType;
 
 typedef struct IWineD3D * (__stdcall typeof(WineDirect3DCreate))(unsigned int, struct IUnknown *);
-typedef struct IWineD3DClipper * (__stdcall typeof(WineDirect3DCreateClipper))(struct IUnknown *);
+typedef struct IWineD3DClipper * (__stdcall typeof(WineDirect3DCreateClipper))(void);
 typedef int (__stdcall typeof(ImeInquire))(struct _tagIMEINFO *, __typeof_wchar *, const __typeof_wchar *);
 typedef int (__stdcall typeof(ImeConfigure))(void *, void *, unsigned int, void *);
 typedef int (__stdcall typeof(ImeDestroy))(unsigned int);
