@@ -1,0 +1,59 @@
+
+Current boot sectors:
+- isoboot.S
+- fat.S
+- fat32.S
+- faty.S (unused)
+- ext2.S
+
+Functions
+=========
+
+isoboot:
+- pollchar_and_empty (2 -> can split into 2 macros)
+- int13 (6)
+- crlf_early (7)
+- writestr_early (8 -> everytime a different string)
+- writemsg (8)
+- writehex2 (4)
+- writehex4 (1)
+- getonesec (1, but falls through to getlinsec)
+- getlinsec
+- getfssec
+- searchdir_iso
+- searchdir
+- allocate_file
+- iso_compare_names
+- writechr
+- maxtrans
+- xint13
+
+
+fat:
+- PutChars (2)
+- ReadSectors
+- ReadCluster
+
+
+fat32:
+- PutChars
+- ReadSectors
+- ReadCluster
+- GetFatEntry
+
+
+faty:
+- ReadSectors
+- ReadCluster
+- PutChars
+
+
+
+
+
+
+faty:
+- jmp to main
+- 
+- setup segments
+- setup stack
