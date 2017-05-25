@@ -55,8 +55,10 @@ SizeOfDataArea        = 32
 BootSectorStackTop    = (HEX(7c00) - SizeOfDataArea)
 
 /* Data area offsets for uninitialized data */
-DataAreaStart         = BootSectorStackTop + 0  /* dword */
-BiosCHSDriveSize      = BootSectorStackTop + 8  /* dword */
+absolute BootSectorStackTop // Here we keep our BSS stuff
+resb DataAreaStart, 4
+resb BiosCHSDriveSize, 4
+resb Int13APISupportBits, 1
 
 /* Macro for bp relative memory access to reduce code size */
 #define BP_REL(x) ss:[bp + x - BootSectorStackTop]
@@ -71,8 +73,7 @@ BiosCHSDriveSize      = BootSectorStackTop + 8  /* dword */
  ******************************************************************************/
 /* We have 3 bytes at the entry point to jump over the data area */
 start:
-    jmp short main // FIXME: When compiling FAT32, assembler will complain
-                   // that the label is too far... Need investigation!
+    jmp short main
     nop
 
 /* Here starts the BIOS Parameter Block (BPB) data.
@@ -194,7 +195,7 @@ main:
     mov byte ptr [Int13APISupportBits], cl
 
 NoInt13Ext:
-jmp $
+
 /******************************************************************************
  *                        Get drive parameters                                *
  ******************************************************************************/
@@ -683,9 +684,6 @@ msgAnyKey:
 
 FirstLoadedFatEntry:
     .word -1
-
-Int13APISupportBits:
-    .byte 0
 
 /******************************************************************************
  *               Padding and boot sector signature                            *
