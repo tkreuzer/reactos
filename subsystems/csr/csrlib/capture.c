@@ -30,6 +30,11 @@ CsrProbeForRead(
 
     /* Validate length */
     if (Length == 0) return;
+    if (((ULONG_PTR)Address + Length) < (ULONG_PTR)Address)
+    {
+        /* Raise exception if it overflows */
+        RtlRaiseStatus(STATUS_ACCESS_VIOLATION);
+    }
 
     /* Validate alignment */
     if ((ULONG_PTR)Address & (Alignment - 1))
