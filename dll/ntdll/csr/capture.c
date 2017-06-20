@@ -34,6 +34,11 @@ CsrProbeForRead(IN PVOID Address,
 
     /* Validate length */
     if (Length == 0) return;
+    if (((ULONG_PTR)Address + Length) < (ULONG_PTR)Address)
+    {
+        /* Raise exception if it overflows */
+        RtlRaiseStatus(STATUS_ACCESS_VIOLATION);
+    }
 
     /* Validate alignment */
     if ((ULONG_PTR)Address & (Alignment - 1))
@@ -226,7 +231,7 @@ CsrCaptureMessageString(IN OUT PCSR_CAPTURE_BUFFER CaptureBuffer,
             StringLength = MaximumLength;
 
         CapturedString->Length = (USHORT)StringLength;
-
+    
         /* Allocate a buffer and get its size */
         CapturedString->MaximumLength =
             (USHORT)CsrAllocateMessagePointer(CaptureBuffer,
