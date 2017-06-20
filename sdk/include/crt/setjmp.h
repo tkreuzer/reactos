@@ -14,6 +14,10 @@
 extern "C" {
 #endif
 
+#ifndef _INC_SETJMPEX
+#define setjmp  _setjmp
+#endif
+
 #if (defined(_X86_) && !defined(__x86_64))
 
 #define _JBLEN 16

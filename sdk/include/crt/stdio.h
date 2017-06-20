@@ -1113,7 +1113,7 @@ extern "C" {
 #endif
 
 #define _STDIO_DEFINED
-#endif
+#endif // !_STDIO_DEFINED
 
 #define _fgetc_nolock(_stream) (--(_stream)->_cnt >= 0 ? 0xff & *(_stream)->_ptr++ : _filbuf(_stream))
 #define _fputc_nolock(_c,_stream) (--(_stream)->_cnt >= 0 ? 0xff & (*(_stream)->_ptr++ = (char)(_c)) : _flsbuf((_c),(_stream)))
