@@ -336,7 +336,7 @@ MiFreeSharedMemory(
     {
       PhysicalAddress = Adapter->TransmitBufferPtrPhys;
       NdisMFreeSharedMemory(Adapter->MiniportAdapterHandle, Adapter->TransmitBufferLength,
-          TRUE, Adapter->TransmitBufferPtrVirt, PhysicalAddress);
+          FALSE, Adapter->TransmitBufferPtrVirt, PhysicalAddress);
       Adapter->TransmitBufferPtrVirt = NULL;
     }
 
@@ -344,7 +344,7 @@ MiFreeSharedMemory(
     {
       PhysicalAddress = Adapter->ReceiveBufferPtrPhys;
       NdisMFreeSharedMemory(Adapter->MiniportAdapterHandle, Adapter->ReceiveBufferLength,
-          TRUE, Adapter->ReceiveBufferPtrVirt, PhysicalAddress);
+          FALSE, Adapter->ReceiveBufferPtrVirt, PhysicalAddress);
       Adapter->ReceiveBufferPtrVirt = NULL;
     }
 }
