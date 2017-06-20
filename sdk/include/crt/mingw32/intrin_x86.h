@@ -798,7 +798,7 @@ __INTRIN_INLINE void __stosd(unsigned long * Dest, unsigned long Data, size_t Co
 }
 
 #ifdef __x86_64__
-__INTRIN_INLINE void __stosq(unsigned long long * Dest, unsigned long long Data, size_t Count)
+__INTRIN_INLINE void __stosq(unsigned __int64 * Dest, unsigned __int64 Data, size_t Count)
 {
 	__asm__ __volatile__
 	(
@@ -870,7 +870,7 @@ __INTRIN_INLINE void __writegsdword(unsigned long Offset, unsigned long Data)
 	__asm__ __volatile__("movl %k[Data], %%gs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "ir" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __writegsqword(unsigned long Offset, unsigned long long Data)
+__INTRIN_INLINE void __writegsqword(unsigned long Offset, unsigned __int64 Data)
 {
 	__asm__ __volatile__("movq %q[Data], %%gs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "ir" (Data) : "memory");
 }
@@ -903,7 +903,7 @@ __INTRIN_INLINE unsigned long __readgsdword(unsigned long Offset)
 #endif
 
 #if !HAS_BUILTIN(__readgsqword)
-__INTRIN_INLINE unsigned long long __readgsqword(unsigned long Offset)
+__INTRIN_INLINE unsigned __int64 __readgsqword(unsigned long Offset)
 {
 	unsigned long long value;
 	__asm__ __volatile__("movq %%gs:%a[Offset], %q[value]" : [value] "=r" (value) : [Offset] "ir" (Offset));
@@ -946,7 +946,7 @@ __INTRIN_INLINE void __addgsdword(unsigned long Offset, unsigned long Data)
 	__asm__ __volatile__("addl %k[Data], %%gs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "ir" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __addgsqword(unsigned long Offset, unsigned long long Data)
+__INTRIN_INLINE void __addgsqword(unsigned long Offset, unsigned __int64 Data)
 {
 	__asm__ __volatile__("addq %k[Data], %%gs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "ir" (Data) : "memory");
 }
@@ -1029,7 +1029,7 @@ __INTRIN_INLINE void __addfsword(unsigned long Offset, unsigned short Data)
 		__asm__ __volatile__("addw %w[Data], %%fs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "iq" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __addfsdword(unsigned long Offset, unsigned long Data)
+__INTRIN_INLINE void __addfsdword(unsigned long Offset, unsigned int Data)
 {
 	if(!__builtin_constant_p(Offset))
 		__asm__ __volatile__("addl %k[Offset], %%fs:%a[Offset]" : : [Offset] "r" (Offset) : "memory");
@@ -1590,17 +1590,17 @@ __INTRIN_INLINE void __outdword(unsigned short Port, unsigned long Data)
 	__asm__ __volatile__("outl %k[Data], %w[Port]" : : [Port] "Nd" (Port), [Data] "a" (Data));
 }
 
-__INTRIN_INLINE void __outbytestring(unsigned short Port, unsigned char * Buffer, unsigned long Count)
+__INTRIN_INLINE void __outbytestring(unsigned short Port, const unsigned char * Buffer, unsigned long Count)
 {
 	__asm__ __volatile__("rep; outsb" : : [Port] "d" (Port), [Buffer] "S" (Buffer), "c" (Count));
 }
 
-__INTRIN_INLINE void __outwordstring(unsigned short Port, unsigned short * Buffer, unsigned long Count)
+__INTRIN_INLINE void __outwordstring(unsigned short Port, const unsigned short * Buffer, unsigned long Count)
 {
 	__asm__ __volatile__("rep; outsw" : : [Port] "d" (Port), [Buffer] "S" (Buffer), "c" (Count));
 }
 
-__INTRIN_INLINE void __outdwordstring(unsigned short Port, unsigned long * Buffer, unsigned long Count)
+__INTRIN_INLINE void __outdwordstring(unsigned short Port, const unsigned long * Buffer, unsigned long Count)
 {
 	__asm__ __volatile__("rep; outsl" : : [Port] "d" (Port), [Buffer] "S" (Buffer), "c" (Count));
 }
@@ -1729,22 +1729,22 @@ __INTRIN_INLINE void __fastfail(unsigned int Code)
 
 #ifdef __x86_64__
 
-__INTRIN_INLINE void __writecr0(unsigned long long Data)
+__INTRIN_INLINE void __writecr0(unsigned __int64 Data)
 {
 	__asm__("mov %[Data], %%cr0" : : [Data] "r" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __writecr3(unsigned long long Data)
+__INTRIN_INLINE void __writecr3(unsigned __int64 Data)
 {
 	__asm__("mov %[Data], %%cr3" : : [Data] "r" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __writecr4(unsigned long long Data)
+__INTRIN_INLINE void __writecr4(unsigned __int64 Data)
 {
 	__asm__("mov %[Data], %%cr4" : : [Data] "r" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __writecr8(unsigned long long Data)
+__INTRIN_INLINE void __writecr8(unsigned __int64 Data)
 {
 	__asm__("mov %[Data], %%cr8" : : [Data] "r" (Data) : "memory");
 }
@@ -1965,7 +1965,7 @@ __INTRIN_INLINE void __writedr(unsigned reg, unsigned int value)
 
 #endif /* __x86_64__ */
 
-__INTRIN_INLINE void __invlpg(void *Address)
+__INTRIN_INLINE void __invlpg(const void *Address) // ??
 {
 	__asm__ __volatile__ ("invlpg (%[Address])" : : [Address] "b" (Address) : "memory");
 }
@@ -1973,7 +1973,7 @@ __INTRIN_INLINE void __invlpg(void *Address)
 
 /*** System operations ***/
 
-__INTRIN_INLINE unsigned long long __readmsr(unsigned long reg)
+__INTRIN_INLINE unsigned long long __readmsr(int reg)
 {
 #ifdef __x86_64__
 	unsigned long low, high;
@@ -1995,7 +1995,7 @@ __INTRIN_INLINE void __writemsr(unsigned long Register, unsigned long long Value
 #endif
 }
 
-__INTRIN_INLINE unsigned long long __readpmc(unsigned long counter)
+__INTRIN_INLINE unsigned long long __readpmc(int counter)
 {
 	unsigned long long retval;
 	__asm__ __volatile__("rdpmc" : "=A" (retval) : "c" (counter));
