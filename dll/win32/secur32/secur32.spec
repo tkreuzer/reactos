@@ -1,3 +1,6 @@
+1 stub SecDeleteUserModeContext
+2 stub SecInitUserModeContext
+
 @ stdcall AcceptSecurityContext(ptr ptr ptr long long ptr ptr ptr ptr)
 @ stdcall AcquireCredentialsHandleA(str str long ptr ptr ptr ptr ptr ptr)
 @ stdcall AcquireCredentialsHandleW(wstr wstr long ptr ptr ptr ptr ptr ptr)
@@ -7,8 +10,6 @@
 @ stdcall AddSecurityPackageW(wstr ptr)
 @ stdcall ApplyControlToken(ptr ptr)
 @ stdcall CompleteAuthToken(ptr ptr)
-@ stub CredMarshalTargetInfo
-@ stub CredUnmarshalTargetInfo
 @ stdcall DecryptMessage(ptr ptr long ptr)
 @ stdcall DeleteSecurityContext(ptr)
 @ stdcall DeleteSecurityPackageA(str)
@@ -62,14 +63,10 @@
 @ stub SaslInitializeSecurityContextW
 @ stdcall SealMessage(ptr long ptr long) EncryptMessage
 @ stub SecCacheSspiPackages
-@ stub SecDeleteUserModeContext
 @ stub SecGetLocaleSpecificEncryptionRules # not on win32k3 x64
-@ stub SecInitUserModeContext
 @ stub SecpFreeMemory
 @ stub SecpTranslateName
 @ stub SecpTranslateNameEx
-@ stdcall SetContextAttributesA(ptr long ptr long)
-@ stdcall SetContextAttributesW(ptr long ptr long)
 @ stdcall TranslateNameA(str long long ptr ptr)
 @ stdcall TranslateNameW(wstr long long ptr ptr)
 @ stdcall UnsealMessage(ptr ptr long ptr) DecryptMessage
