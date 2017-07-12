@@ -1,4 +1,16 @@
 
+/*!
+
+    \References
+
+    - http://ideone.com/D0eX7F
+    - https://gist.github.com/hunt978/6648097
+    - https://www.exploit-db.com/exploits/25611/
+
+
+*/
+
+
 #include <windows.h>
 #include "eng.h"
 #include "pathobj.hpp"
@@ -255,12 +267,9 @@ EPATHOBJ::vEnumStartClipLines(
 
 BOOL
 EPATHOBJ::bEnumClipLines(
-    _Inout_ PATHOBJ *ppo,
     _In_ ULONG cj,
     _Out_ CLIPLINE *pcl)
 {
-    EPATHOBJ *pepo = reinterpret_cast<EPATHOBJ*>(ppo);
-
     /* Check if we can enumerate more clip lines */
     if (!_bMoreClips)
     {
@@ -284,7 +293,7 @@ EPATHOBJ::bEnumClipLines(
                 }
 
                 /* Enumerate a path entry */
-                _bMorePaths = pepo->bEnum(&_pdEnum);
+                _bMorePaths = this->bEnum(&_pdEnum);
 
             /* Repeat until we have at least 2 */
             } while (_pdEnum.count < 2);
@@ -338,8 +347,7 @@ PATHOBJ_bCloseFigure(
     _Inout_ PATHOBJ *ppo)
 {
     // www.osr.com/ddk/graphics/gdifncs_5mhz.htm
-    UNIMPLEMENTED;
-    return FALSE;
+    return reinterpret_cast<EPATHOBJ*>(ppo)->bCloseFigure();
 }
 
 BOOL
@@ -349,8 +357,7 @@ PATHOBJ_bEnum(
     _Out_ PATHDATA *ppd)
 {
     // www.osr.com/ddk/graphics/gdifncs_98o7.htm
-    UNIMPLEMENTED;
-    return FALSE;
+    return reinterpret_cast<EPATHOBJ*>(ppo)->bEnum(ppd);
 }
 
 BOOL
@@ -361,8 +368,7 @@ PATHOBJ_bEnumClipLines(
     _Out_ CLIPLINE *pcl)
 {
     // www.osr.com/ddk/graphics/gdifncs_4147.htm
-    UNIMPLEMENTED;
-    return FALSE;
+    return reinterpret_cast<EPATHOBJ*>(ppo)->bEnumClipLines(cj, pcl);
 }
 
 BOOL
@@ -372,8 +378,7 @@ PATHOBJ_bMoveTo(
     _In_ POINTFIX ptfx)
 {
     // www.osr.com/ddk/graphics/gdifncs_70vb.htm
-    UNIMPLEMENTED;
-    return FALSE;
+    return reinterpret_cast<EPATHOBJ*>(ppo)->bMoveTo(ptfx);
 }
 
 BOOL
@@ -384,8 +389,7 @@ PATHOBJ_bPolyBezierTo(
     _In_ ULONG cptfx)
 {
     // www.osr.com/ddk/graphics/gdifncs_2c9z.htm
-    UNIMPLEMENTED;
-    return FALSE;
+    return reinterpret_cast<EPATHOBJ*>(ppo)->bPolyBezierTo(pptfx, cptfx);
 }
 
 BOOL
@@ -396,8 +400,7 @@ PATHOBJ_bPolyLineTo(
     _In_ ULONG cptfx)
 {
     // www.osr.com/ddk/graphics/gdifncs_0x47.htm
-    UNIMPLEMENTED;
-    return FALSE;
+    return reinterpret_cast<EPATHOBJ*>(ppo)->bPolyLineTo(pptfx, cptfx);
 }
 
 VOID
