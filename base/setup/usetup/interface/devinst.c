@@ -76,7 +76,13 @@ InstallDriver(
      && !SetupFindFirstLineW(hInf, L"InputDevicesSupport.Load", Driver, &Context)
      && !SetupFindFirstLineW(hInf, L"Keyboard.Load", Driver, &Context))
     {
-        return FALSE;
+        if (!SetupFindFirstLineW(hInf, L"Keyboard.Load", Driver, &Context))
+        {
+            INF_FreeData(Driver);
+            return FALSE;
+        }
+
+        keyboardDevice = TRUE;
     }
 
     if (!INF_GetDataField(&Context, 1, &ImagePath))
@@ -88,6 +94,8 @@ InstallDriver(
     if (!FullImagePath)
     {
         DPRINT1("RtlAllocateHeap() failed\n");
+        INF_FreeData(ImagePath);
+        INF_FreeData(Driver);
         return FALSE;
     }
     RtlCopyMemory(FullImagePath, PathPrefix.Buffer, PathPrefix.MaximumLength);
@@ -103,6 +111,8 @@ InstallDriver(
     {
         DPRINT1("NtCreateKey('%wZ') failed with status 0x%08x\n", &StringU, Status);
         RtlFreeHeap(ProcessHeap, 0, FullImagePath);
+        INF_FreeData(ImagePath);
+        INF_FreeData(Driver);
         return FALSE;
     }
 
@@ -110,40 +120,40 @@ InstallDriver(
     if (Disposition == REG_CREATED_NEW_KEY)
     {
         dwValue = 0;
-        NtSetValueKey(
-            hService,
-            &ErrorControlU,
-            0,
-            REG_DWORD,
-            &dwValue,
-            sizeof(dwValue));
+        NtSetValueKey(hService,
+                      &ErrorControlU,
+                      0,
+                      REG_DWORD,
+                      &dwValue,
+                      sizeof(dwValue));
+
         dwValue = 0;
-        NtSetValueKey(
-            hService,
-            &StartU,
-            0,
-            REG_DWORD,
-            &dwValue,
-            sizeof(dwValue));
+        NtSetValueKey(hService,
+                      &StartU,
+                      0,
+                      REG_DWORD,
+                      &dwValue,
+                      sizeof(dwValue));
+
         dwValue = SERVICE_KERNEL_DRIVER;
-        NtSetValueKey(
-            hService,
-            &TypeU,
-            0,
-            REG_DWORD,
-            &dwValue,
-            sizeof(dwValue));
+        NtSetValueKey(hService,
+                      &TypeU,
+                      0,
+                      REG_DWORD,
+                      &dwValue,
+                      sizeof(dwValue));
     }
     /* HACK: don't put any path in registry */
-    NtSetValueKey(
-        hService,
-        &ImagePathU,
-        0,
-        REG_SZ,
-        ImagePath,
-        (wcslen(ImagePath) + 1) * sizeof(WCHAR));
+    NtSetValueKey(hService,
+                  &ImagePathU,
+                  0,
+                  REG_SZ,
+                  ImagePath,
+                  (wcslen(ImagePath) + 1) * sizeof(WCHAR));
 
-    if (ClassGuid &&_wcsicmp(ClassGuid, L"{4D36E96B-E325-11CE-BFC1-08002BE10318}") == 0)
+    INF_FreeData(ImagePath);
+
+    if (keyboardDevice)
     {
         DPRINT1("Installing keyboard class driver for '%S'\n", DeviceId);
         NtSetValueKey(hDeviceKey,
@@ -155,28 +165,29 @@ InstallDriver(
     }
 
     /* Associate device with the service we just filled */
-    Status = NtSetValueKey(
-        hDeviceKey,
-        &ServiceU,
-        0,
-        REG_SZ,
-        Driver,
-        (wcslen(Driver) + 1) * sizeof(WCHAR));
+    Status = NtSetValueKey(hDeviceKey,
+                           &ServiceU,
+                           0,
+                           REG_SZ,
+                           Driver,
+                           (wcslen(Driver) + 1) * sizeof(WCHAR));
     if (NT_SUCCESS(Status))
     {
         /* Restart the device, so it will use the driver we registered */
         deviceInstalled = ResetDevice(DeviceId);
     }
 
+    INF_FreeData(Driver);
+
     /* HACK: Update driver path */
-    NtSetValueKey(
-        hService,
-        &ImagePathU,
-        0,
-        REG_SZ,
-        FullImagePath,
-        (wcslen(FullImagePath) + 1) * sizeof(WCHAR));
+    NtSetValueKey(hService,
+                  &ImagePathU,
+                  0,
+                  REG_SZ,
+                  FullImagePath,
+                  (wcslen(FullImagePath) + 1) * sizeof(WCHAR));
     RtlFreeHeap(ProcessHeap, 0, FullImagePath);
+
     NtClose(hService);
 
     return deviceInstalled;
