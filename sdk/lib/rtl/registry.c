@@ -52,10 +52,7 @@ RtlpQueryRegistryDirect(IN ULONG ValueType,
         (ValueType == REG_MULTI_SZ))
     {
         /* Normalize the length */
-        if (ValueLength > MAXUSHORT)
-            ActualLength = MAXUSHORT;
-        else
-            ActualLength = (USHORT)ValueLength;
+        ActualLength = min(ValueLength, MAXUSHORT);
 
         /* Check if the return string has been allocated */
         if (!ReturnString->Buffer)
@@ -221,7 +218,7 @@ RtlpCallQueryRegistryRoutine(IN PRTL_QUERY_REGISTRY_TABLE QueryTable,
             RequiredLength = KeyValueInfo->NameLength + sizeof(UNICODE_NULL);
             if ((SpareData > DataEnd) || (SpareLength < RequiredLength))
             {
-                /* Fail and return the missing length */
+                /* Fail and return the required length */
                 *InfoSize = (ULONG)(SpareData - (PCHAR)KeyValueInfo) + RequiredLength;
                 return STATUS_BUFFER_TOO_SMALL;
             }
@@ -1002,346 +999,365 @@ RtlpNtSetValueKey(IN HANDLE KeyHandle,
                          DataLength);
 }
 
+
+static
+NTSTATUS
+RtlpOpenSubKey(
+    HANDLE RootKeyHandle,
+    const WCHAR *SubKeyName,
+    OUT HANDLE *NewKeyHandle)
+{
+    UNICODE_STRING KeyPath;
+    OBJECT_ATTRIBUTES ObjectAttributes;
+
+    /* Make sure we have a name */
+    if (SubKeyName == NULL)
+    {
+        /* Fail */
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Initialize the name */
+    RtlInitUnicodeString(&KeyPath, SubKeyName);
+
+    /* Get the key handle */
+    InitializeObjectAttributes(&ObjectAttributes,
+                               &KeyPath,
+                               OBJ_CASE_INSENSITIVE |
+                               OBJ_KERNEL_HANDLE,
+                               RootKeyHandle,
+                               NULL);
+    return ZwOpenKey(NewKeyHandle, MAXIMUM_ALLOWED, &ObjectAttributes);
+}
+
+static
+NTSTATUS
+RtlpEnumerateKeyValues(
+    _In_ PRTL_QUERY_REGISTRY_TABLE QueryTable,
+    _In_ HANDLE CurrentKey,
+    _Writable_bytes_(BufferSize) PKEY_VALUE_FULL_INFORMATION KeyValueInfo,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG ResultLength,
+    _In_ PVOID Context,
+    _In_opt_ PVOID Environment)
+{
+    NTSTATUS Status;
+    ULONG ValueIndex;
+    UNICODE_STRING KeyValueName;
+
+    /* Loop every value */
+    for (ValueIndex = 0; ValueIndex < ULONG_MAX; ValueIndex++)
+    {
+        /* Enumerate the keys */
+        Status = ZwEnumerateValueKey(CurrentKey,
+                                     ValueIndex,
+                                     KeyValueFullInformation,
+                                     KeyValueInfo,
+                                     BufferSize,
+                                     ResultLength);
+
+        /* Break out if that failed */
+        if (!NT_SUCCESS(Status))
+        {
+            break;
+        }
+
+        /* Call the query routine */
+        *ResultLength = BufferSize;
+        Status = RtlpCallQueryRegistryRoutine(QueryTable,
+                                              KeyValueInfo,
+                                              ResultLength,
+                                              Context,
+                                              Environment);
+
+        /* Break out if that failed */
+        if (!NT_SUCCESS(Status))
+        {
+            return Status;
+        }
+
+        /* Check if we need to delete */
+        if (QueryTable->Flags & RTL_QUERY_REGISTRY_DELETE)
+        {
+            /* Build the name */
+            KeyValueName.Buffer = KeyValueInfo->Name;
+            KeyValueName.Length = (USHORT)KeyValueInfo->NameLength;
+            KeyValueName.MaximumLength = KeyValueName.Length;
+
+            /* Delete the key */
+            Status = ZwDeleteValueKey(CurrentKey, &KeyValueName);
+
+            /* Adjust the value index */
+            if (NT_SUCCESS(Status))
+            {
+                ValueIndex--;
+            }
+        }
+    }
+
+    /* Check if we found all the entries */
+    if (Status == STATUS_NO_MORE_ENTRIES)
+    {
+        /* Check if the caller wants at least one entry, but we have none */
+        if ((ValueIndex == 0) &&
+            (QueryTable->Flags & RTL_QUERY_REGISTRY_REQUIRED))
+        {
+            /* Fail */
+            return STATUS_OBJECT_NAME_NOT_FOUND;
+        }
+
+        /* Otherwise this was a success */
+        return STATUS_SUCCESS;
+    }
+
+    /* Return the failure status */
+    return Status;
+}
+
+static
+NTSTATUS
+RtlpProcessNamedValue(
+    _In_ PRTL_QUERY_REGISTRY_TABLE QueryTable,
+    _In_ HANDLE KeyHandle,
+    _Writable_bytes_(BufferSize) PKEY_VALUE_FULL_INFORMATION KeyValueInfo,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG ResultLength,
+    _In_ PVOID Context,
+    _In_opt_ PVOID Environment)
+{
+    UNICODE_STRING KeyValueName;
+    NTSTATUS Status;
+
+    /* Initialize the path */
+    RtlInitUnicodeString(&KeyValueName, QueryTable->Name);
+
+    /* Query key information */
+    Status = ZwQueryValueKey(KeyHandle,
+                             &KeyValueName,
+                             KeyValueFullInformation,
+                             KeyValueInfo,
+                             BufferSize,
+                             ResultLength);
+    /* Check for failure */
+    if (!NT_SUCCESS(Status))
+    {
+        /* Check if we didn't find it */
+        if (Status == STATUS_OBJECT_NAME_NOT_FOUND)
+        {
+            /* Setup a default */
+            KeyValueInfo->Type = REG_NONE;
+            KeyValueInfo->DataOffset = 0;
+            KeyValueInfo->DataLength = 0;
+
+            /* Call the query routine */
+            *ResultLength = BufferSize;
+            Status = RtlpCallQueryRegistryRoutine(QueryTable,
+                                                  KeyValueInfo,
+                                                  ResultLength,
+                                                  Context,
+                                                  Environment);
+        }
+
+        return Status;
+    }
+
+    /* Call the query routine */
+    *ResultLength = BufferSize;
+    Status = RtlpCallQueryRegistryRoutine(QueryTable,
+                                          KeyValueInfo,
+                                          ResultLength,
+                                          Context,
+                                          Environment);
+
+    /* Check if we need to delete the value */
+    if ((NT_SUCCESS(Status)) &&
+        (QueryTable->Flags & RTL_QUERY_REGISTRY_DELETE))
+    {
+        /* Delete it */
+        ZwDeleteValueKey(KeyHandle, &KeyValueName);
+    }
+
+    return Status;
+}
+
+static
+NTSTATUS
+RtlpQueryRegistryValuesSingle(
+    _In_ PRTL_QUERY_REGISTRY_TABLE QueryTable,
+    _In_ HANDLE RootKeyHandle,
+    _Inout_ HANDLE *CurrentKey,
+    _Writable_bytes_(BufferSize) PKEY_VALUE_FULL_INFORMATION KeyValueInfo,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG ResultLength,
+    _In_ PVOID Context,
+    _In_opt_ PVOID Environment)
+{
+    NTSTATUS Status;
+
+    /* Check if the request is invalid */
+    if ((QueryTable->Flags & RTL_QUERY_REGISTRY_DIRECT) &&
+        ((QueryTable->Flags & RTL_QUERY_REGISTRY_SUBKEY) ||
+         (QueryTable->Name == NULL) ||
+         (QueryTable->QueryRoutine != NULL)))
+    {
+        /* Fail */
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    /* Check if we want a specific key */
+    if (QueryTable->Flags & (RTL_QUERY_REGISTRY_TOPKEY |
+                             RTL_QUERY_REGISTRY_SUBKEY))
+    {
+        /* Check if we're working with another handle */
+        if (*CurrentKey != RootKeyHandle)
+        {
+            /* Close our current key and use the top */
+            ZwClose(*CurrentKey);
+            *CurrentKey = RootKeyHandle;
+        }
+    }
+
+    /* Check if we're querying the subkey */
+    if (QueryTable->Flags & RTL_QUERY_REGISTRY_SUBKEY)
+    {
+        /* Open the subkey */
+        Status = RtlpOpenSubKey(*CurrentKey, QueryTable->Name, CurrentKey);
+        if (!NT_SUCCESS(Status) || !QueryTable->QueryRoutine)
+        {
+            return Status;
+        }
+    }
+    else if (QueryTable->Name)
+    {
+        /* Process a single value by name */
+        return RtlpProcessNamedValue(QueryTable,
+                                     *CurrentKey,
+                                     KeyValueInfo,
+                                     BufferSize,
+                                     ResultLength,
+                                     Context,
+                                     Environment);
+    }
+    else if (QueryTable->Flags & RTL_QUERY_REGISTRY_NOVALUE)
+    {
+        /* Just call the query routine */
+        return QueryTable->QueryRoutine(NULL,
+                                        REG_NONE,
+                                        NULL,
+                                        0,
+                                        Context,
+                                        QueryTable->EntryContext);
+    }
+
+    /* Enumerate all values of the key */
+    return RtlpEnumerateKeyValues(QueryTable,
+                                  *CurrentKey,
+                                  KeyValueInfo,
+                                  BufferSize,
+                                  ResultLength,
+                                  Context,
+                                  Environment);
+}
+
+
 /*
  * @implemented
  */
 NTSTATUS
 NTAPI
-RtlQueryRegistryValues(IN ULONG RelativeTo,
-                       IN PCWSTR Path,
-                       IN PRTL_QUERY_REGISTRY_TABLE QueryTable,
-                       IN PVOID Context,
-                       IN PVOID Environment OPTIONAL)
+RtlQueryRegistryValues(
+    IN ULONG RelativeTo,
+    IN PCWSTR Path,
+    IN PRTL_QUERY_REGISTRY_TABLE QueryTable,
+    IN PVOID Context,
+    IN PVOID Environment OPTIONAL)
 {
     NTSTATUS Status;
-    PKEY_VALUE_FULL_INFORMATION KeyValueInfo = NULL;
-    HANDLE KeyHandle, CurrentKey;
-    SIZE_T BufferSize, InfoSize;
-    UNICODE_STRING KeyPath, KeyValueName;
-    OBJECT_ATTRIBUTES ObjectAttributes;
-    ULONG i, Value;
-    ULONG ResultLength;
+    PKEY_VALUE_FULL_INFORMATION KeyValueInfoBuffer;
+    HANDLE RootKeyHandle, CurrentKey;
+    ULONG BufferSize, InfoSize;
 
     /* Get the registry handle */
-    Status = RtlpGetRegistryHandle(RelativeTo, Path, FALSE, &KeyHandle);
-    if (!NT_SUCCESS(Status)) return Status;
-
-    /* Initialize the path */
-    RtlInitUnicodeString(&KeyPath,
-                         (RelativeTo & RTL_REGISTRY_HANDLE) ? NULL : Path);
-
-    /* Allocate a query buffer */
-    BufferSize = RtlpAllocDeallocQueryBufferSize;
-    KeyValueInfo = RtlpAllocDeallocQueryBuffer(&BufferSize, NULL, 0, &Status);
-    if (!KeyValueInfo)
+    Status = RtlpGetRegistryHandle(RelativeTo, Path, FALSE, &RootKeyHandle);
+    if (!NT_SUCCESS(Status))
     {
-        /* Close the handle if we have one and fail */
-        RtlpCloseRegistryHandle(RelativeTo, KeyHandle);
         return Status;
     }
 
+    /* Allocate a buffer for the key value */
+    BufferSize = (ULONG)RtlpAllocDeallocQueryBufferSize;
+    KeyValueInfoBuffer = RtlpAllocateMemory(BufferSize, TAG_RTLREGISTRY);
+    if (KeyValueInfoBuffer == NULL)
+    {
+        /* Close the handle if we have one and fail */
+        RtlpCloseRegistryHandle(RelativeTo, RootKeyHandle);
+        return STATUS_NO_MEMORY;
+    }
+
     /* Set defaults */
-    KeyValueInfo->DataOffset = 0;
-    InfoSize = BufferSize - sizeof(UNICODE_NULL);
-    CurrentKey = KeyHandle;
+    CurrentKey = RootKeyHandle;
 
     /* Loop the query table */
     while ((QueryTable->QueryRoutine) ||
            (QueryTable->Flags & (RTL_QUERY_REGISTRY_SUBKEY |
                                  RTL_QUERY_REGISTRY_DIRECT)))
     {
-        /* Check if the request is invalid */
-        if ((QueryTable->Flags & RTL_QUERY_REGISTRY_DIRECT) &&
-            (!(QueryTable->Name) ||
-             (QueryTable->Flags & RTL_QUERY_REGISTRY_SUBKEY) ||
-             (QueryTable->QueryRoutine)))
+        /* Process a single table entry */
+        Status = RtlpQueryRegistryValuesSingle(QueryTable,
+                                               RootKeyHandle,
+                                               &CurrentKey,
+                                               KeyValueInfoBuffer,
+                                               BufferSize,
+                                               &InfoSize,
+                                               Context,
+                                               Environment);
+
+        /* Check for buffer being too small */
+        if ((Status == STATUS_BUFFER_TOO_SMALL) ||
+            (Status == STATUS_BUFFER_OVERFLOW))
         {
-            /* Fail */
-            Status = STATUS_INVALID_PARAMETER;
+            /* Increase allocation size */
+            ASSERT(BufferSize < InfoSize);
+            BufferSize = InfoSize;
+
+            /* Free the old buffer and allocate a new one */
+            RtlpFreeMemory(KeyValueInfoBuffer, TAG_RTLREGISTRY);
+            KeyValueInfoBuffer = RtlpAllocateMemory(BufferSize, TAG_RTLREGISTRY);
+            if (KeyValueInfoBuffer == NULL)
+            {
+                Status = STATUS_NO_MEMORY;
+                break;
+            }
+
+            /* Update the data */
+            KeyValueInfoBuffer->DataOffset = 0;
+
+            /* Try again */
+            continue;
+        }
+
+        /* Check if that failed */
+        if (!NT_SUCCESS(Status))
+        {
+            /* Bail out on failure */
             break;
         }
 
-        /* Check if we want a specific key */
-        if (QueryTable->Flags & (RTL_QUERY_REGISTRY_TOPKEY |
-                                 RTL_QUERY_REGISTRY_SUBKEY))
-        {
-            /* Check if we're working with another handle */
-            if (CurrentKey != KeyHandle)
-            {
-                /* Close our current key and use the top */
-                NtClose(CurrentKey);
-                CurrentKey = KeyHandle;
-            }
-        }
-
-        /* Check if we're querying the subkey */
-        if (QueryTable->Flags & RTL_QUERY_REGISTRY_SUBKEY)
-        {
-            /* Make sure we have a name */
-            if (!QueryTable->Name)
-            {
-                /* Fail */
-                Status = STATUS_INVALID_PARAMETER;
-            }
-            else
-            {
-                /* Initialize the name */
-                RtlInitUnicodeString(&KeyPath, QueryTable->Name);
-
-                /* Get the key handle */
-                InitializeObjectAttributes(&ObjectAttributes,
-                                           &KeyPath,
-                                           OBJ_CASE_INSENSITIVE |
-                                           OBJ_KERNEL_HANDLE,
-                                           KeyHandle,
-                                           NULL);
-                Status = ZwOpenKey(&CurrentKey,
-                                   MAXIMUM_ALLOWED,
-                                   &ObjectAttributes);
-                if (NT_SUCCESS(Status))
-                {
-                    /* If we have a query routine, go enumerate values */
-                    if (QueryTable->QueryRoutine) goto ProcessValues;
-                }
-            }
-        }
-        else if (QueryTable->Name)
-        {
-            /* Initialize the path */
-            RtlInitUnicodeString(&KeyValueName, QueryTable->Name);
-
-            /* Start query loop */
-            i = 0;
-            while (TRUE)
-            {
-                /* Make sure we didn't retry too many times */
-                if (i++ > 4)
-                {
-                    /* Fail */
-                    DPRINT1("RtlQueryRegistryValues: Miscomputed buffer size "
-                            "at line %d\n", __LINE__);
-                    break;
-                }
-
-                /* Query key information */
-                Status = ZwQueryValueKey(CurrentKey,
-                                         &KeyValueName,
-                                         KeyValueFullInformation,
-                                         KeyValueInfo,
-                                         (ULONG)InfoSize,
-                                         &ResultLength);
-                if (Status == STATUS_BUFFER_OVERFLOW)
-                {
-                    /* Normalize status code */
-                    Status = STATUS_BUFFER_TOO_SMALL;
-                }
-
-                /* Check for failure */
-                if (!NT_SUCCESS(Status))
-                {
-                    /* Check if we didn't find it */
-                    if (Status == STATUS_OBJECT_NAME_NOT_FOUND)
-                    {
-                        /* Setup a default */
-                        KeyValueInfo->Type = REG_NONE;
-                        KeyValueInfo->DataLength = 0;
-                        ResultLength = (ULONG)InfoSize;
-
-                        /* Call the query routine */
-                        Status = RtlpCallQueryRegistryRoutine(QueryTable,
-                                                              KeyValueInfo,
-                                                              &ResultLength,
-                                                              Context,
-                                                              Environment);
-                    }
-
-                    /* Check for buffer being too small */
-                    if (Status == STATUS_BUFFER_TOO_SMALL)
-                    {
-                        /* Increase allocation size */
-                        BufferSize = ResultLength +
-                                     sizeof(ULONG_PTR) +
-                                     sizeof(UNICODE_NULL);
-                        KeyValueInfo = RtlpAllocDeallocQueryBuffer(&BufferSize,
-                                                                   KeyValueInfo,
-                                                                   BufferSize,
-                                                                   &Status);
-                        if (!KeyValueInfo) break;
-
-                        /* Update the data */
-                        KeyValueInfo->DataOffset = 0;
-                        InfoSize = BufferSize - sizeof(UNICODE_NULL);
-                        continue;
-                    }
-                }
-                else
-                {
-                    /* Check if this is a multi-string */
-                    if (KeyValueInfo->Type == REG_MULTI_SZ)
-                    {
-                        /* Add a null-char */
-                        ((PWCHAR)KeyValueInfo)[ResultLength / sizeof(WCHAR)] = UNICODE_NULL;
-                        KeyValueInfo->DataLength += sizeof(UNICODE_NULL);
-                    }
-
-                    /* Call the query routine */
-                    ResultLength = (ULONG)InfoSize;
-                    Status = RtlpCallQueryRegistryRoutine(QueryTable,
-                                                          KeyValueInfo,
-                                                          &ResultLength,
-                                                          Context,
-                                                          Environment);
-
-                    /* Check for buffer being too small */
-                    if (Status == STATUS_BUFFER_TOO_SMALL)
-                    {
-                        /* Increase allocation size */
-                        BufferSize = ResultLength +
-                                     sizeof(ULONG_PTR) +
-                                     sizeof(UNICODE_NULL);
-                        KeyValueInfo = RtlpAllocDeallocQueryBuffer(&BufferSize,
-                                                                   KeyValueInfo,
-                                                                   BufferSize,
-                                                                   &Status);
-                        if (!KeyValueInfo) break;
-
-                        /* Update the data */
-                        KeyValueInfo->DataOffset = 0;
-                        InfoSize = BufferSize - sizeof(UNICODE_NULL);
-                        continue;
-                    }
-
-                    /* Check if we need to delete the key */
-                    if ((NT_SUCCESS(Status)) &&
-                        (QueryTable->Flags & RTL_QUERY_REGISTRY_DELETE))
-                    {
-                        /* Delete it */
-                        ZwDeleteValueKey(CurrentKey, &KeyValueName);
-                    }
-                }
-
-                /* We're done, break out */
-                break;
-            }
-        }
-        else if (QueryTable->Flags & RTL_QUERY_REGISTRY_NOVALUE)
-        {
-            /* Just call the query routine */
-            Status = QueryTable->QueryRoutine(NULL,
-                                              REG_NONE,
-                                              NULL,
-                                              0,
-                                              Context,
-                                              QueryTable->EntryContext);
-        }
-        else
-        {
-ProcessValues:
-            /* Loop every value */
-            i = Value = 0;
-            while (TRUE)
-            {
-                /* Enumerate the keys */
-                Status = ZwEnumerateValueKey(CurrentKey,
-                                             Value,
-                                             KeyValueFullInformation,
-                                             KeyValueInfo,
-                                             (ULONG)InfoSize,
-                                             &ResultLength);
-                if (Status == STATUS_BUFFER_OVERFLOW)
-                {
-                    /* Normalize the status */
-                    Status = STATUS_BUFFER_TOO_SMALL;
-                }
-
-                /* Check if we found all the entries */
-                if (Status == STATUS_NO_MORE_ENTRIES)
-                {
-                    /* Check if this was the first entry and caller needs it */
-                    if (!(Value) &&
-                         (QueryTable->Flags & RTL_QUERY_REGISTRY_REQUIRED))
-                    {
-                        /* Fail */
-                        Status = STATUS_OBJECT_NAME_NOT_FOUND;
-                    }
-                    else
-                    {
-                        /* Otherwise, it's ok */
-                        Status = STATUS_SUCCESS;
-                    }
-                    break;
-                }
-
-                /* Check if enumeration worked */
-                if (NT_SUCCESS(Status))
-                {
-                    /* Call the query routine */
-                    ResultLength = (ULONG)InfoSize;
-                    Status = RtlpCallQueryRegistryRoutine(QueryTable,
-                                                          KeyValueInfo,
-                                                          &ResultLength,
-                                                          Context,
-                                                          Environment);
-                }
-
-                /* Check if the query failed */
-                if (Status == STATUS_BUFFER_TOO_SMALL)
-                {
-                    /* Increase allocation size */
-                    BufferSize = ResultLength +
-                                 sizeof(ULONG_PTR) +
-                                 sizeof(UNICODE_NULL);
-                    KeyValueInfo = RtlpAllocDeallocQueryBuffer(&BufferSize,
-                                                               KeyValueInfo,
-                                                               BufferSize,
-                                                               &Status);
-                    if (!KeyValueInfo) break;
-
-                    /* Update the data */
-                    KeyValueInfo->DataOffset = 0;
-                    InfoSize = BufferSize - sizeof(UNICODE_NULL);
-
-                    /* Try the value again unless it's been too many times */
-                    if (i++ <= 4) continue;
-                    break;
-                }
-
-                /* Break out if we failed */
-                if (!NT_SUCCESS(Status)) break;
-
-                /* Reset the number of retries and check if we need to delete */
-                i = 0;
-                if (QueryTable->Flags & RTL_QUERY_REGISTRY_DELETE)
-                {
-                    /* Build the name */
-                    RtlInitEmptyUnicodeString(&KeyValueName,
-                                              KeyValueInfo->Name,
-                                              (USHORT)KeyValueInfo->NameLength);
-                    KeyValueName.Length = KeyValueName.MaximumLength;
-
-                    /* Delete the key */
-                    Status = ZwDeleteValueKey(CurrentKey, &KeyValueName);
-                    if (NT_SUCCESS(Status)) Value--;
-                }
-
-                /* Go to the next value */
-                Value++;
-            }
-        }
-
-        /* Check if we failed anywhere along the road */
-        if (!NT_SUCCESS(Status)) break;
-
-        /* Continue */
+        /* Continue with next entry */
         QueryTable++;
     }
 
     /* Check if we need to close our handle */
-    if (KeyHandle) RtlpCloseRegistryHandle(RelativeTo, KeyHandle);
-    if ((CurrentKey) && (CurrentKey != KeyHandle)) ZwClose(CurrentKey);
+    if (CurrentKey != RootKeyHandle)
+    {
+        ZwClose(CurrentKey);
+    }
+
+    /* Close the root handle */
+    RtlpCloseRegistryHandle(RelativeTo, RootKeyHandle);
 
     /* Free our buffer and return status */
-    RtlpAllocDeallocQueryBuffer(NULL, KeyValueInfo, BufferSize, NULL);
+    RtlpFreeMemory(KeyValueInfoBuffer, TAG_RTLREGISTRY);
     return Status;
 }
 
