@@ -727,13 +727,16 @@ NtGdiGetNearestPaletteIndex(
 }
 
 UINT
-FASTCALL
-IntGdiRealizePalette(HDC hDC)
+NTAPI
+GreRealizePalette(
+    _In_ HDC hDC)
 {
-    UINT realize = 0;
+    UINT i, cColors = 0;
     PDC pdc;
-    PALETTE *ppalSurf, *ppalDC;
+    PPALETTE ppalSurf, ppalDC;
+    PFN_DrvSetPalette pfnSetPalette;
 
+    /* Lock the DC */
     pdc = DC_LockDc(hDC);
     if (!pdc)
     {
@@ -741,40 +744,84 @@ IntGdiRealizePalette(HDC hDC)
         return 0;
     }
 
-    if (!pdc->dclevel.pSurface)
+    /* Check if this is an info DC */
+    if (pdc->dctype == DCTYPE_INFO)
     {
+        /* This is an info DC */
+        DPRINT1("Realize palette on an info DC\n");
         goto cleanup;
     }
 
-    if (pdc->dctype == DCTYPE_DIRECT)
+    /* Check if this is a memory DC */
+    if (pdc->dctype == DCTYPE_MEMORY)
     {
-        static BOOL g_WarnedOnce = FALSE;
-        if (!g_WarnedOnce)
+        /* Does it have a bitmap selected? */
+        if (pdc->dclevel.pSurface == NULL)
         {
-            g_WarnedOnce = TRUE;
-            UNIMPLEMENTED;
+            DPRINT1("Cannot realize palette of mem DC without bitmap selected.\n");
+            goto cleanup;
         }
-        goto cleanup;
     }
 
-    /// FIXME: shouldn't dereference pSurface while the PDEV is not locked
-    ppalSurf = pdc->dclevel.pSurface->ppal;
+    /* Get the currently selected logical palette */
     ppalDC = pdc->dclevel.ppal;
-
-    if (!(ppalSurf->flFlags & PAL_INDEXED))
-    {
-        // FIXME: Set error?
-        goto cleanup;
-    }
-
     ASSERT(ppalDC->flFlags & PAL_INDEXED);
 
-    DPRINT1("RealizePalette unimplemented for %s\n", 
-            (pdc->dctype == DCTYPE_MEMORY ? "memory managed DCs" : "device DCs"));
+    /* Get the palette of the surface */
+    NT_ASSERT(pdc->dclevel.pSurface != NULL);
+    NT_ASSERT(pdc->dclevel.pSurface->ppal != NULL);
+    ppalSurf = pdc->dclevel.pSurface->ppal;
+    if (!(ppalSurf->flFlags & PAL_INDEXED))
+    {
+        DPRINT1("Cannot realize palette that is not indexed.\n");
+        goto cleanup;
+    }
+
+    /* Get the number of colors we can realize */
+    cColors = min(ppalDC->NumColors, ppalSurf->NumColors);
+
+    /* Check if this is a display DC */
+    if (pdc->dctype == DCTYPE_DIRECT)
+    {
+        /* Check if the physical device supports palette operations */
+        if (!(pdc->ppdev->gdiinfo.flRaster & RC_PALETTE))
+        {
+            DPRINT1("Display is not palette based!\n");
+            cColors = 0;
+            goto cleanup;
+        }
+
+        /* Get the DrvSetPalette function */
+        pfnSetPalette = pdc->ppdev->pfn.SetPalette;
+        if (pfnSetPalette == NULL)
+        {
+            DPRINT1("Display driver does not have DrvSetPalette!\n");
+            cColors = 0;
+            goto cleanup;
+        }
+
+        /* Call the driver to set the palette */
+        if (!pfnSetPalette(pdc->ppdev->dhpdev,
+                           &ppalDC->PalObj,
+                           0, // fl
+                           0, // iStart
+                           cColors))
+        {
+            cColors = 0;
+            goto cleanup;
+        }
+    }
+
+    /* Loop all colors */
+    for(i = 0; i < cColors; i++)
+    {
+        /* copy the color */
+        ppalSurf->IndexedColors[i] = ppalDC->IndexedColors[i];
+    }
 
 cleanup:
     DC_UnlockDc(pdc);
-    return realize;
+    return cColors;
 }
 
 UINT APIENTRY
@@ -835,7 +882,7 @@ IntAnimatePalette(HPALETTE hPal,
             if (dc->dclevel.hpal == hPal)
             {
                 DC_UnlockDc(dc);
-                IntGdiRealizePalette(hDC);
+                GreRealizePalette(hDC);
             }
             else
                 DC_UnlockDc(dc);
