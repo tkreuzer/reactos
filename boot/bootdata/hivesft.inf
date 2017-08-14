@@ -205,6 +205,11 @@ HKLM,"SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-9
 HKLM,"SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-9948-00c04f98bbc9}","Locale",2,"*"
 HKLM,"SOFTWARE\Microsoft\Active Setup\Installed Components\{de5aed00-a4bf-11d1-9948-00c04f98bbc9}","Version",2,"4,74,9273,0"
 
+; Local system policies
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\policies",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\policies\system",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion\policies\system","disablecad",0x00010001,1
+
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion","DevicePath",0x00020002,"%SystemRoot%\inf"
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion","MediaPathUnexpanded",0x00020000,"%SystemRoot%\Media"
 HKLM,"SOFTWARE\Microsoft\Windows\CurrentVersion","WallPaperDir",0x00020002,"%SystemRoot%\Web\Wallpaper"
@@ -506,9 +511,18 @@ HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\Nls","00000409",2,""
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Console\TrueTypeFont","0",2,"Lucida Console"
 
+; WOW (required by W2K3's win32k)
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\boot",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\boot.description",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\keyboard",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\NonWindowsApp",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\SetupPrograms",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\standard",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\WOW\WowFax",,0x00000012
+
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Drivers",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\drivers.desc",,0x00000012
-HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\HotFix",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\IME Compatibility",,0x00000012
 
@@ -605,10 +619,167 @@ HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\MCI Extensions","wvx",0x00000
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList","ProfilesDirectory",0x00020000,"%SystemDrive%\Documents and Settings"
 
-; Font substitutes
+; Fonts
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts",,0x00000012
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans",0x00000002,"DejaVuSans.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Bold",0x00000002,"DejaVuSans-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Bold Oblique",0x00000002,"DejaVuSans-BoldOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Condensed",0x00000002,"DejaVuSansCondensed.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Condensed Bold",0x00000002,"DejaVuSansCondensed-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Condensed Bold Oblique",0x00000002,"DejaVuSansCondensed-BoldOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Condensed Oblique",0x00000002,"DejaVuSansCondensed-Oblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans ExtraLight",0x00000002,"DejaVuSans-ExtraLight.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Mono",0x00000002,"DejaVuSansMono.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Mono Bold",0x00000002,"DejaVuSansMono-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Mono Bold Oblique",0x00000002,"DejaVuSansMono-BoldOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Mono Oblique",0x00000002,"DejaVuSansMono-Oblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Sans Oblique",0x00000002,"DejaVuSans-Oblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVu Serif",0x00000002,"DejaVuSerif.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerif-Bold",0x00000002,"DejaVuSerif-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerif-BoldItalic",0x00000002,"DejaVuSerif-BoldItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerifCondensed",0x00000002,"DejaVuSerifCondensed.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerifCondensed-Bold",0x00000002,"DejaVuSerifCondensed-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerifCondensed-BoldItalic",0x00000002,"DejaVuSerifCondensed-BoldItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerifCondensed-Italic",0x00000002,"DejaVuSerifCondensed-Italic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","DejaVuSerif-Italic",0x00000002,"DejaVuSerif-Italic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeMono",0x00000002,"FreeMono.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeMonoBold",0x00000002,"FreeMonoBold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeMonoBoldOblique",0x00000002,"FreeMonoBoldOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeMonoOblique",0x00000002,"FreeMonoOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSans",0x00000002,"FreeSans.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSansBold",0x00000002,"FreeSansBold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSansBoldOblique",0x00000002,"FreeSansBoldOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSansOblique",0x00000002,"FreeSansOblique.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSerif",0x00000002,"FreeSerif.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSerifBold",0x00000002,"FreeSerifBold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSerifBoldItalic",0x00000002,"FreeSerifBoldItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FreeSerifItalic",0x00000002,"FreeSerifItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FixedSys Excelsior L2",0x00000002,"FSEX301-L2.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","FixedSys Excelsior",0x00000002,"FSEX301.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationMono-Bold",0x00000002,"LiberationMono-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationMono-BoldItalic",0x00000002,"LiberationMono-BoldItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationMono-Italic",0x00000002,"LiberationMono-Italic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationMono-Regular",0x00000002,"LiberationMono-Regular.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSans-Bold",0x00000002,"LiberationSans-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSans-BoldItalic",0x00000002,"LiberationSans-BoldItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSans-Italic",0x00000002,"LiberationSans-Italic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSans-Regular",0x00000002,"LiberationSans-Regular.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSerif-Bold",0x00000002,"LiberationSerif-Bold.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSerif-BoldItalic",0x00000002,"LiberationSerif-BoldItalic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSerif-Italic",0x00000002,"LiberationSerif-Italic.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","LiberationSerif-Regular",0x00000002,"LiberationSerif-Regular.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Marlett",0x00000002,"Marlett.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Symbol",0x00000002,"symbol.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Tahoma",0x00000002,"tahoma.ttf"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Tahoma Bold",0x00000002,"tahomabd.ttf"
+
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Roman (All res)",0x00000002,"ROMAN.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Script (All res)",0x00000002,"SCRIPT.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Modern (All res)",0x00000002,"MODERN.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Small Fonts (VGA res)",0x00000002,"SMALLE.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Arial (TrueType)",0x00000002,"ARIAL.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Arial Bold (TrueType)",0x00000002,"ARIALBD.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Arial Bold Italic (TrueType)",0x00000002,"ARIALBI.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Arial Italic (TrueType)",0x00000002,"ARIALI.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Courier New (TrueType)",0x00000002,"COUR.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Courier New Bold (TrueType)",0x00000002,"COURBD.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Courier New Bold Italic (TrueType)",0x00000002,"COURBI.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Courier New Italic (TrueType)",0x00000002,"COURI.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Lucida Console (TrueType)",0x00000002,"LUCON.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Lucida Sans Unicode (TrueType)",0x00000002,"L_10646.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Times New Roman (TrueType)",0x00000002,"TIMES.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Times New Roman Bold (TrueType)",0x00000002,"TIMESBD.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Times New Roman Bold Italic (TrueType)",0x00000002,"TIMESBI.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Times New Roman Italic (TrueType)",0x00000002,"TIMESI.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WingDings (TrueType)",0x00000002,"WINGDING.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Symbol (TrueType)",0x00000002,"SYMBOL.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Symbol 8,10,12,14,18,24 (VGA res)",0x00000002,"SYMBOLE.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Verdana (TrueType)",0x00000002,"verdana.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Verdana Bold (TrueType)",0x00000002,"verdanab.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Verdana Italic (TrueType)",0x00000002,"verdanai.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Verdana Bold Italic (TrueType)",0x00000002,"verdanaz.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Arial Black (TrueType)",0x00000002,"ariblk.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Comic Sans MS (TrueType)",0x00000002,"comic.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Comic Sans MS Bold (TrueType)",0x00000002,"comicbd.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Impact (TrueType)",0x00000002,"impact.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Georgia (TrueType)",0x00000002,"georgia.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Georgia Bold (TrueType)",0x00000002,"georgiab.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Georgia Bold Italic (TrueType)",0x00000002,"georgiaz.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Georgia Italic (TrueType)",0x00000002,"georgiai.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Franklin Gothic Medium (TrueType)",0x00000002,"Framd.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Franklin Gothic Medium Italic (TrueType)",0x00000002,"Framdit.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Palatino Linotype (TrueType)",0x00000002,"pala.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Palatino Linotype Bold (TrueType)",0x00000002,"palab.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Palatino Linotype Bold Italic (TrueType)",0x00000002,"palabi.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Palatino Linotype Italic (TrueType)",0x00000002,"palai.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Tahoma Bold (TrueType)",0x00000002,"tahomabd.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Trebuchet MS (TrueType)",0x00000002,"trebuc.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Trebuchet MS Bold (TrueType)",0x00000002,"trebucbd.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Trebuchet MS Bold Italic (TrueType)",0x00000002,"trebucbi.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Trebuchet MS Italic (TrueType)",0x00000002,"trebucit.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Webdings (TrueType)",0x00000002,"webdings.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Estrangelo Edessa (TrueType)",0x00000002,"estre.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Gautami (TrueType)",0x00000002,"gautami.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Latha (TrueType)",0x00000002,"latha.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Mangal (TrueType)",0x00000002,"mangal.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Mv Boli (TrueType)",0x00000002,"mvboli.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Raavi (TrueType)",0x00000002,"raavi.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Shruti (TrueType)",0x00000002,"shruti.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Tunga (TrueType)",0x00000002,"tunga.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Sylfaen (TrueType)",0x00000002,"sylfaen.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Czec (All res)",0x00000002,"wst_czec.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Engl (All res)",0x00000002,"wst_engl.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Fren (All res)",0x00000002,"wst_fren.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Germ (All res)",0x00000002,"wst_germ.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Ital (All res)",0x00000002,"wst_ital.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Span (All res)",0x00000002,"wst_span.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","WST_Swed (All res)",0x00000002,"wst_swed.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Courier 10,12,15 (VGA res)",0x00000002,"COURE.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","MS Sans Serif 8,10,12,14,18,24 (VGA res)",0x00000002,"SSERIFE.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","MS Serif 8,10,12,14,18,24 (VGA res)",0x00000002,"SERIFE.FON"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Tahoma (TrueType)",0x00000002,"TAHOMA.TTF"
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts","Microsoft Sans Serif (TrueType)",0x00000002,"MICROSS.TTF"
+
+; Font mapper
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper",,0x00000012
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","ARIAL",0x00010001,0x00000000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","COURIER",0x00010001,0x00008800
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","COURIER NEW",0x00010001,0x00008000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","FIXEDSYS",0x00010001,0x00009000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","MS SANS SERIF",0x00010001,0x00001000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","MS SERIF",0x00010001,0x00005000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","SMALL FONTS",0x00010001,0x00000800
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","SYMBOL",0x00010001,0x00004002
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","SYMBOL1",0x00010001,0x00000000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","TIMES NEW ROMAN",0x00010001,0x00004000
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","WINGDINGS",0x00010001,0x00000002
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","WINGDINGS2",0x00010001,0x00008002
+HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontMapper","DEFAULT",0x00010001,0x00000000
+
+; Font substitutes
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes",,0x00000012
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontDPI","LogPixels",0x00010003,96
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Arial Baltic,186",0x00000002,"Arial,186"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Arial CE,238",0x00000002,"Arial,238"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Arial CYR,204",0x00000002,"Arial,204"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Arial Greek,161",0x00000002,"Arial,161"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Arial TUR,162",0x00000002,"Arial,162"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Courier New Baltic,186",0x00000002,"Courier New,186"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Courier New CE,238",0x00000002,"Courier New,238"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Courier New CYR,204",0x00000002,"Courier New,204"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Courier New Greek,161",0x00000002,"Courier New,161"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Courier New TUR,162",0x00000002,"Courier New,162"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Helv",0x00000002,"MS Sans Serif"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Helvetica",0x00000002,"Arial"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","MS Shell Dlg",0x00000002,"Microsoft Sans Serif"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","MS Shell Dlg 2",0x00000002,"Tahoma"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Times",0x00000002,"Times New Roman"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Times New Roman Baltic,186",0x00000002,"Times New Roman,186"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Times New Roman CE,238",0x00000002,"Times New Roman,238"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Times New Roman CYR,204",0x00000002,"Times New Roman,204"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Times New Roman Greek,161",0x00000002,"Times New Roman,161"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Times New Roman TUR,162",0x00000002,"Times New Roman,162"
+;HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\FontSubstitutes","Tms Rmn",0x00000002,"MS Serif"
 
 ; Win32k GRE initialization
 HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\GRE_Initialize",,0x00000012
