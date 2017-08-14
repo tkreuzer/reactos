@@ -105,6 +105,15 @@ EBRUSHOBJ_vInit(EBRUSHOBJ *pebo,
         if (pbrush->flAttrs & BR_IS_HATCH)
             pebo->crCurrentText = pbrush->BrushAttr.lbColor;
     }
+#if 0 // this got removed
+    pebo->psurfTrg = psurfTrg;
+    pebo->BrushObject.pvRbrush = pbrush->ulRealization;
+    pebo->BrushObject.flColorType = 0;
+    pebo->pbrush = pbrush;
+    pebo->flattrs = pbrush->flAttrs;
+    pebo->pengbrush = NULL;
+//    pebo->XlateObject = pxlo;
+#endif
 }
 
 VOID
@@ -152,18 +161,21 @@ VOID
 NTAPI
 EBRUSHOBJ_vCleanup(EBRUSHOBJ *pebo)
 {
-    /* Check if there's a GDI realisation */
+    /* Cleanup GDI realisation */
     if (pebo->pengbrush)
     {
-        /* Unlock the bitmap again */
-        SURFACE_ShareUnlockSurface(pebo->pengbrush);
+        SURFOBJ *pso = pebo->pengbrush;
+        HSURF hsurf = pso->hsurf;
+        EngUnlockSurface(pso);
+        EngDeleteSurface(hsurf);
         pebo->pengbrush = NULL;
     }
 
-    /* Check if there's a driver's realisation */
+    /* Cleanup driver realization */
     if (pebo->BrushObject.pvRbrush)
     {
         /* Free allocated driver memory */
+        // FIXME: need to call DrvSynchronize?
         EngFreeMem(pebo->BrushObject.pvRbrush);
         pebo->BrushObject.pvRbrush = NULL;
     }
@@ -196,11 +208,11 @@ EBRUSHOBJ_vUpdateFromDC(
     PBRUSH pbrush,
     PDC pdc)
 {
-    /* Cleanup the brush */
-    EBRUSHOBJ_vCleanup(pebo);
+    /* Unrealize the brush */
+    EBRUSHOBJ_vUnrealizeBrush(pebo);
 
     /* Reinitialize */
-    EBRUSHOBJ_vInitFromDC(pebo, pbrush, pdc);
+    EBRUSHOBJ_vInitFromDC(pebo, pbrush, psurfTrg, pxlo);
 }
 
 /**
@@ -257,9 +269,8 @@ EngRealizeBrush(
     psoRealize = &psurfRealize->SurfObj;
     EngCopyBits(psoRealize, psoPattern, NULL, pxlo, &rclDest, &ptlSrc);
 
-
     pebo = CONTAINING_RECORD(pbo, EBRUSHOBJ, BrushObject);
-    pebo->pengbrush = (PVOID)psurfRealize;
+    pebo->pengbrush = (PVOID)psoRealize;
 
     return TRUE;
 }
@@ -476,6 +487,48 @@ EBRUSHOBJ_psoMask(EBRUSHOBJ *pebo)
     }
 
     return pebo->psoMask;
+}
+
+SURFOBJ*
+FASTCALL
+EBRUSHOBJ_psoGetRealizedBrush(EBRUSHOBJ *pebo)
+{
+    BOOL bResult;
+    PSURFACE psurfTrg, psurfPattern, psurfMask;
+    PPDEVOBJ ppdev;
+    XLATEOBJ *pxlo;
+
+    if (!pebo->pengbrush)
+    {
+        psurfTrg = pebo->psurfTrg;
+        if (!psurfTrg) return NULL; // FIXME: all EBRUSHOBJs need a surface
+        ppdev = (PPDEVOBJ)psurfTrg->SurfObj.hdev;
+        if (!ppdev) return NULL; // FIXME: all SURFACEs need a PDEV
+
+        psurfPattern = SURFACE_LockSurface(pebo->pbrush->hbmPattern);
+
+        /* FIXME: implement mask */
+        psurfMask = NULL;
+
+        // FIXME
+        pxlo = NULL;
+
+        bResult = EngRealizeBrush(&pebo->BrushObject, 
+                                  &pebo->psurfTrg->SurfObj,
+                                  psurfPattern ? &psurfPattern->SurfObj : NULL,
+                                  psurfMask ? &psurfMask->SurfObj : NULL,
+                                  pxlo,
+                                  -1); // FIXME: what about hatch brushes?
+
+        if (psurfPattern)
+            SURFACE_UnlockSurface(psurfPattern);
+
+        if (psurfMask)
+            SURFACE_UnlockSurface(psurfMask);
+
+    }
+
+    return pebo->pengbrush;
 }
 
 /** Exported DDI functions ****************************************************/

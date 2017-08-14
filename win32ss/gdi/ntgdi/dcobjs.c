@@ -43,7 +43,7 @@ DC_vUpdateFillBrush(PDC pdc)
     if (pdcattr->ulDirty_ & DIRTY_FILL)
     {
         /* Update eboFill */
-        EBRUSHOBJ_vUpdateFromDC(&pdc->eboFill, pdc->dclevel.pbrFill, pdc);
+        EBRUSHOBJ_vUpdate(&pdc->eboFill, pdc->dclevel.pbrFill, pdc->dclevel.pSurface, pxlo);
     }
 
     /* Check for DC brush */
@@ -89,7 +89,7 @@ DC_vUpdateLineBrush(PDC pdc)
     if (pdcattr->ulDirty_ & DIRTY_LINE)
     {
         /* Update eboLine */
-        EBRUSHOBJ_vUpdateFromDC(&pdc->eboLine, pdc->dclevel.pbrLine, pdc);
+        EBRUSHOBJ_vUpdate(&pdc->eboLine, pdc->dclevel.pbrLine, pdc->dclevel.pSurface, pxlo);
     }
 
     /* Check for DC pen */

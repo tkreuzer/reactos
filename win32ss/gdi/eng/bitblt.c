@@ -252,8 +252,9 @@ CallDibBitBlt(SURFOBJ* OutputObj,
         }
         else
         {
-            /* FIXME: What to do here? */
+            
         }
+*/        BltInfo.XlatePatternToDest = NULL;
     }
     else
     {
@@ -271,7 +272,7 @@ CallDibBitBlt(SURFOBJ* OutputObj,
     return Result;
 }
 
-INT __cdecl abs(INT nm);
+//INT __cdecl abs(INT nm);
 
 
 /*

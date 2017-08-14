@@ -41,7 +41,7 @@ typedef BOOLEAN (APIENTRY *PSTRETCHRECTFUNC)(SURFOBJ* OutputObj,
 static BOOLEAN APIENTRY
 CallDibStretchBlt(SURFOBJ* psoDest,
                   SURFOBJ* psoSource,
-                  SURFOBJ* Mask,
+                  SURFOBJ* psoMask,
                   XLATEOBJ* ColorTranslation,
                   RECTL* OutputRect,
                   RECTL* InputRect,
@@ -81,7 +81,7 @@ CallDibStretchBlt(SURFOBJ* psoDest,
     }
 
     bResult = DibFunctionsForBitmapFormat[psoDest->iBitmapFormat].DIB_StretchBlt(
-               psoDest, psoSource, Mask, psoPattern,
+               psoDest, psoSource, psoMask, psoPattern,
                OutputRect, InputRect, MaskOrigin, pbo, &RealBrushOrigin,
                ColorTranslation, Rop4);
 

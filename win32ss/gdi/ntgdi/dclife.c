@@ -287,10 +287,10 @@ DC_vInitDc(
 	pdc->dcattr.ptlBrushOrigin = pdc->dclevel.ptlBrushOrigin;
 
     /* Initialize EBRUSHOBJs */
-    EBRUSHOBJ_vInitFromDC(&pdc->eboFill, pdc->dclevel.pbrFill, pdc);
-    EBRUSHOBJ_vInitFromDC(&pdc->eboLine, pdc->dclevel.pbrLine, pdc);
-    EBRUSHOBJ_vInitFromDC(&pdc->eboText, pbrDefaultBrush, pdc);
-    EBRUSHOBJ_vInitFromDC(&pdc->eboBackground, pbrDefaultBrush, pdc);
+    EBRUSHOBJ_vInit(&pdc->eboFill, pdc->dclevel.pbrFill, NULL, NULL);
+    EBRUSHOBJ_vInit(&pdc->eboLine, pdc->dclevel.pbrLine, NULL, NULL);
+    EBRUSHOBJ_vInit(&pdc->eboText, pbrDefaultBrush, NULL, NULL);
+    EBRUSHOBJ_vInit(&pdc->eboBackground, pbrDefaultBrush, NULL, NULL);
 
     /* Setup fill data */
 	pdc->dcattr.jROP2 = R2_COPYPEN;
