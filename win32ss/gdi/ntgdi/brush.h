@@ -138,7 +138,7 @@ InitBrushImpl(VOID);
 
 VOID
 NTAPI
-EBRUSHOBJ_vInit(EBRUSHOBJ *pebo, PBRUSH pbrush, struct _SURFACE *, COLORREF, COLORREF, struct _PALETTE *);
+EBRUSHOBJ_vInit(EBRUSHOBJ *pebo, PBRUSH pbrush, SURFACE *psurfTrg, XLATEOBJ *pxlo);
 
 VOID
 NTAPI
@@ -150,7 +150,7 @@ EBRUSHOBJ_vSetSolidRGBColor(EBRUSHOBJ *pebo, COLORREF crColor);
 
 VOID
 NTAPI
-EBRUSHOBJ_vUpdateFromDC(EBRUSHOBJ *pebo, PBRUSH pbrush, struct _DC *);
+EBRUSHOBJ_vUpdateFromDC(EBRUSHOBJ *pebo, PBRUSH pbrush, SURFACE *psurfTrg, XLATEOBJ *pxlo);
 
 BOOL
 NTAPI
@@ -160,9 +160,9 @@ VOID
 NTAPI
 EBRUSHOBJ_vCleanup(EBRUSHOBJ *pebo);
 
-PVOID
-NTAPI
-EBRUSHOBJ_pvGetEngBrush(EBRUSHOBJ *pebo);
+SURFOBJ*
+FASTCALL
+EBRUSHOBJ_psoGetRealizedBrush(EBRUSHOBJ *pebo);
 
 SURFOBJ*
 NTAPI
