@@ -163,3 +163,7 @@ GreCreatePaletteInternal(
     IN LPLOGPALETTE pLogPal,
     IN UINT cEntries);
 
+UINT
+NTAPI
+GreRealizePalette(
+    _In_ HDC hDC);

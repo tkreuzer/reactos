@@ -25,6 +25,3 @@ typedef struct _COLORTRANSFORMOBJ
   HANDLE     hColorTransform;
 } GDICLRXFORM, COLORTRANSFORMOBJ, *PCOLORTRANSFORMOBJ;
 
-extern HCOLORSPACE hStockColorSpace;
-
-UINT FASTCALL IntGdiRealizePalette (HDC);

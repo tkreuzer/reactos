@@ -2338,7 +2338,7 @@ UserRealizePalette(HDC hdc)
   HWND hWnd, hWndDesktop;
   DWORD Ret;
 
-  Ret = IntGdiRealizePalette(hdc);
+  Ret = GreRealizePalette(hdc);
   if (Ret) // There was a change.
   {
       hWnd = IntWindowFromDC(hdc);
