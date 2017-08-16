@@ -1,6 +1,7 @@
 
 PROJECT(msconfig_new)
 
+remove_definitions(-DNTDDI_VERSION=0x05020400)
 set_cpp(WITH_RUNTIME WITH_EXCEPTIONS)
 
 include_directories(

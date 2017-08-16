@@ -8,7 +8,7 @@ if(NOT MSVC)
     add_compile_flags_language("-std=c++11 -Wshadow" "CXX")
 endif()
 
-remove_definitions(-D_WIN32_WINNT=0x502)
+remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
 add_definitions(-D_WIN32_WINNT=0x600)
 
 add_definitions(

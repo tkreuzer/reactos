@@ -1,6 +1,6 @@
 add_definitions(-DUSE_WINE_TODOS)
 
-remove_definitions(-D_WIN32_WINNT=0x502)
+remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
 add_definitions(-D_WIN32_WINNT=0x600)
 
 add_idl_headers(wshom_winetest_idlheaders wshom.idl)

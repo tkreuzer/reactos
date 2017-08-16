@@ -22,6 +22,7 @@
 #define _WIN32_IE 0x0700
 #define WINVER 0x0600 /* For COLOR_MENUBAR, NONCLIENTMETRICS with padding */
 #endif
+#undef NTDDI_VERSION
 
 #include <assert.h>
 #include <stdlib.h>

@@ -1,4 +1,6 @@
 
+remove_definitions(-DNTDDI_VERSION=0x05020400)
+
 include_directories(BEFORE ${REACTOS_SOURCE_DIR}/sdk/include/reactos/wine)
 
 add_executable(ws2_32_winetest protocol.c sock.c testlist.c)
