@@ -212,16 +212,34 @@ MmInsertMemoryArea(
     marea->VadNode.u.VadFlags.Protection = MiMakeProtectionMask(Protect);
 
     /* Build a lame VAD if this is a user-space allocation */
-    if (marea->VadNode.EndingVpn + 1 < (ULONG_PTR)MmSystemRangeStart >> PAGE_SHIFT)
+    if (((marea->VadNode.EndingVpn << PAGE_SHIFT) < MmSystemRangeStart) && (marea->Type != MEMORY_AREA_OWNED_BY_ARM3))
     {
-        ASSERT(Process != NULL);
-        if (marea->Type != MEMORY_AREA_OWNED_BY_ARM3)
-        {
+        PMMVAD Vad;
+
 #ifdef NEWCC
             ASSERT(marea->Type == MEMORY_AREA_SECTION_VIEW || marea->Type == MEMORY_AREA_CACHE);
 #else
             ASSERT(marea->Type == MEMORY_AREA_SECTION_VIEW);
 #endif
+        Vad = &marea->VadNode;
+
+        RtlZeroMemory(Vad, sizeof(MMVAD));
+        Vad->StartingVpn = PAGE_ROUND_DOWN(MA_GetStartingAddress(marea)) >> PAGE_SHIFT;
+        /*
+         * For some strange reason, it is perfectly valid to create a MAREA from 0x1000 to... 0x1000.
+         * In a normal OS/Memory Manager, this would be retarded, but ReactOS allows this (how it works
+         * I don't even want to know).
+         */
+        if ((marea->Vad.EndingVpn << PAGE_SHIFT) != marea->StartingAddress)
+        {
+            Vad->EndingVpn = PAGE_ROUND_DOWN((marea->Vad.EndingVpn << PAGE_SHIFT) - 1) >> PAGE_SHIFT;
+        }
+        else
+        {
+            Vad->EndingVpn = Vad->StartingVpn;
+        }
+        Vad->u.VadFlags.Spare = 1;
+        Vad->u.VadFlags.Protection = MiMakeProtectionMask(marea->Protect);
 
         /* Insert the VAD */
         MiInsertVad(Vad, &Process->VadRoot);
@@ -242,13 +260,13 @@ MmInsertMemoryArea(
     Node = (PMEMORY_AREA)AddressSpace->WorkingSetExpansionLinks.Flink;
     do
     {
-        DPRINT("MA_GetEndingAddress(marea): %p Node->StartingAddress: %p\n",
-               MA_GetEndingAddress(marea), MA_GetStartingAddress(Node));
-        DPRINT("marea->StartingAddress: %p MA_GetEndingAddress(Node): %p\n",
-               MA_GetStartingAddress(marea), MA_GetEndingAddress(Node));
-        ASSERT(MA_GetEndingAddress(marea) <= MA_GetStartingAddress(Node) ||
-               MA_GetStartingAddress(marea) >= MA_GetEndingAddress(Node));
-        ASSERT(MA_GetStartingAddress(marea) != MA_GetStartingAddress(Node));
+        DPRINT("marea->EndingAddress: %p Node->StartingAddress: %p\n",
+               (marea->Vad.EndingVpn << PAGE_SHIFT), Node->StartingAddress);
+        DPRINT("marea->StartingAddress: %p Node->EndingAddress: %p\n",
+               marea->StartingAddress, (marea->Vad.EndingVpn << PAGE_SHIFT));
+        ASSERT((marea->Vad.EndingVpn << PAGE_SHIFT) <= Node->StartingAddress ||
+               marea->StartingAddress >= (marea->Vad.EndingVpn << PAGE_SHIFT));
+        ASSERT(marea->StartingAddress != Node->StartingAddress);
 
         PreviousNode = Node;
 
