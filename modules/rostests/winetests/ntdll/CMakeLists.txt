@@ -1,5 +1,6 @@
 
 include_directories(BEFORE ${REACTOS_SOURCE_DIR}/sdk/include/reactos/wine)
+remove_definitions(-DWINVER=0x502 -D_WIN32_IE=0x600 -D_WIN32_WINNT=0x502 -DNTDDI_VERSION=0x05020400) #CHECKME!
 add_definitions(-D__WINESRC__ -DWINETEST_USE_DBGSTR_LONGLONG)
 
 list(APPEND SOURCE

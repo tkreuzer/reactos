@@ -5,6 +5,9 @@ include_directories(
 
 add_definitions(-D__WINESRC__)
 
+remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400) # FIXME: do we still need these 2?
+add_definitions(-D_WIN32_WINNT=0x600)
+
 spec2def(imm32.dll imm32.spec ADD_IMPORTLIB)
 
 list(APPEND SOURCE

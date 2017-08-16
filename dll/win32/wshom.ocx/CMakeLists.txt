@@ -1,7 +1,7 @@
 
 add_definitions(-D__WINESRC__)
 
-remove_definitions(-D_WIN32_WINNT=0x502)
+remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
 add_definitions(-D_WIN32_WINNT=0x600)
 
 include_directories(${REACTOS_SOURCE_DIR}/sdk/include/reactos/wine)

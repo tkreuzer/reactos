@@ -1,4 +1,6 @@
 
+remove_definitions(-DNTDDI_VERSION=0x05020400) #checkme
+
 remove_definitions(-DWINVER=0x502 -D_WIN32_WINNT=0x502)
 add_definitions(-DWINVER=0x602 -D_WIN32_WINNT=0x602)
 

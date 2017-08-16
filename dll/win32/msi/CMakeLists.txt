@@ -1,5 +1,5 @@
 
-remove_definitions(-D_WIN32_WINNT=0x502 -D_CRT_NON_CONFORMING_SWPRINTFS)
+remove_definitions(-D_WIN32_WINNT=0x502 -D_CRT_NON_CONFORMING_SWPRINTFS -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
 add_definitions(-D_WIN32_WINNT=0x600)
 
 include_directories(${REACTOS_SOURCE_DIR}/sdk/include/reactos/wine)

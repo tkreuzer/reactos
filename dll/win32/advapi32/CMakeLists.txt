@@ -2,6 +2,10 @@
 spec2def(advapi32.dll advapi32.spec ADD_IMPORTLIB)
 add_definitions(-D_ADVAPI32_)
 
+# CHECKME: are thse still required (they got mostly removed)
+remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
+add_definitions(-D_WIN32_WINNT=0x600)
+
 include_directories(
     ${REACTOS_SOURCE_DIR}/sdk/include/reactos/idl
     ${REACTOS_SOURCE_DIR}/sdk/include/reactos/drivers/ksecdd

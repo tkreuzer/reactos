@@ -1,6 +1,8 @@
 
 PROJECT(msconfig_new)
 
+remove_definitions(-DNTDDI_VERSION=0x05020400)
+
 include_directories(
     .
     comctl32ex

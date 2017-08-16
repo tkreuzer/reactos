@@ -1,7 +1,7 @@
 
 add_definitions(-DWINETEST_USE_DBGSTR_LONGLONG)
 
-remove_definitions(-DWINVER=0x502 -D_WIN32_IE=0x600 -D_WIN32_WINNT=0x502)
+remove_definitions(-DWINVER=0x502 -D_WIN32_IE=0x600 -D_WIN32_WINNT=0x502 -DNTDDI_VERSION=0x05020400)
 
 list(APPEND SOURCE
     appbar.c
