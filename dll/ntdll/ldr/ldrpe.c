@@ -120,6 +120,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
     Status = NtProtectVirtualMemory(NtCurrentProcess(),
                                     &Iat,
                                     &ImportSize,
+//                                    PAGE_WRITECOPY,
                                     PAGE_READWRITE,
                                     &OldProtect);
     if (!NT_SUCCESS(Status))
