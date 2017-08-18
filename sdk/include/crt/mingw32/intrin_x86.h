@@ -69,6 +69,11 @@
 extern "C" {
 #endif
 
+#ifdef CONFIG_SMP
+#define __INTRIN_LOCK_PREFIX "lock;"
+#else __INTRIN_LOCK_PREFIX
+#endif // CONFIG_SMP
+
 /*** memcopy must be memmove ***/
 void* __cdecl memmove(void* dest, const void* source, size_t num);
 __INTRIN_INLINE void* __cdecl memcpy(void* dest, const void* source, size_t num)
@@ -330,7 +335,7 @@ __INTRIN_INLINE long long _InterlockedIncrement64(volatile long long * lpAddend)
 __INTRIN_INLINE char _InterlockedCompareExchange8(volatile char * Destination, char Exchange, char Comperand)
 {
 	char retval = Comperand;
-	__asm__("lock; cmpxchgb %b[Exchange], %[Destination]" : [retval] "+a" (retval) : [Destination] "m" (*Destination), [Exchange] "q" (Exchange) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "cmpxchgb %b[Exchange], %[Destination]" : [retval] "+a" (retval) : [Destination] "m" (*Destination), [Exchange] "q" (Exchange) : "memory");
 	return retval;
 }
 #endif
@@ -339,7 +344,7 @@ __INTRIN_INLINE char _InterlockedCompareExchange8(volatile char * Destination, c
 __INTRIN_INLINE short _InterlockedCompareExchange16(volatile short * Destination, short Exchange, short Comperand)
 {
 	short retval = Comperand;
-	__asm__("lock; cmpxchgw %w[Exchange], %[Destination]" : [retval] "+a" (retval) : [Destination] "m" (*Destination), [Exchange] "q" (Exchange): "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "cmpxchgw %w[Exchange], %[Destination]" : [retval] "+a" (retval) : [Destination] "m" (*Destination), [Exchange] "q" (Exchange): "memory");
 	return retval;
 }
 #endif
@@ -348,7 +353,7 @@ __INTRIN_INLINE short _InterlockedCompareExchange16(volatile short * Destination
 __INTRIN_INLINE long _InterlockedCompareExchange(volatile long * Destination, long Exchange, long Comperand)
 {
 	long retval = Comperand;
-	__asm__("lock; cmpxchgl %k[Exchange], %[Destination]" : [retval] "+a" (retval) : [Destination] "m" (*Destination), [Exchange] "q" (Exchange): "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "cmpxchgl %k[Exchange], %[Destination]" : [retval] "+a" (retval) : [Destination] "m" (*Destination), [Exchange] "q" (Exchange): "memory");
 	return retval;
 }
 #endif
@@ -357,7 +362,7 @@ __INTRIN_INLINE long _InterlockedCompareExchange(volatile long * Destination, lo
 __INTRIN_INLINE void * _InterlockedCompareExchangePointer(void * volatile * Destination, void * Exchange, void * Comperand)
 {
 	void * retval = (void *)Comperand;
-	__asm__("lock; cmpxchgl %k[Exchange], %[Destination]" : [retval] "=a" (retval) : "[retval]" (retval), [Destination] "m" (*Destination), [Exchange] "q" (Exchange) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "cmpxchgl %k[Exchange], %[Destination]" : [retval] "=a" (retval) : "[retval]" (retval), [Destination] "m" (*Destination), [Exchange] "q" (Exchange) : "memory");
 	return retval;
 }
 #endif
@@ -402,7 +407,7 @@ __INTRIN_INLINE void * _InterlockedExchangePointer(void * volatile * Target, voi
 __INTRIN_INLINE char _InterlockedExchangeAdd8(char volatile * Addend, char Value)
 {
 	char retval = Value;
-	__asm__("lock; xaddb %[retval], %[Addend]" : [retval] "+r" (retval) : [Addend] "m" (*Addend) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "xaddb %[retval], %[Addend]" : [retval] "+r" (retval) : [Addend] "m" (*Addend) : "memory");
 	return retval;
 }
 #endif
@@ -411,7 +416,7 @@ __INTRIN_INLINE char _InterlockedExchangeAdd8(char volatile * Addend, char Value
 __INTRIN_INLINE short _InterlockedExchangeAdd16(volatile short * Addend, short Value)
 {
 	short retval = Value;
-	__asm__("lock; xaddw %[retval], %[Addend]" : [retval] "+r" (retval) : [Addend] "m" (*Addend) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "xaddw %[retval], %[Addend]" : [retval] "+r" (retval) : [Addend] "m" (*Addend) : "memory");
 	return retval;
 }
 #endif
@@ -420,7 +425,7 @@ __INTRIN_INLINE short _InterlockedExchangeAdd16(volatile short * Addend, short V
 __INTRIN_INLINE long _InterlockedExchangeAdd(volatile long * Addend, long Value)
 {
 	long retval = Value;
-	__asm__("lock; xaddl %[retval], %[Addend]" : [retval] "+r" (retval) : [Addend] "m" (*Addend) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "xaddl %[retval], %[Addend]" : [retval] "+r" (retval) : [Addend] "m" (*Addend) : "memory");
 	return retval;
 }
 #endif
@@ -654,7 +659,7 @@ __INTRIN_INLINE long long _InterlockedCompareExchange64(volatile long long * Des
 
 	__asm__
 	(
-		"lock; cmpxchg8b %[Destination]" :
+		__INTRIN_LOCK_PREFIX "cmpxchg8b %[Destination]" :
 		[retval] "+A" (retval) :
 			[Destination] "m" (*Destination),
 			"b" ((unsigned long)((Exchange >>  0) & 0xFFFFFFFF)),
@@ -673,9 +678,9 @@ __INTRIN_INLINE long _InterlockedAddLargeStatistic(volatile long long * Addend, 
 {
 	__asm__
 	(
-		"lock; addl %[Value], %[Lo32];"
+		__INTRIN_LOCK_PREFIX "addl %[Value], %[Lo32];"
 		"jae LABEL%=;"
-		"lock; adcl $0, %[Hi32];"
+		__INTRIN_LOCK_PREFIX "adcl $0, %[Hi32];"
 		"LABEL%=:;" :
 		[Lo32] "+m" (*((volatile long *)(Addend) + 0)), [Hi32] "+m" (*((volatile long *)(Addend) + 1)) :
 		[Value] "ir" (Value) :
@@ -689,7 +694,7 @@ __INTRIN_INLINE long _InterlockedAddLargeStatistic(volatile long long * Addend, 
 __INTRIN_INLINE unsigned char _interlockedbittestandreset(volatile long * a, long b)
 {
 	unsigned char retval;
-	__asm__("lock; btrl %[b], %[a]; setb %b[retval]" : [retval] "=q" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "btrl %[b], %[a]; setb %b[retval]" : [retval] "=q" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
 	return retval;
 }
 
@@ -697,7 +702,7 @@ __INTRIN_INLINE unsigned char _interlockedbittestandreset(volatile long * a, lon
 __INTRIN_INLINE unsigned char _interlockedbittestandreset64(volatile long long * a, long long b)
 {
 	unsigned char retval;
-	__asm__("lock; btrq %[b], %[a]; setb %b[retval]" : [retval] "=r" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "btrq %[b], %[a]; setb %b[retval]" : [retval] "=r" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
 	return retval;
 }
 #endif
@@ -706,7 +711,7 @@ __INTRIN_INLINE unsigned char _interlockedbittestandreset64(volatile long long *
 __INTRIN_INLINE unsigned char _interlockedbittestandset(volatile long * a, long b)
 {
 	unsigned char retval;
-	__asm__("lock; btsl %[b], %[a]; setc %b[retval]" : [retval] "=q" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "btsl %[b], %[a]; setc %b[retval]" : [retval] "=q" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
 	return retval;
 }
 #endif
@@ -715,7 +720,7 @@ __INTRIN_INLINE unsigned char _interlockedbittestandset(volatile long * a, long 
 __INTRIN_INLINE unsigned char _interlockedbittestandset64(volatile long long * a, long long b)
 {
 	unsigned char retval;
-	__asm__("lock; btsq %[b], %[a]; setc %b[retval]" : [retval] "=r" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
+	__asm__(__INTRIN_LOCK_PREFIX "btsq %[b], %[a]; setc %b[retval]" : [retval] "=r" (retval), [a] "+m" (*a) : [b] "Ir" (b) : "memory");
 	return retval;
 }
 #endif
@@ -1940,6 +1945,8 @@ __INTRIN_INLINE void __nop(void)
 {
 	__asm__ __volatile__("nop");
 }
+
+#undef __INTRIN_LOCK_PREFIX
 
 #ifdef __cplusplus
 }
