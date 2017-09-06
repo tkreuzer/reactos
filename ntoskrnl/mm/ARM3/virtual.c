@@ -5098,6 +5098,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     LONG_PTR AlreadyDecommitted, CommitReduction = 0;
     ULONG_PTR StartingAddress, EndingAddress;
     PMMVAD Vad;
+    BOOLEAN FreeVad = FALSE;
     NTSTATUS Status;
     PEPROCESS Process;
     PMMSUPPORT AddressSpace;
@@ -5183,7 +5184,12 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
                                            PreviousMode,
                                            (PVOID*)&Process,
                                            NULL);
-        if (!NT_SUCCESS(Status)) return Status;
+        if (!NT_SUCCESS(Status))
+        {
+            DPRINT1("Invalid process handle: 0x%p!\n", ProcessHandle);
+            return Status;
+        }
+
         if (CurrentProcess != Process)
         {
             KeStackAttachProcess(&Process->Pcb, &ApcState);
@@ -5208,7 +5214,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     {
         DPRINT1("Process is dead\n");
         Status = STATUS_PROCESS_IS_TERMINATING;
-        goto FailPath;
+        goto Exit;
     }
 
     //
@@ -5221,7 +5227,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     {
         DPRINT1("Unable to find VAD for address 0x%p\n", StartingAddress);
         Status = STATUS_MEMORY_NOT_ALLOCATED;
-        goto FailPath;
+        goto Exit;
     }
 
     //
@@ -5231,7 +5237,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     {
         DPRINT1("Address 0x%p is beyond the VAD\n", EndingAddress);
         Status = STATUS_UNABLE_TO_FREE_VM;
-        goto FailPath;
+        goto Exit;
     }
 
     //
@@ -5243,7 +5249,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     {
         DPRINT1("Attempt to free section memory\n");
         Status = STATUS_UNABLE_TO_DELETE_SECTION;
-        goto FailPath;
+        goto Exit;
     }
 
     //
@@ -5285,7 +5291,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
             {
                 DPRINT1("Address 0x%p does not match the VAD\n", PBaseAddress);
                 Status = STATUS_FREE_VM_NOT_AT_BASE;
-                goto FailPath;
+                goto Exit;
             }
 
             //
@@ -5300,6 +5306,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
             MiLockProcessWorkingSetUnsafe(Process, CurrentThread);
             ASSERT(Process->VadRoot.NumberGenericTableElements >= 1);
             MiRemoveNode((PMMADDRESS_NODE)Vad, &Process->VadRoot);
+            FreeVad = TRUE;
         }
         else
         {
@@ -5330,6 +5337,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
                     MiLockProcessWorkingSetUnsafe(Process, CurrentThread);
                     ASSERT(Process->VadRoot.NumberGenericTableElements >= 1);
                     MiRemoveNode((PMMADDRESS_NODE)Vad, &Process->VadRoot);
+                    FreeVad = TRUE;
                 }
                 else
                 {
@@ -5342,13 +5350,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
                     //
                     DPRINT1("Case A not handled\n");
                     Status = STATUS_FREE_VM_NOT_AT_BASE;
-                    goto FailPath;
-
-                    //
-                    // After analyzing the VAD, set it to NULL so that we don't
-                    // free it in the exit path
-                    //
-                    Vad = NULL;
+                    goto Exit;
                 }
             }
             else
@@ -5391,14 +5393,8 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
                     //
                     DPRINT1("Case B not handled\n");
                     Status = STATUS_FREE_VM_NOT_AT_BASE;
-                    goto FailPath;
+                    goto Exit;
                 }
-
-                //
-                // After analyzing the VAD, set it to NULL so that we don't
-                // free it in the exit path
-                //
-                Vad = NULL;
             }
         }
 
@@ -5409,7 +5405,6 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
         //
         MiDeleteVirtualAddresses(StartingAddress, EndingAddress, NULL);
         MiUnlockProcessWorkingSetUnsafe(Process, CurrentThread);
-        Status = STATUS_SUCCESS;
     }
     else
     {
@@ -5423,7 +5418,7 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
         {
             DPRINT1("Trying to decommit from invalid VAD\n");
             Status = STATUS_MEMORY_NOT_ALLOCATED;
-            goto FailPath;
+            goto Exit;
         }
 
         //
@@ -5458,13 +5453,6 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
         ASSERT(CommitReduction >= 0);
         ASSERT(Vad->u.VadFlags.CommitCharge >= CommitReduction);
         Vad->u.VadFlags.CommitCharge -= CommitReduction;
-
-        //
-        // We are done, go to the exit path without freeing the VAD as it remains
-        // valid since we have not released the allocation.
-        //
-        Vad = NULL;
-        Status = STATUS_SUCCESS;
     }
 
     //
@@ -5474,6 +5462,10 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     Process->CommitCharge -= CommitReduction;
     if (FreeType & MEM_RELEASE) Process->VirtualSize -= PRegionSize;
 
+    Status = STATUS_SUCCESS;
+
+Exit:
+
     //
     // Unlock the address space and free the VAD in failure cases. Next,
     // detach from the target process so we can write the region size and the
@@ -5481,35 +5473,32 @@ NtFreeVirtualMemory(IN HANDLE ProcessHandle,
     // process.
     //
     MmUnlockAddressSpace(AddressSpace);
-    if (Vad) ExFreePool(Vad);
+    if (FreeVad) ExFreePool(Vad);
     if (Attached) KeUnstackDetachProcess(&ApcState);
     if (ProcessHandle != NtCurrentProcess()) ObDereferenceObject(Process);
 
     //
-    // Use SEH to safely return the region size and the base address of the
-    // deallocation. If we get an access violation, don't return a failure code
-    // as the deallocation *has* happened. The caller will just have to figure
-    // out another way to find out where it is (such as VirtualQuery).
+    // Write back region size and the base address on success
     //
-    _SEH2_TRY
+    if (NT_SUCCESS(Status))
     {
-        *URegionSize = PRegionSize;
-        *UBaseAddress = (PVOID)StartingAddress;
+        //
+        // Use SEH to safely return the region size and the base address of the
+        // deallocation. If we get an access violation, don't return a failure code
+        // as the deallocation *has* happened. The caller will just have to figure
+        // out another way to find out where it is (such as VirtualQuery).
+        //
+        _SEH2_TRY
+        {
+            *URegionSize = PRegionSize;
+            *UBaseAddress = (PVOID)StartingAddress;
+        }
+            _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+        {
+        }
+        _SEH2_END;
     }
-    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-    {
-    }
-    _SEH2_END;
-    return Status;
 
-    //
-    // In the failure path, we detach and derefernece the target process, and
-    // return whatever failure code was sent.
-    //
-FailPath:
-    MmUnlockAddressSpace(AddressSpace);
-    if (Attached) KeUnstackDetachProcess(&ApcState);
-    if (ProcessHandle != NtCurrentProcess()) ObDereferenceObject(Process);
     return Status;
 }
 
