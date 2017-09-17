@@ -1,0 +1,12 @@
+# depslib dependency file v1.0
+1345402425 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\psehtest2.c
+
+1345402543 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\psehtest.c
+	<stddef.h>
+	<stdio.h>
+	<stdlib.h>
+	<string.h>
+	<pseh/pseh2.h>
+	<windows.h>
+	<wine/test.h>
+

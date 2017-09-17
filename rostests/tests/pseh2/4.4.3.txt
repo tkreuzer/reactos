@@ -1,0 +1,211 @@
+
+extern __attribute__((returns_twice))
+int __cdecl
+__SEH2EnterFrameAndHandleTrylevel(
+    _SEH2Frame_t *frame,
+    volatile _SEH2HandleTryLevel_t *TryLevel,
+    void *JumpAddress);
+
+  42 .func _SEH2EnterFrameAndHandleTrylevel
+  43 .globl __SEH2EnterFrameAndHandleTrylevel
+  44 __SEH2EnterFrameAndHandleTrylevel:
+  45         mov eax, [esp+TryLevel]
+  46         mov ecx, [esp+JumpAddress]
+  47         mov [eax+8], ecx  // TryLevel->SHT_Common.ST_Body
+  48         mov [eax+16], ebp // TryLevel->SHT_Ebp
+  49         mov [eax+20], ebx // TryLevel->SHT_Ebx
+  50         mov [eax+24], esi // TryLevel->SHT_Esi
+  51         mov [eax+28], edi // TryLevel->SHT_Edi
+  52
+  53 .extern __SEH2EnterFrameAndTrylevel
+  54         jmp __SEH2EnterFrameAndTrylevel
+  55 .endfunc
+
+extern
+int __cdecl _SEH2EnterFrameAndTrylevel(_SEH2Frame_t * frame, volatile _SEH2TryLevel_t * trylevel)
+{
+    frame->SF_TopTryLevel = trylevel;
+    _SEH2EnterFrame(frame);
+    return 0;
+}
+
+extern
+void __cdecl _SEH2EnterFrame(_SEH2Frame_t * frame)
+{
+	frame->SF_Registration.SER_Handler = __SEH2FrameHandler;
+	frame->SF_Code = 0;
+	__SEH2EnterFrame(&frame->SF_Registration);
+}
+
+FORCEINLINE
+void __cdecl __SEH2EnterFrame(_SEH2Registration_t * frame)
+{
+	frame->SER_Prev = _SEH2CurrentRegistration();
+	__writefsdword(0, (unsigned long)frame);
+}
+
+__SEHFinally_18655 proc near
+push    ebp
+mov     ebp, esp
+sub     esp, 10h
+// esp = 0x28fec0, ebp = 0x268fed0
+int     3               ; Trap to Debugger
+mov     dword ptr [esp+0Ch], offset __SEHFinally_18655 ; lpArguments
+mov     dword ptr [esp+8], 0 ; nNumberOfArguments
+mov     dword ptr [esp+4], 0 ; dwExceptionFlags
+mov     dword ptr [esp], 0E00DEAD0h ; dwExceptionCode
+call    _RaiseException@16
+sub     esp, 10h
+leave
+retn
+__SEHFinally_18655 endp
+
+
+.text:0000002F                 public _test_finally_13_x
+.text:0000002F _test_finally_13_x proc near
+.text:0000002F
+.text:0000002F P1              = dword ptr -60h
+.text:0000002F P2              = dword ptr -5Ch
+.text:0000002F P3              = dword ptr -58h
+.text:0000002F P4              = dword ptr -54h
+.text:0000002F P5              = dword ptr -50h
+.text:0000002F _SEHHandleTryLevel.SHT_Common.ST_Next= dword ptr -4Ch
+.text:0000002F _SEHHandleTryLevel.SHT_Common.ST_Filter= dword ptr -48h
+.text:0000002F _SEHHandleTryLevel.SHT_Common.ST_Body= dword ptr -44h
+.text:0000002F _SEHHandleTryLevel.SHT_Esp= dword ptr -40h
+.text:0000002F _SEHHandleTryLevel.SHT_Ebp= dword ptr -3Ch
+.text:0000002F _SEHHandleTryLevel.SHT_Ebx= dword ptr -38h
+.text:0000002F _SEHHandleTryLevel.SHT_Esi= dword ptr -34h
+.text:0000002F _SEHHandleTryLevel.SHT_Edi= dword ptr -30h
+.text:0000002F var_2C          = dword ptr -2Ch
+.text:0000002F var_28          = dword ptr -28h
+.text:0000002F var_24          = dword ptr -24h
+.text:0000002F var_20          = dword ptr -20h
+.text:0000002F _SEH2_Frame.SF_Registration.SER_Prev= dword ptr -1Ch
+.text:0000002F _SEH2_Frame.SF_Registration.SER_Handler= dword ptr -18h
+.text:0000002F _SEH2_Frame.SF_TopTryLevel= dword ptr -14h
+.text:0000002F _SEH2_Frame.SF_Code= dword ptr -10h
+// frame for test_finally_13_helper:
+.text:0000002F var_C           = dword ptr -0Ch
+.text:0000002F var_8           = dword ptr -8
+.text:0000002F filter          = dword ptr -4
+.text:0000002F
+.text:0000002F                 push    ebp
+.text:00000030                 mov     ebp, esp
+.text:00000032                 sub     esp, 60h
+// esp = 0x28fed8, ebp = 0x28ff38
+.text:00000035                 mov     [ebp+_SEHHandleTryLevel.SHT_Common.ST_Filter], 1     // _SEH2_EXCEPT(1)
+.text:0000003C                 mov     ds:_ret_18672, 0                                     // ret = 0;
+.text:00000046                 mov     [ebp+_SEHHandleTryLevel.SHT_Common.ST_Next], 0       // _SEH2_EXCEPT(1)
+.text:0000004D                 mov     [ebp+_SEHHandleTryLevel.SHT_Esp], esp                // _SEH2_EXCEPT(1)
+.text:00000050                 lea     eax, [ebp+_SEHHandleTryLevel.SHT_Common.ST_Next]     // _SEH2_EXCEPT(1)
+.text:00000053                 mov     [esp+60h+P2], eax                                    // __SEH2EnterFrameAndHandleTrylevel(::TryLevel)
+.text:00000057                 lea     eax, [ebp+_SEH2_Frame]
+.text:0000005A                 mov     [esp+60h+P3], offset loc_B5                          // __SEH2EnterFrameAndHandleTrylevel(::JumpAddress)
+.text:00000062                 mov     [esp+60h+P1], eax                                    // __SEH2EnterFrameAndHandleTrylevel(::SehRegistrationFrame)
+.text:00000065                 call    __SEH2EnterFrameAndHandleTrylevel
+.text:0000006A                 test    eax, eax
+.text:0000006C                 jnz     short loc_B5
+// _SEH2_TRY (2)
+.text:0000006E                 lea     eax, [ebp+var_C]
+.text:00000071                 mov     [esp+60h+P2], eax
+.text:00000075                 lea     eax, [ebp+var_2C]
+.text:00000078                 mov     [ebp+var_8], 0
+.text:0000007F                 mov     [esp+60h+P1], eax
+.text:00000082                 mov     [ebp+filter], offset __SEHFinally_18655
+.text:00000089                 mov     ds:_ret_18672, 1
+.text:00000093                 mov     [ebp+var_C], 0
+.text:0000009A                 call    __SEH2EnterFrameAndTrylevel
+.text:0000009F                 call    __SEHFinally_18655
+.text:000000A4                 call    __SEH2LeaveFrame
+.text:000000A9                 mov     ds:_ret_18672, 2
+.text:000000B3                 jmp     short loc_BF
+.text:000000B5 ; ---------------------------------------------------------------------------
+.text:000000B5
+.text:000000B5 loc_B5:                                 ; CODE XREF: _test_finally_13_x+3D
+.text:000000B5                                         ; DATA XREF: _test_finally_13_x+2B
+.text:000000B5                 mov     ds:_ret_18672, 3
+.text:000000BF
+.text:000000BF loc_BF:                                 ; CODE XREF: _test_finally_13_x+84
+.text:000000BF                 call    __SEH2LeaveFrame
+.text:000000C4                 mov     eax, ds:_ret_18672
+.text:000000C9                 leave
+.text:000000CA                 retn
+.text:000000CA _test_finally_13_x endp
+
+inner:
+registration frame = 0x28ff0c
+frame->TopTryLevel = 0x28ff2c
+
+outer:
+registration frame = 0x28ff1c
+frame->TopTryLevel = 0x28feec
+
+esp = 0x28fa0c
+calling RtlUnwind(
+    TargetFrame = [0x28fa58] = 0x28ff1c
+    TargetIp = Return
+    ExceptionRecord = NULL
+    ReturnValue = NULL)
+Return:
+
+
+address  ebp-  value     variable
+---------------------------------------------------
+0x28fed8: 60 : 00000001  P1
+0x28fedc: 5c : 763e2920  P2
+0x28fee0: 58 : 0028feec  P3
+0x28fee4: 54 : 7634a442  P4
+0x28fee8: 50 : 763e04c0  P5
+0x28feec: 4c : 00000000  _SEHHandleTryLevel.SHT_Common.ST_Next
+0x28fef0: 48 : 00000001  _SEHHandleTryLevel.SHT_Common.ST_Filter
+0x28fef4: 44 : 00000011  _SEHHandleTryLevel.SHT_Common.ST_Body
+0x28fef8: 40 : 0028ff38  _SEHHandleTryLevel.SHT_Esp
+0x28fefc: 3c : 7635c653  _SEHHandleTryLevel.SHT_Ebp
+0x28ff00: 38 : 00000001  _SEHHandleTryLevel.SHT_Ebx
+0x28ff04: 34 : 763e2920  _SEHHandleTryLevel.SHT_Esi
+0x28ff08: 30 : 7635c620  _SEHHandleTryLevel.SHT_Edi
+0x28ff0c: 2c : cb20ea2c  inner: _SEH2_Frame.SF_Registration.SER_Prev
+0x28ff10: 28 : 00000000  inner: _SEH2_Frame.SF_Registration.SER_Handler
+0x28ff14: 24 : 00000000  inner: _SEH2_Frame.SF_TopTryLevel
+0x28ff18: 20 : 7efde000  inner: _SEH2_Frame.SF_Code
+0x28ff1c: 1c : 00000005  outer: _SEH2_Frame.SF_Registration.SER_Prev
+0x28ff20: 18 : 0028ff0c  outer: _SEH2_Frame.SF_Registration.SER_Handler
+0x28ff24: 14 : bd3d047c  outer: _SEH2_Frame.SF_TopTryLevel
+0x28ff28: 10 : 0028ffc4  outer: _SEH2_Frame.SF_Code
+// frame for test_finally_13_helper:
+0x28ff2c: 0c : d5 8c 36 76
+0x28ff30: 08 : 3c d3 3d bd
+0x28ff34: 04 : fe ff ff ff
+0x28ff38: 00 : 0028ff48  old ebp, ebp points here
+0x28ff3c: 04 : 0040143b  return address
+
+
+|24 30 40 00 00 e0 fd 7e
+0x28ff48: 78 ff 28 00 4b 12 40 00|01 00 00 00 c0 10 b8 00
+0x28ff58: 68 18 b8 00 ff ff ff ff|70 ff 28 00 a0 15 35 76
+0x28ff68: 00 00 40 00 68 18 b8 00|00 00 00 00 00 e0 fd 7e
+0x28ff78: 88 ff 28 00 98 12 40 00|01 00 00 00 00 00 00 00
+0x28ff88: 94 ff 28 00 9a 33 51 76|00 e0 fd 7e d4 ff 28 00
+0x28ff98: f2 9e 93 77 00 e0 fd 7e|f2 4d cc 77 00 00 00 00
+0x28ffa8: 00 00 00 00 00 e0 fd 7e|00 00 00 00 00 00 00 00
+0x28ffb8: 00 00 00 00 a0 ff 28 00|00 00 00 00 ff ff ff ff
+0x28ffc8: d5 71 97 77 16 77 76 00|00 00 00 00 ec ff 28 00
+
+
+0x28fed8: 01 00 00 00 20 29 3e 76|ec fe 28 00 42 a4 34 76
+0x28fee8: c0 04 3e 76 00 00 00 00|01 00 00 00 11 00 00 00
+0x28fef8: 38 ff 28 00 53 c6 35 76|01 00 00 00 20 29 3e 76
+0x28ff08: 20 c6 35 76 2c ea 20 cb|00 00 00 00 00 00 00 00
+0x28ff18: 00 e0 fd 7e 05 00 00 00|0c ff 28 00 7c 04 3d bd
+0x28ff28: c4 ff 28 00 d5 8c 36 76|3c d3 3d bd fe ff ff ff
+0x28ff38: 48 ff 28 00 3b 14 40 00|24 30 40 00 00 e0 fd 7e
+0x28ff48: 78 ff 28 00 4b 12 40 00|01 00 00 00 c0 10 b8 00
+0x28ff58: 68 18 b8 00 ff ff ff ff|70 ff 28 00 a0 15 35 76
+0x28ff68: 00 00 40 00 68 18 b8 00|00 00 00 00 00 e0 fd 7e
+0x28ff78: 88 ff 28 00 98 12 40 00|01 00 00 00 00 00 00 00
+0x28ff88: 94 ff 28 00 9a 33 51 76|00 e0 fd 7e d4 ff 28 00
+0x28ff98: f2 9e 93 77 00 e0 fd 7e|f2 4d cc 77 00 00 00 00
+0x28ffa8: 00 00 00 00 00 e0 fd 7e|00 00 00 00 00 00 00 00
+0x28ffb8: 00 00 00 00 a0 ff 28 00|00 00 00 00 ff ff ff ff
+0x28ffc8: d5 71 97 77 16 77 76 00|00 00 00 00 ec ff 28 00

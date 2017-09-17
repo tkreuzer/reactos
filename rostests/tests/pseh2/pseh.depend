@@ -1,0 +1,420 @@
+# depslib dependency file v1.0
+1292418743 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\framebased-gcchack-asm.s
+
+1346579806 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\framebased-gcchack.c
+	<windows.h>
+	<pseh/pseh2.h>
+	<excpt.h>
+	<intrin.h>
+
+1339943142 c:\dev\reactos\trunk\src\include\psdk\windows.h
+	<msvctarget.h>
+	<winresrc.h>
+	<excpt.h>
+	<stdarg.h>
+	<windef.h>
+	<winbase.h>
+	<wingdi.h>
+	<winuser.h>
+	<wincon.h>
+	<winnls.h>
+	<winver.h>
+	<winnetwk.h>
+	<winreg.h>
+	<winsvc.h>
+	<cderr.h>
+	<dde.h>
+	<ddeml.h>
+	<dlgs.h>
+	<imm.h>
+	<lzexpand.h>
+	<mmsystem.h>
+	<nb30.h>
+	<rpc.h>
+	<shellapi.h>
+	<winperf.h>
+	<wincrypt.h>
+	<winefs.h>
+	<winscard.h>
+	<commdlg.h>
+	<winspool.h>
+	<winsock2.h>
+	<winsock.h>
+	<ole2.h>
+
+1339943161 c:\dev\reactos\trunk\src\include\reactos\msvctarget.h
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winresrc.h
+	<winuser.h>
+	<winnt.h>
+	<winver.h>
+	<dde.h>
+	<dlgs.h>
+	<commctrl.h>
+
+1356167713 c:\dev\reactos\trunk\src\include\psdk\winuser.h
+	<pshpack2.h>
+	<poppack.h>
+	"reactos/undocuser.h"
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\pshpack2.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\poppack.h
+
+1347088276 c:\dev\reactos\trunk\src\include\reactos\undocuser.h
+
+1355568172 c:\dev\reactos\trunk\src\include\psdk\winnt.h
+	<msvctarget.h>
+	<excpt.h>
+	<basetsd.h>
+	<guiddef.h>
+	<ctype.h>
+	<winerror.h>
+	<stddef.h>
+	<sdkddkver.h>
+	<string.h>
+	"intrin.h"
+	<basetsd.h>
+	<pshpack4.h>
+	<poppack.h>
+	<pshpack4.h>
+	<poppack.h>
+	"pshpack8.h"
+	"poppack.h"
+	<pshpack2.h>
+	<poppack.h>
+	<pshpack2.h>
+	<poppack.h>
+	<pshpack8.h>
+	<poppack.h>
+
+1339943087 c:\dev\reactos\trunk\src\include\crt\excpt.h
+	<crtdefs.h>
+
+1355568173 c:\dev\reactos\trunk\src\include\crt\crtdefs.h
+	<_mingw.h>
+	<specstrings.h>
+
+1356867881 c:\dev\reactos\trunk\src\include\crt\_mingw.h
+	"_mingw_mac.h"
+
+1339943090 c:\dev\reactos\trunk\src\include\crt\_mingw_mac.h
+
+1349638182 c:\dev\reactos\trunk\src\include\psdk\specstrings.h
+	<sal.h>
+	<driverspecs.h>
+
+1356169224 c:\dev\reactos\trunk\src\include\psdk\sal.h
+	<sal_old.h>
+
+1356168859 c:\dev\reactos\trunk\src\include\psdk\sal_old.h
+
+1356167306 c:\dev\reactos\trunk\src\include\psdk\driverspecs.h
+	<specstrings.h>
+	<concurrencysal.h>
+
+1339943118 c:\dev\reactos\trunk\src\include\psdk\concurrencysal.h
+
+1339943116 c:\dev\reactos\trunk\src\include\psdk\basetsd.h
+
+1347088276 c:\dev\reactos\trunk\src\include\psdk\guiddef.h
+	<string.h>
+
+1339943089 c:\dev\reactos\trunk\src\include\crt\string.h
+	<crtdefs.h>
+
+1343765949 c:\dev\reactos\trunk\src\include\crt\ctype.h
+	<crtdefs.h>
+
+1354361335 c:\dev\reactos\trunk\src\include\psdk\winerror.h
+
+1339943089 c:\dev\reactos\trunk\src\include\crt\stddef.h
+	<crtdefs.h>
+	<errno.h>
+
+1339943087 c:\dev\reactos\trunk\src\include\crt\errno.h
+	<crtdefs.h>
+
+1339943134 c:\dev\reactos\trunk\src\include\psdk\sdkddkver.h
+
+1355653813 c:\dev\reactos\trunk\src\include\crt\mingw32\intrin.h
+	"intrin_x86.h"
+	"intrin_ppc.h"
+	"intrin_mips.h"
+	"intrin_arm.h"
+	"intrin_x86.h"
+
+1356725534 c:\dev\reactos\trunk\src\include\crt\mingw32\intrin_x86.h
+
+1339943088 c:\dev\reactos\trunk\src\include\crt\mingw32\intrin_ppc.h
+
+1339943088 c:\dev\reactos\trunk\src\include\crt\mingw32\intrin_arm.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\pshpack4.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\pshpack8.h
+
+1339943145 c:\dev\reactos\trunk\src\include\psdk\winver.h
+
+1339943119 c:\dev\reactos\trunk\src\include\psdk\dde.h
+	<windef.h>
+
+1339943142 c:\dev\reactos\trunk\src\include\psdk\windef.h
+	<winnt.h>
+
+1339943120 c:\dev\reactos\trunk\src\include\psdk\dlgs.h
+
+1355568172 c:\dev\reactos\trunk\src\include\psdk\commctrl.h
+	<_mingw_unicode.h>
+	<prsht.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+	<pshpack1.h>
+	<poppack.h>
+
+1339943090 c:\dev\reactos\trunk\src\include\crt\_mingw_unicode.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\prsht.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\pshpack1.h
+
+1339943089 c:\dev\reactos\trunk\src\include\crt\stdarg.h
+	<vadefs.h>
+
+1350834241 c:\dev\reactos\trunk\src\include\crt\vadefs.h
+	<crtdefs.h>
+
+1355568172 c:\dev\reactos\trunk\src\include\psdk\winbase.h
+
+1346143318 c:\dev\reactos\trunk\src\include\psdk\wingdi.h
+	"pshpack1.h"
+	"poppack.h"
+	"pshpack2.h"
+	"poppack.h"
+	"pshpack2.h"
+	"poppack.h"
+	"pshpack4.h"
+	"poppack.h"
+
+1339943140 c:\dev\reactos\trunk\src\include\psdk\wincon.h
+	"wingdi.h"
+
+1343235086 c:\dev\reactos\trunk\src\include\psdk\winnls.h
+
+1339943143 c:\dev\reactos\trunk\src\include\psdk\winnetwk.h
+
+1345317131 c:\dev\reactos\trunk\src\include\psdk\winreg.h
+	<reason.h>
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\reason.h
+
+1355568172 c:\dev\reactos\trunk\src\include\psdk\winsvc.h
+
+1339943117 c:\dev\reactos\trunk\src\include\psdk\cderr.h
+
+1339943119 c:\dev\reactos\trunk\src\include\psdk\ddeml.h
+
+1339943123 c:\dev\reactos\trunk\src\include\psdk\imm.h
+
+1339943126 c:\dev\reactos\trunk\src\include\psdk\lzexpand.h
+
+1339943127 c:\dev\reactos\trunk\src\include\psdk\mmsystem.h
+
+1339943128 c:\dev\reactos\trunk\src\include\psdk\nb30.h
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpc.h
+	<windows.h>
+	<pseh/pseh2.h>
+	<pshpack2.h>
+	<basetsd.h>
+	<pshpack8.h>
+	<setjmp.h>
+	<rpcdce.h>
+	<rpcnsi.h>
+	<rpcerr.h>
+	<rpcmac.h>
+	<poppack.h>
+	<rpcdce.h>
+	<rpcnterr.h>
+	<excpt.h>
+	<winerror.h>
+	<poppack.h>
+	<rpcasync.h>
+
+1356298819 c:\dev\reactos\trunk\src\include\reactos\libs\pseh\pseh2.h
+	<excpt.h>
+	"pseh3.h"
+
+1339943089 c:\dev\reactos\trunk\src\include\crt\setjmp.h
+	<crtdefs.h>
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpcdce.h
+	<guiddef.h>
+	<rpcdcep.h>
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpcdcep.h
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpcnsi.h
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpcnterr.h
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpcasync.h
+
+1355568172 c:\dev\reactos\trunk\src\include\psdk\shellapi.h
+	<pshpack1.h>
+	<poppack.h>
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winperf.h
+
+1339943141 c:\dev\reactos\trunk\src\include\psdk\wincrypt.h
+	<bcrypt.h>
+
+1343235086 c:\dev\reactos\trunk\src\include\psdk\bcrypt.h
+
+1339943142 c:\dev\reactos\trunk\src\include\psdk\winefs.h
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winscard.h
+	<wtypes.h>
+	<winioctl.h>
+	<winsmcrd.h>
+	<scarderr.h>
+
+1339943143 c:\dev\reactos\trunk\src\include\psdk\winioctl.h
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winsmcrd.h
+
+1339943133 c:\dev\reactos\trunk\src\include\psdk\scarderr.h
+
+1339943118 c:\dev\reactos\trunk\src\include\psdk\commdlg.h
+	<prsht.h>
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winspool.h
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winsock2.h
+	<pshpack4.h>
+	<windows.h>
+	<ws2def.h>
+	<qos.h>
+	<guiddef.h>
+	<poppack.h>
+	<wsipv6ok.h>
+
+1339943146 c:\dev\reactos\trunk\src\include\psdk\ws2def.h
+	<inaddr.h>
+
+1339943123 c:\dev\reactos\trunk\src\include\psdk\inaddr.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\qos.h
+
+1339943146 c:\dev\reactos\trunk\src\include\psdk\wsipv6ok.h
+	<ws2tcpip.h>
+	<wspiapi.h>
+
+1343235086 c:\dev\reactos\trunk\src\include\psdk\ws2tcpip.h
+	<winsock2.h>
+	<ws2ipdef.h>
+	<limits.h>
+	<wspiapi.h>
+
+1343235086 c:\dev\reactos\trunk\src\include\psdk\ws2ipdef.h
+	<in6addr.h>
+
+1339943123 c:\dev\reactos\trunk\src\include\psdk\in6addr.h
+
+1339943088 c:\dev\reactos\trunk\src\include\crt\limits.h
+	<crtdefs.h>
+
+1339943147 c:\dev\reactos\trunk\src\include\psdk\wspiapi.h
+	<stdio.h>
+	<stdlib.h>
+	<malloc.h>
+	<string.h>
+
+1355568173 c:\dev\reactos\trunk\src\include\crt\stdio.h
+	<crtdefs.h>
+	<stdarg.h>
+	<vadefs.h>
+	<sec_api/stdio_s.h>
+
+1339943089 c:\dev\reactos\trunk\src\include\crt\sec_api\stdio_s.h
+	<stdio.h>
+
+1343765979 c:\dev\reactos\trunk\src\include\crt\stdlib.h
+	<crtdefs.h>
+	<limits.h>
+	<errno.h>
+	<sec_api/stdlib_s.h>
+
+1339943089 c:\dev\reactos\trunk\src\include\crt\sec_api\stdlib_s.h
+	<stdlib.h>
+
+1343765965 c:\dev\reactos\trunk\src\include\crt\malloc.h
+	<crtdefs.h>
+
+1339943144 c:\dev\reactos\trunk\src\include\psdk\winsock.h
+	<windows.h>
+	<inaddr.h>
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\ole2.h
+	<winerror.h>
+	<objbase.h>
+	<oleauto.h>
+	<oleidl.h>
+
+1339943130 c:\dev\reactos\trunk\src\include\psdk\objbase.h
+	<rpc.h>
+	<rpcndr.h>
+	<stdlib.h>
+	<wtypes.h>
+	<unknwn.h>
+	<objidl.h>
+	<guiddef.h>
+	<cguid.h>
+	<urlmon.h>
+	<propidl.h>
+
+1339943132 c:\dev\reactos\trunk\src\include\psdk\rpcndr.h
+	<basetsd.h>
+
+1339943117 c:\dev\reactos\trunk\src\include\psdk\cguid.h
+
+1339943131 c:\dev\reactos\trunk\src\include\psdk\oleauto.h
+	<oaidl.h>
+
+1323986485 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\framebased.c
+	<windows.h>
+	<pseh/pseh.h>
+	<pseh/framebased/internal.h>
+	<pseh/excpt.h>
+	<pseh/framebased.h>
+	<excpt.h>
+
+1339943159 c:\dev\reactos\trunk\src\include\reactos\libs\pseh\pseh.h
+	<stddef.h>
+	<pseh/framebased.h>
+
+1339943159 c:\dev\reactos\trunk\src\include\reactos\libs\pseh\framebased.h
+	<pseh/framebased/internal.h>
+	<pseh/excpt.h>
+	<stddef.h>
+	<setjmp.h>
+
+1339943159 c:\dev\reactos\trunk\src\include\reactos\libs\pseh\framebased\internal.h
+
+1339943159 c:\dev\reactos\trunk\src\include\reactos\libs\pseh\excpt.h
+
+1189868556 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\main.c
+	<stdio.h>
+	<stdlib.h>
+
+1292418743 source:c:\dev\reactos\trunk\src\modules\rostests\tests\pseh2\framebased-asm.s
+
+1356881349 c:\dev\reactos\trunk\src\include\reactos\libs\pseh\pseh3.h
+	"excpt.h"
+

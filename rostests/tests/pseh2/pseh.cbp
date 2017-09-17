@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="pseh" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="gcc-4.4.3">
+				<Option output="bin\pseh.a" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option object_output="obj\Debug\" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Compiler>
+					<Add option="-Wall" />
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="gcc-4.7.2">
+				<Option output="bin\pseh-4.7.2.a" prefix_auto="0" extension_auto="0" />
+				<Option working_dir="" />
+				<Option type="2" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+			</Target>
+		</Build>
+		<Compiler>
+			<Add directory="..\..\..\..\include" />
+			<Add directory="..\..\..\..\include\crt" />
+			<Add directory="..\..\..\..\include\crt\mingw32" />
+			<Add directory="..\..\..\..\include\psdk" />
+			<Add directory="..\..\..\..\include\reactos" />
+			<Add directory="..\..\..\..\include\reactos\libs" />
+		</Compiler>
+		<Unit filename="framebased-asm.S">
+			<Option target="gcc-4.4.3" />
+		</Unit>
+		<Unit filename="framebased-gcchack-asm.S">
+			<Option target="gcc-4.4.3" />
+		</Unit>
+		<Unit filename="framebased-gcchack.c">
+			<Option compilerVar="CC" />
+			<Option target="gcc-4.4.3" />
+		</Unit>
+		<Unit filename="framebased.c">
+			<Option compilerVar="CC" />
+			<Option target="gcc-4.4.3" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

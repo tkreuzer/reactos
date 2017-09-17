@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_workspace_file>
+	<Workspace title="Workspace">
+		<Project filename="pseh2_test.cbp">
+			<Depends filename="pseh.cbp" />
+		</Project>
+		<Project filename="pseh.cbp" />
+		<Project filename="../../../../../../../Source/SEH/SEHx86/SEHx86.cbp" />
+		<Project filename="K:/Move from C/Dev/Info/Reversed/win7rc/windows/win32k.cbp" />
+		<Project filename="../../../../../../../Source/RingBuffer/RingBuffer.cbp" active="1" />
+	</Workspace>
+</CodeBlocks_workspace_file>

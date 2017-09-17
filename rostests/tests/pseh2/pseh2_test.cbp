@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="pseh2_test" />
+		<Option pch_mode="2" />
+		<Option compiler="reactos_build_environment" />
+		<Build>
+			<Target title="gcc 4.4.3">
+				<Option output="bin\Debug\pseh_test" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\gcc4.4.3" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="gcc 4.7.2">
+				<Option output="bin\Debug\pseh_test" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj\gcc4.7.2" />
+				<Option type="1" />
+				<Option compiler="gcc" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-D_USE_PSEH3=1" />
+				</Compiler>
+				<Linker>
+					<Add library="..\..\..\..\..\ninja-RosBE21-x86\reactos\lib\pseh\libpseh.a" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Os" />
+			<Add option="-nostdinc" />
+			<Add option="-pipe" />
+			<Add option="-fms-extensions" />
+			<Add option="-gstabs+" />
+			<Add option="-Werror" />
+			<Add option="-march=pentium" />
+			<Add option="-mtune=i686" />
+			<Add option="-Wno-char-subscripts" />
+			<Add option="-Wpointer-arith" />
+			<Add option="-Wno-multichar" />
+			<Add option="-Wno-unused-value" />
+			<Add option="-fno-strict-aliasing" />
+			<Add option="-mpreferred-stack-boundary=3" />
+			<Add option="-fno-set-stack-executable" />
+			<Add option="-fno-optimize-sibling-calls" />
+			<Add option="-fno-omit-frame-pointer" />
+			<Add option="-ftracer" />
+			<Add option="-momit-leaf-frame-pointer" />
+			<Add option="-Wno-format" />
+			<Add option="-D__REACTOS__" />
+			<Add option="-D__ROS_CMAKE__" />
+			<Add option="-DDBG=1" />
+			<Add option="-D_SEH_ENABLE_TRACE" />
+			<Add option="-DKDBG=1" />
+			<Add option="-DWINVER=0x502" />
+			<Add option="-D_WIN32_IE=0x600" />
+			<Add option="-D_WIN32_WINNT=0x502" />
+			<Add option="-D_WIN32_WINDOWS=0x502" />
+			<Add option="-D_SETUPAPI_VER=0x502" />
+			<Add option="-D_M_IX86" />
+			<Add option="-D_X86_" />
+			<Add option="-D__i386__" />
+			<Add option="-DUSE_COMPILER_EXCEPTIONS" />
+			<Add option="-D_USE_32BIT_TIME_T" />
+			<Add option="-D_inline=__inline" />
+			<Add option="-D_DLL" />
+			<Add option="-D__USE_CRTIMP" />
+			<Add directory="..\..\..\..\include" />
+			<Add directory="..\..\..\..\include\crt" />
+			<Add directory="..\..\..\..\include\crt\mingw32" />
+			<Add directory="..\..\..\..\include\psdk" />
+			<Add directory="..\..\..\..\include\reactos" />
+			<Add directory="..\..\..\..\include\reactos\libs" />
+		</Compiler>
+		<Linker>
+			<Add library="bin\pseh.a" />
+		</Linker>
+		<Unit filename="psehtest_x.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Extensions>
+			<code_completion />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

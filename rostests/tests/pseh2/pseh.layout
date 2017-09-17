@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="gcc-4.7.2" />
+	<File name="framebased-asm.S" open="0" top="0" tabpos="13">
+		<Cursor position="1568" topLine="19" />
+	</File>
+	<File name="framebased-gcchack-asm.S" open="0" top="0" tabpos="14">
+		<Cursor position="0" topLine="0" />
+	</File>
+	<File name="framebased-gcchack.c" open="0" top="0" tabpos="12">
+		<Cursor position="6395" topLine="224" />
+	</File>
+	<File name="framebased.c" open="0" top="0" tabpos="15">
+		<Cursor position="0" topLine="0" />
+	</File>
+</CodeBlocks_layout_file>

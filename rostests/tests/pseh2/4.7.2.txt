@@ -1,0 +1,112 @@
+
+.text:00000000 ; DWORD _SEHFinally_18543
+.text:00000000 __SEHFinally_18543 proc near            ; CODE XREF: _test_finally_13_x+66p
+.text:00000000                                         ; DATA XREF: __SEHFinally_18543:loc_7o ...
+.text:00000000                 push    ebp
+.text:00000001                 mov     ebp, esp
+.text:00000003
+.text:00000003 loc_3:
+.text:00000003                 sub     esp, 10h
+// esp = 0x28fe40, ebp = 0x28fe50
+.text:00000006                 int     3               ; Trap to Debugger
+.text:00000007
+.text:00000007 loc_7:                                  ; lpArguments
+.text:00000007                 mov     dword ptr [esp+0Ch], offset __SEHFinally_18543
+.text:0000000F                 mov     dword ptr [esp+8], 0 ; nNumberOfArguments
+.text:00000017                 mov     dword ptr [esp+4], 0 ; dwExceptionFlags
+.text:0000001F                 mov     dword ptr [esp], 0E00DEAD0h ; dwExceptionCode
+
+
+.text:00000026                 call    _RaiseException@16
+.text:0000002B                 sub     esp, 10h
+.text:0000002E                 leave
+.text:0000002F                 retn
+.text:0000002F __SEHFinally_18543 endp
+
+
+.text:0000004C                 public _test_finally_13_x
+.text:0000004C _test_finally_13_x proc near            ; CODE XREF: _main+1Bp
+.text:0000004C
+.text:0000004C P1              = dword ptr -60h
+.text:0000004C P2              = dword ptr -5Ch
+.text:0000004C P3              = dword ptr -58h
+.text:0000004C P4              = dword ptr -54h
+.text:0000004C P5              = dword ptr -50h
+.text:0000004C var_4C          = dword ptr -4Ch
+.text:0000004C var_48          = dword ptr -48h
+.text:0000004C filter          = dword ptr -44h
+.text:0000004C _SEH2_Frame.SF_Registration.SER_Prev= dword ptr -40h
+.text:0000004C _SEH2_Frame.SF_Registration.SER_Handler= dword ptr -3Ch
+.text:0000004C _SEH2_Frame.SF_TopTryLevel= dword ptr -38h
+.text:0000004C _SEH2_Frame.SF_Code= dword ptr -34h
+.text:0000004C var_30          = dword ptr -30h
+.text:0000004C var_2C          = dword ptr -2Ch
+.text:0000004C var_28          = dword ptr -28h
+.text:0000004C var_24          = dword ptr -24h
+.text:0000004C _SEHHandleTryLevel.SHT_Common.ST_Next= dword ptr -20h
+.text:0000004C _SEHHandleTryLevel.SHT_Common.ST_Filter= dword ptr -1Ch
+.text:0000004C _SEHHandleTryLevel.SHT_Common.ST_Body= dword ptr -18h
+.text:0000004C _SEHHandleTryLevel.SHT_Esp= dword ptr -14h
+.text:0000004C _SEHHandleTryLevel.SHT_Ebp= dword ptr -10h
+.text:0000004C _SEHHandleTryLevel.SHT_Ebx= dword ptr -0Ch
+.text:0000004C _SEHHandleTryLevel.SHT_Esi= dword ptr -8
+.text:0000004C _SEHHandleTryLevel.SHT_Edi= dword ptr -4
+.text:0000004C
+.text:0000004C                 push    ebp
+.text:0000004D                 mov     ebp, esp
+.text:0000004F                 sub     esp, 60h
+// esp = 0x28fe58, ebp = 0x28feb8
+.text:00000052                 mov     [ebp+_SEHHandleTryLevel.SHT_Common.ST_Filter], 1
+.text:00000059                 mov     ds:_ret_18556, 0
+.text:00000063                 mov     [ebp+_SEHHandleTryLevel.SHT_Common.ST_Next], 0
+.text:0000006A                 mov     [ebp+_SEHHandleTryLevel.SHT_Esp], esp
+.text:0000006D                 lea     eax, [ebp+_SEHHandleTryLevel.SHT_Common.ST_Next]
+.text:00000070                 mov     [esp+60h+P2], eax
+.text:00000074                 lea     eax, [ebp+_SEH2_Frame.SF_Registration.SER_Prev]
+.text:00000077                 mov     [esp+60h+P3], offset loc_C8
+.text:0000007F                 mov     [esp+60h+P1], eax
+.text:00000082                 call    __SEH2EnterFrameAndHandleTrylevel
+.text:00000087                 test    eax, eax
+.text:00000089                 jnz     short loc_C8
+.text:0000008B                 lea     eax, [ebp+var_4C]
+.text:0000008E                 mov     [esp+60h+P2], eax
+.text:00000092                 lea     eax, [ebp+var_30]
+.text:00000095                 mov     [esp+60h+P1], eax
+.text:00000098                 mov     [ebp+var_48], 0
+.text:0000009F                 mov     [ebp+filter], offset __SEHFinally_18543
+.text:000000A6                 mov     [ebp+var_4C], 0
+.text:000000AD                 call    __SEH2EnterFrameAndTrylevel
+.text:000000B2                 call    __SEHFinally_18543
+.text:000000B7                 call    __SEH2LeaveFrame
+.text:000000BC                 mov     ds:_ret_18556, 2
+.text:000000C6                 jmp     short loc_D2
+.text:000000C8 ; ---------------------------------------------------------------------------
+.text:000000C8
+.text:000000C8 loc_C8:                                 ; CODE XREF: _test_finally_13_x+3Dj
+.text:000000C8                                         ; DATA XREF: _test_finally_13_x+2Bo
+.text:000000C8                 mov     ds:_ret_18556, 3
+.text:000000D2
+.text:000000D2 loc_D2:                                 ; CODE XREF: _test_finally_13_x+7Aj
+.text:000000D2                 call    __SEH2LeaveFrame
+.text:000000D7                 mov     eax, ds:_ret_18556
+.text:000000DC                 leave
+.text:000000DD                 retn
+.text:000000DD _test_finally_13_x endp
+
+
+inner:
+registration frame = 0x28fe88
+frame->TopTryLevel = 0x28fe6c
+
+outer:
+registration frame = 0x28fe78
+frame->TopTryLevel = 0x28fe98
+
+esp = 0x28f98c
+calling RtlUnwind(
+    TargetFrame = [0x28f9d8] = 0x28fe78
+    TargetIp = Return
+    ExceptionRecord = NULL
+    ReturnValue = NULL)
+Return:
+
