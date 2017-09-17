@@ -1,0 +1,21 @@
+
+_Notnull_
+
+Requires that the parameter is not 0.
+
+Example: void Foo(_Notnull_ int *pi);
+WRONG: Foo(0);
+RIGHT: int i; Foo(&i);
+Note: _Notnull_ is identical to _Pre_notnull_. _Post_notnull_ is alone meaningless.
+
+
+_Pre_valid_
+
+Requires that on function entry all levels of dereference of the parameter
+point to initialized memory or be NULL. The parameter itself must not be NULL.
+
+Example: void Foo(_Pre_valid_ int ** ppi);
+WRONG: Foo(NULL);
+WRONG: int i, *pi = &i; Foo(&pi);
+RIGHT: int *pi = NULL; Foo(&pi);
+
