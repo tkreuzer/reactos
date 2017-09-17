@@ -3,6 +3,7 @@
  * LICENSE:         GPLv2+ - See COPYING in the top level directory
  * PURPOSE:         Kernel-Mode Test Suite Interlocked function test
  * PROGRAMMER:      Thomas Faber <thomas.faber@reactos.org>
+ *                  Timo Kreuzer <timo.kreuzer@reactos.org>
  */
 
 #include <stddef.h>
@@ -50,225 +51,76 @@ __declspec(dllimport)   void            __fastcall  ExInterlockedAddLargeStatist
 
 static KSPIN_LOCK SpinLock;
 
-#ifdef _M_IX86
-typedef struct
-{
-    unsigned long esi, edi, ebx, ebp, esp;
-} PROCESSOR_STATE;
-#elif defined(_M_AMD64)
-typedef struct
-{
-    unsigned long long rsi, rdi, rbx, rbp, rsp, r12, r13, r14, r15;
-} PROCESSOR_STATE;
-#else
-// dummy
-typedef int PROCESSOR_STATE;
-#endif
 
-/* TODO: these need to be rewritten in proper assembly to account for registers
- *       saved by the caller */
-#if defined(_MSC_VER) && defined(_M_IX86)
-#define SaveState(State) do                                                 \
-{                                                                           \
-    __asm lea ecx,      [State]                                             \
-    __asm mov [ecx],    esi                                                 \
-    __asm mov [ecx+4],  edi                                                 \
-    __asm mov [ecx+8],  ebx                                                 \
-    __asm mov [ecx+12], ebp                                                 \
-    __asm mov [ecx+16], esp                                                 \
-} while (0)
 
-#define CheckState(OldState, NewState) do                                   \
-{                                                                           \
-    /* TODO: MSVC uses esi and saves it before, so this is okay */          \
-    /*ok_eq_hex((OldState)->esi, (NewState)->esi);*/                        \
-    ok_eq_hex((OldState)->edi, (NewState)->edi);                            \
-    ok_eq_hex((OldState)->ebx, (NewState)->ebx);                            \
-    ok_eq_hex((OldState)->ebp, (NewState)->ebp);                            \
-    ok_eq_hex((OldState)->esp, (NewState)->esp);                            \
-} while (0)
 
-#elif defined(__GNUC__) && defined(_M_IX86)
-#define SaveState(State)                                                    \
-    asm volatile(                                                           \
-        "movl\t%%esi, (%%ecx)\n\t"                                          \
-        "movl\t%%edi, 4(%%ecx)\n\t"                                         \
-        "movl\t%%ebx, 8(%%ecx)\n\t"                                         \
-        "movl\t%%ebp, 12(%%ecx)\n\t"                                        \
-        "movl\t%%esp, 16(%%ecx)"                                            \
-        : : "c" (&State) : "memory"                                         \
-    );
 
-#define CheckState(OldState, NewState) do                                   \
-{                                                                           \
-    /* TODO: GCC 4.7 uses esi and saves it before, so this is okay */       \
-    /*ok_eq_hex((OldState)->esi, (NewState)->esi);*/                        \
-    ok_eq_hex((OldState)->edi, (NewState)->edi);                            \
-    /* TODO: GCC 4.4 uses ebx and saves it before, so this is okay */       \
-    /*ok_eq_hex((OldState)->ebx, (NewState)->ebx);*/                        \
-    ok_eq_hex((OldState)->ebp, (NewState)->ebp);                            \
-    ok_eq_hex((OldState)->esp, (NewState)->esp);                            \
-} while (0)
-#elif defined(__GNUC__) && defined(_M_AMD64)
-#define SaveState(State)                                                    \
-    asm volatile(                                                           \
-        "mov\t%%rsi, (%%rcx)\n\t"                                           \
-        "mov\t%%rdi, 8(%%rcx)\n\t"                                          \
-        "mov\t%%rbx, 16(%%rcx)\n\t"                                         \
-        "mov\t%%rbp, 24(%%rcx)\n\t"                                         \
-        "mov\t%%rsp, 32(%%rcx)\n\t"                                         \
-        "mov\t%%r12, 40(%%rcx)\n\t"                                         \
-        "mov\t%%r13, 48(%%rcx)\n\t"                                         \
-        "mov\t%%r14, 56(%%rcx)\n\t"                                         \
-        "mov\t%%r15, 64(%%rcx)"                                             \
-        : : "c" (&State) : "memory"                                         \
-    );
 
-#define CheckState(OldState, NewState) do                                   \
-{                                                                           \
-    ok_eq_hex((OldState)->rsi, (NewState)->rsi);                            \
-    ok_eq_hex((OldState)->rdi, (NewState)->rdi);                            \
-    ok_eq_hex((OldState)->rbx, (NewState)->rbx);                            \
-    ok_eq_hex((OldState)->rbp, (NewState)->rbp);                            \
-    ok_eq_hex((OldState)->rsp, (NewState)->rsp);                            \
-    ok_eq_hex((OldState)->r12, (NewState)->r12);                            \
-    ok_eq_hex((OldState)->r13, (NewState)->r13);                            \
-    ok_eq_hex((OldState)->r14, (NewState)->r14);                            \
-    ok_eq_hex((OldState)->r15, (NewState)->r15);                            \
-} while (0)
-#else
-#define SaveState(State)
-#define CheckState(OldState, NewState) do                                   \
-{                                                                           \
-    (void)OldState;                                                         \
-    (void)NewState;                                                         \
-} while (0)
-#endif
-
-static
-LARGE_INTEGER
-Large(
-    ULONGLONG Value)
-{
-    LARGE_INTEGER Ret;
-    Ret.QuadPart = Value;
-    return Ret;
-}
-
-#define CheckInterlockedCmpXchg(Function, Type, Print, Val, Cmp, Xchg,      \
+#define CheckInterlockedCmpXchg(Function, Type, Fc, Print, Val, Cmp, Xchg,  \
                                 ExpectedValue, ExpectedRet) do              \
 {                                                                           \
     Type Ret##Type = 0;                                                     \
     Type Value##Type = Val;                                                 \
-    Status = STATUS_SUCCESS;                                                \
-    _SEH2_TRY {                                                             \
-        SaveState(OldState);                                                \
-        Ret##Type = Function(&Value##Type, Xchg, Cmp);                      \
-        SaveState(NewState);                                                \
-        CheckState(&OldState, &NewState);                                   \
-    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
-        Status = _SEH2_GetExceptionCode();                                  \
-    } _SEH2_END;                                                            \
-    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CALL_WRAPPER(&Ret##Type, Type, Fc, Function, &Value##Type, Xchg, Cmp);  \
     ok_eq_print(Ret##Type, ExpectedRet, Print);                             \
     ok_eq_print(Value##Type, ExpectedValue, Print);                         \
 } while (0)
 
-#define CheckInterlockedCmpXchgI(Function, Type, Print, Val, Cmp, Xchg,     \
+#define CheckInterlockedCmpXchgI(Function, Type, Fc, Print, Val, Cmp, Xchg, \
                                 ExpectedValue, ExpectedRet, ...) do         \
 {                                                                           \
     Type Ret##Type = 0;                                                     \
     Type Value##Type = Val;                                                 \
     Type Compare##Type = Cmp;                                               \
     Type Exchange##Type = Xchg;                                             \
-    Status = STATUS_SUCCESS;                                                \
-    _SEH2_TRY {                                                             \
-        SaveState(OldState);                                                \
-        Ret##Type = Function(&Value##Type, &Exchange##Type,                 \
-                                &Compare##Type, ##__VA_ARGS__);             \
-        SaveState(NewState);                                                \
-        CheckState(&OldState, &NewState);                                   \
-    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
-        Status = _SEH2_GetExceptionCode();                                  \
-    } _SEH2_END;                                                            \
-    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CALL_WRAPPER(&Ret##Type, Type, Fc, Function, &Value##Type,              \
+                 &Exchange##Type, &Compare##Type, ##__VA_ARGS__);           \
     ok_eq_print(Ret##Type, ExpectedRet, Print);                             \
     ok_eq_print(Value##Type, ExpectedValue, Print);                         \
     ok_eq_print(Exchange##Type, Xchg, Print);                               \
     ok_eq_print(Compare##Type, Cmp, Print);                                 \
 } while(0)
 
-#define CheckInterlockedOp(Function, Type, Print, Val, Op,                  \
+#define CheckInterlockedOp(Function, Type, Fc, Print, Val, Op,              \
                                 ExpectedValue, ExpectedRet, ...) do         \
 {                                                                           \
     Type Ret##Type = 0;                                                     \
     Type Value##Type = Val;                                                 \
-    Status = STATUS_SUCCESS;                                                \
-    _SEH2_TRY {                                                             \
-        SaveState(OldState);                                                \
-        Ret##Type = Function(&Value##Type, Op, ##__VA_ARGS__);              \
-        SaveState(NewState);                                                \
-        CheckState(&OldState, &NewState);                                   \
-    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
-        Status = _SEH2_GetExceptionCode();                                  \
-    } _SEH2_END;                                                            \
-    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CALL_WRAPPER(&Ret##Type, Type, Fc, Function,                            \
+                 &Value##Type, Op, ##__VA_ARGS__);                          \
     ok_eq_print(Ret##Type, ExpectedRet, Print);                             \
     ok_eq_print(Value##Type, ExpectedValue, Print);                         \
 } while (0)
 
-#define CheckInterlockedOpNoArg(Function, Type, Print, Val,                 \
+#define CheckInterlockedOpNoArg(Function, Type, Fc, Print, Val,             \
                                 ExpectedValue, ExpectedRet, ...) do         \
 {                                                                           \
     Type Ret##Type = 0;                                                     \
     Type Value##Type = Val;                                                 \
-    Status = STATUS_SUCCESS;                                                \
-    _SEH2_TRY {                                                             \
-        SaveState(OldState);                                                \
-        Ret##Type = Function(&Value##Type, ##__VA_ARGS__);                  \
-        SaveState(NewState);                                                \
-        CheckState(&OldState, &NewState);                                   \
-    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
-        Status = _SEH2_GetExceptionCode();                                  \
-    } _SEH2_END;                                                            \
-    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CALL_WRAPPER(&Ret##Type, Type, Fc, Function,                            \
+                 &Value##Type, ##__VA_ARGS__);                              \
     ok_eq_print(Ret##Type, ExpectedRet, Print);                             \
     ok_eq_print(Value##Type, ExpectedValue, Print);                         \
 } while (0)
 
-#define CheckInterlockedOpLarge(Function, Type, Print, Val, Op,             \
+#define CheckInterlockedOpLarge(Function, Type, Fc, Print, Val, Op,         \
                                 ExpectedValue, ExpectedRet, ...) do         \
 {                                                                           \
     Type Ret##Type = Large(0);                                              \
     Type Value##Type = Val;                                                 \
-    Status = STATUS_SUCCESS;                                                \
-    _SEH2_TRY {                                                             \
-        SaveState(OldState);                                                \
-        Ret##Type = Function(&Value##Type, Op, ##__VA_ARGS__);              \
-        SaveState(NewState);                                                \
-        CheckState(&OldState, &NewState);                                   \
-    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
-        Status = _SEH2_GetExceptionCode();                                  \
-    } _SEH2_END;                                                            \
-    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CALL_WRAPPER(&Ret##Type, Type, Fc, Function,                            \
+                 &Value##Type, Op, ##__VA_ARGS__);                          \
     ok_eq_print(Ret##Type.QuadPart, ExpectedRet, Print);                    \
     ok_eq_print(Value##Type.QuadPart, ExpectedValue, Print);                \
 } while (0)
 
-#define CheckInterlockedOpLargeNoRet(Function, Type, Print, Val, Op,        \
+#define CheckInterlockedOpLargeNoRet(Function, Type, Fc, Print, Val, Op,    \
                                 ExpectedValue) do                           \
 {                                                                           \
+    Type Ret##Type;                                                         \
     Type Value##Type = Val;                                                 \
-    Status = STATUS_SUCCESS;                                                \
-    _SEH2_TRY {                                                             \
-        SaveState(OldState);                                                \
-        Function(&Value##Type, Op);                                         \
-        SaveState(NewState);                                                \
-        CheckState(&OldState, &NewState);                                   \
-    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
-        Status = _SEH2_GetExceptionCode();                                  \
-    } _SEH2_END;                                                            \
-    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CALL_WRAPPER(&Ret##Type, Type, Fc, Function,                            \
+                 &Value##Type, Op);                                         \
     ok_eq_print(Value##Type.QuadPart, ExpectedValue, Print);                \
 } while (0)
 
@@ -276,9 +128,8 @@ static
 VOID
 TestInterlockedFunctional(VOID)
 {
-    NTSTATUS Status;
     PKSPIN_LOCK pSpinLock = &SpinLock;
-    PROCESSOR_STATE OldState, NewState;
+    CONTEXT PreContext, PostContext;
 
     /* on x86, most of these are supported intrinsically and don't need a spinlock! */
 #if defined _M_IX86 || defined _M_AMD64
@@ -287,89 +138,91 @@ TestInterlockedFunctional(VOID)
 
     /* CompareExchange */
 #ifdef _M_IX86
-    CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, "%ld", 5, 6, 8, 5L, 5L);
-    CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, "%ld", 5, 5, 9, 9L, 5L);
+    CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, 1, "%ld", 5, 6, 8, 5L, 5L);
+    CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, 1, "%ld", 5, 5, 9, 9L, 5L);
     /* exported function */
-    CheckInterlockedCmpXchgI((ExInterlockedCompareExchange64), LONGLONG, "%I64d", 17, 4LL, 20LL, 17LL, 17LL, pSpinLock);
-    CheckInterlockedCmpXchgI((ExInterlockedCompareExchange64), LONGLONG, "%I64d", 17, 17LL, 21LL, 21LL, 17LL, pSpinLock);
+    CheckInterlockedCmpXchgI((ExInterlockedCompareExchange64), LONGLONG, 1, "%I64d", 17, 4LL, 20LL, 17LL, 17LL, pSpinLock);
+    CheckInterlockedCmpXchgI((ExInterlockedCompareExchange64), LONGLONG, 1, "%I64d", 17, 17LL, 21LL, 21LL, 17LL, pSpinLock);
     /* fastcall version */
-    CheckInterlockedCmpXchgI(ExfInterlockedCompareExchange64, LONGLONG, "%I64d", 17, 4LL, 20LL, 17LL, 17LL);
-    CheckInterlockedCmpXchgI(ExfInterlockedCompareExchange64, LONGLONG, "%I64d", 17, 17LL, 21LL, 21LL, 17LL);
+    CheckInterlockedCmpXchgI(ExfInterlockedCompareExchange64, LONGLONG, 1, "%I64d", 17, 4LL, 20LL, 17LL, 17LL);
+    CheckInterlockedCmpXchgI(ExfInterlockedCompareExchange64, LONGLONG, 1, "%I64d", 17, 17LL, 21LL, 21LL, 17LL);
 #endif
 
     /* Exchange */
 #ifdef _M_IX86
-    CheckInterlockedOp(InterlockedExchange, LONG, "%ld", 5, 8, 8L, 5L);
-    CheckInterlockedOp(ExInterlockedExchangeUlong, ULONG, "%lu", 212, 121, 121LU, 212LU, pSpinLock);
-    CheckInterlockedOp((ExInterlockedExchangeUlong), ULONG, "%lu", 212, 121, 121LU, 212LU, pSpinLock);
-    CheckInterlockedOp(Exi386InterlockedExchangeUlong, ULONG, "%lu", 212, 121, 121LU, 212LU);
-    CheckInterlockedOp(Exfi386InterlockedExchangeUlong, ULONG, "%lu", 212, 121, 121LU, 212LU);
+    CheckInterlockedOp(InterlockedExchange, LONG, 1, "%ld", 5, 8, 8L, 5L);
+    CheckInterlockedOp(ExInterlockedExchangeUlong, ULONG, 0, "%lu", 212, 121, 121LU, 212LU, pSpinLock);
+    CheckInterlockedOp((ExInterlockedExchangeUlong), ULONG, 0, "%lu", 212, 121, 121LU, 212LU, pSpinLock);
+    CheckInterlockedOp(Exi386InterlockedExchangeUlong, ULONG, 0, "%lu", 212, 121, 121LU, 212LU);
+    CheckInterlockedOp(Exfi386InterlockedExchangeUlong, ULONG, 1, "%lu", 212, 121, 121LU, 212LU);
 #endif
 
     /* ExchangeAdd */
 #ifdef _M_IX86
-    CheckInterlockedOp(InterlockedExchangeAdd, LONG, "%ld", 312, 7, 319L, 312L);
+    CheckInterlockedOp(InterlockedExchangeAdd, LONG, 1, "%ld", 312, 7, 319L, 312L);
 #endif
 
     /* Add */
     /* these DO need a valid spinlock even on x86 */
-    CheckInterlockedOpLarge(ExInterlockedAddLargeInteger, LARGE_INTEGER, "%I64d", Large(23), Large(7), 30LL, 23LL, &SpinLock);
+    /* Note the "trick", passing one additional parameter to the macro.
+       This is because we have a LARGE_INTEGER, which is 2 parameters on x86 */
+    CheckInterlockedOpLarge(ExInterlockedAddLargeInteger, LARGE_INTEGER, 0, "%I64d", Large(23), Large(7), 30LL, 23LL, &SpinLock, 0);
 #ifdef _M_IX86
-    CheckInterlockedOpLargeNoRet(ExInterlockedAddLargeStatistic, LARGE_INTEGER, "%I64d", Large(15), 17LL, 32LL);
-    CheckInterlockedOp(ExfInterlockedAddUlong, ULONG, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
+    CheckInterlockedOpLargeNoRet(ExInterlockedAddLargeStatistic, LARGE_INTEGER, 1, "%I64d", Large(15), 17LL, 32LL);
+    CheckInterlockedOp(ExfInterlockedAddUlong, ULONG, 0, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
 #endif
-    CheckInterlockedOp(ExInterlockedAddUlong, ULONG, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
+    CheckInterlockedOp(ExInterlockedAddUlong, ULONG, 0, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
 
     /* Increment */
 #if 0
-    CheckInterlockedOpNoArg(InterlockedIncrementAcquire, LONG, "%ld", 2341L, 2342L, 2342L);
-    CheckInterlockedOpNoArg(InterlockedIncrementRelease, LONG, "%ld", 2341L, 2342L, 2342L);
+    CheckInterlockedOpNoArg(InterlockedIncrementAcquire, LONG, 0, "%ld", 2341L, 2342L, 2342L);
+    CheckInterlockedOpNoArg(InterlockedIncrementRelease, LONG, 0, "%ld", 2341L, 2342L, 2342L);
 #endif
 #ifdef _M_IX86
-    CheckInterlockedOpNoArg(InterlockedIncrement, LONG, "%ld", 2341L, 2342L, 2342L);
-    CheckInterlockedOpNoArg(InterlockedIncrement, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)MINLONG);
-    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, "%ld", -2L, -1L, (LONG)ResultNegative, pSpinLock);
-    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, "%ld", -1L, 0L, (LONG)ResultZero, pSpinLock);
-    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, "%ld", 0L, 1L, (LONG)ResultPositive, pSpinLock);
-    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, "%ld", -2L, -1L, (LONG)ResultNegative, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, "%ld", -1L, 0L, (LONG)ResultZero, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, "%ld", 0L, 1L, (LONG)ResultPositive, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative, pSpinLock);
-    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", -2L, -1L, (LONG)ResultNegative);
-    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", -1L, 0L, (LONG)ResultZero);
-    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", 0L, 1L, (LONG)ResultPositive);
-    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative);
-    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", -2L, -1L, (LONG)ResultNegative);
-    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", -1L, 0L, (LONG)ResultZero);
-    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", 0L, 1L, (LONG)ResultPositive);
-    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(InterlockedIncrement, LONG, 1, "%ld", 2341L, 2342L, 2342L);
+    CheckInterlockedOpNoArg(InterlockedIncrement, LONG, 1, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)MINLONG);
+    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, 0, "%ld", -2L, -1L, (LONG)ResultNegative, pSpinLock);
+    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, 0, "%ld", -1L, 0L, (LONG)ResultZero, pSpinLock);
+    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, 0, "%ld", 0L, 1L, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg(ExInterlockedIncrementLong, LONG, 0, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, 0, "%ld", -2L, -1L, (LONG)ResultNegative, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, 0, "%ld", -1L, 0L, (LONG)ResultZero, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, 0, "%ld", 0L, 1L, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedIncrementLong), LONG, 0, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative, pSpinLock);
+    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, 0, "%ld", -2L, -1L, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, 0, "%ld", -1L, 0L, (LONG)ResultZero);
+    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, 0, "%ld", 0L, 1L, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, 0, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, 0, "%ld", -2L, -1L, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, 0, "%ld", -1L, 0L, (LONG)ResultZero);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, 0, "%ld", 0L, 1L, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, 0, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative);
 #endif
 
     /* Decrement */
 #if 0 // Who implements these?
-    CheckInterlockedOpNoArg(InterlockedDecrementAcquire, LONG, "%ld", 1745L, 1744L, 1744L);
-    CheckInterlockedOpNoArg(InterlockedDecrementRelease, LONG, "%ld", 1745L, 1744L, 1744L);
+    CheckInterlockedOpNoArg(InterlockedDecrementAcquire, LONG, 0, "%ld", 1745L, 1744L, 1744L);
+    CheckInterlockedOpNoArg(InterlockedDecrementRelease, LONG, 0, "%ld", 1745L, 1744L, 1744L);
 #endif
 #ifdef _M_IX86
-    CheckInterlockedOpNoArg(InterlockedDecrement, LONG, "%ld", 1745L, 1744L, 1744L);
-    CheckInterlockedOpNoArg(InterlockedDecrement, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)MAXLONG);
-    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive, pSpinLock);
-    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, "%ld", 0L, -1L, (LONG)ResultNegative, pSpinLock);
-    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, "%ld", 1L, 0L, (LONG)ResultZero, pSpinLock);
-    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, "%ld", 2L, 1L, (LONG)ResultPositive, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, "%ld", 0L, -1L, (LONG)ResultNegative, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, "%ld", 1L, 0L, (LONG)ResultZero, pSpinLock);
-    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, "%ld", 2L, 1L, (LONG)ResultPositive, pSpinLock);
-    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive);
-    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", 0L, -1L, (LONG)ResultNegative);
-    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", 1L, 0L, (LONG)ResultZero);
-    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", 2L, 1L, (LONG)ResultPositive);
-    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive);
-    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", 0L, -1L, (LONG)ResultNegative);
-    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", 1L, 0L, (LONG)ResultZero);
-    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", 2L, 1L, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(InterlockedDecrement, LONG, 1, "%ld", 1745L, 1744L, 1744L);
+    CheckInterlockedOpNoArg(InterlockedDecrement, LONG, 1, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)MAXLONG);
+    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, 0, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, 0, "%ld", 0L, -1L, (LONG)ResultNegative, pSpinLock);
+    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, 0, "%ld", 1L, 0L, (LONG)ResultZero, pSpinLock);
+    CheckInterlockedOpNoArg(ExInterlockedDecrementLong, LONG, 0, "%ld", 2L, 1L, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, 0, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, 0, "%ld", 0L, -1L, (LONG)ResultNegative, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, 0, "%ld", 1L, 0L, (LONG)ResultZero, pSpinLock);
+    CheckInterlockedOpNoArg((ExInterlockedDecrementLong), LONG, 0, "%ld", 2L, 1L, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, 0, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, 0, "%ld", 0L, -1L, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, 0, "%ld", 1L, 0L, (LONG)ResultZero);
+    CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, 0, "%ld", 2L, 1L, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, 0, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive, pSpinLock);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, 0, "%ld", 0L, -1L, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, 0, "%ld", 1L, 0L, (LONG)ResultZero);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, 0, "%ld", 2L, 1L, (LONG)ResultPositive);
 #endif
 }
 
