@@ -563,7 +563,7 @@ static const char *variantstr( const VARIANT *var )
     case VT_R4:
         sprintf( vtstr_buffer[vtstr_current], "VT_R4(%g)", V_R4(var) ); break;
     case VT_R8:
-        sprintf( vtstr_buffer[vtstr_current], "VT_R8(%g)", V_R8(var) ); break;
+        sprintf( vtstr_buffer[vtstr_current], "VT_R8(%g/%x%08x)", V_R8(var), (UINT)(V_I8(var) >> 32), (UINT)V_I8(var) ); break;
     case VT_UI1:
         sprintf( vtstr_buffer[vtstr_current], "VT_UI1(%u)", V_UI1(var) ); break;
     case VT_UI2:
@@ -610,7 +610,18 @@ static BOOL is_expected_variant( const VARIANT *result, const VARIANT *expected 
     case VT_R4:
         return EQ_FLOAT(V_R4(result), V_R4(expected));
     case VT_R8:
-        return EQ_FLOAT(V_R8(result), V_R8(expected));
+    {
+        BOOL res = EQ_FLOAT(V_R8(result), V_R8(expected));
+        if (!res)
+        {
+            double a,b;
+            a = V_R8(result);
+            b = V_R8(expected);
+            //(fabs((a)-(b)) / (1.0+fabs(a)+fabs(b)) < 1e-7)
+            printf("-->comparison false, %G/%G=%G\n", fabs((a)-(b)), 1.0+fabs(a)+fabs(b), fabs((a)-(b)) / (1.0+fabs(a)+fabs(b)) );
+        }
+        return res;
+    }
     case VT_CY:
         return (V_CY(result).int64 == V_CY(expected).int64);
     case VT_BSTR:
@@ -653,6 +664,26 @@ static void test_var_call2( int line, HRESULT (WINAPI *func)(LPVARIANT,LPVARIANT
     ok_(__FILE__,line)( hres == S_OK, "wrong result %x\n", hres );
     if (hres == S_OK)
         ok_(__FILE__,line)( is_expected_variant( &result, expected ),
+                            "got %s expected %s\n", variantstr(&result), variantstr(expected) );
+    ok_(__FILE__,line)( is_expected_variant( left, &old_left ), "Modified left argument %s / %s\n",
+                        variantstr(&old_left), variantstr(left));
+    ok_(__FILE__,line)( is_expected_variant( right, &old_right ), "Modified right argument %s / %s\n",
+                        variantstr(&old_right), variantstr(right));
+    VariantClear( &result );
+}
+
+static void test_var_call3( int line, HRESULT (WINAPI *func)(LPVARIANT,LPVARIANT,LPVARIANT),
+                            VARIANT *left, VARIANT *right, VARIANT *expected )
+{
+    VARIANT old_left = *left, old_right = *right;
+    VARIANT result;
+    HRESULT hres;
+
+    memset( &result, 0, sizeof(result) );
+    hres = func( left, right, &result );
+    ok_(__FILE__,line)( hres == S_OK, "wrong result %x\n", hres );
+    if (hres == S_OK)
+        ok_(__FILE__,line)( 0 && is_expected_variant( &result, expected ),
                             "got %s expected %s\n", variantstr(&result), variantstr(expected) );
     ok_(__FILE__,line)( is_expected_variant( left, &old_left ), "Modified left argument %s / %s\n",
                         variantstr(&old_left), variantstr(left));
@@ -7158,7 +7189,7 @@ static HRESULT (WINAPI *pVarPow)(LPVARIANT,LPVARIANT,LPVARIANT);
         V_VT(&left) = VT_##vt1; V_##vt1(&left) = val1;   \
         V_VT(&right) = VT_##vt2; V_##vt2(&right) = val2; \
         V_VT(&exp) = VT_##rvt; V_##rvt(&exp) = rval;     \
-        test_var_call2( __LINE__, pVarPow, &left, &right, &exp )
+        test_var_call3( __LINE__, pVarPow, &left, &right, &exp )
 
 /* Skip any type that is not defined or produces an error for every case */
 #define SKIPTESTPOW(a)                            \
@@ -7167,6 +7198,65 @@ static HRESULT (WINAPI *pVarPow)(LPVARIANT,LPVARIANT,LPVARIANT);
         a == VT_RECORD || a > VT_UINT ||          \
         a == 15 /*not defined*/)                  \
         continue
+
+HRESULT WINAPI VariantChangeTypeX(
+    VARIANTARG* pvargDest,
+    VARIANTARG* pvargSrc)
+{
+    HRESULT res = S_OK;
+    VARIANTARG vTmp;
+
+    VariantClear(&vTmp);
+    V_R8(&vTmp) = 0.0;
+    V_VT(&vTmp) = VT_R8;
+    VariantCopy(pvargDest, &vTmp);
+
+    return res;
+}
+
+HRESULT WINAPI VariantChangeTypeY(
+    VARIANT* pvargDest,
+    VARIANT* pvargSrc)
+{
+    VariantClear(pvargDest);
+    V_VT(pvargDest) = VT_R8;
+    V_R8(pvargDest) = 0.0;
+
+    return S_OK;
+}
+
+HRESULT WINAPI VarPow2(LPVARIANT left, LPVARIANT right, LPVARIANT result)
+{
+    HRESULT hr = S_OK;
+    VARIANT dl,dr;
+
+    VariantInit(&dl);
+    VariantInit(&dr);
+
+    hr = VariantChangeType(&dl,left,0,VT_R8);
+    hr = VariantChangeType(&dr,right,0,VT_R8);
+
+    V_VT(result) = VT_R8;
+    V_R8(result) = pow(V_R8(&dl),V_R8(&dr));
+
+    return hr;
+}
+
+void __attribute__((noinline))
+pow_test(double x1, double x2, double expected)
+{
+    double result = pow(x1, x2);
+    ok(result == expected, "Got %f, expected %f\n", result, expected);
+    ok(EQ_FLOAT(result, expected), "2. got soemthing different\n");
+
+}
+
+void test_var_callx()
+{
+
+    pow_test(0.0, 0.0, 1.0);
+
+}
 
 static void test_VarPow(void)
 {
@@ -7259,7 +7349,30 @@ static void test_VarPow(void)
     }
 
     /* Check return values for valid variant type combinations */
-    VARPOW(EMPTY,0,EMPTY,0,R8,1.0);
+#if 0
+#define VARPOW(vt1,val1,vt2,val2,rvt,rval)
+    V_VT(&left) = VT_##vt1; V_##vt1(&left) = val1;
+    V_VT(&right) = VT_##vt2; V_##vt2(&right) = val2;
+    V_VT(&exp) = VT_##rvt; V_##rvt(&exp) = rval;
+    test_var_call2( __LINE__, pVarPow, &left, &right, &exp );
+
+#define V_UNION(A,B) ((A)->n1.n2.n3.B)
+#define V_I4(A)          V_UNION(A,lVal)
+#define V_VT(A)         ((A)->n1.n2.vt)
+#define V_EMPTY(v) V_I4(v)
+#define V_NULL(v) V_I4(v)
+#define V_R8(A)          V_UNION(A,dblVal)
+#endif
+
+//    VARPOW(EMPTY,0,EMPTY,0,R8,1.0);
+    left.n1.n2.vt = VT_EMPTY; 
+    left.n1.n2.n3.lVal = 0;
+    right.n1.n2.vt = VT_EMPTY; 
+    right.n1.n2.n3.lVal = 0;
+    exp.n1.n2.vt = VT_R8;
+    exp.n1.n2.n3.dblVal = 1.0;
+    test_var_callx();
+
     VARPOW(EMPTY,0,NULL,0,NULL,0);
     VARPOW(EMPTY,0,I2,3,R8,0.0);
     VARPOW(EMPTY,0,I4,3,R8,0.0);
