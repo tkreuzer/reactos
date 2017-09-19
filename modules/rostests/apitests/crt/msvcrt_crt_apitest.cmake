@@ -1047,7 +1047,7 @@ list(APPEND SOURCE_MSVCRT
 #    fmod.c
 #    fopen.c
 #    fopen_s.c
-#    fprintf.c
+    fprintf.c
 #    fprintf_s.c
 #    fputc.c
 #    fputs.c
@@ -1191,7 +1191,7 @@ list(APPEND SOURCE_MSVCRT
     strtoul.c
 #    strxfrm.c
 #    swprintf.c
-#    swprintf_s.c
+##    swprintf_s.c
 #    swscanf.c
 #    swscanf_s.c
 #    system.c
