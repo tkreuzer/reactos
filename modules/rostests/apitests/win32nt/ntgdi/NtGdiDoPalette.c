@@ -138,7 +138,10 @@ Test_NtGdiDoPalette_GdiPalSetEntries(void)
     ok_long(NtGdiDoPalette(hPal, 3, 6, palEntries, GdiPalSetEntries, TRUE), 2);
 //  TEST(NtGdiDoPalette(hPal, 4, 23247, palEntries, GdiPalSetEntries, TRUE), 0);
 
-    /* Test bInbound, FALSE */
+    // crash?
+    RTEST(NtGdiDoPalette(hPal, 0, 1, palEntries, GdiPalSetColorTable, FALSE) == 2);
+
+    /* Test bInbound == FALSE */
     NtGdiDoPalette(hPal, 0, 5, palEntries, GdiPalSetEntries, TRUE);
     ZeroMemory(palEntries2, sizeof(palEntries2));
     ok_long(NtGdiDoPalette(hPal, 0, 5, palEntries2, GdiPalSetEntries, FALSE), 5);
