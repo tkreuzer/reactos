@@ -64,7 +64,7 @@ extern void set_positive(int *);
 } // extern "C"
 #endif
 
-#define DEFINE_TEST(NAME_) static int NAME_(void)
+#define DEFINE_TEST(NAME_)  int NAME_(void)
 
 /* Empty statements *///{{{
 DEFINE_TEST(test_empty_1)
@@ -2297,6 +2297,7 @@ DEFINE_TEST(test_nested_locals_3)
 		}
 		_SEH2_FINALLY
 		{
+		    //(void)GetExceptionInformation();
 			if(var1 == return_one())
 				var1 = return_positive();
 		}
@@ -2644,14 +2645,14 @@ int call_test(int (* func)(void))
 	static int ret;
 	static struct volatile_context before, after;
 	static LPTOP_LEVEL_EXCEPTION_FILTER prev_unhandled_exception;
-#ifndef _PSEH3_H_
+#if defined(__GNUC__) && !defined(_PSEH3_H_)
 	static _SEH2Registration_t * prev_frame;
 	_SEH2Registration_t passthrough_frame;
 #endif
 
 	prev_unhandled_exception = SetUnhandledExceptionFilter(&unhandled_exception);
 
-#if defined(_X86_) && !defined(_PSEH3_H_)
+#if defined(_X86_) && defined(__GNUC__) && !defined(_PSEH3_H_)
 	prev_frame = (_SEH2Registration_t *)__readfsdword(0);
 	passthrough_frame.SER_Prev = prev_frame;
 	passthrough_frame.SER_Handler = passthrough_handler;
@@ -2687,7 +2688,7 @@ int call_test(int (* func)(void))
 	ret = func();
 #endif
 
-#if defined(_X86_) && !defined(_PSEH3_H_)
+#if defined(_X86_) && defined(__GNUC__) && !defined(_PSEH3_H_)
 	if((_SEH2Registration_t *)__readfsdword(0) != &passthrough_frame || passthrough_frame.SER_Prev != prev_frame)
 	{
 		trace("exception registration list corrupted\n");
@@ -2772,7 +2773,7 @@ void testsuite_syntax(void)
 		USE_TEST(test_empty_6),
 		USE_TEST(test_empty_7),
 		USE_TEST(test_empty_8),
-
+#if 1
 		USE_TEST(test_execute_handler_1),
 		USE_TEST(test_continue_execution_1),
 		USE_TEST(test_continue_search_1),
@@ -2870,21 +2871,22 @@ void testsuite_syntax(void)
 
 		USE_TEST(test_nested_locals_1),
 		USE_TEST(test_nested_locals_2),
-		USE_TEST(test_nested_locals_3),
+		USE_TEST(test_nested_locals_3),//
 
 		USE_TEST(test_bug_4004),
-		USE_TEST(test_bug_4663),
+		USE_TEST(test_bug_4663),//
 
-		USE_TEST(test_unvolatile),
+		USE_TEST(test_unvolatile),//
 		USE_TEST(test_unvolatile_2),
 #ifndef __cplusplus
-		USE_TEST(test_unvolatile_3),
+		USE_TEST(test_unvolatile_3),//
 #endif
 		USE_TEST(test_unvolatile_4),
 		USE_TEST(test_finally_goto),
 		USE_TEST(test_nested_exception),
 		USE_TEST(test_PSEH3_bug),
 		USE_TEST(test_PSEH3_bug2),
+#endif
 	};
 
 	size_t i;

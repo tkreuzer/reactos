@@ -6,7 +6,7 @@ add_importlibs(pseh2_test msvcrt kernel32 ntdll)
 add_rostests_file(TARGET pseh2_test)
 
 if(NOT MSVC)
-    add_target_compile_flags(pseh2_test "-Wno-format")
+    add_target_compile_flags(pseh2_test "-Wno-format -O3")
 endif()
 
 
@@ -17,5 +17,5 @@ add_importlibs(pseh2_test_cpp msvcrt kernel32 ntdll)
 add_rostests_file(TARGET pseh2_test_cpp)
 
 if(NOT MSVC)
-    add_target_compile_flags(pseh2_test_cpp "-Wno-format")
+    add_target_compile_flags(pseh2_test_cpp "-Wno-format -O3")
 endif()
