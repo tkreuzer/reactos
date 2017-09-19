@@ -30,11 +30,11 @@ ok_argsA_imp(const char* input_args, const char* arg1, const char* arg2, const c
     int argc = 0, mode = 0;
     int expect_count = arg3 == NULL ? (arg2 == NULL ? 2 : 3) : 4;
     char** argv, **env;
-
+#ifndef _M_X64
     /* Remove cached argv, setup our input as program argument. */
     *__p___argv() = NULL;
     *__p__acmdln() = input_args;
-
+#endif
     /* Process the commandline stored in _acmdln */
     __getmainargs(&argc, &argv, &env, 0, &mode);
 
@@ -58,11 +58,11 @@ ok_argsW_imp(const wchar_t* input_args, const wchar_t* arg1, const wchar_t* arg2
     int argc = 0, mode = 0;
     int expect_count = arg3 == NULL ? (arg2 == NULL ? 2 : 3) : 4;
     wchar_t** argv, **env;
-
+#ifndef _M_X64
     /* Remove cached wargv, setup our input as program argument. */
     *__p___wargv() = NULL;
     *__p__wcmdln() = input_args;
-
+#endif
     /* Process the commandline stored in _wcmdln */
     __wgetmainargs(&argc, &argv, &env, 0, &mode);
 
