@@ -29,6 +29,7 @@ extern void func_NtGdiGetFontResourceInfoInternalW(void);
 extern void func_NtGdiGetRandomRgn(void);
 extern void func_NtGdiGetStockObject(void);
 extern void func_NtGdiIntersectClipRect(void);
+extern void func_NtGdiMaskBlt(void);
 extern void func_NtGdiOffsetClipRgn(void);
 extern void func_NtGdiPolyPolyDraw(void);
 extern void func_NtGdiRestoreDC(void);
@@ -94,6 +95,7 @@ const struct test winetest_testlist[] =
     { "NtGdiGetRandomRgn", func_NtGdiGetRandomRgn },
     { "NtGdiGetStockObject", func_NtGdiGetStockObject },
     { "NtGdiIntersectClipRect", func_NtGdiIntersectClipRect },
+    { "NtGdiMaskBlt", func_NtGdiMaskBlt },
     { "NtGdiOffsetClipRgn", func_NtGdiOffsetClipRgn },
     { "NtGdiPolyPolyDraw", func_NtGdiPolyPolyDraw },
     { "NtGdiRestoreDC", func_NtGdiRestoreDC },
