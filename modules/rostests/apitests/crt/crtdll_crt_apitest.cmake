@@ -265,7 +265,8 @@ list(APPEND SOURCE_CRTDLL
 #    _setsystime.c
 #    _sleep.c
     _snprintf.c
-    _snwprintf.c#    _sopen.c
+    _snwprintf.c
+#    _sopen.c
 #    _spawnl.c
 #    _spawnle.c
 #    _spawnlp.c
