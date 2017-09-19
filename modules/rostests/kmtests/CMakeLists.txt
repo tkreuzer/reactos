@@ -106,6 +106,12 @@ list(APPEND KMTEST_DRV_SOURCE
 
     kmtest_drv/kmtest_drv.rc)
 
+if (ARCH STREQUAL "i386")
+    list(APPEND KMTEST_DRV_SOURCE kmtest_drv/asmtools-i386.S)
+else()
+    list(APPEND KMTEST_DRV_SOURCE kmtest_drv/asmtools-amd64.S)
+endif()
+
 add_library(kmtest_drv MODULE ${KMTEST_DRV_SOURCE})
 set_module_type(kmtest_drv kernelmodedriver)
 target_link_libraries(kmtest_drv kmtest_printf chkstk memcmp ntoskrnl_vista ${PSEH_LIB})
@@ -159,6 +165,7 @@ list(APPEND KMTEST_SOURCE
     ${COMMON_SOURCE}
 
     kmtest/kmtest.rc)
+
 
 add_executable(kmtest ${KMTEST_SOURCE})
 set_module_type(kmtest win32cui)
