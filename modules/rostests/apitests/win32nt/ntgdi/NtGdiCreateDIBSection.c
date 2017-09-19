@@ -52,6 +52,7 @@ START_TEST(NtGdiCreateDIBSection)
     PBITMAPINFOHEADER pbih = (PBITMAPINFOHEADER)&bmi.bmiHeader;
     PBITMAPV4HEADER pbV4h = (PBITMAPV4HEADER)&bmi.bmiHeader;
     PBITMAPV5HEADER pbV5h = (PBITMAPV5HEADER)&bmi.bmiHeader;
+    PBITMAPCOREHEADER pbch = (PBITMAPCOREHEADER)&bmi.bmiHeader;
 
     HANDLE hSection;
     NTSTATUS Status;
@@ -367,6 +368,25 @@ printf("dib with bitfileds: %p\n", hbmp);
     TEST(pvBits == (PVOID)-1);
     TEST(hbmp == 0);
     TEST(GetLastError() == 0);
+    if (hbmp) DeleteObject(hbmp);
+
+
+/** BITMAPCOREHEADER **********************************************************/
+
+    pbch->bcSize = sizeof(BITMAPCOREHEADER);
+    pbch->bcWidth = 2;
+    pbch->bcHeight = 3;
+    pbch->bcPlanes = 1;
+    pbch->bcBitCount = 1;
+    cjHeader = bmi.bmiHeader.biSize;
+
+    /* Test something simple */
+    SetLastError(0xf00ba3);
+    pvBits = (PVOID)0xdeadbabe;
+    hbmp = NtGdiCreateDIBSection(hDC, NULL, 0, pbmi, 0, cjHeader, 0, 0, &pvBits);
+    TEST(pvBits == (PVOID)0xdeadbabe);
+    TEST(hbmp == 0);
+    TEST(GetLastError() == 0xf00ba3);
     if (hbmp) DeleteObject(hbmp);
 
 
