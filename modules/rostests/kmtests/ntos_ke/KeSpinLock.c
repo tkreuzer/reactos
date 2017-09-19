@@ -337,7 +337,9 @@ START_TEST(KeSpinLock)
         { CheckLock,        DISPATCH_LEVEL, AcquireExp,           ReleaseExp,           NULL,           AcquireExpNoRaise,     ReleaseExpNoLower,     NULL },
         /* TODO: this one is just weird!
         { CheckLock,        DISPATCH_LEVEL, AcquireNormal,        ReleaseNormal,        NULL,           AcquireForDpc,         ReleaseForDpc,         NULL },*/
+#ifdef _M_IX86
         { CheckLock,        DISPATCH_LEVEL, AcquireNormal,        ReleaseNormal,        NULL,           AcquireInt,            ReleaseInt,            NULL },
+#endif
         { CheckLock,        SynchIrql,      AcquireSynch,         ReleaseNormal,        NULL,           NULL,                  NULL,                  NULL },
         { CheckQueueHandle, DISPATCH_LEVEL, AcquireInStackQueued, ReleaseInStackQueued, NULL,           AcquireInStackNoRaise, ReleaseInStackNoRaise, NULL },
         { CheckQueueHandle, SynchIrql,      AcquireInStackSynch,  ReleaseInStackQueued, NULL,           NULL,                  NULL,                  NULL },
