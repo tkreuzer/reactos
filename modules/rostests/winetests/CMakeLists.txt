@@ -1,6 +1,4 @@
 
-add_definitions(-D__ROS_LONG64__)
-
 if (MSVC AND ARCH STREQUAL "amd64")
     add_compile_flags("/wd4312")
 endif()
