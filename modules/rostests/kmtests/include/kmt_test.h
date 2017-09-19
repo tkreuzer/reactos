@@ -262,6 +262,10 @@ VOID KmtFreeGuarded(PVOID Pointer);
 #define ok_eq_wstr(value, expected)         ok(!wcscmp(value, expected), #value " = \"%ls\", expected \"%ls\"\n", value, expected)
 #define ok_eq_tag(value, expected)          ok_eq_print(value, expected, "0x%08lx")
 
+//static BOOLEAN KmtTodo;
+//#define todo_ros for (KmtTodo = TRUE; KmtTodo; KmtTodo = FALSE)
+#define todo_ros
+
 #define KMT_MAKE_CODE(ControlCode)  CTL_CODE(FILE_DEVICE_UNKNOWN,           \
                                              0xC00 + (ControlCode),         \
                                              METHOD_BUFFERED,               \
