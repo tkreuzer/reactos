@@ -55,7 +55,7 @@ static void test_GetRandomRgn(void)
     ok(ret != 0, "GetRandomRgn rets %d\n", ret);
     GetRgnBox(hrgn, &ret_rc);
     ok(EqualRect(&rc, &ret_rc), "GetRandomRgn %s\n", wine_dbgstr_rect(&ret_rc));
- 
+
     ret = GetRandomRgn(hdc, hrgn, 2);
     ok(ret == 0, "GetRandomRgn rets %d\n", ret);
 
@@ -92,7 +92,7 @@ static void test_GetRandomRgn(void)
     ok(ret != 0, "GetRandomRgn rets %d\n", ret);
     GetRgnBox(hrgn, &ret_rc);
     ok(EqualRect(&rc, &ret_rc), "GetRandomRgn %s\n", wine_dbgstr_rect(&ret_rc));
- 
+
     IntersectRect(&rc2, &rc, &rc2);
 
     ret = GetRandomRgn(hdc, hrgn, 3);
@@ -181,6 +181,7 @@ static void test_ExtCreateRegion(void)
     } rgn;
     HRGN hrgn;
     XFORM xform;
+    PVOID pvBuffer;
 
     if (0) /* crashes under Win9x */
     {
@@ -223,9 +224,27 @@ static void test_ExtCreateRegion(void)
     /* Cannot be smaller than sizeof(RGNDATAHEADER) */
     SetLastError(0xdeadbeef);
     hrgn = ExtCreateRegion(NULL, sizeof(RGNDATAHEADER) - 1, &rgn.data);
-    todo_wine
     ok(!hrgn, "ExtCreateRegion should fail\n");
     ok(GetLastError() == 0xdeadbeef, "0xdeadbeef, got %u\n", GetLastError());
+
+    /* Try a huge buffer */
+    pvBuffer = malloc(40960000);
+    ok(pvBuffer != 0, "\n");
+    if (pvBuffer != 0)
+    {
+        memcpy(pvBuffer, &rgn.data, sizeof(rgn));
+
+        SetLastError(0xdeadbeef);
+        hrgn = ExtCreateRegion(NULL, 40960000, &rgn.data);
+        ok(!hrgn, "ExtCreateRegion should fail\n");
+        ok(GetLastError() == 0xdeadbeef, "0xdeadbeef, got %u\n", GetLastError());
+
+        SetLastError(0xdeadbeef);
+        hrgn = ExtCreateRegion(NULL, 40960000 - 1, pvBuffer);
+        ok(hrgn != 0, "ExtCreateRegion error %u\n", GetLastError());
+        verify_region(hrgn, &empty_rect);
+        DeleteObject(hrgn);
+    }
 
     SetLastError(0xdeadbeef);
     hrgn = ExtCreateRegion(NULL, sizeof(rgn), &rgn.data);
@@ -285,7 +304,6 @@ static void test_ExtCreateRegion(void)
     /* Buffer cannot be smaller than sizeof(RGNDATAHEADER) + 2 * sizeof(RECT) */
     SetLastError(0xdeadbeef);
     hrgn = ExtCreateRegion(NULL, sizeof(RGNDATAHEADER) + 2 * sizeof(RECT) - 1, &rgn.data);
-    todo_wine
     ok(!hrgn, "ExtCreateRegion should fail\n");
     ok(GetLastError() == 0xdeadbeef, "0xdeadbeef, got %u\n", GetLastError());
 
