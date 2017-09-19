@@ -8,8 +8,8 @@ add_library(dllexport_test_dll1 MODULE
     dllexport_test_dll1.c
     ${CMAKE_CURRENT_BINARY_DIR}/dllexport_test_dll1.def)
 
-set_module_type(dllexport_test_dll1 module)
-add_importlibs(dllexport_test_dll1 dllexport_test_dll2)
+set_module_type(dllexport_test_dll1 win32dll ENTRYPOINT 0)
+add_importlibs(dllexport_test_dll1 msvcrt dllexport_test_dll2)
 
 set(baseaddress_dllexport_test_dll2 0x2000000)
 
@@ -17,7 +17,7 @@ add_library(dllexport_test_dll2 MODULE
     dllexport_test_dll2.c
     ${CMAKE_CURRENT_BINARY_DIR}/dllexport_test_dll2.def)
 
-set_module_type(dllexport_test_dll2 module)
+set_module_type(dllexport_test_dll2 win32dll ENTRYPOINT 0)
 
 add_executable(dllexport_test dllexport_test.c)
 set_module_type(dllexport_test win32cui)

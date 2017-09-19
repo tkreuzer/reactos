@@ -50,6 +50,8 @@
  @ extern DataItem2 DataItem1
  @ extern DataItem3 dllexport_test_dll2.DataItem1
 
+ @ extern DataItem4 msvcrt._wcsrev
+
 # other stuff
  123 stdcall @(ptr) ExportByOrdinal1
  218 stdcall -noname ExportByOrdinal1(ptr)
