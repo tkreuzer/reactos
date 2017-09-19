@@ -27,8 +27,10 @@ extern void func__snwprintf(void);
 extern void func__vsnprintf(void);
 extern void func__vsnwprintf(void);
 extern void func_mbstowcs(void);
+extern void func_fprintf(void);
 extern void func_mbtowc(void);
 extern void func_sprintf(void);
+//extern void func_swprintf_s(void);
 extern void func_strcpy(void);
 extern void func_strlen(void);
 extern void func_strnlen(void);
@@ -79,6 +81,8 @@ const struct test winetest_testlist[] =
 #if defined(_M_IX86)
     { "__getmainargs", func___getmainargs },
 #endif
+    { "fprintf", func_fprintf },
+//    { "swprintf_s", func_swprintf_s },
     { "_vscprintf", func__vscprintf },
     { "_vscwprintf", func__vscwprintf },
 
