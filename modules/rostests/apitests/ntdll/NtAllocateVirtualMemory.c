@@ -565,6 +565,75 @@ CheckAdjacentVADs()
 
 }
 
+#if 0
+
+
+#ifdef _WIN64
+#define _ZERO_BITS 16
+#else
+#define _ZERO_BITS 10
+#endif
+
+void
+Test_W2K3Bug(void)
+{
+#ifdef _WIN64
+    static const PVOID HighestVadBase = (PVOID)0x000007FFFFFD0000ULL;
+#else
+    static const PVOID HighestVadBase = (PVOID)0x7FFD0000ULL;
+#endif
+    PVOID BaseAddress;
+    SIZE_T Size;
+    NTSTATUS Status;
+
+    /* Check if we can allocate in the highest VAD range */
+    BaseAddress = HighestVadBase;
+    Size = 0x1000;
+    Status = NtAllocateVirtualMemory(NtCurrentProcess(),
+                                     &BaseAddress,
+                                     0,
+                                     &Size,
+                                     MEM_RESERVE,
+                                     PAGE_NOACCESS);
+    ok_ntstatus(Status, STATUS_SUCCESS);
+    if (!NT_SUCCESS(Status)) return;
+
+    ok(BaseAddress == HighestVadBase, "Invalid base: %p\n", BaseAddress);
+
+    /* Free the allocation */
+    Status = NtFreeVirtualMemory(NtCurrentProcess(), &BaseAddress, &Size, MEM_RELEASE);
+    ok_ntstatus(Status, STATUS_SUCCESS);
+
+    /* Reserve 64K top-down */
+    BaseAddress = NULL;
+    Size = 0x10000;
+    Status = NtAllocateVirtualMemory(NtCurrentProcess(),
+                                     &BaseAddress,
+                                     0,
+                                     &Size,
+                                     MEM_RESERVE | MEM_TOP_DOWN,
+                                     PAGE_NOACCESS);
+    ok_ntstatus(Status, STATUS_SUCCESS);
+    ok(BaseAddress == HighestVadBase, "Invalid base: %p\n", BaseAddress);
+
+}
+
+void
+Test_Win2003_Kernel_Bug()
+{
+    HBITMAP hbm;
+
+    hbm = CreateDIBSection(NULL, &BitmapInfo, DIB_RGB_COLORS, &BitBuffer,
+171 HDC hDC,
+172 CONST BITMAPINFO *BitmapInfo,
+173 UINT Usage,
+174 VOID **Bits,
+175 HANDLE hSection,
+176 DWORD dwOffset)
+}
+
+#endif
+
 static
 VOID
 CheckSomeDefaultAddresses(VOID)
@@ -574,6 +643,9 @@ CheckSomeDefaultAddresses(VOID)
     SIZE_T Size;
 
     // NULL.
+
+    //Test_W2K3Bug();
+//return;
 
     /* Reserve memory dynamically, not at 0x00000000 */
     BaseAddress = NULL;
