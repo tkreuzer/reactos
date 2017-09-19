@@ -98,7 +98,7 @@ list(APPEND SOURCE_CRTDLL
 #    _findfirst.c
 #    _findnext.c
 #    _finite.c
-#    _flsbuf.c
+    _flsbuf.c
 #    _flushall.c
 #    _fmode_dll.c
 #    _fpclass.c
@@ -265,7 +265,8 @@ list(APPEND SOURCE_CRTDLL
 #    _setsystime.c
 #    _sleep.c
     _snprintf.c
-    _snwprintf.c#    _sopen.c
+    _snwprintf.c
+#    _sopen.c
 #    _spawnl.c
 #    _spawnle.c
 #    _spawnlp.c
@@ -368,7 +369,7 @@ list(APPEND SOURCE_CRTDLL
 #    floor.c
 #    fmod.c
 #    fopen.c
-#    fprintf.c
+    fprintf.c
 #    fputc.c
 #    fputs.c
 #    fputwc.c

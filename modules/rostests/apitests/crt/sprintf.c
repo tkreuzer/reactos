@@ -26,6 +26,49 @@
 #endif
 #endif
 
+void
+test_c()
+{
+    char buffer[64];
+
+    sprintf(buffer, "%c", 0x3031);
+    ok_str(buffer, "1");
+
+    sprintf(buffer, "%hc", 0x3031);
+    ok_str(buffer, "1");
+
+    sprintf(buffer, "%wc", 0x3031);
+    ok_str(buffer, "?");
+
+    sprintf(buffer, "%lc", 0x3031);
+    ok_str(buffer, "?");
+
+    sprintf(buffer, "%Lc", 0x3031);
+    ok_str(buffer, "1");
+
+    sprintf(buffer, "%Ic", 0x3031);
+    ok_str(buffer, "Ic");
+
+    sprintf(buffer, "%Iwc", 0x3031);
+    ok_str(buffer, "Iwc");
+
+    sprintf(buffer, "%I32c", 0x3031);
+    ok_str(buffer, "1");
+
+    sprintf(buffer, "%I64c", 0x3031);
+    ok_str(buffer, "1");
+
+    sprintf(buffer, "%4c", 0x3031);
+    ok_str(buffer, "   1");
+
+    sprintf(buffer, "%04c", 0x3031);
+    ok_str(buffer, "0001");
+
+    sprintf(buffer, "%+4c", 0x3031);
+    ok_str(buffer, "   1");
+}
+
+
 /* NOTE: This test is not only used for all the CRT apitests, but also for
  *       user32's wsprintf. Make sure to test them all */
 START_TEST(sprintf)
@@ -73,6 +116,8 @@ START_TEST(sprintf)
     Length = sprintf(Buffer, "%%%");
     ok_str(Buffer, "%");
     ok_int(Length, 1);
+
+    test_c();
 
     Length = sprintf(Buffer, "%d", 8);
     ok_str(Buffer, "8");

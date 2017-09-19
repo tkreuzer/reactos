@@ -251,7 +251,7 @@ list(APPEND SOURCE_MSVCRT
 #    _findnext64.c
 #    _findnexti64.c
 #    _finite.c
-#    _flsbuf.c
+    _flsbuf.c
 #    _flushall.c
 #    _fmode
 #    _fpclass.c
@@ -1047,7 +1047,7 @@ list(APPEND SOURCE_MSVCRT
 #    fmod.c
 #    fopen.c
 #    fopen_s.c
-#    fprintf.c
+    fprintf.c
 #    fprintf_s.c
 #    fputc.c
 #    fputs.c
@@ -1191,7 +1191,7 @@ list(APPEND SOURCE_MSVCRT
     strtoul.c
 #    strxfrm.c
 #    swprintf.c
-#    swprintf_s.c
+#    swprintf_s.c # not in 2k3
 #    swscanf.c
 #    swscanf_s.c
 #    system.c
