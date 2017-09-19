@@ -42,6 +42,7 @@ SetParameters(
                                   &Response);                           \
     } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                         \
         Status = _SEH2_GetExceptionCode();                              \
+        Response = 0xdeadbeef;                                          \
     } _SEH2_END;                                                        \
     ok_eq_hex(Status, ExpectedStatus);                                  \
     ok_eq_ulong(Response, (ULONG)ExpectedResponse);                     \
@@ -94,7 +95,7 @@ TestHardError(
     CheckHardError(0x40000003,                  0, OptionOk,                STATUS_SUCCESS,            ResponseNotHandled,     6, 1, 2, 3, 4, 5, 6);           // TODO: interactive on ROS
     }
 
-    CheckHardError(0x40000004,                  0, OptionShutdownSystem,    STATUS_PRIVILEGE_NOT_HELD, ResponseNotHandled,     0, 0);
+    CheckHardError(0x40000004,                  0, OptionShutdownSystem,    STATUS_PRIVILEGE_NOT_HELD, 0xdeadbeef,             0, 0);
     if (InteractivePart1)
     {
     // TODO: these 2 are interactive on ROS
@@ -116,12 +117,12 @@ TestHardError(
     CheckHardError(0x40000013,                  0, OptionYesNoCancel,       STATUS_SUCCESS,            ResponseNo,             0, 0);                          // outputs a box :|
     CheckHardError(0x40000013,                  0, OptionYesNoCancel,       STATUS_SUCCESS,            ResponseCancel,         0, 0);                          // outputs a box :|
     }
-    CheckHardError(0x40000009,                  0, 9,                       STATUS_SUCCESS,            ResponseNotHandled,     0, 0);
-    CheckHardError(0x4000000a,                  0, 10,                      STATUS_SUCCESS,            ResponseNotHandled,     0, 0);
-    CheckHardError(0x4000000b,                  0, 11,                      STATUS_SUCCESS,            ResponseNotHandled,     0, 0);
-    CheckHardError(0x4000000c,                  0, 12,                      STATUS_SUCCESS,            ResponseNotHandled,     0, 0);
-    CheckHardError(0x4000000d,                  0, MAXULONG / 2 + 1,        STATUS_SUCCESS,            ResponseNotHandled,     0, 0);
-    CheckHardError(0x4000000d,                  0, MAXULONG,                STATUS_SUCCESS,            ResponseNotHandled,     0, 0);
+    CheckHardError(0x40000009,                  0, 9,                       STATUS_SUCCESS,            ResponseReturnToCaller, 0, 0);
+    CheckHardError(0x4000000a,                  0, 10,                      STATUS_SUCCESS,            ResponseReturnToCaller, 0, 0);
+    CheckHardError(0x4000000b,                  0, 11,                      STATUS_SUCCESS,            ResponseReturnToCaller, 0, 0);
+    CheckHardError(0x4000000c,                  0, 12,                      STATUS_SUCCESS,            ResponseReturnToCaller, 0, 0);
+    CheckHardError(0x4000000d,                  0, MAXULONG / 2 + 1,        STATUS_SUCCESS,            ResponseReturnToCaller, 0, 0);
+    CheckHardError(0x4000000d,                  0, MAXULONG,                STATUS_SUCCESS,            ResponseReturnToCaller, 0, 0);
 
     if (InteractivePart2)
     {

@@ -111,12 +111,20 @@ void TestsSeQueryInformationToken(PACCESS_TOKEN Token)
 
     Buffer = NULL;
     Status = SeQueryInformationToken(Token, TokenImpersonationLevel, &Buffer);
+#if 0
     ok(Status == STATUS_SUCCESS, "SQIT with TokenImpersonationLevel fails with status 0x%08X\n", Status);
+#else
+    ok(Status == STATUS_INVALID_INFO_CLASS, "SQIT with TokenImpersonationLevel fails with status 0x%08X\n", Status);
+#endif
     if (Buffer) ExFreePool(Buffer);
 
     Buffer = NULL;
     Status = SeQueryInformationToken(Token, TokenImpersonationLevel, &Buffer);
+#if 0
     ok(Status == STATUS_SUCCESS, "and again: SQIT with TokenImpersonationLevel fails with status 0x%08X\n", Status);
+#else
+    ok(Status == STATUS_INVALID_INFO_CLASS, "SQIT with TokenImpersonationLevel fails with status 0x%08X\n", Status);
+#endif
     if (Status == STATUS_SUCCESS)
     {
         ok(Buffer != NULL, "Wrong. SQIT call was successful with TokenImpersonationLevel arg. But Buffer == NULL\n");

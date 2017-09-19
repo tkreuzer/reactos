@@ -228,12 +228,14 @@ TestCreateSection(
         ok(SectionObject != NULL, "Section object pointer NULL\n");
         ++PointerCount2;
         CheckObject(FileHandle2, PointerCount2, 1L);
-        CheckSection(SectionObject, 0);
+        CheckSection(SectionObject, SEC_IMAGE);
         TestMapView(SectionObject, TRUE, TRUE);
 
         if (SectionObject && SectionObject != KmtInvalidPointer)
+        {
             ObDereferenceObject(SectionObject);
-        //--PointerCount2;  // ????
+            --PointerCount2;
+        }
 
         CheckObject(FileHandle2, PointerCount2, 1L);
         SectionObject = KmtInvalidPointer;
@@ -246,7 +248,7 @@ TestCreateSection(
         ok(SectionObject != KmtInvalidPointer, "Section object pointer untouched\n");
         ok(SectionObject != NULL, "Section object pointer NULL\n");
         CheckObject(FileHandle2, PointerCount2, 1L);
-        CheckSection(SectionObject, 0);
+        CheckSection(SectionObject, SEC_IMAGE);
         TestMapView(SectionObject, TRUE, TRUE);
 
         if (SectionObject && SectionObject != KmtInvalidPointer)
