@@ -13,6 +13,7 @@ START_TEST(NtGdiDeleteObjectApp)
     HBITMAP hbmp;
     HBRUSH hbrush;
     HPEN hpen;
+    HRGN hrgn;
 
     /* Try to delete 0 */
     SetLastError(0);
@@ -51,21 +52,21 @@ START_TEST(NtGdiDeleteObjectApp)
 
     /* Delete a display DC */
     SetLastError(0);
-    hdc = CreateDC("DISPLAY", NULL, NULL, NULL);
+    hdc = CreateDCW(L"DISPLAY", NULL, NULL, NULL);
     ok_int(GdiIsHandleValid(hdc), 1);
     ok((hpen=SelectObject(hdc, GetStockObject(WHITE_PEN))) != NULL, "hpen was NULL.\n");
     SelectObject(hdc, hpen);
-    ok(NtGdiDeleteObjectApp(hdc) != 0, "NtGdiDeleteObjectApp(hdc) was zero.\n");
+    ok(NtGdiDeleteObjectApp(hdc) == 1, "NtGdiDeleteObjectApp(hdc) was != 1.\n");
     ok_long(GetLastError(), 0);
     ok_int(GdiIsHandleValid(hdc), 1);
     ok_ptr(SelectObject(hdc, GetStockObject(WHITE_PEN)), NULL);
     ok_long(GetLastError(), ERROR_INVALID_PARAMETER);
 
-    /* Once more */
+    /* Delete screen DC */
     SetLastError(0);
-    hdc = GetDC(0);
-    ok_int(GdiIsHandleValid(hdc), 1);
-    ok(NtGdiDeleteObjectApp(hdc) != 0, "NtGdiDeleteObjectApp(hdc) was zero.\n");
+    hdc = GetDC(NULL);
+    ASSERT(GdiIsHandleValid(hdc) == 1);
+    ok(NtGdiDeleteObjectApp(hdc) == 1, "NtGdiDeleteObjectApp(hdc) was != 1.\n");
     ok_long(GetLastError(), 0);
     ok_int(GdiIsHandleValid(hdc), 1);
     ok_ptr(SelectObject(hdc, GetStockObject(WHITE_PEN)), NULL);
@@ -73,6 +74,26 @@ START_TEST(NtGdiDeleteObjectApp)
     /* Make sure */
     ok_ptr((void *)NtUserCallOneParam((DWORD_PTR)hdc, ONEPARAM_ROUTINE_RELEASEDC), NULL);
 
+    /* Delete a display DC */
+    SetLastError(0);
+    hdc = NtGdiOpenDCW(NULL, NULL, NULL, 0, 1, NULL, NULL, NULL);
+    ASSERT(GdiIsHandleValid(hdc) == 1);
+    ok(NtGdiDeleteObjectApp(hdc) == 1, "NtGdiDeleteObjectApp(hdc) was != 1.\n");
+    ok_long(GetLastError(), 0);
+    ok_int(GdiIsHandleValid(hdc), 1);;
+
+
+    HWND hwnd = CreateWindowA("BUTTON", "Test", WS_POPUPWINDOW, 0, 0, 10, 10,
+                              NULL, NULL, NULL, NULL);
+    SetLastError(0);
+    hdc = GetDC(hwnd);
+    ASSERT(GdiIsHandleValid(hdc) == 1);
+    ok(NtGdiDeleteObjectApp(hdc) == 1, "NtGdiDeleteObjectApp(hdc) was != 1.\n");
+    ok_long(GetLastError(), 0);
+    ok_int(GdiIsHandleValid(hdc), 1);
+    ok_long(ReleaseDC(hwnd, hdc), 0);
+    DestroyWindow(hwnd);
+    ok_int(GdiIsHandleValid(hdc), 1);
 
     /* Delete a brush */
     SetLastError(0);
