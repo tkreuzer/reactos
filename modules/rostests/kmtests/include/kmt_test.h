@@ -300,6 +300,96 @@ VOID KmtFreeGuarded(PVOID Pointer);
     else                                                            \
         trace("Using system routine for " #RoutineName "\n");
 
+ULONGLONG
+__cdecl
+KmtCallWrapper(
+    PCONTEXT PreState,
+    PCONTEXT PostState,
+    PVOID Function,
+    BOOLEAN FastCall,
+    ULONG NumberParameters,
+    ...);
+
+/* The following bits (flags) must be kept:
+ 1, 3, 5, 8 (TF), 9 (IF), 10 (DF), 12-13 (IOPL), 14 (NT), 15, 16-31:
+ binary 11111111111111111111011100101010 */
+#define EFLAGS_NONVOLATILE 0xFFFFF72A
+
+#if defined (_M_IX86)
+
+#define CheckContext(OldContext, NewContext) \
+do { \
+    ok_eq_hex((NewContext)->Ebx, (OldContext)->Ebx); \
+    ok_eq_hex((NewContext)->Esi, (OldContext)->Esi); \
+    ok_eq_hex((NewContext)->Edi, (OldContext)->Edi); \
+    ok_eq_hex((NewContext)->Esp, (OldContext)->Esp); \
+    ok_eq_hex((NewContext)->Ebp, (OldContext)->Ebp); \
+    ok_eq_hex((NewContext)->EFlags & EFLAGS_NONVOLATILE, (OldContext)->EFlags & EFLAGS_NONVOLATILE); \
+} while (0)
+
+#elif defined(_M_AMD64)
+
+#define CheckContext(OldContext, NewContext) do \
+{ \
+    ok_eq_hex((NewContext)->Rbx, (OldContext)->Rbx); \
+    ok_eq_hex((NewContext)->Rsi, (OldContext)->Rsi); \
+    ok_eq_hex((NewContext)->Rdi, (OldContext)->Rdi); \
+    ok_eq_hex((NewContext)->Rsp, (OldContext)->Rsp); \
+    ok_eq_hex((NewContext)->Rbp, (OldContext)->Rbp); \
+    ok_eq_hex((NewContext)->R12, (OldContext)->R12); \
+    ok_eq_hex((NewContext)->R13, (OldContext)->R13); \
+    ok_eq_hex((NewContext)->R14, (OldContext)->R14); \
+    ok_eq_hex((NewContext)->R15, (OldContext)->R15); \
+    ok_eq_hex((NewContext)->EFlags & EFLAGS_NONVOLATILE, (OldContext)->EFlags & EFLAGS_NONVOLATILE); \
+} while (0)
+
+#else
+#error unsupported architecture
+#endif
+
+FORCEINLINE
+LARGE_INTEGER
+Large(
+    ULONGLONG Value)
+{
+    LARGE_INTEGER Ret;
+    Ret.QuadPart = Value;
+    return Ret;
+}
+
+#define _Convert(Value, Type) _ConvertTo_##Type(Value)
+#define _ConvertTo_ULONG(Value) ((ULONG)(Value))
+#define _ConvertTo_LONG(Value) ((LONG)(ULONG)(Value))
+#define _ConvertTo_LONGLONG(Value) ((LONGLONG)(Value))
+#define _ConvertTo_USHORT(Value) ((USHORT)(Value))
+#define _ConvertTo_UCHAR(Value) ((UCHAR)(Value))
+#define _ConvertTo_PVOID(Value) ((PVOID)(ULONG_PTR)(Value))
+#define _ConvertTo_LARGE_INTEGER(Value) Large(Value)
+
+// This works for stdcall and fastcall, for cdecl we need to take into account
+// that the function returns with a modified stack pointer, so we would need
+// a seperate macro
+#define CALL_WRAPPER(Ret, RetType, FastCall, Function, ...)                           \
+do {                                                                        \
+    NTSTATUS Status = STATUS_SUCCESS;                                       \
+    ULONGLONG _Ret;                                                         \
+    _SEH2_TRY {                                                             \
+        _Ret = KmtCallWrapper(&PreContext, &PostContext, Function,          \
+                              FastCall, PP_NARGS(__VA_ARGS__), __VA_ARGS__);           \
+    } _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER) {                             \
+        Status = _SEH2_GetExceptionCode();                                  \
+    } _SEH2_END;                                                            \
+    ok_eq_hex(Status, STATUS_SUCCESS);                                      \
+    CheckContext(&PreContext, &PostContext);                                \
+    *(Ret) = _Convert(_Ret, RetType);                                       \
+} while (0)
+
+/* Helper to count number of parameters in variadic macro */
+#define EXPAND(x) x
+#define PP_NARGS(...) \
+    EXPAND(_xPP_NARGS_IMPL(__VA_ARGS__,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0))
+#define _xPP_NARGS_IMPL(x1,x2,x3,x4,x5,x6,x7,x8,x9,x10,x11,x12,x13,x14,x15,N,...) N
+
 #if defined KMT_DEFINE_TEST_FUNCTIONS
 
 #if defined KMT_KERNEL_MODE
