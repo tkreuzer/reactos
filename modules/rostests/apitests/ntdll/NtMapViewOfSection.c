@@ -1484,147 +1484,65 @@ Test_SectionContents(BOOL Relocate)
     DeleteFileW(FileName);
 }
 
-static void
-Test_EmptyFile(VOID)
+#if 0
+void
+Test_Commit()
 {
+    SIZE_T AllocationSize, CommitSize;
+    PVOID AllocationStart, PrivateBase, SectionBase, CommitBase;
     NTSTATUS Status;
-    WCHAR TempPath[MAX_PATH];
-    WCHAR FileName[MAX_PATH];
-    HANDLE Handle;
-    HANDLE SectionHandle;
-    ULONG Length;
 
-    Length = GetTempPathW(MAX_PATH, TempPath);
-    ok(Length != 0, "GetTempPathW failed with %lu\n", GetLastError());
-    Length = GetTempFileNameW(TempPath, L"nta", 0, FileName);
-    ok(Length != 0, "GetTempFileNameW failed with %lu\n", GetLastError());
-    Handle = CreateFileW(FileName,
-                         FILE_ALL_ACCESS,
-                         0,
-                         NULL,
-                         CREATE_ALWAYS,
-                         0,
-                         NULL);
-    if (Handle == INVALID_HANDLE_VALUE)
-    {
-        skip("Failed to create temp file %ls, error %lu\n", FileName, GetLastError());
-        return;
-    }
-    
-    Status = NtCreateSection(&SectionHandle,
-                             STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | SECTION_MAP_READ,
-                             0, 0, PAGE_READONLY, SEC_COMMIT, Handle);
-    ok_ntstatus(Status, STATUS_MAPPED_FILE_SIZE_ZERO);
+    /* Reserve 128 KB to find a reasonable location */
+    AllocationSize = 128 * 1024;
+    AllocationStart = NULL;
+    Status = NtAllocateVirtualMemory(NtCurrentProcess(),
+                                     &AllocationStart,
+                                     0,
+                                     &AllocationSize,
+                                     MEM_RESERVE,
+                                     PAGE_NOACCESS);
 
-    if (NT_SUCCESS(Status))
-        NtClose(SectionHandle);
+    Status = NtFreeVirtualMemory(NtCurrentProcess(),
+                                 &AllocationStart,
+                                 &AllocationSize,
+                                 MEM_RELEASE);
 
-    Status = NtCreateSection(&SectionHandle,
-                             STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | SECTION_MAP_READ,
-                             0, 0, PAGE_READONLY, SEC_IMAGE, Handle);
-    ok_ntstatus(Status, STATUS_INVALID_FILE_FOR_SECTION);
+    /* Reserve 64 KB at the previously returned base address */
+    AllocationSize = 64 * 1024;
+    PrivateBase = AllocationStart;
+    Status = NtAllocateVirtualMemory(NtCurrentProcess(),
+                                     &PrivateBase,
+                                     0,
+                                     &AllocationSize,
+                                     MEM_RESERVE,
+                                     PAGE_NOACCESS);
 
-    if (NT_SUCCESS(Status))
-        NtClose(SectionHandle);
+    ok(PrivateBase == AllocationStart);
 
-    CloseHandle(Handle);
-    DeleteFileW(FileName);
+
+    CommitBase = (PVOID)((ULONG_PTR)PrivateBase + AllocationSize - PAGE_SIZE + 1);
+    CommitSize = 1;
+    Status = NtAllocateVirtualMemory(NtCurrentProcess(),
+                                     &CommitBase,
+                                     0,
+                                     &CommitSize,
+                                     MEM_COMMIT,
+                                     PAGE_READWRITE);
+
+    ok_ntstatus(Status, STATUS_SUCCESS);
+    ok(CommitBase == (PVOID)((ULONG_PTR)PrivateBase + AllocationSize - PAGE_SIZE),
+       "Wrong commit base address: %p\n", CommitBase);
+    ok(CommitSize == PAGE_SIZE, "Wrong commit size: 0x%Ix\n", CommitSize);
+
+    // reserve 64k private memory
+    // NtAllocateVirtualMemory mit MEM_COMMIT starting in the middle of the last page, with 1 byte size
+    // -> should succeed
+
+    // create a section
+    // map with SEC_NO_CHANGE
+
 }
-
-// CORE-11206
-static void
-Test_Truncate(VOID)
-{
-    WCHAR TempPath[MAX_PATH];
-    WCHAR FileName[MAX_PATH];
-    NTSTATUS Status;
-    SIZE_T ViewSize = 0;
-    HANDLE Handle;
-    HANDLE SectionHandle;
-
-    ULONG Length;
-    BOOL Success;
-    DWORD Written, Error;
-    VOID* BaseAddress;
-
-    Length = GetTempPathW(MAX_PATH, TempPath);
-    ok(Length != 0, "GetTempPathW failed with %lu\n", GetLastError());
-    Length = GetTempFileNameW(TempPath, L"nta", 0, FileName);
-    ok(Length != 0, "GetTempFileNameW failed with %lu\n", GetLastError());
-    Handle = CreateFileW(FileName, FILE_ALL_ACCESS, 0, NULL, CREATE_ALWAYS, 0, NULL);
-
-    Success = WriteFile(Handle, "TESTDATA", 8, &Written, NULL);
-    ok(Success == TRUE, "WriteFile failed with %lu\n", GetLastError());
-    ok(Written == 8, "WriteFile wrote %lu bytes\n", Written);
-
-    Written = SetFilePointer(Handle, 6, NULL, FILE_BEGIN);
-    ok(Written == 6, "SetFilePointer returned %lu bytes\n", Written);
-    Success = SetEndOfFile(Handle);
-    ok(Success == TRUE, "SetEndOfFile failed with %lu\n", GetLastError());
-
-    Status = NtCreateSection(&SectionHandle,
-                             STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | SECTION_MAP_READ,
-                             0, 0, PAGE_READONLY, SEC_COMMIT, Handle);
-    ok_ntstatus(Status, STATUS_SUCCESS);
-    BaseAddress = NULL;
-    ViewSize = 0;
-    Status = NtMapViewOfSection(SectionHandle, NtCurrentProcess(), &BaseAddress, 0,
-                                0, 0, &ViewSize, ViewShare, 0, PAGE_READONLY);
-    ok_ntstatus(Status, STATUS_SUCCESS);
-
-    if (BaseAddress)
-    {
-        // First we test data that was truncated even before the file mapping was opened
-        Length = strlen((char*)BaseAddress);
-        ok(Length == 6, "Old data was not properly erased! (Length=%lu)\n", Length);
-    }
-
-    // Now we truncate the file on disk some more
-    Written = SetFilePointer(Handle, 4, NULL, FILE_BEGIN);
-    ok(Written == 4, "SetFilePointer returned %lu bytes\n", Written);
-    Success = SetEndOfFile(Handle);
-    Error = GetLastError();
-    ok(Success == FALSE, "SetEndOfFile succeeded\n");
-    ok(Error == ERROR_USER_MAPPED_FILE, "SetEndOfFile did not set error to ERROR_USER_MAPPED_FILE (%lu)\n", Error);
-
-    if (BaseAddress)
-    {
-        Length = strlen((char*)BaseAddress);
-        ok(Length == 6, "Length should not have changed! (Length=%lu)\n", Length);
-    }
-
-    // Unmap and set the end shorter.
-    Status = NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
-    ok_ntstatus(Status, STATUS_SUCCESS);
-    Success = CloseHandle(SectionHandle);
-    ok(Success == TRUE, "CloseHandle failed with %lu\n", GetLastError());
-
-    Written = SetFilePointer(Handle, 4, NULL, FILE_BEGIN);
-    ok(Written == 4, "SetFilePointer returned %lu bytes\n", Written);
-    Success = SetEndOfFile(Handle);
-    ok(Success == TRUE, "SetEndOfFile failed with %lu\n", GetLastError());
-
-    Status = NtCreateSection(&SectionHandle,
-                             STANDARD_RIGHTS_REQUIRED | SECTION_QUERY | SECTION_MAP_READ,
-                             0, 0, PAGE_READONLY, SEC_COMMIT, Handle);
-    ok_ntstatus(Status, STATUS_SUCCESS);
-    BaseAddress = NULL;
-    ViewSize = 0;
-    Status = NtMapViewOfSection(SectionHandle, NtCurrentProcess(), &BaseAddress, 0,
-                                0, 0, &ViewSize, ViewShare, 0, PAGE_READONLY);
-    ok_ntstatus(Status, STATUS_SUCCESS);
-
-    // CLEANUP
-    Status = NtUnmapViewOfSection(NtCurrentProcess(), BaseAddress);
-    ok_ntstatus(Status, STATUS_SUCCESS);
-    Success = CloseHandle(SectionHandle);
-    ok(Success == TRUE, "CloseHandle failed with %lu\n", GetLastError());
-    Success = CloseHandle(Handle);
-    ok(Success == TRUE, "CloseHandle failed with %lu\n", GetLastError());
-
-    Success = DeleteFileW(FileName);
-    ok(Success == TRUE, "DeleteFileW failed with %lu\n", GetLastError());
-}
+#endif
 
 START_TEST(NtMapViewOfSection)
 {
