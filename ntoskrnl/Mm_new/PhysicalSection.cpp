@@ -173,6 +173,7 @@ PHYSICAL_SECTION::CreateInstance (
     NTSTATUS Status;
 
     /* Calculate the size of the PHYSICAL_SECTION with all SUBSECTIONs */
+    //Size = FIELD_OFFSET(PHYSICAL_SECTION, m_Subsections[NumberOfSubsections]);
     Size = sizeof(PHYSICAL_SECTION) + (NumberOfSubsections - 1) * sizeof(SUBSECTION);
 
     /* Allocate the PHYSICAL_SECTION */
@@ -394,11 +395,11 @@ PHYSICAL_SECTION::CommitPages (
     // Charge system commit
 
     /* Check if we have a file-backed section */
-    //if (m_ControlArea.FilePointer != NULL)
+    if (m_ControlArea.FilePointer != NULL)
     {
         UNIMPLEMENTED;
     }
-    //else
+    else
     {
         /* Commit demand zero pages */
         m_ControlArea.Segment->CommitDemandZeroPages(RelativeStartingVpn,

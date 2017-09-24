@@ -22,6 +22,18 @@
 
 namespace Mm {
 
+extern ULONG_PTR LowestSystemVpn;
+PFN_NUMBER GlobalZeroPfn;
+
+PVOID
+ReserveKernelMemory (
+    SIZE_T Size);
+
+VOID
+ReleaseKernelMemory (
+    _In_ PVOID BaseAddress);
+
+
 /*! \fn CalculateMaximumNumberOfPageTables
  *
  *  \brief Calculates the maximum number of physical pages for page tables that
@@ -78,7 +90,7 @@ AllocatePagesForMapping (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR EndingVpn,
     _Out_ PPFN_LIST PageList,
-    _Out_opt_ PPFN_LIST LargePageList,
+    _When_(Protect & MM_LARGEPAGE, _Out_) PPFN_LIST LargePageList,
     _In_ BOOLEAN ChargeForPages,
     _In_ ULONG Protect,
     _Out_ PULONG_PTR PagesCharged)
@@ -96,7 +108,9 @@ AllocatePagesForMapping (
     /* Check if we allocate for a large page mapping */
     if (Protect & MM_LARGEPAGE)
     {
+        NT_ASSERT(LargePageList != NULL);
         NT_ASSERT(Protect & MM_NONPAGED);
+        NT_ASSERT(Protect & MM_MAPPED);
 
         // assert alignment?
 
@@ -131,7 +145,7 @@ AllocatePagesForMapping (
     }
 
     /* Check if we allocate for a large page mapping */
-    if ((Protect & (MM_MAPPED|MM_LARGEPAGE)) == (MM_MAPPED|MM_LARGEPAGE))
+    if (Protect & MM_LARGEPAGE)
     {
         /* Allocate large pages */
         Status = g_PfnDatabase.AllocateLargePages(LargePageList,
@@ -165,7 +179,7 @@ AllocatePagesForMapping (
  */
 static
 ULONG_PTR
-AllocatePageTables (
+ReserveMappingPtes (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR EndingVpn,
     _In_ PPFN_LIST PageList,
@@ -479,47 +493,92 @@ CheckReservedMapping (
  *
  *  \return ...
  */
+_Must_inspect_result_
 _IRQL_requires_max_(DISPATCH_LEVEL)
-VOID
+NTSTATUS
 MapPhysicalMemory (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PFN_NUMBER BasePageFrameNumber)
 {
-    PFN_NUMBER PageFrameNumber;
-    ULONG CurrentProtect;
+    ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
+    PFN_NUMBER PageFrameNumber, PfnOfPt;
+    ULONG NumberOfNewPtes;
+    PFN_LIST PageList;
     PTE TemplatePte;
     PPTE CurrentPte;
+    PPDE CurrentPde;
+    NTSTATUS Status;
 
-    /// FIXME: we need to hold the PhysicalMemoryMutex (Spinlock)
+    /* For now only kernel mode addresses! */ /// might need usermode as well
+    NT_ASSERT(VpnToAddress(StartingVpn) >= MmSystemRangeStart);
 
     NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
     NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
 
+    /* Allocate pages for the page tables */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+    Status = AllocatePagesForMapping(StartingVpn,
+                                     EndingVpn,
+                                     &PageList,
+                                     NULL,
+                                     FALSE,
+                                     Protect,
+                                     &PagesCharged);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    /* Acquire the kernel working set lock */ /// see above
+    g_KernelAddressSpace.AcquireWorkingSetLock();
+
+    /* Reserve the PTEs for the mapping */
+    PagesUsed = ReserveMappingPtes(StartingVpn, EndingVpn, &PageList, Protect);
+
+    /* Prepare a template PTE */
+    TemplatePte.MakeValidPte(0, Protect);
+
     /* Start with the first PFN */
     PageFrameNumber = BasePageFrameNumber;
 
-    /* Loop all PTEs */
+    /* Loop all reserved PTEs */
     CurrentPte = VpnToPte(StartingVpn);
+    CurrentPde = VpnToPde(StartingVpn);
+    NumberOfNewPtes = 0;
     do
     {
         /* Make sure the PTE is empty */
         NT_ASSERT(CurrentPte->IsEmpty());
-
-        /* Update the caching */
-        CurrentProtect = g_PfnDatabase.UpdateCaching(PageFrameNumber, Protect);
-
-        /* Map the page */
-        TemplatePte.MakeValidPte(PageFrameNumber, CurrentProtect);
+        TemplatePte.SetPageFrameNumber(PageFrameNumber);
         CurrentPte->WriteValidPte(TemplatePte);
+        NumberOfNewPtes++;
 
         /* Next PTE and next PFN */
         CurrentPte++;
         PageFrameNumber++;
         NumberOfPages--;
+
+        /* Update the PFN of the PT, if we reached the next PT or the end */
+        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+        {
+            PfnOfPt = CurrentPde->GetPageFrameNumber();
+            g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
+            NumberOfNewPtes = 0;
+            CurrentPde++;
+        }
     }
     while (NumberOfPages);
+
+    /* Release the kernel working set lock */
+    g_KernelAddressSpace.ReleaseWorkingSetLock();
+
+    /* Return the pages, we did not use */
+    g_PfnDatabase.ReleaseMultiplePages(&PageList);
+    UnchargeSystemCommit(PagesCharged - PagesUsed);
+
+    return STATUS_SUCCESS;
 }
 
 /*! \fn MapPfnArray
@@ -536,40 +595,87 @@ MapPhysicalMemory (
  *
  *  \return ...
  */
-VOID
+NTSTATUS
 MapPfnArray (
     _In_ ULONG_PTR StartingVpn,
     _In_ ULONG_PTR NumberOfPages,
     _In_ ULONG Protect,
     _In_ PPFN_NUMBER PfnArray)
 {
+    ULONG_PTR EndingVpn, PagesCharged, PagesUsed;
+    PFN_NUMBER PfnOfPt;
+    ULONG NumberOfNewPtes;
+    PFN_LIST PageList;
     PTE TemplatePte;
     PPTE CurrentPte;
-    ULONG CurrentProtect;
+    PPDE CurrentPde;
+    NTSTATUS Status;
+
+    /* For now only kernel mode addresses! */ /// we need usermode as well
+    NT_ASSERT(VpnToAddress(StartingVpn) >= MmSystemRangeStart);
 
     NT_ASSERT((Protect & (MM_LARGEPAGE)) == 0);
     NT_ASSERT((Protect & MM_PROTECTION_MASK) != MM_NOACCESS);
 
+    /* Allocate pages for the page tables */
+    EndingVpn = StartingVpn + NumberOfPages - 1;
+    Status = AllocatePagesForMapping(StartingVpn,
+                                     EndingVpn,
+                                     &PageList,
+                                     NULL,
+                                     FALSE,
+                                     Protect,
+                                     &PagesCharged);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    /* Acquire the kernel working set lock */ /// see above
+    g_KernelAddressSpace.AcquireWorkingSetLock();
+
+    /* Reserve the PTEs for the mapping */
+    PagesUsed = ReserveMappingPtes(StartingVpn, EndingVpn, &PageList, Protect);
+
+    /* Prepare a template PTE */
+    TemplatePte.MakeValidPte(0, Protect);
+
     /* Loop all reserved PTEs */
     CurrentPte = VpnToPte(StartingVpn);
+    CurrentPde = VpnToPde(StartingVpn);
+    NumberOfNewPtes = 0;
     do
     {
         /* Make sure the PTE is empty */
         NT_ASSERT(CurrentPte->IsEmpty());
-
-        /* Update the caching */
-        CurrentProtect = g_PfnDatabase.UpdateCaching(*PfnArray, Protect);
-
-        /* Map the page */
-        TemplatePte.MakeValidPte(*PfnArray, CurrentProtect);
+        TemplatePte.SetPageFrameNumber(*PfnArray);
         CurrentPte->WriteValidPte(TemplatePte);
+        NumberOfNewPtes++;
 
         /* Next PTE and next PFN array element */
         CurrentPte++;
         PfnArray++;
         NumberOfPages--;
+
+        /* Update the PFN of the PT, if we reached the next PT or the end */
+        if ((CurrentPte->IsPdeBoundary()) || (NumberOfPages == 0))
+        {
+            PfnOfPt = CurrentPde->GetPageFrameNumber();
+            g_PfnDatabase.ModifyEntryCount(PfnOfPt, NumberOfNewPtes);
+            NumberOfNewPtes = 0;
+            CurrentPde++;
+        }
     }
     while (NumberOfPages);
+
+    /* Release the kernel working set lock */
+    g_KernelAddressSpace.ReleaseWorkingSetLock();
+
+    /* Return the pages, we did not use */
+    g_PfnDatabase.ReleaseMultiplePages(&PageList);
+    UnchargeSystemCommit(PagesCharged - PagesUsed);
+
+    return STATUS_SUCCESS;
 }
 
 /*! \fn MapNonPagedMemory
@@ -1096,14 +1202,25 @@ PVOID
 NTAPI
 MmAllocateMappingAddress (
     _In_ SIZE_T NumberOfBytes,
-    _In_ ULONG Tag)
+    _In_ ULONG Tag) /// \todo handle Tag
 {
     PVOID BaseAddress;
+    NTSTATUS Status;
 
     /* Reserve virtual memory range */
     BaseAddress = ReserveSystemMappingRange(BYTES_TO_PAGES(NumberOfBytes));
     if (BaseAddress == NULL)
     {
+        return NULL;
+    }
+
+    /* Map no-access PTEs */
+    Status = MapVirtualMemory(AddressToVpn(BaseAddress),
+                              BYTES_TO_PAGES(NumberOfBytes),
+                              MM_NOACCESS | MM_GLOBAL | MM_NONPAGED);
+    if (!NT_SUCCESS(Status))
+    {
+        ReleaseKernelMemory(BaseAddress);
         return NULL;
     }
 
@@ -1165,6 +1282,7 @@ MmMapIoSpace (
     ULONG_PTR NumberOfPages;
     PVOID BaseAddress;
     ULONG Protect;
+    NTSTATUS Status;
 
     /* Get the number of pages for the mapping */
     NumberOfBytes += PhysicalAddress.LowPart & (PAGE_SIZE - 1);
@@ -1182,10 +1300,15 @@ MmMapIoSpace (
 
     /* Map the physical pages */
     BasePageFrameNumber = (PFN_NUMBER)(PhysicalAddress.QuadPart >> PAGE_SHIFT);
-    MapPhysicalMemory(AddressToVpn(BaseAddress),
-                      NumberOfPages,
-                      Protect,
-                      BasePageFrameNumber);
+    Status = MapPhysicalMemory(AddressToVpn(BaseAddress),
+                               NumberOfPages,
+                               Protect,
+                               BasePageFrameNumber);
+    if (!NT_SUCCESS(Status))
+    {
+        ReleaseKernelMemory(BaseAddress);
+        return NULL;
+    }
 
     /* Return the pointer to the real start address */
     return AddToPointer(BaseAddress, PhysicalAddress.LowPart & (PAGE_SIZE - 1));
@@ -1281,59 +1404,69 @@ MmMapLockedPagesSpecifyCache (
     _In_ ULONG BugCheckOnFailure,
     _In_ MM_PAGE_PRIORITY Priority)
 {
+    PADDRESS_SPACE AddressSpace;
     ULONG_PTR NumberOfPages;
     ULONG Protect;
+    NTSTATUS Status;
+
+if (Mdl == (PVOID)0xfffffa80001f7e20ULL) __debugbreak();
 
     /* Make sure the MDL is not yet mapped */
     NT_ASSERT(!(Mdl->MdlFlags & MDL_MAPPED_TO_SYSTEM_VA));
 
+    Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CacheType);
+
+    if (AccessMode == KernelMode)
+    {
+        AddressSpace = &g_KernelAddressSpace;
+        BaseAddress = NULL;
+        Protect |= MM_GLOBAL;
+    }
+    else
+    {
+        AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+        BugCheckOnFailure = 0;
+        Protect |= MM_USER;
+    }
+
     /* Calculate the number of pages */
     NumberOfPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(Mdl->StartVa, Mdl->ByteCount);
 
-    /* Check if we have enough free system address space */
-    if (!CheckAvailableSystemVa(NumberOfPages, Priority))
+    Status = AddressSpace->ReserveVirtualMemory(&BaseAddress, NumberOfPages);
+    if (!NT_SUCCESS(Status))
     {
-        /* Not enough resources */
-        return NULL;
+        ERR("Failed to reserve virtual memory\n");
+        goto Failure;
     }
 
-    /* Convert the protection */
-    Protect = ConvertProtectAndCaching(PAGE_EXECUTE_READWRITE, CacheType);
-
-    /* Check for user mode mapping */
-    if (AccessMode != KernelMode)
+    Status = MapPfnArray(AddressToVpn(BaseAddress),
+                         NumberOfPages,
+                         Protect,
+                         MmGetMdlPfnArray(Mdl));
+    if (!NT_SUCCESS(Status))
     {
-        Protect |= MM_USER; /// | MM_LOCKED / MM_SYSTEM
-        UNIMPLEMENTED_DBGBREAK;
-        return NULL;
+        ERR("Failed to map MDL PFN array\n");
+        // AddressSpace->ReleaseVirtualMemory()
+        UNIMPLEMENTED;
+        goto Failure;
     }
 
-    /* Reserve system PTEs for the mapping */
-    BaseAddress = ReserveSystemMappingRange(NumberOfPages);
-    if (BaseAddress == NULL)
-    {
-        ERR("Failed to reserve system PTEs\n");
-        if (BugCheckOnFailure)
-        {
-            KeBugCheckEx(0, 0, 0, 0, 0);
-        }
-
-        return NULL;
-    }
-
-    /* Map the PFNs from the MDL */
-    MapPfnArray(AddressToVpn(BaseAddress),
-                NumberOfPages,
-                Protect | MM_GLOBAL,
-                MmGetMdlPfnArray(Mdl));
-
-    /* Update the MDL */
     Mdl->MappedSystemVa = AddToPointer(BaseAddress, Mdl->ByteOffset);
     Mdl->MdlFlags |= MDL_MAPPED_TO_SYSTEM_VA;
+
     if (Mdl->MdlFlags & MDL_PARTIAL)
         Mdl->MdlFlags |= MDL_PARTIAL_HAS_BEEN_MAPPED;
 
     return Mdl->MappedSystemVa;
+
+Failure:
+
+    if (BugCheckOnFailure)
+    {
+        KeBugCheckEx(0, 0, 0, 0, 0);
+    }
+
+    return NULL;
 }
 
 /*! \fn MmMapLockedPagesWithReservedMapping

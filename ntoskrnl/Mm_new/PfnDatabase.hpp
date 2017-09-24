@@ -352,19 +352,19 @@ public:
     ULONG
     ModifyEntryCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ LONG_PTR Addend);
+        _In_ LONG Addend);
 
     static
     ULONG
     ModifyUsedCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ LONG_PTR Addend);
+        _In_ LONG Addend);
 
     static
     ULONG
     ModifyValidCount (
         _In_ PFN_NUMBER PageFrameNumber,
-        _In_ LONG_PTR Addend);
+        _In_ LONG Addend);
 
     static
     VOID

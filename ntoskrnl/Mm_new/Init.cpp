@@ -36,6 +36,10 @@ VOID
 InitializeMachineDependent (
     _In_ PLOADER_PARAMETER_BLOCK LoaderBlock);
 
+VOID
+InitializeSysLoader (
+    VOID);
+
 ULONG RandomNumberSeed;
 ULONG_PTR LowestSystemVpn;
 KERNEL_VAD LoaderMappingsVad;
@@ -74,7 +78,7 @@ MEMORY_MANAGER::Inititalize (
     /* Initialize the global kernel VAD table, so that we can reserve
        virtual memory. Required for the PFN database. */
     g_KernelVadTable.Initialize(TRUE);
-
+#ifndef __linux__
     /* Reserve the address space for the loader mappings */
     LoaderMappingsVad.Initialize();
     NumberOfPages = LoaderBlock->Extension->LoaderPagesSpanned;
@@ -90,7 +94,7 @@ MEMORY_MANAGER::Inititalize (
                                                    AddressToVpn(MM_HAL_VA_START),
                                                    NumberOfPages);
     NT_ASSERT(NT_SUCCESS(Status));
-
+#endif
     /* Gather some basic information from the loader block's memory descriptors */
     ScanMemoryDescriptors(LoaderBlock);
 
@@ -115,6 +119,9 @@ MEMORY_MANAGER::Inititalize (
 
     /* Initialize the section object class */
     SECTION_OBJECT::InitializeClass();
+
+    /* Initialize the system image loader */
+    InitializeSysLoader();
 }
 
 
@@ -137,7 +144,13 @@ MmArmInitSystem(
     IN ULONG Phase,
     IN struct _LOADER_PARAMETER_BLOCK* LoaderBlock)
 {
-    g_MemoryManager.Inititalize(LoaderBlock);
+    if (Phase == 0)
+    {
+        g_MemoryManager.Inititalize(LoaderBlock);
+    }
+    else
+    {
+    }
 
     return TRUE;
 }

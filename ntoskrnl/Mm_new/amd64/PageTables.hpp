@@ -634,6 +634,7 @@ InvalidateTlbEntry (
 #define PxeToPpe(Pxe) ((PPPE)PteToAddress((PPTE)Pxe))
 #define PpeToPde(Ppe) ((PPDE)PteToAddress((PPTE)Ppe))
 #define PdeToPte(Pde) ((PPTE)PteToAddress((PPTE)Pde))
+#define LargePagePdeToAddress(Pde) PdeToAddress(Pde)
 #define PteToPde(Pte) ((PPDE)AddressToPte(Pte))
 
 #define VpnToPxe(Vpn) AddressToPxe(VpnToAddress(Vpn))

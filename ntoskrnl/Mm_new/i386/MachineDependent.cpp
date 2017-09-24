@@ -187,6 +187,8 @@ InitializeMachineDependent (
 
 }
 
+}; // namespace Mm
+
 extern "C"
 VOID
 NTAPI
@@ -197,106 +199,3 @@ MmSetPageProtect (
 {
     UNIMPLEMENTED;
 }
-
-
-enum VA_SPACES
-{
-    UserModeVaSpace,
-    ProcessVaSpace,
-    PageTableVaSpace,
-
-    NumberVaSpaces,
-};
-
-class VA_SPACE
-{
-    ULONG_PTR StartingVpn;
-};
-
-VA_SPACE g_VaSpaces[NumberVaSpaces];
-
-static const VA_SPACE* g_UserModeVaSpace = &g_VaSpaces[UserModeVaSpace];
-
-static const ULONG SYSTEM_RANGE_X = 0xFF00FF00;
-PVOID BlablaConstant = (PVOID)SYSTEM_RANGE_X;
-
-PVOID MmLoaderMappingsStart;
-ULONG_PTR MmHyperSpaceStart;
-ULONG_PTR MmHyperSpaceEnd;
-//ULONG_PTR MmHalVaStart;
-
-VOID
-ConfigureVaSpaces (
-    PLOADER_PARAMETER_BLOCK LoaderBlock)
-{
-    (void)g_UserModeVaSpace;
-
-
-    MmSystemViewSize = 16 * 1024 * 1024;
-
-    /* Calculate HyperSpace range */
-    MmHyperSpaceStart = PTE_TOP + 1;
-    //MmHyperSpaceEnd = MmHyperSpaceStart + HYPERSPACE_SIZE - 1;
-
-    /* Put session space right after hyper space */
-    MmSessionBase = MmHyperSpaceEnd + 1;
-
-
-
-    /* Check if the /3GB switch was passed */
-    if (strstr(LoaderBlock->LoadOptions, "3GB") != NULL)
-    {
-        MmSystemRangeStart = (PVOID)SYSTEM_RANGE_START_3GB;
-        MmLoaderMappingsStart = (PVOID)LOADER_MAPPINGS_START_3GB;
-
-        MmSessionSize = 48 * 1024 * 1024;
-
-        MmSystemCacheStart =
-    }
-    else
-    {
-        MmSystemRangeStart = (PVOID)SYSTEM_RANGE_START;
-        MmLoaderMappingsStart = (PVOID)LOADER_MAPPINGS_START;
-
-        MmSessionSize = 64 * 1024 * 1024;
-    }
-
-    /* Calculate the user mode address range */
-    MmHighestUserAddress = AddToPointer(MmSystemRangeStart, -1);
-    MmUserProbeAddress = (ULONG_PTR)MmSystemRangeStart - PAGE_SIZE;
-
-
-    MmSystemCacheStart = MmHyperSpaceEnd + 1;
-    MmSystemCacheEnd =
-
-
-    //MmHalVaStart = HAL_VA_START;
-
-#if 0
-    g_UserModeVaSpace =
-
-    g_AddressSpaces[UserModeVaSpace].Initialize(0,
-                                                MmHigestUserAddress,
-                                                MEMORY_ALLOCATION_GRANULARITY,
-                                                AcquireProcessLock);
-
-    g_AddressSpaces[PageTableVaSpace].Initialize(PTE_BASE,
-                                                 PTE_TOP,
-                                                 PAGE_SIZE,
-                                                 AcquireProcessLock);
-
-    g_AddressSpaces[ProcessVaSpace].Initialize(MmHyperSpaceStart,
-                                               MmHyperSpaceEnd,
-                                               PAGE_SIZE,
-                                               AcquireProcessLock);
-
-    g_AddressSpaces[LoaderMappingVaSpace].Initialize(MmLoaderMappingsStart,
-                                                     MmLoaderMappingsEnd,
-                                                     PAGE_SIZE,
-                                                     AcquireProcessLock);
-#endif
-
-}
-
-
-}; // namespace Mm
