@@ -1,0 +1,36 @@
+
+
+
+
+- Fix referencing / locking of VAD objects
+  - Might use only the process->AddressCreactionLock / kernel address space lock
+
+- Locking of address space, when mapping:
+  - lock it only once, when reserving and mapping?
+    - Could then avoid to map no-access PTEs, which only helps to keep the referencing correct
+
+- For mapping at DISPATCH_LEVEL (MmMapIoSpace, MmGetSystemAddressForMdl, MmAllocateContiguousMemory)
+  - Use one a per-cpu range of virtual memory covering one PDE (32 bit) or one PXE (64 bit)
+  - Preallocate this area a system boot, preallocate/map PDEs / PPEs, so that we don't need to mess with shared page tables
+  - use a bitmap (or VAD table) to allocate pages inside this area
+  - simply raise to DISPATCH_LEVEL, if not already at DIAPATCH_LEVEL 
+  - when range is depleted, allocate a new range (need to be able to allocate virtmem at dispatch)
+
+  - 1 GB, 32 CPUs = max 32 MB per CPU on x86
+    - effectively much mess (substract pools, page tables, hyperspace, pfn database, mapping)
+    - might limit x86 systems to 8 CPUs
+
+Possible solutions:
+- Preallocate kernel page tables on x86 (2 MB!)
+  - for large pages, simply remove the PDE, free the page table PFN, use large page PDE
+    - not portable
+
+- Atomic mapping
+  - each first and last PDE (/PPE/PXE) is mapped atomically (compare exchange with 0)
+  - PTEs are simply written (no lock, other than the VAD held)
+    - Possible race: page table might be already mapped when lokking first, but concurrently unmapped before PTE is written
+      - solution: do not free the page tables, instead put them on a list (deferred page table free list)
+        after mapping check if this list has any entries, if it has, lock the spinlock, remove all entries, check if it is really unused now and free those
+    - Pagefault handler needs to bring these pages back!
+    - first and last PT/PD must be referenced atomically (PFN is guaranteed to stay valid)
+
