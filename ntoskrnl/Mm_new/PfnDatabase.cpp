@@ -69,6 +69,7 @@ ULONG NumberOfPhysicalMemoryRuns;
 ULONG NumberOfMemoryDescriptors;
 PMEMORY_ALLOCATION_DESCRIPTOR LargestFreeDescriptor;
 PFN_NUMBER EarlyAllocPageBase;
+//SIZE_T MmSizeOfPfnDatabase;
 PFN_NUMBER EarlyAllocPageCount;
 #ifdef MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
 PFN_NUMBER EarlyAllocLargePageBase;
@@ -221,7 +222,7 @@ PFN_DATABASE::EarlyMapPages (
             if (Protect & MM_LARGEPAGE)
             {
                 PdePointer->MakeValidLargePagePde(EarlyAllocLargePage(), Protect);
-                RtlFillMemoryUlongPtr(PdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
+                RtlFillMemoryUlongPtr(LargePagePdeToAddress(PdePointer), LARGE_PAGE_SIZE, 0);
             }
             else
 #endif // MI_USE_LARGE_PAGES_FOR_PFN_DATABASE
@@ -468,7 +469,7 @@ INIT_FUNCTION
 PFN_DATABASE::InitializePfnEntries (
     _In_ PFN_NUMBER BasePage,
     _In_ PFN_NUMBER PageCount,
-    _In_ ULONG MemoryType)
+    _In_ ULONG MemoryType) /// FIXME: better use PFN_STATE?
 {
     PFN_ENTRY* PfnEntry;
     ULONG Color;
@@ -1186,13 +1187,13 @@ PFN_DATABASE::MakePageTablePfn (
 ULONG
 PFN_DATABASE::ModifyEntryCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ LONG_PTR Addend)
+    _In_ LONG Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
-    PfnEntry->PageTable.UsedPteCount += (LONG)Addend;
-    PfnEntry->PageTable.ValidPteCount += (LONG)Addend;
+    PfnEntry->PageTable.UsedPteCount += Addend;
+    PfnEntry->PageTable.ValidPteCount += Addend;
     NT_ASSERT((PfnEntry->PageTable.UsedPteCount >= 0) &&
               (PfnEntry->PageTable.UsedPteCount <= PTE_PER_PAGE)); // HACK
     NT_ASSERT((PfnEntry->PageTable.ValidPteCount >= 0) &&
@@ -1217,12 +1218,12 @@ PFN_DATABASE::ModifyEntryCount (
 ULONG
 PFN_DATABASE::ModifyUsedCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ LONG_PTR Addend)
+    _In_ LONG Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
-    PfnEntry->PageTable.UsedPteCount += (LONG)Addend;
+    PfnEntry->PageTable.UsedPteCount += Addend;
     NT_ASSERT((PfnEntry->PageTable.UsedPteCount >= 0) &&
               (PfnEntry->PageTable.UsedPteCount <= PTE_PER_PAGE)); // HACK
     return PfnEntry->PageTable.UsedPteCount;
@@ -1245,12 +1246,12 @@ PFN_DATABASE::ModifyUsedCount (
 ULONG
 PFN_DATABASE::ModifyValidCount (
     _In_ PFN_NUMBER PageFrameNumber,
-    _In_ LONG_PTR Addend)
+    _In_ LONG Addend)
 {
     PFN_ENTRY* PfnEntry = &m_PfnArray[PageFrameNumber];
     NT_ASSERT(PfnEntry->State == PfnPageTable);
 
-    PfnEntry->PageTable.ValidPteCount += (LONG)Addend;
+    PfnEntry->PageTable.ValidPteCount += Addend;
     NT_ASSERT((PfnEntry->PageTable.ValidPteCount >= 0) &&
               (PfnEntry->PageTable.ValidPteCount <= PTE_PER_PAGE)); // HACK
     return PfnEntry->PageTable.ValidPteCount;
@@ -1689,6 +1690,7 @@ PFN_DATABASE::AllocateContiguousPages (
         /* Calculate a mask of higher bits */
         BoundaryPageMask = ~(BoundaryPageMultiple - 1);
     }
+    // else BoundaryPageMultiple = 1; ??
 
     /* Acquire the PFN database lock */
     OldIrql = KeAcquireQueuedSpinLock(LockQueuePfnLock);

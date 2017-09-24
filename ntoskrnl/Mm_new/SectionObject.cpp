@@ -398,29 +398,28 @@ MmCreateSection (
         NeedLock = TRUE;
     }
 
-    /* Check if we have a file object */
-    if (FileObject != NULL)
-    {
-        /* Reference the physical section or create a new one */
-        Status = PHYSICAL_SECTION::ReferenceOrCreateFileSection(&PhysicalSection,
-                                                                FileObject,
-                                                                AllocationAttributes,
-                                                                NeedLock);
-
-        /* Did we use a file handle? */
-        if (FileHandle != NULL)
-        {
-            /* Cleanup the file object reference */
-            ObDereferenceObject(FileObject);
-        }
-    }
-    else
+    /* Check if this is a file backed section */
+    if (FileObject == NULL)
     {
         /* No backing file, so create a new page-file backed section */
         Status = PHYSICAL_SECTION::CreatePageFileSection(&PhysicalSection,
                                                          MaximumSize->QuadPart,
-                                                         SectionPageProtection,
                                                          AllocationAttributes);
+    }
+    else
+    {
+        /* This is a file backed section, reference existing or create new */
+        Status = PHYSICAL_SECTION::ReferenceOrCreateFileSection(&PhysicalSection,
+                                                                MaximumSize,
+                                                                FileObject,
+                                                                AllocationAttributes);
+
+        /* Did we take a reference on the file object? */
+        if (FileHandle != NULL)
+        {
+            /* Cleanup the reference */
+            ObDereferenceObject(FileObject);
+        }
     }
 
     if (!NT_SUCCESS(Status))
