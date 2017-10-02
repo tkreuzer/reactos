@@ -471,7 +471,7 @@ NtGdiPolyPolyDraw( IN HDC hDC,
 
     /* Allocate one buffer for both counts and points */
     pTemp = ExAllocatePoolWithTag(PagedPool,
-                                  Count * sizeof(ULONG) + nPoints * sizeof(POINT),
+                                  nPoints * sizeof(POINT) + Count * sizeof(ULONG),
                                   TAG_SHAPE);
     if (!pTemp)
     {
@@ -483,12 +483,12 @@ NtGdiPolyPolyDraw( IN HDC hDC,
         return FALSE;
     }
 
-    SafeCounts = pTemp;
-    SafePoints = (PPOINT)&SafeCounts[Count];
+    SafePoints = pTemp;
+    SafeCounts = (PPOINT)&SafePoints[nPoints];
 
     _SEH2_TRY
     {
-        /* Pointers already probed! */
+        /* Pointers are already probed! */
         RtlCopyMemory(SafeCounts, UnsafeCounts, Count * sizeof(ULONG));
         RtlCopyMemory(SafePoints, UnsafePoints, nPoints * sizeof(POINT));
     }
@@ -550,12 +550,6 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     }
 
     DC_vPrepareDCsForBlit(dc, NULL, NULL, NULL);
-
-    if (dc->pdcattr->ulDirty_ & (DIRTY_FILL | DC_BRUSH_DIRTY))
-        DC_vUpdateFillBrush(dc);
-
-    if (dc->pdcattr->ulDirty_ & (DIRTY_LINE | DC_PEN_DIRTY))
-        DC_vUpdateLineBrush(dc);
 
     /* Perform the actual work */
     switch (iFunc)
