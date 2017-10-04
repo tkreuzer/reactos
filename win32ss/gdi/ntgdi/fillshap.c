@@ -417,14 +417,14 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     LPPOINT SafePoints;
     PULONG SafeCounts;
     NTSTATUS Status;
-    BOOL Ret = TRUE;
+    ULONG_PTR Ret = TRUE;
     ULONG nPoints = 0, nMaxPoints = 0, i;
 
     /* Validate parameters */
     if ((UnsafePoints == NULL) ||
         (UnsafeCounts == NULL) ||
         (Count == 0) ||
-        (Count > ULONG_MAX / sizeof(ULONG)) ||
+        (Count > 10240000) ||
         (iFunc == 0) ||
         (iFunc > GdiPolyPolyRgn))
     {
@@ -461,11 +461,11 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     }
     _SEH2_END;
 
-    if (nMaxPoints == 0)
+    /* Check if the polygon count is within the allowed range */
+    if ((nMaxPoints == 0) || (nMaxPoints > 5120000))
     {
-        /* If all polygon counts are zero, return FALSE
-           without setting a last error code. */
-        DPRINT1("nMaxPoints == 0!\n");
+        /* Return FALSE without setting a last error code. */
+        DPRINT1("nMaxPoints == %lu!\n", nMaxPoints);
         return FALSE;
     }
 
@@ -495,8 +495,8 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
         DPRINT1("Got exception!\n");
-        ExFreePoolWithTag(pTemp, TAG_SHAPE);
-        return FALSE;
+        Ret = FALSE;
+        goto Exit;
     }
     _SEH2_END;
 
@@ -507,16 +507,17 @@ NtGdiPolyPolyDraw( IN HDC hDC,
         if (SafeCounts[i] < 2)
         {
             DPRINT1("Invalid: UnsafeCounts[%lu] == %lu\n", i, SafeCounts[i]);
-            ExFreePoolWithTag(pTemp, TAG_SHAPE);
             EngSetLastError(ERROR_INVALID_PARAMETER);
-            return FALSE;
+            Ret = FALSE;
+            goto Exit;
         }
 
         Status = RtlULongAdd(nPoints, SafeCounts[i], &nPoints);
         if (!NT_SUCCESS(Status))
         {
             DPRINT1("Overflow when counting points!\n");
-            return FALSE;
+            Ret = FALSE;
+            goto Exit;
         }
     }
 
@@ -525,8 +526,8 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     if (nPoints != nMaxPoints)
     {
         DPRINT1("Polygon count mismatch: %lu != %lu\n", nPoints, nMaxPoints);
-        ExFreePoolWithTag(pTemp, TAG_SHAPE);
-        return FALSE;
+        Ret = FALSE;
+        goto Exit;
     }
 
     /* Special handling for GdiPolyPolyRgn */
@@ -537,16 +538,16 @@ NtGdiPolyPolyDraw( IN HDC hDC,
 
         hrgn = GreCreatePolyPolygonRgn(SafePoints, SafeCounts, Count, iMode);
 
-        ExFreePoolWithTag(pTemp, TAG_SHAPE);
-        return (ULONG_PTR)hrgn;
+        Ret = (ULONG_PTR)hrgn;
+        goto Exit;
     }
 
     dc = DC_LockDc(hDC);
     if (!dc)
     {
         EngSetLastError(ERROR_INVALID_HANDLE);
-        ExFreePoolWithTag(pTemp, TAG_SHAPE);
-        return FALSE;
+        Ret = FALSE;
+        goto Exit;
     }
 
     DC_vPrepareDCsForBlit(dc, NULL, NULL, NULL);
@@ -577,6 +578,9 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     /* Cleanup and return */
     DC_vFinishBlit(dc, NULL);
     DC_UnlockDc(dc);
+
+Exit:
+
     ExFreePoolWithTag(pTemp, TAG_SHAPE);
 
     return (ULONG_PTR)Ret;
