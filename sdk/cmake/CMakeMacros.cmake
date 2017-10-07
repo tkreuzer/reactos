@@ -947,3 +947,13 @@ function(add_rostests_file)
         endif()
     endif()
 endfunction()
+
+function(set_ntddi_version _new_ntddi_version)
+    remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
+    add_definitions(-DNTDDI_VERSION=${_new_ntddi_version})
+endfunction()
+
+function(set_win32_winnt _new_win32_winnt_version)
+    remove_definitions(-D_WIN32_WINNT=0x502 -DWINVER=0x502 -DNTDDI_VERSION=0x05020400)
+    add_definitions(-D_WIN32_WINNT=${_new_win32_winnt_version})
+endfunction()
