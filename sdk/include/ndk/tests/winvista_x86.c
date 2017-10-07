@@ -108,3 +108,23 @@ C_ASSERT_FIELD(KTHREAD, 0x1C4, LIST_ENTRY, ThreadListEntry)
 C_ASSERT_FIELD(KTHREAD, 0x1CC, LIST_ENTRY, MutantListHead)
 C_ASSERT_FIELD(KTHREAD, 0x1D4, PVOID, SListFaultAddress)
 C_ASSERT_FIELD(KTHREAD, 0x1D8, PVOID, MdlForLockedTeb)
+
+/* KPROCESS */
+#if 0
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+C_ASSERT_FIELD(KPROCESS, 0x___, _____, ______)
+#endif
