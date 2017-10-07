@@ -2027,7 +2027,9 @@ typedef struct _KPROCESS
     LIST_ENTRY ProfileListHead;
 #if (NTDDI_VERSION >= NTDDI_LONGHORN)
     ULONG_PTR DirectoryTableBase;
+#if (NTDDI_VERSION == NTDDI_LONGHORN)
     ULONG_PTR Unused0;
+#endif
 #else
     ULONG_PTR DirectoryTableBase[2];
 #endif
@@ -2035,6 +2037,33 @@ typedef struct _KPROCESS
     KGDTENTRY LdtDescriptor;
     KIDTENTRY Int21Descriptor;
 #endif
+#if (NTDDI_VERSION >= NTDDI_WIN7)
+    LIST_ENTRY ThreadListHead;
+    KSPIN_LOCK ProcessLock;
+    KAFFINITY_EX Affinity;
+    LIST_ENTRY ReadyListHead;
+    SINGLE_LIST_ENTRY SwapListEntry;
+    KAFFINITY_EX ActiveProcessors;
+    union
+    {
+        struct
+        {
+            LONG AutoAlignment:1;
+            LONG DisableBoost:1;
+            LONG DisableQuantum:1;
+            LONG ActiveGroupsMask:1;
+            LONG ReservedFlags:28;
+        };
+        LONG ProcessFlags;
+    };
+    SCHAR BasePriority;
+    SCHAR QuantumReset;
+    UCHAR Visited;
+    UCHAR Unused3;
+    ULONG ThreadSeed[KPROCESS_THREADSEEDS];
+    USHORT IdealNode[KPROCESS_IDEALNODES];
+    USHORT IdealGlobalNode;
+#else
     USHORT IopmOffset;
 #if defined(_M_IX86)
     UCHAR Iopl;
@@ -2067,17 +2096,39 @@ typedef struct _KPROCESS
     UCHAR PowerState;
     UCHAR IdealNode;
     UCHAR Visited;
+#endif
     union
     {
         KEXECUTE_OPTIONS Flags;
         UCHAR ExecuteOptions;
     };
+#if (NTDDI_VERSION >= NTDDI_WIN7)
+    UCHAR Unused1;
+    USHORT IopmOffset;
+    ULONG Unused4;
+    ULONG /* KSTACK_COUNT */ StackCount;
+#else
     ULONG StackCount;
+#endif
     LIST_ENTRY ProcessListEntry;
-#if (NTDDI_VERSION >= NTDDI_LONGHORN) // [
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
     ULONGLONG CycleTime;
-#endif // ]
-} KPROCESS;
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN7)
+    ULONG KernelTime;
+    ULONG UserTime;
+#if (KPROCESS_LDT == 1) //x64 only
+    PVOID InstrumentationCallback;
+    KGDTENTRY64 LdtSystemDescriptor;
+    PVOID LdtBaseAddress;
+    KGUARDED_MUTEX LdtProcessLock;
+    USHORT LdtFreeSelectorHint;
+    USHORT LdtTableLength;
+#else
+    PVOID VdmTrapcHandler;
+#endif
+#endif
+} KPROCESS, *PKPROCESS;
 
 #define ASSERT_PROCESS(object) \
     ASSERT((((object)->Header.Type & KOBJECT_TYPE_MASK) == ProcessObject))
