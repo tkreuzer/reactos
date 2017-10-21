@@ -121,6 +121,21 @@ ExRaiseHardError (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+#if 0 // These don't even seem to exist on Win 10 RS2, otherwise maybe in Callback.cpp?
+VOID
+NTAPI
+ExRegisterAttributeInformationCallback()
+{
+    __debugbreak();
+}
+
+VOID
+NTAPI
+ExUnregisterAttributeInformationCallback()
+{
+    __debugbreak();
+}
 
 VOID NTAPI ExQueryAttributeInformation() { __debugbreak(); }
 
+#endif
