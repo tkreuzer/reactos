@@ -388,6 +388,19 @@ RtlNormalizeString (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+// https://forums.wholetomato.com/forum/topic.asp?TOPIC_ID=12551
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+PWCHAR
+RtlFindUnicodeSubstring (
+    _In_ PCUNICODE_STRING FullString,
+    _In_ PCUNICODE_STRING SearchString,
+    _In_ BOOLEAN CaseInSensitive
+    )
+{
+    __debugbreak();
+    return NULL;
+}
 
 #if 0
 _At_(AnsiString->Buffer, _Post_equal_to_(Buffer))
