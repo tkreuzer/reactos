@@ -122,17 +122,5 @@ ExRaiseHardError (
 }
 
 
-_IRQL_requires_max_(APC_LEVEL)
-NTKERNELAPI
-DECLSPEC_NORETURN
-VOID
-NTAPI
-ExRaiseDatatypeMisalignment (
-    VOID)
-{
-    __debugbreak();
-    for (;;);
-}
-
 VOID NTAPI ExQueryAttributeInformation() { __debugbreak(); }
 
