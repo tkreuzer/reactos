@@ -39,8 +39,15 @@ NTAPI
 ExIsProcessorFeaturePresent (
     _In_ ULONG ProcessorFeature)
 {
-    __debugbreak();
-    return FALSE;
+    /* Check parameter */
+    if (ProcessorFeature > PF_XSAVE_ENABLED)
+    {
+        /* Non existant feature */
+        return FALSE;
+    }
+
+    /* Return the feature from the shared user data */
+    return SharedUserData->ProcessorFeatures[ProcessorFeature];
 }
 
 
