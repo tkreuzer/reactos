@@ -20,7 +20,6 @@ ExRaiseAccessViolation (
     RtlRaiseStatus(STATUS_ACCESS_VIOLATION);
 }
 
-#if 0 /// FIXME!!!
 _IRQL_requires_max_(APC_LEVEL)
 DECLSPEC_NORETURN
 VOID
@@ -30,7 +29,6 @@ ExRaiseDatatypeMisalignment (
 {
     RtlRaiseStatus(STATUS_DATATYPE_MISALIGNMENT);
 }
-#endif // 0
 
 _IRQL_requires_max_(APC_LEVEL)
 int
