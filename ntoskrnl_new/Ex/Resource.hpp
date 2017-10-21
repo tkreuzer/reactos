@@ -1,9 +1,10 @@
 
 #pragma once
 
-#include "Exp.hpp"
-#include <Ke/SpinLock.hpp>
-#include <Ke/Semaphore.hpp>
+#include "Ke/WaitChain.hpp"
+#include "Ke/Gate.hpp"
+
+namespace Ex {
 
 // ntosp.h
 typedef ULONG_PTR ERESOURCE_THREAD, *PERESOURCE_THREAD;
@@ -24,36 +25,129 @@ typedef struct _OWNER_ENTRY
     };
 } OWNER_ENTRY, *POWNER_ENTRY;
 
-// ntosp.h
-typedef struct _ERESOURCE
+typedef union _RESOURCE_STATE
 {
-    LIST_ENTRY SystemResourcesList;
-    POWNER_ENTRY OwnerTable;
-    SHORT ActiveCount;
-    union
+    LONG Long;
+    struct
     {
-        USHORT Flag;
-        struct
+        SHORT ActiveCount;
+        union
         {
-            UCHAR ReservedLowFlags;
-            UCHAR WaiterPriority;
+            USHORT Flag;
+            struct
+            {
+                UCHAR ReservedLowFlags : 3;
+                UCHAR DisableResourceBoost : 1;
+                UCHAR ReservedLowFlags2 : 3;
+                UCHAR Exclusive : 1;
+                UCHAR WaiterPriority;
+            };
         };
     };
-    __volatile PKSEMAPHORE SharedWaiters;
-    __volatile PKEVENT ExclusiveWaiters;
-    OWNER_ENTRY OwnerEntry;
-    ULONG ActiveEntries;
-    ULONG ContentionCount;
-    ULONG NumberOfSharedWaiters;
-    ULONG NumberOfExclusiveWaiters;
-#if defined(_WIN64)
-    PVOID Reserved2;
-#endif
+} RESOURCE_STATE;
+
+typedef class RESOURCE *PRESOURCE;
+
+class RESOURCE
+{
+private:
+    LIST_ENTRY _SystemResourcesList;
+    POWNER_ENTRY _OwnerTable;
+    RESOURCE_STATE _State;
+    Ke::WAIT_CHAIN _SharedWaiters;
+    Ke::PGATE _ExclusiveWaitGate;
+    OWNER_ENTRY _OwnerEntry;
+    LONG _ActiveEntries;
+    LONG _ContentionCount;
+    LONG _NumberOfSharedWaiters;
+    LONG _NumberOfExclusiveWaiters;
     union
     {
-        PVOID Address;
-        ULONG_PTR CreatorBackTraceIndex;
+        VOID* _Address;
+        ULONG _CreatorBackTraceIndex;
     };
-    KSPIN_LOCK SpinLock;
-} ERESOURCE, *PERESOURCE;
+    ULONG _SpinLock;
 
+    BOOLEAN
+    WaitExclusive (
+        VOID);
+
+    VOID
+    WaitShared (
+        _In_ ULONG Flags);
+
+    VOID
+    AllocateWaitGate (
+        VOID);
+
+    BOOLEAN
+    CanAcquireShared (
+        _In_ ULONG Flags) const;
+
+public:
+
+    enum
+    {
+        FLAG_SHARED = 0x01,
+        FLAG_WAIT = 0x02,
+        FLAG_WAIT_FOR_EXCLUSIVE = 0x04,
+        FLAG_STARVE_EXCLUSIVE = 0x08,
+    };
+
+    RESOURCE (
+        VOID);
+
+    ~RESOURCE (
+        VOID);
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    inline
+    ULONG
+    GetExclusiveWaiterCount (
+        VOID) const
+    {
+        return _NumberOfExclusiveWaiters;
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    inline
+    ULONG
+    GetSharedWaiterCount (
+        VOID) const
+    {
+        return _NumberOfSharedWaiters;
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    inline
+    BOOLEAN
+    IsAcquiredExclusiveLite (
+        VOID) const
+    {
+        return ((_State.Exclusive != 0) &&
+                (_OwnerEntry.OwnerThread == (ULONG_PTR)KeGetCurrentThread()));
+    }
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    ULONG
+    IsAcquiredSharedLite (
+        VOID) const
+    {
+        return 0;
+    }
+
+    BOOLEAN
+    AcquireExclusive (
+        _In_ ULONG Flags);
+
+    BOOLEAN
+    AcquireShared (
+        _In_ ULONG Flags);
+
+    VOID
+    Release (
+        VOID);
+
+};
+
+}; // namespace Ex
