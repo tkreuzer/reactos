@@ -23,6 +23,7 @@ list(APPEND SOURCE
     ntgdi/NtGdiExtTextOutW.c
     #ntgdi/NtGdiFlushUserBatch.c
     ntgdi/NtGdiGetBitmapBits.c
+    ntgdi/NtGdiGetDCObject.c
     ntgdi/NtGdiGetDIBits.c
     ntgdi/NtGdiGetFontResourceInfoInternalW.c
     ntgdi/NtGdiGetRandomRgn.c

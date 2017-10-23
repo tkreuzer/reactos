@@ -24,6 +24,7 @@ extern void func_NtGdiExtSelectClipRgn(void);
 extern void func_NtGdiExtTextOutW(void);
 //extern void func_NtGdiFlushUserBatch(void);
 extern void func_NtGdiGetBitmapBits(void);
+extern void func_NtGdiGetDCObject(void);
 extern void func_NtGdiGetDIBitsInternal(void);
 extern void func_NtGdiGetFontResourceInfoInternalW(void);
 extern void func_NtGdiGetRandomRgn(void);
@@ -90,6 +91,7 @@ const struct test winetest_testlist[] =
     { "NtGdiExtTextOutW", func_NtGdiExtTextOutW },
     //{ "NtGdiFlushUserBatch", func_NtGdiFlushUserBatch },
     { "NtGdiGetBitmapBits", func_NtGdiGetBitmapBits },
+    { "NtGdiGetDCObject", func_NtGdiGetDCObject },
     { "NtGdiGetDIBitsInternal", func_NtGdiGetDIBitsInternal },
     { "NtGdiGetFontResourceInfoInternalW", func_NtGdiGetFontResourceInfoInternalW },
     { "NtGdiGetRandomRgn", func_NtGdiGetRandomRgn },
