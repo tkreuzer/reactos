@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1452336047 source:e:\reactos\trunk\src\modules\_rosapps\applications\devutils\createspec\createspec.c
+	<stdio.h>
+	<stdlib.h>
+	<ctype.h>
+	<windows.h>
+	<shlwapi.h>
+	<dbghelp.h>
+
