@@ -65,9 +65,19 @@ list(APPEND SOURCE
     #osver.c
     win32nt.h)
 
-add_library(win32knt_static STATIC ${SOURCE} w32knapi.rc)
-add_dependencies(win32knt_static xdk)
-add_pch(win32knt_static win32nt.h SOURCE)
+add_executable(win32knt_apitest ${SOURCE})
+target_link_libraries(win32knt_apitest ${PSEH_LIB} gditools)
+set_module_type(win32knt_apitest win32cui)
+add_importlibs(win32knt_apitest
+    gdi32
+    user32
+    shell32
+    advapi32
+    msvcrt
+    kernel32
+    ntdll)
+add_delay_importlibs(win32knt_apitest
+    win32u) # win32u_2ksp4 win32u_xpsp2 win32u_2k3sp2 win32u_vista
 
 set(WIN32KNT_IMPORTLIBS gdi32 user32 shell32 advapi32 msvcrt kernel32 ntdll)
 
