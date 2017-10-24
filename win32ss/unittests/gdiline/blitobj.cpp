@@ -99,13 +99,6 @@ BLTOBJ::bInit (
     /* Check if we have a source DC */
     if (hdcSrc != NULL)
     {
-        /* Check if a source is needed */
-        if (fl & BLT_NEED_SRC)
-        {
-            bResult = FALSE;
-            goto Exit;
-        }
-
         /* Lock both DCs */
         ahobj[0] = hdcTrg;
         ahobj[1] = hdcSrc ;
@@ -123,6 +116,14 @@ BLTOBJ::bInit (
     }
     else
     {
+        /* Check if a source is needed */
+        if (fl & BLT_NEED_SRC)
+        {
+            bResult = FALSE;
+            goto Exit;
+        }
+
+        /* No source DC needed, just lock the target DC */
         _pdcSrc = NULL;
         _pdcTrg = DC_LockDc(hdcTrg);
         if (_pdcTrg == NULL)
