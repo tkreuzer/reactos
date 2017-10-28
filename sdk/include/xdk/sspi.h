@@ -1854,6 +1854,29 @@ SECURITY_STATUS
 #define QUERY_SECURITY_PACKAGE_INFO_FN QUERY_SECURITY_PACKAGE_INFO_FN_A
 #endif
 
+typedef enum _SecDelegationType
+{
+    SecFull,
+    SecService,
+    SecTree,
+    SecDirectory,
+    SecObject
+} SecDelegationType, *PSecDelegationType;
+
+SECURITY_STATUS
+SEC_ENTRY
+DelegateSecurityContext(
+    PCtxtHandle phContext,
+#if ISSP_MODE == 0
+    PSECURITY_STRING pTarget,
+#else
+    _In_ LPSTR pszTarget,
+#endif
+    SecDelegationType DelegationType,
+    PTimeStamp pExpiry,
+    PSecBuffer pPackageParameters,
+    PSecBufferDesc pOutput);
+
 KSECDDDECLSPEC
 SECURITY_STATUS
 SEC_ENTRY
