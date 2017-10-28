@@ -2135,6 +2135,55 @@ SspiExcludePackage(
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
 
+SECURITY_STATUS
+SEC_ENTRY
+SspiPrepareForCredRead(
+    _In_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthIdentity,
+    _In_ PCWSTR pszTargetName,
+    _Out_ PULONG pCredmanCredentialType,
+    _Outptr_ PCWSTR* ppszCredmanTargetName);
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiPrepareForCredWrite(
+    _In_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthIdentity,
+    _In_opt_ PCWSTR pszTargetName,
+    _Out_ PULONG pCredmanCredentialType,
+    _Outptr_ PCWSTR* ppszCredmanTargetName,
+    _Outptr_ PCWSTR* ppszCredmanUserName,
+    _Outptr_result_bytebuffer_(*pCredentialBlobSize) PUCHAR *ppCredentialBlob,
+    _Out_ PULONG pCredentialBlobSize);
+
+#define SEC_WINNT_AUTH_IDENTITY_ENCRYPT_SAME_LOGON        0x1
+#define SEC_WINNT_AUTH_IDENTITY_ENCRYPT_SAME_PROCESS      0x2
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiEncryptAuthIdentity(
+    _Inout_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthData);
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiEncryptAuthIdentityEx(
+    _In_ ULONG Options,
+    _Inout_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthData);
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiDecryptAuthIdentity(
+    _Inout_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE EncryptedAuthData);
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiDecryptAuthIdentityEx(
+    _In_ ULONG Options,
+    _Inout_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE EncryptedAuthData);
+
+BOOLEAN
+SEC_ENTRY
+SspiIsAuthIdentityEncrypted(
+    _In_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE EncryptedAuthData);
+
 #ifdef _SEC_WINNT_AUTH_TYPES
 
 typedef struct _SEC_WINNT_AUTH_BYTE_VECTOR
