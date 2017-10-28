@@ -7,9 +7,16 @@
 extern "C" {
 #endif
 
-// for ntifs.h:
 #define ISSP_LEVEL 32
+
+#if defined(SECURITY_KERNEL)
+#undef ISSP_MODE
 #define ISSP_MODE 0
+#elif defined(SECURITY_WIN32) || defined(SECURITY_MAC)
+#define ISSP_MODE 1
+#else
+#error Need to define SECURITY_KERNEL, SECURITY_WIN32 or SECURITY_MAC!
+#endif
 
 #ifdef MIDL_PASS
 #define MIDL_PROP(x) x
@@ -610,6 +617,10 @@ typedef struct _SECURITY_FUNCTION_TABLE_W
     CHANGE_PASSWORD_FN_W ChangeAccountPasswordW;
 #else
     PVOID Reserved9;
+#endif
+#if NTDDI_VERSION > NTDDI_WINBLUE
+    QUERY_CONTEXT_ATTRIBUTES_EX_FN_W QueryContextAttributesExW;
+    QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_W QueryCredentialsAttributesExW;
 #endif
 } SecurityFunctionTableW, * PSecurityFunctionTableW;
 #define SecurityFunctionTable SecurityFunctionTableW
