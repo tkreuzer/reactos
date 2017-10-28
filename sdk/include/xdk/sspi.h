@@ -2106,13 +2106,13 @@ SEC_ENTRY
 SspiMarshalAuthIdentity(
     _In_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE AuthIdentity,
     _Out_ PULONG AuthIdentityLength,
-    _Outptr_result_bytebuffer_(*AuthIdentityLength) char** AuthIdentityByteArray);
+    _Outptr_result_bytebuffer_(*AuthIdentityLength) PCHAR* AuthIdentityByteArray);
 
 SECURITY_STATUS
 SEC_ENTRY
 SspiUnmarshalAuthIdentity(
     _In_ ULONG AuthIdentityLength,
-    _In_reads_bytes_(AuthIdentityLength) char* AuthIdentityByteArray,
+    _In_reads_bytes_(AuthIdentityLength) PCHAR AuthIdentityByteArray,
     _Outptr_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE* ppAuthIdentity);
 
 BOOLEAN
