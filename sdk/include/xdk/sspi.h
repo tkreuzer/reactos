@@ -26,6 +26,7 @@ extern "C" {
 
 #define SEC_TEXT TEXT
 #define SEC_FAR
+#define __SEC_FAR SEC_FAR
 #define SEC_ENTRY __stdcall
 
 #if defined(_NO_KSECDD_IMPORT_)
@@ -1934,6 +1935,55 @@ SspiExcludePackage(
 
 #define SEC_WINNT_AUTH_IDENTITY_MARSHALLED 0x04
 #define SEC_WINNT_AUTH_IDENTITY_ONLY 0x08
+
+typedef struct _SECURITY_PACKAGE_OPTIONS
+{
+    ULONG Size;
+    ULONG Type;
+    ULONG Flags;
+    ULONG SignatureSize;
+    PVOID Signature;
+} SECURITY_PACKAGE_OPTIONS, *PSECURITY_PACKAGE_OPTIONS;
+
+#define SECPKG_OPTIONS_TYPE_UNKNOWN 0
+#define SECPKG_OPTIONS_TYPE_LSA     1
+#define SECPKG_OPTIONS_TYPE_SSPI    2
+
+#define SECPKG_OPTIONS_PERMANENT 0x00000001
+
+SECURITY_STATUS
+SEC_ENTRY
+AddSecurityPackageA(
+    _In_ LPSTR pszPackageName,
+    _In_opt_ PSECURITY_PACKAGE_OPTIONS pOptions);
+
+SECURITY_STATUS
+SEC_ENTRY
+AddSecurityPackageW(
+    _In_ LPWSTR pszPackageName,
+    _In_opt_ PSECURITY_PACKAGE_OPTIONS pOptions);
+
+#ifdef UNICODE
+#define AddSecurityPackage AddSecurityPackageW
+#else
+#define AddSecurityPackage AddSecurityPackageA
+#endif
+
+SECURITY_STATUS
+SEC_ENTRY
+DeleteSecurityPackageA(
+    _In_ LPSTR pszPackageName);
+
+SECURITY_STATUS
+SEC_ENTRY
+DeleteSecurityPackageW(
+    _In_ LPWSTR pszPackageName);
+
+#ifdef UNICODE
+#define DeleteSecurityPackage DeleteSecurityPackageW
+#else
+#define DeleteSecurityPackage DeleteSecurityPackageA
+#endif
 
 #ifdef __cplusplus
 }  // extern "C"
