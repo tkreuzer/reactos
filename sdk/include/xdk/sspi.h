@@ -346,6 +346,14 @@ typedef struct _SecPkgContext_NativeNamesW
 typedef WCHAR SEC_WCHAR;
 typedef CHAR SEC_CHAR;
 
+#ifdef UNICODE
+typedef SEC_WCHAR *SECURITY_PSTR;
+typedef const SEC_WCHAR *SECURITY_PCSTR;
+#else
+typedef SEC_CHAR *SECURITY_PSTR;
+typedef const SEC_CHAR *SECURITY_PCSTR;
+#endif
+
 #ifdef WIN32_CHICAGO
 typedef unsigned __int64 QWORD, SECURITY_INTEGER, *PSECURITY_INTEGER;
 #define SEC_SUCCESS(Status) ((Status) >= 0)
