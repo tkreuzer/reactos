@@ -2306,6 +2306,143 @@ DeleteSecurityPackageW(
 #define DeleteSecurityPackage DeleteSecurityPackageA
 #endif
 
+#ifdef SECURITY_WIN32
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslEnumerateProfilesA(
+    _Outptr_ LPSTR *ProfileList,
+    _Out_ PULONG ProfileCount);
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslEnumerateProfilesW(
+    _Outptr_ LPWSTR *ProfileList,
+    _Out_ ULONG *ProfileCount);
+
+#ifdef UNICODE
+#define SaslEnumerateProfiles SaslEnumerateProfilesW
+#else
+#define SaslEnumerateProfiles SaslEnumerateProfilesA
+#endif
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslGetProfilePackageA(
+    _In_ LPSTR ProfileName,
+    _Outptr_ PSecPkgInfoA *PackageInfo);
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslGetProfilePackageW(
+    _In_ LPWSTR ProfileName,
+    _Outptr_ PSecPkgInfoW *PackageInfo);
+
+#ifdef UNICODE
+#define SaslGetProfilePackage SaslGetProfilePackageW
+#else
+#define SaslGetProfilePackage SaslGetProfilePackageA
+#endif
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslIdentifyPackageA(
+    _In_ PSecBufferDesc pInput,
+    _Outptr_ PSecPkgInfoA *PackageInfo);
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslIdentifyPackageW(
+    _In_ PSecBufferDesc pInput,
+    _Outptr_ PSecPkgInfoW *PackageInfo);
+
+#ifdef UNICODE
+#define SaslIdentifyPackage SaslIdentifyPackageW
+#else
+#define SaslIdentifyPackage SaslIdentifyPackageA
+#endif
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslInitializeSecurityContextW(
+    _In_opt_ PCredHandle phCredential,
+    _In_opt_ PCtxtHandle phContext,
+    _In_opt_ LPWSTR pszTargetName,
+    _In_ ULONG fContextReq,
+    _In_ ULONG Reserved1,
+    _In_ ULONG TargetDataRep,
+    _In_opt_ PSecBufferDesc pInput,
+    _In_ ULONG Reserved2,
+    _Inout_opt_ PCtxtHandle phNewContext,
+    _Inout_opt_ PSecBufferDesc pOutput,
+    _Out_ PULONG pfContextAttr,
+    _Out_opt_ PTimeStamp ptsExpiry);
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslInitializeSecurityContextA(
+    _In_opt_ PCredHandle phCredential,
+    _In_opt_ PCtxtHandle phContext,
+    _In_opt_ LPSTR pszTargetName,
+    _In_ ULONG fContextReq,
+    _In_ ULONG Reserved1,
+    _In_ ULONG TargetDataRep,
+    _In_opt_ PSecBufferDesc pInput,
+    _In_ ULONG Reserved2,
+    _Inout_opt_ PCtxtHandle phNewContext,
+    _Inout_opt_ PSecBufferDesc pOutput,
+    _Out_ PULONG pfContextAttr,
+    _Out_opt_ PTimeStamp ptsExpiry);
+
+#ifdef UNICODE
+#define SaslInitializeSecurityContext SaslInitializeSecurityContextW
+#else
+#define SaslInitializeSecurityContext SaslInitializeSecurityContextA
+#endif
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslAcceptSecurityContext(
+    _In_opt_ PCredHandle phCredential,
+    _In_opt_ PCtxtHandle phContext,
+    _In_opt_ PSecBufferDesc pInput,
+    _In_ ULONG fContextReq,
+    _In_ ULONG TargetDataRep,
+    _Inout_opt_ PCtxtHandle phNewContext,
+    _Inout_opt_ PSecBufferDesc pOutput,
+    _Out_ PULONG pfContextAttr,
+    _Out_opt_ PTimeStamp ptsExpiry);
+
+#define SASL_OPTION_SEND_SIZE        1
+#define SASL_OPTION_RECV_SIZE        2
+#define SASL_OPTION_AUTHZ_STRING     3
+#define SASL_OPTION_AUTHZ_PROCESSING 4
+
+typedef enum _SASL_AUTHZID_STATE
+{
+    Sasl_AuthZIDForbidden,
+    Sasl_AuthZIDProcessed
+} SASL_AUTHZID_STATE ;
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslSetContextOption(
+    _In_ PCtxtHandle ContextHandle,
+    _In_ ULONG Option,
+    _In_ PVOID Value,
+    _In_ ULONG Size);
+
+SECURITY_STATUS
+SEC_ENTRY
+SaslGetContextOption(
+    _In_ PCtxtHandle ContextHandle,
+    _In_ ULONG Option,
+    _Out_ PVOID Value,
+    _In_ ULONG Size,
+    _Out_opt_ PULONG Needed);
+
+#endif // SECURITY_WIN32
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif
