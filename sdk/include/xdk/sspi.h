@@ -35,6 +35,9 @@ extern "C" {
 #define KSECDDDECLSPEC __declspec(dllimport)
 #endif
 
+#define KDC_PROXY_SETTINGS_V1 1
+#define KDC_PROXY_SETTINGS_FLAGS_FORCEPROXY 0x1
+
 #define SECQOP_WRAP_NO_ENCRYPT 0x80000001
 #define SECQOP_WRAP_OOB_DATA   0x40000000
 
