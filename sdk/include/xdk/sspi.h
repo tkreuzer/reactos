@@ -2086,6 +2086,132 @@ SspiExcludePackage(
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
 
+#if (ISSP_MODE == 0)
+
+typedef struct _SspiAsyncContext SspiAsyncContext;
+
+typedef
+VOID
+(*SspiAsyncNotifyCallback)(
+    _In_ SspiAsyncContext* Handle,
+    _In_opt_ PVOID CallbackData);
+
+SspiAsyncContext*
+SspiCreateAsyncContext();
+
+VOID
+SspiFreeAsyncContext(
+    _In_opt_ SspiAsyncContext* Handle);
+
+NTSTATUS
+SspiReinitAsyncContext(
+    _Inout_ SspiAsyncContext* Handle);
+
+SECURITY_STATUS
+SspiSetAsyncNotifyCallback(
+    _In_ SspiAsyncContext* Context,
+    _In_ SspiAsyncNotifyCallback Callback,
+    _In_opt_ PVOID CallbackData);
+
+BOOLEAN
+SspiAsyncContextRequiresNotify(
+    _In_ SspiAsyncContext* AsyncContext);
+
+SECURITY_STATUS
+SspiGetAsyncCallStatus(
+    _In_ SspiAsyncContext* Handle);
+
+SECURITY_STATUS
+SspiAcquireCredentialsHandleAsyncW(
+    _Inout_ SspiAsyncContext* AsyncContext,
+    _In_opt_ PSSPI_SEC_STRING pszPrincipal,
+    _In_ PSSPI_SEC_STRING pszPackage,
+    _In_ ULONG fCredentialUse,
+    _In_opt_ PVOID pvLogonId,
+    _In_opt_ PVOID pAuthData,
+    _In_opt_ SEC_GET_KEY_FN pGetKeyFn,
+    _In_opt_ PVOID pvGetKeyArgument,
+    _In_ PCredHandle phCredential,
+    _In_opt_ PTimeStamp ptsExpiry);
+
+SECURITY_STATUS
+SspiAcquireCredentialsHandleAsyncA(
+    _Inout_ SspiAsyncContext* AsyncContext,
+    _In_opt_ LPSTR pszPrincipal,
+    _In_ LPSTR pszPackage,
+    _In_ ULONG fCredentialUse,
+    _In_opt_ PVOID pvLogonId,
+    _In_opt_ PVOID pAuthData,
+    _In_opt_ SEC_GET_KEY_FN pGetKeyFn,
+    _In_opt_ PVOID pvGetKeyArgument,
+    _In_ PCredHandle phCredential,
+    _In_opt_ PTimeStamp ptsExpiry);
+
+SECURITY_STATUS
+SspiInitializeSecurityContextAsyncW(
+    _Inout_ SspiAsyncContext* AsyncContext,
+    _In_opt_ PCredHandle phCredential,
+    _In_opt_ PCtxtHandle phContext,
+    _In_opt_ PSSPI_SEC_STRING pszTargetName,
+    _In_ ULONG fContextReq,
+    _In_ ULONG Reserved1,
+    _In_ ULONG TargetDataRep,
+    _In_opt_ PSecBufferDesc pInput,
+    _In_ ULONG Reserved2,
+    _In_opt_ PCtxtHandle phNewContext,
+    _In_opt_ PSecBufferDesc pOutput,
+    _In_ PULONG pfContextAttr,
+    _In_opt_ PTimeStamp ptsExpiry);
+
+SECURITY_STATUS
+SspiInitializeSecurityContextAsyncA(
+    _Inout_ SspiAsyncContext* AsyncContext,
+    _In_opt_ PCredHandle phCredential,
+    _In_opt_ PCtxtHandle phContext,
+    _In_opt_ LPSTR pszTargetName,
+    _In_ ULONG fContextReq,
+    _In_ ULONG Reserved1,
+    _In_ ULONG TargetDataRep,
+    _In_opt_ PSecBufferDesc pInput,
+    _In_ ULONG Reserved2,
+    _In_opt_ PCtxtHandle phNewContext,
+    _In_opt_ PSecBufferDesc pOutput,
+    _In_ PULONG pfContextAttr,
+    _In_opt_ PTimeStamp ptsExpiry);
+
+SECURITY_STATUS
+SspiAcceptSecurityContextAsync(
+    _Inout_ SspiAsyncContext* AsyncContext,       
+    _In_opt_ PCredHandle phCredential,
+    _In_opt_ PCtxtHandle phContext,
+    _In_opt_ PSecBufferDesc pInput,
+    _In_ ULONG fContextReq,
+    _In_ ULONG TargetDataRep,
+    _In_opt_ PCtxtHandle phNewContext,
+    _In_opt_ PSecBufferDesc pOutput,
+    _In_ PULONG pfContextAttr,
+    _In_opt_ PTimeStamp ptsExpiry);
+
+SECURITY_STATUS
+SspiFreeCredentialsHandleAsync(
+    _Inout_ SspiAsyncContext* AsyncContext,
+    _In_ PCredHandle phCredential);
+
+SECURITY_STATUS
+SspiDeleteSecurityContextAsync(
+    _Inout_ SspiAsyncContext* AsyncContext,
+    _In_ PCtxtHandle phContext);
+
+#ifdef UNICODE
+#define SspiAcquireCredentialsHandleAsync SspiAcquireCredentialsHandleAsyncW
+#define SspiInitializeSecurityContextAsync SspiInitializeSecurityContextAsyncW
+#else
+#define SspiAcquireCredentialsHandleAsync SspiAcquireCredentialsHandleAsyncA
+#define SspiInitializeSecurityContextAsync SspiInitializeSecurityContextAsync
+#endif
+
+#endif //  (ISSP_MODE == 0)
+
 #define SEC_WINNT_AUTH_IDENTITY_MARSHALLED 0x04
 #define SEC_WINNT_AUTH_IDENTITY_ONLY 0x08
 
