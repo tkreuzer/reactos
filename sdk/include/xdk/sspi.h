@@ -2135,6 +2135,162 @@ SspiExcludePackage(
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
 
+#ifdef _SEC_WINNT_AUTH_TYPES
+
+typedef struct _SEC_WINNT_AUTH_BYTE_VECTOR
+{
+    ULONG ByteArrayOffset;
+    USHORT ByteArrayLength;
+} SEC_WINNT_AUTH_BYTE_VECTOR, *PSEC_WINNT_AUTH_BYTE_VECTOR;
+
+typedef struct _SEC_WINNT_AUTH_DATA
+{
+   GUID CredType;
+   SEC_WINNT_AUTH_BYTE_VECTOR CredData;
+} SEC_WINNT_AUTH_DATA, *PSEC_WINNT_AUTH_DATA;
+
+typedef struct _SEC_WINNT_AUTH_PACKED_CREDENTIALS
+{
+   USHORT cbHeaderLength;
+   USHORT cbStructureLength;
+   SEC_WINNT_AUTH_DATA AuthData;
+} SEC_WINNT_AUTH_PACKED_CREDENTIALS, *PSEC_WINNT_AUTH_PACKED_CREDENTIALS;
+
+// {28BFC32F-10F6-4738-98D1-1AC061DF716A}
+EXTERN_C __declspec(selectany) const GUID SEC_WINNT_AUTH_DATA_TYPE_PASSWORD =
+    { 0x28bfc32f, 0x10f6, 0x4738, { 0x98, 0xd1, 0x1a, 0xc0, 0x61, 0xdf, 0x71, 0x6a } };
+
+// {235F69AD-73FB-4dbc-8203-0629E739339B}
+EXTERN_C __declspec(selectany) const GUID SEC_WINNT_AUTH_DATA_TYPE_CERT =
+    { 0x235f69ad, 0x73fb, 0x4dbc, { 0x82, 0x3, 0x6, 0x29, 0xe7, 0x39, 0x33, 0x9b } };
+
+// {7CB72412-1016-491A-8C87-4D2AA1B7DD3A}
+EXTERN_C __declspec(selectany) const GUID SEC_WINNT_AUTH_DATA_TYPE_CREDMAN_CERT =
+    { 0x7cb72412, 0x1016, 0x491a, { 0x8c, 0x87, 0x4d, 0x2a, 0xa1, 0xb7, 0xdd, 0x3a } };
+
+// {10A47879-5EBF-4B85-BD8D-C21BB4F49C8A}
+EXTERN_C __declspec(selectany) const GUID SEC_WINNT_AUTH_DATA_TYPE_NGC =
+    { 0x10a47879, 0x5ebf, 0x4b85, { 0xbd, 0x8d, 0xc2, 0x1b, 0xb4, 0xf4, 0x9c, 0x8a } };
+
+typedef struct _SEC_WINNT_AUTH_DATA_PASSWORD
+{
+   SEC_WINNT_AUTH_BYTE_VECTOR UnicodePassword;
+} SEC_WINNT_AUTH_DATA_PASSWORD, PSEC_WINNT_AUTH_DATA_PASSWORD;
+
+EXTERN_C __declspec(selectany) const GUID SEC_WINNT_AUTH_DATA_TYPE_CSP_DATA =
+    { 0x68fd9879, 0x79c, 0x4dfe, { 0x82, 0x81, 0x57, 0x8a, 0xad, 0xc1, 0xc1, 0x0 } };
+
+// {B86C4FF3-49D7-4DC4-B560-B1163685B236}
+EXTERN_C __declspec(selectany) const GUID SEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS = 
+    { 0xb86c4ff3, 0x49d7, 0x4dc4, { 0xb5, 0x60, 0xb1, 0x16, 0x36, 0x85, 0xb2, 0x36 } };
+
+typedef struct _SEC_WINNT_AUTH_CERTIFICATE_DATA
+{
+   USHORT cbHeaderLength;
+   USHORT cbStructureLength;
+   SEC_WINNT_AUTH_BYTE_VECTOR Certificate;
+} SEC_WINNT_AUTH_CERTIFICATE_DATA, *PSEC_WINNT_AUTH_CERTIFICATE_DATA;
+
+typedef struct _SEC_WINNT_AUTH_NGC_DATA
+{
+   LUID LogonId;
+   ULONG Flags;
+   SEC_WINNT_AUTH_BYTE_VECTOR CspInfo;
+   SEC_WINNT_AUTH_BYTE_VECTOR UserIdKeyAuthTicket;
+   SEC_WINNT_AUTH_BYTE_VECTOR DecryptionKeyName;
+   SEC_WINNT_AUTH_BYTE_VECTOR DecryptionKeyAuthTicket;
+} SEC_WINNT_AUTH_NGC_DATA, *PSEC_WINNT_AUTH_NGC_DATA;
+
+#define NGC_DATA_FLAG_KERB_CERTIFICATE_LOGON_FLAG_CHECK_DUPLICATES     (0x1)
+#define NGC_DATA_FLAG_KERB_CERTIFICATE_LOGON_FLAG_USE_CERTIFICATE_INFO (0x2)
+#define NGC_DATA_FLAG_IS_SMARTCARD_DATA                                (0x4)
+
+typedef struct _SEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS_DATA
+{
+    PVOID pcc;
+    PVOID hProv;
+    LPWSTR pwszECDHKeyName;
+} SEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS_DATA, *PSEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS_DATA;
+
+typedef struct _SEC_WINNT_CREDUI_CONTEXT_VECTOR
+{
+   ULONG CredUIContextArrayOffset;
+   USHORT CredUIContextCount;
+} SEC_WINNT_CREDUI_CONTEXT_VECTOR, *PSEC_WINNT_CREDUI_CONTEXT_VECTOR;
+
+typedef struct _SEC_WINNT_AUTH_SHORT_VECTOR
+{
+    ULONG ShortArrayOffset;
+    USHORT ShortArrayCount;
+} SEC_WINNT_AUTH_SHORT_VECTOR, *PSEC_WINNT_AUTH_SHORT_VECTOR;
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiGetCredUIContext(
+   _In_ HANDLE ContextHandle,
+   _In_ GUID* CredType,
+   _In_opt_ PLUID LogonId,
+   _Outptr_ PSEC_WINNT_CREDUI_CONTEXT_VECTOR* CredUIContexts,
+   _Out_opt_ PHANDLE TokenHandle);
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiUpdateCredentials(
+   _In_ HANDLE ContextHandle,
+   _In_ GUID* CredType,
+   _In_ ULONG FlatCredUIContextLength,
+   _In_reads_bytes_(FlatCredUIContextLength) PUCHAR FlatCredUIContext);
+
+typedef struct _CREDUIWIN_MARSHALED_CONTEXT
+{
+    GUID StructureType;
+    USHORT cbHeaderLength;
+    LUID LogonId;
+    GUID MarshaledDataType;
+    ULONG MarshaledDataOffset;
+    USHORT MarshaledDataLength;
+} CREDUIWIN_MARSHALED_CONTEXT, *PCREDUIWIN_MARSHALED_CONTEXT;
+
+typedef struct _SEC_WINNT_CREDUI_CONTEXT
+{
+    USHORT cbHeaderLength;
+    HANDLE CredUIContextHandle;
+#ifdef _CREDUI_INFO_DEFINED
+    PCREDUI_INFOW UIInfo;
+#else
+    PVOID UIInfo;
+#endif
+    ULONG dwAuthError;
+    PSEC_WINNT_AUTH_IDENTITY_OPAQUE pInputAuthIdentity;
+    PUNICODE_STRING TargetName;
+} SEC_WINNT_CREDUI_CONTEXT, *PSEC_WINNT_CREDUI_CONTEXT;
+
+// {3C3E93D9-D96B-49b5-94A7-458592088337}
+EXTERN_C __declspec(selectany) const GUID CREDUIWIN_STRUCTURE_TYPE_SSPIPFC  =
+    { 0x3c3e93d9, 0xd96b, 0x49b5, { 0x94, 0xa7, 0x45, 0x85, 0x92, 0x8, 0x83, 0x37 } };
+
+// {C2FFFE6F-503D-4c3d-A95E-BCE821213D44}
+EXTERN_C __declspec(selectany) const GUID SSPIPFC_STRUCTURE_TYPE_CREDUI_CONTEXT =
+    { 0xc2fffe6f, 0x503d, 0x4c3d, { 0xa9, 0x5e, 0xbc, 0xe8, 0x21, 0x21, 0x3d, 0x44 } };
+
+typedef struct _SEC_WINNT_AUTH_PACKED_CREDENTIALS_EX
+{
+   USHORT cbHeaderLength;
+   ULONG Flags;
+   SEC_WINNT_AUTH_BYTE_VECTOR PackedCredentials;
+   SEC_WINNT_AUTH_SHORT_VECTOR PackageList;
+} SEC_WINNT_AUTH_PACKED_CREDENTIALS_EX, *PSEC_WINNT_AUTH_PACKED_CREDENTIALS_EX;
+
+SECURITY_STATUS
+SEC_ENTRY
+SspiUnmarshalCredUIContext(
+    _In_reads_bytes_(MarshaledCredUIContextLength) PUCHAR MarshaledCredUIContext,
+    _In_ ULONG MarshaledCredUIContextLength,
+    _Outptr_ PSEC_WINNT_CREDUI_CONTEXT* CredUIContext
+    );
+
+#endif // _SEC_WINNT_AUTH_TYPES
+
 #ifndef _SSPIPFC_NONE_
 
 ULONG
