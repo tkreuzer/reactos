@@ -152,6 +152,24 @@ extern "C" {
 #define SECPKG_ATTR_NEGO_INFO_FLAG_NO_KERBEROS 0x1
 #define SECPKG_ATTR_NEGO_INFO_FLAG_NO_NTLM     0x2
 
+#define SECPKG_CALLFLAGS_APPCONTAINER                   0x00000001
+#define SECPKG_CALLFLAGS_APPCONTAINER_AUTHCAPABLE       0x00000002
+#define SECPKG_CALLFLAGS_FORCE_SUPPLIED                 0x00000004
+#define SECPKG_CALLFLAGS_APPCONTAINER_UPNCAPABLE        0x00000008
+
+#define SECPKG_ATTR_APPLICATION_PROTOCOL 35
+#define SECPKG_ATTR_NEGOTIATED_TLS_EXTENSIONS 36
+#define SECPKG_ATTR_IS_LOOPBACK 37
+
+#define SECPKG_ATTR_DTLS_MTU        34
+#define SECPKG_ATTR_DATAGRAM_SIZES SECPKG_ATTR_STREAM_SIZES
+
+#define SECPKG_NEGOTIATION_COMPLETE             0
+#define SECPKG_NEGOTIATION_OPTIMISTIC           1
+#define SECPKG_NEGOTIATION_IN_PROGRESS          2
+#define SECPKG_NEGOTIATION_DIRECT               3
+#define SECPKG_NEGOTIATION_TRY_MULTICRED        4
+
 typedef struct _SecPkgContext_NativeNamesA
 {
     SEC_CHAR *sClientName;
@@ -866,6 +884,104 @@ typedef struct _SecPkgContext_LogoffTime
     TimeStamp tsLogoffTime;
 } SecPkgContext_LogoffTime, *PSecPkgContext_LogoffTime;
 #endif
+
+typedef struct _SecPkgCredentials_KdcProxySettingsW
+{
+    ULONG Version;
+    ULONG Flags;
+    USHORT ProxyServerOffset;
+    USHORT ProxyServerLength;
+    USHORT ClientTlsCredOffset;
+    USHORT ClientTlsCredLength;
+} SecPkgCredentials_KdcProxySettingsW, *PSecPkgCredentials_KdcProxySettingsW;
+
+typedef struct _SecPkgCredentials_Cert
+{
+    ULONG EncodedCertSize;
+    PUCHAR EncodedCert;
+} SecPkgCredentials_Cert, *PSecPkgCredentials_Cert;
+
+typedef SecPkgContext_StreamSizes SecPkgContext_DatagramSizes;
+typedef PSecPkgContext_StreamSizes PSecPkgContext_DatagramSizes;
+
+typedef enum _SECPKG_ATTR_LCT_STATUS
+{
+    SecPkgAttrLastClientTokenYes,
+    SecPkgAttrLastClientTokenNo,
+    SecPkgAttrLastClientTokenMaybe
+} SECPKG_ATTR_LCT_STATUS, *PSECPKG_ATTR_LCT_STATUS;
+
+typedef struct _SecPkgContext_LastClientTokenStatus
+{
+    SECPKG_ATTR_LCT_STATUS LastClientTokenStatus;
+} SecPkgContext_LastClientTokenStatus, *PSecPkgContext_LastClientTokenStatus;
+
+typedef struct _SecPkgContext_AccessToken
+{
+    PVOID AccessToken;
+} SecPkgContext_AccessToken, *PSecPkgContext_AccessToken;
+
+typedef struct _SecPkgContext_TargetInformation
+{
+    ULONG MarshalledTargetInfoLength;
+    PUCHAR MarshalledTargetInfo;
+} SecPkgContext_TargetInformation, *PSecPkgContext_TargetInformation;
+
+typedef struct _SecPkgContext_AuthzID
+{
+    ULONG AuthzIDLength;
+    PCHAR AuthzID;
+} SecPkgContext_AuthzID, *PSecPkgContext_AuthzID;
+
+typedef struct _SecPkgContext_Target
+{
+    ULONG TargetLength;
+    PCHAR Target;
+} SecPkgContext_Target, *PSecPkgContext_Target;
+
+
+typedef struct _SecPkgContext_ClientSpecifiedTarget
+{
+    SEC_WCHAR *sTargetName;
+} SecPkgContext_ClientSpecifiedTarget, *PSecPkgContext_ClientSpecifiedTarget;
+
+typedef struct _SecPkgContext_Bindings
+{
+    ULONG BindingsLength;
+    _Field_size_bytes_(BindingsLength) SEC_CHANNEL_BINDINGS *Bindings;
+} SecPkgContext_Bindings, *PSecPkgContext_Bindings;
+
+typedef enum _SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS
+{
+    SecApplicationProtocolNegotiationStatus_None,
+    SecApplicationProtocolNegotiationStatus_Success,
+    SecApplicationProtocolNegotiationStatus_SelectedClientOnly
+} SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS, *PSEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS;
+
+#define MAX_PROTOCOL_ID_SIZE 0xff
+
+typedef struct _SecPkgContext_ApplicationProtocol
+{
+    SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS ProtoNegoStatus;
+    SEC_APPLICATION_PROTOCOL_NEGOTIATION_EXT ProtoNegoExt;
+    UCHAR ProtocolIdSize;
+    UCHAR ProtocolId[MAX_PROTOCOL_ID_SIZE];
+} SecPkgContext_ApplicationProtocol, *PSecPkgContext_ApplicationProtocol;
+
+typedef struct _SecPkgContext_NegotiatedTlsExtensions
+{
+    ULONG ExtensionsCount;
+    _Field_size_(ExtensionsCount) unsigned short * Extensions;
+} SecPkgContext_NegotiatedTlsExtensions, *PSecPkgContext_NegotiatedTlsExtensions;
+
+typedef struct _SECPKG_APP_MODE_INFO
+{
+    ULONG UserFunction;
+    ULONG_PTR Argument1;
+    ULONG_PTR Argument2;
+    SecBuffer UserData;
+    BOOLEAN ReturnToLsa;
+} SECPKG_APP_MODE_INFO, *PSECPKG_APP_MODE_INFO;
 
 #define FreeCredentialHandle FreeCredentialsHandle
 typedef struct _SECURITY_FUNCTION_TABLE_A
