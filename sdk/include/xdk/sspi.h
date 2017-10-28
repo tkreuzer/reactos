@@ -1,4 +1,6 @@
-#ifndef __SSPI_H__
+
+
+#pragma once
 #define __SSPI_H__
 
 // for ntifs.h:
@@ -1305,5 +1307,3 @@ SspiExcludePackage(
 #define SEC_WINNT_AUTH_IDENTITY_ONLY 0x08
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
-
-#endif /* !__SSPI_H__ */
