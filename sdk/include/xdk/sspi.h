@@ -327,9 +327,38 @@ typedef struct _SecPkgContext_NativeNamesW
 
 typedef WCHAR SEC_WCHAR;
 typedef CHAR SEC_CHAR;
+
+#ifdef WIN32_CHICAGO
+typedef unsigned __int64 QWORD, SECURITY_INTEGER, *PSECURITY_INTEGER;
+#define SEC_SUCCESS(Status) ((Status) >= 0)
+#elif defined(_NTDEF_) || defined(_WINNT_)
 typedef LARGE_INTEGER _SECURITY_INTEGER, SECURITY_INTEGER, *PSECURITY_INTEGER;
+#else // _NTDEF_ || _WINNT_
+typedef struct _SECURITY_INTEGER
+{
+    unsigned long LowPart;
+    long HighPart;
+} SECURITY_INTEGER, *PSECURITY_INTEGER;
+#endif // _NTDEF_ || _WINNT_
+
+
+#ifdef SECURITY_MAC
+typedef unsigned long TimeStamp,*PTimeStamp;
+#else
 typedef SECURITY_INTEGER TimeStamp, *PTimeStamp;
+#endif
+
+#ifdef _NTDEF_
 typedef UNICODE_STRING SECURITY_STRING, *PSECURITY_STRING;
+#else
+typedef struct _SECURITY_STRING
+{
+    unsigned short Length;
+    unsigned short MaximumLength;
+    MIDL_PROP([size_is(MaximumLength / 2), length_is(Length / 2)]) unsigned short * Buffer;
+} SECURITY_STRING, * PSECURITY_STRING;
+#endif // _NTDEF_
+
 #if ISSP_MODE == 0
 #define PSSPI_SEC_STRING PSECURITY_STRING
 #else
