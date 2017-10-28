@@ -2135,6 +2135,48 @@ SspiExcludePackage(
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
 
+#ifndef _SSPIPFC_NONE_
+
+ULONG
+SEC_ENTRY
+SspiPromptForCredentialsA(
+    _In_ PCSTR pszTargetName,
+#ifdef _CREDUI_INFO_DEFINED
+    _In_opt_ PCREDUI_INFOA pUiInfo,
+#else
+    _In_opt_ PVOID pUiInfo,
+#endif
+    _In_ ULONG dwAuthError,
+    _In_ PCSTR pszPackage,
+    _In_opt_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE pInputAuthIdentity,
+    _Outptr_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE* ppAuthIdentity,
+    _Inout_opt_ PINT pfSave,
+    _In_ ULONG dwFlags);
+
+ULONG
+SEC_ENTRY
+SspiPromptForCredentialsW(
+    _In_ PCWSTR pszTargetName,
+#ifdef _CREDUI_INFO_DEFINED
+    _In_opt_ PCREDUI_INFOW pUiInfo,
+#else
+    _In_opt_ PVOID pUiInfo,
+#endif
+    _In_ ULONG dwAuthError,
+    _In_ PCWSTR pszPackage,
+    _In_opt_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE pInputAuthIdentity,
+    _Outptr_ PSEC_WINNT_AUTH_IDENTITY_OPAQUE* ppAuthIdentity,
+    _Inout_opt_ PINT pfSave,
+    _In_ ULONG dwFlags);
+
+#ifdef UNICODE
+#define SspiPromptForCredentials SspiPromptForCredentialsW
+#else
+#define SspiPromptForCredentials SspiPromptForCredentialsA
+#endif
+
+#endif // _SSPIPFC_NONE_
+
 #if (ISSP_MODE == 0)
 
 typedef struct _SspiAsyncContext SspiAsyncContext;
