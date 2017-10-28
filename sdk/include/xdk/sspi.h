@@ -564,8 +564,48 @@ typedef struct _SecPkgContext_LogoffTime
 } SecPkgContext_LogoffTime, *PSecPkgContext_LogoffTime;
 #endif
 
-/* forward declaration */
-typedef struct _SECURITY_FUNCTION_TABLE_W SecurityFunctionTableW, *PSecurityFunctionTableW;
+#define FreeCredentialHandle FreeCredentialsHandle
+typedef struct _SECURITY_FUNCTION_TABLE_W
+{
+    ULONG dwVersion;
+    ENUMERATE_SECURITY_PACKAGES_FN_W EnumerateSecurityPackagesW;
+    QUERY_CREDENTIALS_ATTRIBUTES_FN_W QueryCredentialsAttributesW;
+    ACQUIRE_CREDENTIALS_HANDLE_FN_W AcquireCredentialsHandleW;
+    FREE_CREDENTIALS_HANDLE_FN FreeCredentialsHandle;
+    PVOID Reserved2;
+    INITIALIZE_SECURITY_CONTEXT_FN_W InitializeSecurityContextW;
+    ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
+    COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
+    DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
+    APPLY_CONTROL_TOKEN_FN ApplyControlToken;
+    QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
+    IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
+    REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
+    MAKE_SIGNATURE_FN MakeSignature;
+    VERIFY_SIGNATURE_FN VerifySignature;
+    FREE_CONTEXT_BUFFER_FN FreeContextBuffer;
+    QUERY_SECURITY_PACKAGE_INFO_FN_W QuerySecurityPackageInfoW;
+    PVOID Reserved3;
+    PVOID Reserved4;
+    EXPORT_SECURITY_CONTEXT_FN ExportSecurityContext;
+    IMPORT_SECURITY_CONTEXT_FN_W ImportSecurityContextW;
+    ADD_CREDENTIALS_FN_W AddCredentialsW ;
+    PVOID Reserved8;
+    QUERY_SECURITY_CONTEXT_TOKEN_FN QuerySecurityContextToken;
+    ENCRYPT_MESSAGE_FN EncryptMessage;
+    DECRYPT_MESSAGE_FN DecryptMessage;
+#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    SET_CONTEXT_ATTRIBUTES_FN_W SetContextAttributesW;
+#endif
+#if NTDDI_VERSION > NTDDI_WS03SP1
+    SET_CREDENTIALS_ATTRIBUTES_FN_W SetCredentialsAttributesW;
+#endif
+#if ISSP_MODE != 0
+    CHANGE_PASSWORD_FN_W ChangeAccountPasswordW;
+#else
+    PVOID Reserved9;
+#endif
+} SecurityFunctionTableW, * PSecurityFunctionTableW;
 #define SecurityFunctionTable SecurityFunctionTableW
 #define PSecurityFunctionTable PSecurityFunctionTableW
 
@@ -1265,48 +1305,5 @@ SspiExcludePackage(
 #define SEC_WINNT_AUTH_IDENTITY_ONLY 0x08
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
-
-#define FreeCredentialHandle FreeCredentialsHandle
-struct _SECURITY_FUNCTION_TABLE_W
-{
-    ULONG dwVersion;
-    ENUMERATE_SECURITY_PACKAGES_FN_W EnumerateSecurityPackagesW;
-    QUERY_CREDENTIALS_ATTRIBUTES_FN_W QueryCredentialsAttributesW;
-    ACQUIRE_CREDENTIALS_HANDLE_FN_W AcquireCredentialsHandleW;
-    FREE_CREDENTIALS_HANDLE_FN FreeCredentialsHandle;
-    PVOID Reserved2;
-    INITIALIZE_SECURITY_CONTEXT_FN_W InitializeSecurityContextW;
-    ACCEPT_SECURITY_CONTEXT_FN AcceptSecurityContext;
-    COMPLETE_AUTH_TOKEN_FN CompleteAuthToken;
-    DELETE_SECURITY_CONTEXT_FN DeleteSecurityContext;
-    APPLY_CONTROL_TOKEN_FN ApplyControlToken;
-    QUERY_CONTEXT_ATTRIBUTES_FN_W QueryContextAttributesW;
-    IMPERSONATE_SECURITY_CONTEXT_FN ImpersonateSecurityContext;
-    REVERT_SECURITY_CONTEXT_FN RevertSecurityContext;
-    MAKE_SIGNATURE_FN MakeSignature;
-    VERIFY_SIGNATURE_FN VerifySignature;
-    FREE_CONTEXT_BUFFER_FN FreeContextBuffer;
-    QUERY_SECURITY_PACKAGE_INFO_FN_W QuerySecurityPackageInfoW;
-    PVOID Reserved3;
-    PVOID Reserved4;
-    EXPORT_SECURITY_CONTEXT_FN ExportSecurityContext;
-    IMPORT_SECURITY_CONTEXT_FN_W ImportSecurityContextW;
-    ADD_CREDENTIALS_FN_W AddCredentialsW ;
-    PVOID Reserved8;
-    QUERY_SECURITY_CONTEXT_TOKEN_FN QuerySecurityContextToken;
-    ENCRYPT_MESSAGE_FN EncryptMessage;
-    DECRYPT_MESSAGE_FN DecryptMessage;
-#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
-    SET_CONTEXT_ATTRIBUTES_FN_W SetContextAttributesW;
-#endif
-#if NTDDI_VERSION > NTDDI_WS03SP1
-    SET_CREDENTIALS_ATTRIBUTES_FN_W SetCredentialsAttributesW;
-#endif
-#if ISSP_MODE != 0
-    CHANGE_PASSWORD_FN_W ChangeAccountPasswordW;
-#else
-    PVOID Reserved9;
-#endif
-};
 
 #endif /* !__SSPI_H__ */
