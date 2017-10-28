@@ -3,6 +3,8 @@
 #pragma once
 #define __SSPI_H__
 
+#include <sdkddkver.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
