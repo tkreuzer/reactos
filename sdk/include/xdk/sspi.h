@@ -1087,6 +1087,19 @@ VOID
     PVOID *Key,
     SECURITY_STATUS *Status);
 
+SECURITY_STATUS
+SEC_ENTRY
+AcquireCredentialsHandleA(
+    _In_opt_ LPSTR pszPrincipal,
+    _In_ LPSTR pszPackage,
+    _In_ ULONG fCredentialUse,
+    _In_opt_ PVOID pvLogonId,
+    _In_opt_ PVOID pAuthData,
+    _In_opt_ SEC_GET_KEY_FN pGetKeyFn,
+    _In_opt_ PVOID pvGetKeyArgument,
+    _Out_ PCredHandle phCredential,
+    _Out_opt_ PTimeStamp ptsExpiry);
+
 typedef
 SECURITY_STATUS
 (SEC_ENTRY * ACQUIRE_CREDENTIALS_HANDLE_FN_A)(
@@ -1099,6 +1112,21 @@ SECURITY_STATUS
     PVOID,
     PCredHandle,
     PTimeStamp);
+
+KSECDDDECLSPEC
+SECURITY_STATUS
+SEC_ENTRY
+AcquireCredentialsHandleW(
+    _In_opt_ PSSPI_SEC_STRING pPrincipal,
+    _In_ PSSPI_SEC_STRING pPackage,
+    _In_ ULONG fCredentialUse,
+    _In_opt_ PVOID pvLogonId,
+    _In_opt_ PVOID pAuthData,
+    _In_opt_ SEC_GET_KEY_FN pGetKeyFn,
+    _In_opt_ PVOID pvGetKeyArgument,
+    _Out_ PCredHandle phCredential,
+    _Out_opt_ PTimeStamp ptsExpiry);
+
 typedef
 SECURITY_STATUS
 (SEC_ENTRY * ACQUIRE_CREDENTIALS_HANDLE_FN_W)(
@@ -1158,26 +1186,6 @@ SECURITY_STATUS
     PSecBufferDesc,
     PULONG,
     PTimeStamp);
-
-KSECDDDECLSPEC
-SECURITY_STATUS
-SEC_ENTRY
-AcquireCredentialsHandleW(
-#if ISSP_MODE == 0
-    _In_opt_ PSECURITY_STRING pPrincipal,
-    _In_ PSECURITY_STRING pPackage,
-#else
-    _In_opt_ LPWSTR pszPrincipal,
-    _In_ LPWSTR pszPackage,
-#endif
-    _In_ ULONG fCredentialUse,
-    _In_opt_ PVOID pvLogonId,
-    _In_opt_ PVOID pAuthData,
-    _In_opt_ SEC_GET_KEY_FN pGetKeyFn,
-    _In_opt_ PVOID pvGetKeyArgument,
-    _Out_ PCredHandle phCredential,
-    _Out_opt_ PTimeStamp ptsExpiry);
-#define AcquireCredentialsHandle AcquireCredentialsHandleW
 
 SECURITY_STATUS
 SEC_ENTRY
