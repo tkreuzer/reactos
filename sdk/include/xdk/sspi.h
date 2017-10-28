@@ -3,6 +3,10 @@
 #pragma once
 #define __SSPI_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // for ntifs.h:
 #define ISSP_LEVEL 32
 #define ISSP_MODE 0
@@ -1307,3 +1311,7 @@ SspiExcludePackage(
 #define SEC_WINNT_AUTH_IDENTITY_ONLY 0x08
 
 #endif /* NTDDI_VERSION >= NTDDI_WIN7 */
+
+#ifdef __cplusplus
+}  // extern "C"
+#endif
