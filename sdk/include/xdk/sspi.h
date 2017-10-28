@@ -618,6 +618,25 @@ VOID
     PVOID *Key,
     SECURITY_STATUS *Status);
 
+typedef
+SECURITY_STATUS
+(SEC_ENTRY * ACQUIRE_CREDENTIALS_HANDLE_FN_W)(
+    PSSPI_SEC_STRING,
+    PSSPI_SEC_STRING,
+    ULONG,
+    PVOID,
+    PVOID,
+    SEC_GET_KEY_FN,
+    PVOID,
+    PCredHandle,
+    PTimeStamp);
+#define ACQUIRE_CREDENTIALS_HANDLE_FN ACQUIRE_CREDENTIALS_HANDLE_FN_W
+
+typedef
+PSecurityFunctionTableW
+(SEC_ENTRY * INIT_SECURITY_INTERFACE_W)(VOID);
+#define INIT_SECURITY_INTERFACE INIT_SECURITY_INTERFACE_W
+
 KSECDDDECLSPEC
 SECURITY_STATUS
 SEC_ENTRY
@@ -659,20 +678,6 @@ AcquireCredentialsHandleW(
     _Out_ PCredHandle phCredential,
     _Out_opt_ PTimeStamp ptsExpiry);
 #define AcquireCredentialsHandle AcquireCredentialsHandleW
-
-typedef
-SECURITY_STATUS
-(SEC_ENTRY * ACQUIRE_CREDENTIALS_HANDLE_FN_W)(
-    PSSPI_SEC_STRING,
-    PSSPI_SEC_STRING,
-    ULONG,
-    PVOID,
-    PVOID,
-    SEC_GET_KEY_FN,
-    PVOID,
-    PCredHandle,
-    PTimeStamp);
-#define ACQUIRE_CREDENTIALS_HANDLE_FN ACQUIRE_CREDENTIALS_HANDLE_FN_W
 
 SECURITY_STATUS
 SEC_ENTRY
@@ -981,11 +986,6 @@ PSecurityFunctionTableW
 SEC_ENTRY
 InitSecurityInterfaceW(VOID);
 #define InitSecurityInterface InitSecurityInterfaceW
-
-typedef
-PSecurityFunctionTableW
-(SEC_ENTRY * INIT_SECURITY_INTERFACE_W)(VOID);
-#define INIT_SECURITY_INTERFACE INIT_SECURITY_INTERFACE_W
 
 KSECDDDECLSPEC
 SECURITY_STATUS
