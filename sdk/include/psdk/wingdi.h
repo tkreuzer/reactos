@@ -2,6 +2,18 @@
 #define _WINGDI_H
 #define _WINGDI_
 
+#if !defined(_GDI32_)
+#define WINGDIAPI DECLSPEC_IMPORT
+#else
+#define WINGDIAPI
+#endif
+
+#if !defined(_SPOOL32_)
+#define WINSPOOLAPI DECLSPEC_IMPORT
+#else
+#define WINSPOOLAPI
+#endif
+
 #ifndef NOGDI
 
 #ifdef __cplusplus
@@ -19,8 +31,6 @@ extern "C" {
 #define SYSPAL_STATIC       1
 #define SYSPAL_NOSTATIC     2
 #define SYSPAL_NOSTATIC256  3
-
-#define WINGDIAPI
 
 #define NTM_NONNEGATIVE_AC  0x00010000
 #define NTM_PS_OPENTYPE     0x00020000
@@ -688,20 +698,23 @@ extern "C" {
 #define DCB_SET 3
 #define DCB_ACCUMULATE 2
 #define DCB_DIRTY	2
-#define OBJ_BRUSH 2
+
+/** Object Types **/
 #define OBJ_PEN 1
+#define OBJ_BRUSH 2
+#define OBJ_DC 3
+#define OBJ_METADC 4
 #define OBJ_PAL 5
 #define OBJ_FONT 6
 #define OBJ_BITMAP 7
-#define OBJ_EXTPEN 11
 #define OBJ_REGION 8
-#define OBJ_DC 3
-#define OBJ_MEMDC 10
 #define OBJ_METAFILE 9
-#define OBJ_METADC 4
-#define OBJ_ENHMETAFILE 13
+#define OBJ_MEMDC 10
+#define OBJ_EXTPEN 11
 #define OBJ_ENHMETADC 12
+#define OBJ_ENHMETAFILE 13
 #define OBJ_COLORSPACE 14
+
 #define DRIVERVERSION 0
 #define TECHNOLOGY 2
 #define DT_PLOTTER 0
@@ -893,24 +906,26 @@ extern "C" {
 #define WINE_TT_HINTER_ENABLED 0x8000
 #endif
 
-#define BLACK_BRUSH 4
-#define DKGRAY_BRUSH 3
-#define GRAY_BRUSH 2
-#define HOLLOW_BRUSH 5
-#define LTGRAY_BRUSH 1
-#define NULL_BRUSH 5
+/** Stock Objects **/
 #define WHITE_BRUSH 0
+#define LTGRAY_BRUSH 1
+#define GRAY_BRUSH 2
+#define DKGRAY_BRUSH 3
+#define BLACK_BRUSH 4
+#define HOLLOW_BRUSH 5
+#define NULL_BRUSH 5
+#define WHITE_PEN 6
 #define BLACK_PEN 7
 #define NULL_PEN 8
-#define WHITE_PEN 6
+// 9 doesn't exist!
+#define OEM_FIXED_FONT 10
 #define ANSI_FIXED_FONT 11
 #define ANSI_VAR_FONT 12
-#define DEVICE_DEFAULT_FONT 14
-#define DEFAULT_GUI_FONT 17
-#define OEM_FIXED_FONT 10
 #define SYSTEM_FONT 13
-#define SYSTEM_FIXED_FONT 16
+#define DEVICE_DEFAULT_FONT 14
 #define DEFAULT_PALETTE 15
+#define SYSTEM_FIXED_FONT 16
+#define DEFAULT_GUI_FONT 17
 #if (_WIN32_WINNT >= 0x0500)
 #define DC_BRUSH	18
 #define DC_PEN	19
@@ -922,6 +937,13 @@ extern "C" {
 #else
 #define STOCK_LAST          16
 #endif
+
+#ifdef _GDI32_
+/* Undocumented stock objects */
+#define DEFAULT_COLORSPACE 20
+#define STOCK_BITMAP 21
+#endif // _GDI32_
+
 #define SYSPAL_NOSTATIC 2
 #define SYSPAL_STATIC 1
 #define SYSPAL_ERROR 0
