@@ -3498,7 +3498,7 @@ TREEVIEW_Expand(TREEVIEW_INFO *infoPtr, TREEVIEW_ITEM *item,
             scrollDist = nextItem->rect.top - orgNextTop;
             scrollRect.top = orgNextTop;
 
-            ScrollWindowEx (infoPtr->hwnd, 0, scrollDist, &scrollRect, NULL,
+            ScrollWindowEx (infoPtr->hwnd, 0, scrollDist, &scrollRect, &scrollRect,
                         NULL, NULL, SW_ERASE | SW_INVALIDATE);
             TREEVIEW_Invalidate (infoPtr, item);
         } else {
