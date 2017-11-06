@@ -261,8 +261,7 @@ do_pseudo_reloc (void * start, void * end, void * base)
 	{
 	  DWORD newval;
 	  reloc_target = (ptrdiff_t) base + o->target;
-	  newval = (*((DWORD*) reloc_target)) + o->addend;
-	  __write_memory ((void *) reloc_target, &newval, sizeof(DWORD));
+	  *((DWORD*) reloc_target) += o->addend;
 	}
       return;
     }
@@ -340,17 +339,17 @@ do_pseudo_reloc (void * start, void * end, void * base)
       switch ((r->flags & 0xff))
 	{
          case 8:
-           __write_memory ((void *) reloc_target, &reldata, 1);
+	   *((unsigned char*)reloc_target)=(unsigned char) reldata;
 	   break;
 	 case 16:
-           __write_memory ((void *) reloc_target, &reldata, 2);
+	   *((unsigned short*)reloc_target)=(unsigned short) reldata;
 	   break;
 	 case 32:
-           __write_memory ((void *) reloc_target, &reldata, 4);
+	   *((unsigned int*)reloc_target)=(unsigned int) reldata;
 	   break;
 #ifdef _WIN64
 	 case 64:
-           __write_memory ((void *) reloc_target, &reldata, 8);
+	   *((unsigned long long*)reloc_target)=(unsigned long long) reldata;
 	   break;
 #endif
 	}
@@ -368,3 +367,4 @@ _pei386_runtime_relocator (void)
 		   &__RUNTIME_PSEUDO_RELOC_LIST_END__,
 		   &__MINGW_LSYMBOL(_image_base__));
 }
+#endif

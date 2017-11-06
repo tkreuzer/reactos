@@ -148,7 +148,7 @@ NtQueryInformationProcess(IN HANDLE ProcessHandle,
                 ProcessBasicInfo->UniqueProcessId = (ULONG_PTR)Process->
                                                     UniqueProcessId;
                 ProcessBasicInfo->InheritedFromUniqueProcessId =
-                    (ULONG)Process->InheritedFromUniqueProcessId;
+                    (ULONG_PTR)Process->InheritedFromUniqueProcessId;
                 ProcessBasicInfo->BasePriority = Process->Pcb.BasePriority;
 
             }
@@ -435,7 +435,7 @@ NtQueryInformationProcess(IN HANDLE ProcessHandle,
             _SEH2_TRY
             {
                 /* Write back the Session ID */
-                SessionInfo->SessionId = Process->Session;
+                SessionInfo->SessionId = PtrToUlong(Process->Session);
             }
             _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
             {

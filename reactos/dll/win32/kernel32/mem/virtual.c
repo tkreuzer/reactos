@@ -80,7 +80,7 @@ VirtualFreeEx(IN HANDLE hProcess,
     {
         /* Free the memory */
         Status = NtFreeVirtualMemory(hProcess,
-                                     (PVOID *)&lpAddress,
+                                     &lpAddress,
                                      &dwSize,
                                      dwFreeType);
         if (!NT_SUCCESS(Status))

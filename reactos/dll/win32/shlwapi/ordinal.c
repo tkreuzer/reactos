@@ -2377,7 +2377,7 @@ HRESULT WINAPI QISearch(
 		if (IsEqualIID(riid, xmove->piid)) {
 		    a_vtbl = (IUnknown*)(xmove->dwOffset + (LPBYTE)base);
 		    TRACE("matched, returning (%p)\n", a_vtbl);
-                    *ppv = a_vtbl;
+		    *ppv = a_vtbl;
 		    IUnknown_AddRef(a_vtbl);
 		    return S_OK;
 		}
@@ -2387,7 +2387,7 @@ HRESULT WINAPI QISearch(
 	    if (IsEqualIID(riid, &IID_IUnknown)) {
 		a_vtbl = (IUnknown*)(table->dwOffset + (LPBYTE)base);
 		TRACE("returning first for IUnknown (%p)\n", a_vtbl);
-                *ppv = a_vtbl;
+		*ppv = a_vtbl;
 		IUnknown_AddRef(a_vtbl);
 		return S_OK;
 	    }
@@ -2678,7 +2678,7 @@ DWORD WINAPI SHGetRestriction(LPCWSTR lpSubKey, LPCWSTR lpSubName, LPCWSTR lpVal
 	if (retval != ERROR_SUCCESS)
 	  return 0;
 
-        SHGetValueW(hKey, lpSubName, lpValue, NULL, &retval, &datsize);
+	SHGetValueW(hKey, lpSubName, lpValue, NULL, &retval, &datsize);
 	RegCloseKey(hKey);
 	return retval;
 }
@@ -2757,7 +2757,7 @@ HRESULT WINAPI SHWeakQueryInterface(
 
 	*ppv = NULL;
 	if(pUnk && pInner) {
-            hret = IUnknown_QueryInterface(pInner, riid, ppv);
+	    hret = IUnknown_QueryInterface(pInner, riid, ppv);
 	    if (SUCCEEDED(hret)) IUnknown_Release(pUnk);
 	}
 	TRACE("-- 0x%08x\n", hret);

@@ -60,12 +60,6 @@
 #define KeTryToAcquireGuardedMutex _KeTryToAcquireGuardedMutex
 
 #include "ke.h"
-#ifdef _M_AMD64
-#include "amd64/mm.h"
-#else
-#include "i386/mm.h"
-#include "i386/v86m.h"
-#endif
 #include "ob.h"
 #include "mm.h"
 #include "ex.h"
@@ -97,6 +91,41 @@
 #include "arch/intrin_i.h"
 
 extern ULONG (*FrLdrDbgPrint)(const char *Format, ...);
+
+#include <pshpack1.h>
+/*
+ * Defines a descriptor as it appears in the processor tables
+ */
+typedef struct __DESCRIPTOR
+{
+  ULONG a;
+  ULONG b;
+} IDT_DESCRIPTOR, GDT_DESCRIPTOR;
+
+#include <poppack.h>
+//extern GDT_DESCRIPTOR KiGdt[256];
+
+/*
+ * Initalization functions (called once by main())
+ */
+BOOLEAN NTAPI ObInit(VOID);
+BOOLEAN NTAPI CmInitSystem1(VOID);
+VOID NTAPI CmShutdownSystem(VOID);
+BOOLEAN NTAPI KdInitSystem(ULONG Reserved, PLOADER_PARAMETER_BLOCK LoaderBlock);
+
+/* FIXME - RtlpCreateUnicodeString is obsolete and should be removed ASAP! */
+BOOLEAN FASTCALL
+RtlpCreateUnicodeString(
+   IN OUT PUNICODE_STRING UniDest,
+   IN PCWSTR  Source,
+   IN POOL_TYPE PoolType);
+
+VOID
+NTAPI
+RtlpLogException(IN PEXCEPTION_RECORD ExceptionRecord,
+                 IN PCONTEXT ContextRecord,
+                 IN PVOID ContextData,
+                 IN ULONG Size);
 
 /*
  * generic information class probing code

@@ -1232,6 +1232,9 @@ KiRosFrldrLpbToNtLpb(IN PROS_LOADER_PARAMETER_BLOCK RosLoaderBlock,
     LoaderBlock->Extension->MajorVersion = 5;
     LoaderBlock->Extension->MinorVersion = 2;
 
+
+// FIXME FIXME FIXME NOW!!!!
+
     /* FreeLDR hackllocates 1536 static pages for the initial boot images */
     LoaderBlock->Extension->LoaderPagesSpanned = 1536 * PAGE_SIZE;
 
