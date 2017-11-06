@@ -11,7 +11,7 @@
 
 #include <ntoskrnl.h>
 #define NDEBUG
-#include <internal/debug.h>
+#include <debug.h>
 
 #if defined (ALLOC_PRAGMA)
 #pragma alloc_text(INIT, MmInitGlobalKernelPageDirectory)
@@ -66,7 +66,7 @@ Mmi386ReleaseMmInfo(PEPROCESS Process)
 NTSTATUS
 NTAPI
 MmInitializeHandBuiltProcess(IN PEPROCESS Process,
-                             IN PLARGE_INTEGER DirectoryTableBase)
+                             IN PULONG_PTR DirectoryTableBase)
 {
     UNIMPLEMENTED;
     return STATUS_UNSUCCESSFUL;
@@ -76,7 +76,7 @@ BOOLEAN
 NTAPI
 MmCreateProcessAddressSpace(IN ULONG MinWs,
                             IN PEPROCESS Process,
-                            IN PLARGE_INTEGER DirectoryTableBase)
+                            IN PULONG_PTR DirectoryTableBase)
 {
     UNIMPLEMENTED;
     return 0;
@@ -302,7 +302,37 @@ VOID
 NTAPI
 MmUpdatePageDir(PEPROCESS Process, PVOID Address, ULONG Size)
 {
-    UNIMPLEMENTED;
+    ULONG StartIndex, EndIndex, Index;
+    PULONG64 Pde;
+
+    /* Sanity check */
+    if (Address < MmSystemRangeStart)
+    {
+        KeBugCheck(0);
+    }
+
+    /* Get pointer to the page directory to update */
+    if (Process != NULL && Process != PsGetCurrentProcess())
+    {
+//       Pde = MmCreateHyperspaceMapping(PTE_TO_PFN(Process->Pcb.DirectoryTableBase[0]));
+    }
+    else
+    {
+        Pde = (PULONG64)PXE_BASE;
+    }
+
+    /* Update PML4 entries */
+    StartIndex = VAtoPXI(Address);
+    EndIndex = VAtoPXI((ULONG64)Address + Size);
+    for (Index = StartIndex; Index <= EndIndex; Index++)
+    {
+        if (Index != VAtoPXI(PXE_BASE))
+        {
+            (void)InterlockedCompareExchangePointer((PVOID*)&Pde[Index],
+                                                    (PVOID)MmGlobalKernelPageDirectory[Index],
+                                                    0);
+        }
+    }
 }
 
 VOID

@@ -417,7 +417,7 @@ NpfsPeekPipe(PIRP Irp,
         if (Reply->Data[0] && (OutputBufferLength >= Ccb->ReadDataAvailable + FIELD_OFFSET(FILE_PIPE_PEEK_BUFFER, Data[0])))
         {
             ReturnLength = Ccb->ReadDataAvailable;
-            memcpy(&Reply->Data[0], (PVOID)BufferPtr, Ccb->ReadDataAvailable);
+            memcpy(&Reply->Data[0], BufferPtr, Ccb->ReadDataAvailable);
         }
     }
     else

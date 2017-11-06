@@ -130,7 +130,7 @@ typedef struct tagSUBHEAP
 {
     SIZE_T              size;       /* Size of the whole sub-heap */
     SIZE_T              commitSize; /* Committed size of the sub-heap */
-    SIZE_T              headerSize; /* Size of the heap header */
+    DWORD               headerSize; /* Size of the heap header */
     struct tagSUBHEAP  *next;       /* Next sub-heap */
     struct tagHEAP     *heap;       /* Main heap structure */
     DWORD               magic;      /* Magic number */

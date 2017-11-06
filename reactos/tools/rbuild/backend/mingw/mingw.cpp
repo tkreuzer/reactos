@@ -58,7 +58,6 @@ const struct ModuleHandlerInformations ModuleHandlerInformations[] = {
 	{ HostFalse, "", "", "" }, // BootProgram
 	{ HostFalse, "", "", "$(LDFLAG_WINDOWS)" }, // Win32SCR
 	{ HostFalse, "", "", "" }, // IdlHeader
-	{ HostFalse, "", "", "" }, // IdlInterface
 	{ HostFalse, "", "", "" }, // EmbeddedTypeLib
 	{ HostFalse, "", "", "" }, // ElfExecutable
 	{ HostFalse, "", "", "" }, // RpcProxy

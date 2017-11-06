@@ -1620,9 +1620,6 @@ extern "C" {
 #define WM_QUERYPARKICON 54
 #define WM_QUERYDRAGICON 55
 #define WM_COMPAREITEM 57
-#if (WINVER >= 0x0500)
-#define WM_GETOBJECT 61
-#endif /* (WINVER >= 0x0500) */
 #define WM_COMPACTING 65
 #define WM_COMMNOTIFY 68		/* obsolete */
 #define WM_WINDOWPOSCHANGING 70
@@ -2073,6 +2070,7 @@ extern "C" {
 #define DCX_EXCLUDERGN 64
 #define DCX_INTERSECTRGN 128
 #define DCX_VALIDATE 0x200000
+#define DCX_USESTYLE 0x00010000
 #define DCX_EXCLUDEUPDATE   0x100
 #ifdef _WINE
 #define DCX_USESTYLE     0x10000
@@ -2590,11 +2588,11 @@ extern "C" {
 #endif /* (WINVER >= 0x0500) */
 #define CURSOR_SHOWING 0x00000001
 #define WS_ACTIVECAPTION 0x00000001
-#if (_WIN32_WINNT >= 0x0400)
-#define INPUT_MOUSE 0
-#define INPUT_KEYBOARD 1
-#define INPUT_HARDWARE 2
-#endif /* (_WIN32_WINNT >= 0x0400) */
+#if (_WIN32_WINNT >= 0x0403)
+#define INPUT_MOUSE 0x00000000
+#define INPUT_KEYBOARD 0x00000001
+#define INPUT_HARDWARE 0x00000002
+#endif /* (_WIN32_WINNT >= 0x0403) */
 #if (WINVER >= 0x0400)
 #define ENDSESSION_LOGOFF 0x80000000
 #define ENDSESSION_CRITICAL 0x40000000
@@ -3696,8 +3694,7 @@ typedef struct tagMOUSEMOVEPOINT {
   ULONG_PTR dwExtraInfo;
 } MOUSEMOVEPOINT,*PMOUSEMOVEPOINT,*LPMOUSEMOVEPOINT;
 #endif
-
-#if (_WIN32_WINNT >= 0x0400)
+#if (_WIN32_WINNT >= 0x0403)
 typedef struct tagMOUSEINPUT {
   LONG dx;
   LONG dy;
@@ -3729,7 +3726,7 @@ typedef struct tagINPUT {
 		HARDWAREINPUT hi;
   } DUMMYUNIONNAME;
 } INPUT,*PINPUT,*LPINPUT;
-#endif /* (_WIN32_WINNT >= 0x0400) */
+#endif /* (_WIN32_WINNT >= 0x0403) */
 
 #if (WINVER >= 0x0500)
 typedef struct tagGUITHREADINFO {
@@ -4725,8 +4722,9 @@ typedef MONITORINFOEXW MONITORINFOEX, *LPMONITORINFOEX;
 #define WinHelp WinHelpW
 #define wsprintf wsprintfW
 #define wvsprintf wvsprintfW
-
-#ifndef NOGDI
+#if defined(_WINGDI_) && !defined(NOGDI)
+typedef ICONMETRICSW ICONMETRICS;
+typedef NONCLIENTMETRICSW NONCLIENTMETRICS,*LPNONCLIENTMETRICS;
 #define ChangeDisplaySettings ChangeDisplaySettingsW
 #define ChangeDisplaySettingsEx ChangeDisplaySettingsExW
 #define CreateDesktop CreateDesktopW
@@ -4894,6 +4892,8 @@ typedef MONITORINFOEXA MONITORINFOEX, *LPMONITORINFOEX;
 #define wsprintf wsprintfA
 #define wvsprintf wvsprintfA
 #if defined(_WINGDI_) && !defined(NOGDI)
+typedef ICONMETRICSA ICONMETRICS;
+typedef NONCLIENTMETRICSA NONCLIENTMETRICS,*LPNONCLIENTMETRICS;
 #define ChangeDisplaySettings ChangeDisplaySettingsA
 #define ChangeDisplaySettingsEx ChangeDisplaySettingsExA
 #define CreateDesktop CreateDesktopA

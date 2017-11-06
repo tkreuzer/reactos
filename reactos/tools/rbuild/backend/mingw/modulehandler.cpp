@@ -32,6 +32,12 @@ using std::vector;
 #define CLEAN_FILE(f) clean_files.push_back ( (f).name.length () > 0 ? backend->GetFullName ( f ) : backend->GetFullPath ( f ) );
 #define IsStaticLibrary( module ) ( ( module.type == StaticLibrary ) || ( module.type == HostStaticLibrary ) )
 
+#if (ARCH == amd64)
+#define DEBUG_FORMAT " -gdwarf-2"
+#else
+#define DEBUG_FORMAT " -gstabs+"
+#endif
+
 MingwBackend*
 MingwModuleHandler::backend = NULL;
 FILE*

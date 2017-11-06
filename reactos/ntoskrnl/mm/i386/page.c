@@ -158,7 +158,7 @@ Mmi386ReleaseMmInfo(PEPROCESS Process)
 NTSTATUS
 NTAPI
 MmInitializeHandBuiltProcess(IN PEPROCESS Process,
-                             IN PULONG DirectoryTableBase)
+                             IN PULONG_PTR DirectoryTableBase)
 {
     /* Share the directory base with the idle process */
     DirectoryTableBase[0] = PsGetCurrentProcess()->Pcb.DirectoryTableBase[0];
@@ -184,7 +184,7 @@ MmCreateProcessAddressSpace(IN ULONG MinWs,
     NTSTATUS Status;
     ULONG i, j;
     PFN_NUMBER Pfn[2];
-    PULONG PageDirectory;
+    PULONG_PTR PageDirectory;
     
     DPRINT("MmCopyMmInfo(Src %x, Dest %x)\n", MinWs, Process);
     
