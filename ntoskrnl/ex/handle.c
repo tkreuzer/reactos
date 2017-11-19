@@ -61,6 +61,22 @@ ExpLookupHandleTableEntry(IN PHANDLE_TABLE HandleTable,
     PointerArray = (PVOID*)TableBase;
     HandleArray = (PHANDLE_TABLE_ENTRY)TableBase;
 
+    switch (TableLevel)
+    {
+        case 0:
+            Entry = HandleArray + 16 * Handle.Index;
+            break;
+        case 1:
+            HandleArray = PointerArray[Handle.Value >> 10];
+            Entry = HandleArray + 16 * Handle.LowIndex;
+            break;
+        case 2:
+
+            PointerArray = PointerArray[Handle.Value >> 19];
+            HandleArray = PointerArray[(Handle.Value >> 10) & 0x1FF];
+            Entry = HandleArray + 16 * Handle.LowIndex;
+    }
+
     /* Check what level we're running at */
     switch (TableLevel)
     {
@@ -156,6 +172,11 @@ ExpFreeTablePagedPool(IN PEPROCESS Process OPTIONAL,
         /* FIXME: Release quota */
     }
 }
+
+// Bits
+//     Kernel High Mid Low Tag
+// x86:     1   10  10  9   2   -> 1024 * 1024 * 512 = 536.870.912 (29 bits)
+// x64:    36    9   9  8   2   ->  512 *  512 * 256 =  67.108.864 (26 bits)
 
 VOID
 NTAPI
@@ -269,8 +290,8 @@ ExpFreeHandleTableEntry(IN PHANDLE_TABLE HandleTable,
     /* Decrement the handle count */
     InterlockedDecrement(&HandleTable->HandleCount);
 
-    /* Mark the handle as free */
-    Handle.TagBits = 0;
+    /* Extract the index */
+    NewValue = (ULONG)Handle.Index << 2;
 
     /* Check if we're FIFO */
     if (!HandleTable->StrictFIFO)
@@ -394,44 +415,41 @@ NTAPI
 ExpAllocateLowLevelTable(IN PHANDLE_TABLE HandleTable,
                          IN BOOLEAN DoInit)
 {
-    ULONG i, Base;
-    PHANDLE_TABLE_ENTRY Low, HandleEntry;
+    ULONG i;
+    PHANDLE_TABLE_ENTRY Table;
+    EXHANDLE NextFree;
 
     /* Allocate the low level table */
-    Low = ExpAllocateTablePagedPoolNoZero(HandleTable->QuotaProcess,
-                                          PAGE_SIZE);
-    if (!Low) return NULL;
+    Table = ExpAllocateTablePagedPoolNoZero(HandleTable->QuotaProcess,
+                                            PAGE_SIZE);
+    if (Table == NULL) return NULL;
 
     /* Setup the initial entry */
-    HandleEntry = &Low[0];
-    HandleEntry->NextFreeTableEntry = -2;
-    HandleEntry->Value = 0;
+    Table[0].NextFreeTableEntry = -2;
+    Table[0].Value = 0;
 
     /* Check if we're initializing */
     if (DoInit)
     {
-        /* Go to the next entry and the base entry */
-        HandleEntry++;
-        Base = HandleTable->NextHandleNeedingPool + INDEX_TO_HANDLE_VALUE(2);
+        /* Get the next free handle (+2, as we start at 1 and want the next) */
+        NextFree.Value = HandleTable->NextHandleNeedingPool;
+        NextFree.Index += 2;
 
         /* Loop each entry */
-        for (i = Base;
-             i < Base + INDEX_TO_HANDLE_VALUE(LOW_LEVEL_ENTRIES - 2);
-             i += INDEX_TO_HANDLE_VALUE(1))
+        for (i = 1; i < (LOW_LEVEL_ENTRIES - 1); i++)
         {
-            /* Free this entry and move on to the next one */
-            HandleEntry->NextFreeTableEntry = i;
-            HandleEntry->Value = 0;
-            HandleEntry++;
+            Table[i].NextFreeTableEntry = (ULONG)NextFree.Value;
+            Table[i].Object = NULL;
+            NextFree.Index++;
         }
 
         /* Terminate the last entry */
-        HandleEntry->NextFreeTableEntry = 0;
-        HandleEntry->Value = 0;
+        Table[LOW_LEVEL_ENTRIES - 1].NextFreeTableEntry = 0;
+        Table[LOW_LEVEL_ENTRIES - 1].Value = 0;
     }
 
     /* Return the low level table */
-    return Low;
+    return Table;
 }
 
 PHANDLE_TABLE_ENTRY*
