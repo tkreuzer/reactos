@@ -343,7 +343,7 @@ ModifyWorldTransform(
         return FALSE;
 
     /* Call win32k to do the work */
-    return NtGdiModifyWorldTransform(hdc, (LPXFORM)pxform, dwMode);
+    return NtGdiModifyWorldTransform(hdc, pxform, dwMode);
 }
 
 BOOL
