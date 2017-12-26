@@ -155,8 +155,11 @@ WinLdrInitSystemHive(
         return FALSE;
     }
 
+    // Initialize in-memory registry
+    RegInitializeRegistry();
+
     /* Import what was loaded */
-    Success = RegImportBinaryHive(VaToPa(LoaderBlock->RegistryBase), LoaderBlock->RegistryLength);
+    Success = RegImportBinaryHive((PCHAR)VaToPa(LoaderBlock->RegistryBase), LoaderBlock->RegistryLength);
     if (!Success)
     {
         UiMessageBox("Importing binary hive failed!");
@@ -228,7 +231,7 @@ WinLdrGetNLSNames(
     _Inout_ PUNICODE_STRING OemHalFileName)
 {
     LONG rc;
-    HKEY hKey;
+    FRLDRHKEY hKey;
     ULONG BufferSize;
     WCHAR szIdBuffer[80];
 
@@ -257,7 +260,7 @@ WinLdrGetNLSNames(
         //TRACE("ACP NLS Setting exists, but isn't readable");
         //goto Quit;
         AnsiFileName->Length = 0;
-        RtlAppendUnicodeToString(AnsiFileName, L"c_1252.nls"); // HACK: ReactOS bug CORE-6105
+        RtlAppendUnicodeToString(AnsiFileName, L"c_1252.nls"); // HACK: ReactOS bug #6727
     }
     else
     {
@@ -281,7 +284,7 @@ WinLdrGetNLSNames(
         //TRACE("OEMCP NLS setting exists, but isn't readable");
         //goto Quit;
         OemFileName->Length = 0;
-        RtlAppendUnicodeToString(OemFileName, L"c_437.nls"); // HACK: ReactOS bug CORE-6105
+        RtlAppendUnicodeToString(OemFileName, L"c_437.nls"); // HACK: ReactOS bug #6727
     }
     else
     {
@@ -522,7 +525,7 @@ WinLdrScanRegistry(IN OUT PLIST_ENTRY BootDriverListHead,
                    IN PCSTR SystemRoot)
 {
     LONG rc = 0;
-    HKEY hOrderKey, hServiceKey, hGroupKey, hDriverKey;
+    FRLDRHKEY hGroupKey, hOrderKey, hServiceKey, hDriverKey;
     PWSTR GroupNameBuffer = NULL;
     WCHAR ServiceName[256];
     ULONG OrderList[128];
@@ -825,7 +828,7 @@ WinLdrAddDriverToList(LIST_ENTRY *BootDriverListHead,
 
     // Check - if we have a valid ImagePath, if not - we need to build it
     // like "System32\\Drivers\\blah.sys"
-    if (ImagePath && (ImagePath[0] != 0))
+    if (ImagePath && (wcslen(ImagePath) > 0))
     {
         // Just copy ImagePath to the corresponding field in the structure
         PathLength = (USHORT)wcslen(ImagePath) * sizeof(WCHAR) + sizeof(UNICODE_NULL);

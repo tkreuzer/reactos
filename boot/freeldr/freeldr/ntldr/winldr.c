@@ -471,7 +471,7 @@ USHORT
 WinLdrDetectVersion(VOID)
 {
     LONG rc;
-    HKEY hKey;
+    FRLDRHKEY hKey;
 
     rc = RegOpenKey(CurrentControlSetKey, L"Control\\Terminal Server", &hKey);
     if (rc != ERROR_SUCCESS)
@@ -1030,7 +1030,7 @@ LoadAndBootWindows(
     }
 
     /* Append a path separator if needed */
-    if (!*BootPath || BootPath[strlen(BootPath) - 1] != '\\')
+    if ((BootPath[0] == '\0') || (BootPath[strlen(BootPath) - 1] != '\\'))
         RtlStringCbCatA(BootPath, sizeof(BootPath), "\\");
 
     TRACE("BootPath: '%s'\n", BootPath);

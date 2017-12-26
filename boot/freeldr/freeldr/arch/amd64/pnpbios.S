@@ -103,6 +103,12 @@ pnp_not_found:
  */
 PUBLIC PnpBiosGetDeviceNodeCount
 PnpBiosGetDeviceNodeCount:
+    push rbx
+    push rcx
+    push rdx
+    push rsi
+    push rdi
+    push rbp
 
     /* Save registers */
     push rbx
@@ -113,7 +119,9 @@ PnpBiosGetDeviceNodeCount:
     mov bx, FNID_PnpBiosGetDeviceNodeCount
     call CallRealMode
 
-    /* Restore param-regs */
+    pop rbp
+    pop rdi
+    pop rsi
     pop rdx
     pop rcx
     pop rbx

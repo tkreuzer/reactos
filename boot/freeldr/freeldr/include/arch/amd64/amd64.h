@@ -41,4 +41,62 @@
 VOID FrLdrSetupGdtIdt(VOID);
 #endif
 
+#define AMD64_GDTENTRY KGDTENTRY64
+#define PAMD64_GDTENTRY PKGDTENTRY64
+
+PAMD64_GDTENTRY
+FORCEINLINE
+Amd64GetGdtEntry(PVOID pGdt, USHORT Selector)
+{
+    return (PAMD64_GDTENTRY)((UINT64)pGdt + (Selector & ~3));
+}
+
+PVOID
+FORCEINLINE
+Amd64GetGdtDescriptorBase(PAMD64_GDTENTRY Entry)
+{
+    return (PVOID)((UINT64)Entry->BaseLow |
+                   (UINT64)Entry->Bytes.BaseMiddle << 16 |
+                   (UINT64)Entry->Bytes.BaseHigh << 24 |
+                   (UINT64)Entry->BaseUpper << 32);
+}
+
+VOID
+FORCEINLINE
+Amd64SetGdtDescriptorBase(PAMD64_GDTENTRY Entry, UINT64 Base)
+{
+    Entry->BaseLow = Base & 0xffff;
+    Entry->Bits.BaseMiddle = (Base >> 16) & 0xff;
+    Entry->Bits.BaseHigh = (Base >> 24) & 0xff;
+    Entry->BaseUpper = Base >> 32;
+}
+
+VOID
+FORCEINLINE
+Amd64SetGdtDescriptorLimit(PAMD64_GDTENTRY Entry, ULONG Limit)
+{
+    Entry->LimitLow = Limit & 0xffff;
+    Entry->Bits.LimitHigh = Limit >> 16;
+}
+
+VOID
+FORCEINLINE
+Amd64InitGdtEntry(PAMD64_GDTENTRY Entry, UINT64 Base, ULONG Size, UCHAR Type, UCHAR Dpl)
+{
+    Amd64SetGdtDescriptorBase(Entry, Base);
+    Amd64SetGdtDescriptorLimit(Entry, Size - 1);
+    Entry->Bits.Type = Type;
+    Entry->Bits.Dpl = Dpl;
+    Entry->Bits.Present = 1;
+    Entry->Bits.System = 0;
+    Entry->Bits.LongMode = 0;
+    Entry->Bits.DefaultBig = 0;
+    Entry->Bits.Granularity = 0;
+    Entry->MustBeZero = 0;
+}
+
+#define KiInitGdtEntry Amd64InitGdtEntry
+#define KiGetGdtEntry Amd64GetGdtEntry
+
+
 /* EOF */

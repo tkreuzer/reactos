@@ -20,23 +20,23 @@
 #ifndef __DEBUG_H
 #define __DEBUG_H
 
-#define DPRINT_NONE         0   // No debug print
-#define DPRINT_WARNING      1   // debugger messages and other misc stuff
-#define DPRINT_MEMORY       2   // memory management messages
-#define DPRINT_FILESYSTEM   3   // file system messages
-#define DPRINT_INIFILE      4   // .ini file messages
-#define DPRINT_UI           5   // user interface messages
-#define DPRINT_DISK         6   // disk messages
-#define DPRINT_CACHE        7   // cache messages
-#define DPRINT_REGISTRY     8   // registry messages
-#define DPRINT_REACTOS      9   // ReactOS messages
-#define DPRINT_LINUX        10  // Linux messages
-#define DPRINT_HWDETECT     11  // hardware detection messages
-#define DPRINT_WINDOWS      12  // messages from Windows loader
-#define DPRINT_PELOADER     13  // messages from PE images loader
-#define DPRINT_SCSIPORT     14  // messages from SCSI miniport
-#define DPRINT_HEAP         15  // messages in a bottle
-#define DBG_CHANNELS_COUNT  16
+// OR this with DebugPrintMask to enable ...
+#define DPRINT_NONE         0x00000000  // No debug print
+#define DPRINT_WARNING      0x00000001  // debugger messages and other misc stuff
+#define DPRINT_MEMORY       0x00000002  // memory management messages
+#define DPRINT_FILESYSTEM   0x00000004  // file system messages
+#define DPRINT_INIFILE      0x00000008  // .ini file messages
+#define DPRINT_UI           0x00000010  // user interface messages
+#define DPRINT_DISK         0x00000020  // disk messages
+#define DPRINT_CACHE        0x00000040  // cache messages
+#define DPRINT_REGISTRY     0x00000080  // registry messages
+#define DPRINT_REACTOS      0x00000100  // ReactOS messages
+#define DPRINT_LINUX        0x00000200  // Linux messages
+#define DPRINT_HWDETECT     0x00000400  // hardware detection messages
+#define DPRINT_WINDOWS      0x00000800  // messages from Windows loader
+#define DPRINT_PELOADER     0x00001000  // messages from PE images loader
+#define DPRINT_SCSIPORT     0x00002000  // messages from SCSI miniport
+#define DPRINT_HEAP         0x00004000  // messages in a bottle
 
 #if DBG && !defined(_M_ARM)
 
@@ -45,14 +45,11 @@
     VOID    DbgPrint2(ULONG Mask, ULONG Level, const char *File, ULONG Line, char *Format, ...);
     VOID    DebugDumpBuffer(ULONG Mask, PVOID Buffer, ULONG Length);
     VOID    DebugDisableScreenPort(VOID);
-    VOID    DbgParseDebugChannels(PCHAR Value);
 
     #define ERR_LEVEL      0x1
     #define FIXME_LEVEL    0x2
     #define WARN_LEVEL     0x4
     #define TRACE_LEVEL    0x8
-
-    #define MAX_LEVEL ERR_LEVEL | FIXME_LEVEL | WARN_LEVEL | TRACE_LEVEL
 
     #define DBG_DEFAULT_CHANNEL(ch) static int DbgDefaultChannel = DPRINT_##ch
 
@@ -118,7 +115,6 @@ void    MEMORY_WRITE_BREAKPOINT4(unsigned long addr);
     #define BugCheck(fmt, ...)
     #define DbgDumpBuffer(mask, buf, len)
     #define DebugDisableScreenPort()
-    #define DbgParseDebugChannels(val)
 
 #endif // DBG
 
@@ -126,24 +122,12 @@ void
 NTAPI
 FrLdrBugCheck(ULONG BugCode);
 
-VOID
-FrLdrBugCheckWithMessage(
+void
+FrLdrBugCheckEx(
     ULONG BugCode,
     PCHAR File,
-    ULONG Line,
-    PSTR Format,
-    ...);
+    ULONG Line);
 
-/* Bugcheck codes */
-enum _FRLDR_BUGCHECK_CODES
-{
-    TEST_BUGCHECK,
-    MISSING_HARDWARE_REQUIREMENTS,
-    FREELDR_IMAGE_CORRUPTION,
-    MEMORY_INIT_FAILURE,
-};
-
-extern char *BugCodeStrings[];
-extern ULONG_PTR BugCheckInfo[5];
+#define BUGCHECK(Code) FrLdrBugCheckEx(Code, __FILE__, __LINE__)
 
 #endif // defined __DEBUG_H

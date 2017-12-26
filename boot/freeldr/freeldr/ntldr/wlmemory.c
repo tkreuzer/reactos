@@ -69,7 +69,7 @@ MempAddMemoryBlock(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock,
 {
     TRACE("MempAddMemoryBlock(BasePage=0x%lx, PageCount=0x%lx, Type=%ld)\n",
           BasePage, PageCount, Type);
-
+#ifndef _M_AMD64
     /* Check for memory block after 4GB - we don't support it yet
        Note: Even last page before 4GB limit is not supported */
     if (BasePage >= MM_MAX_PAGE)
@@ -77,6 +77,7 @@ MempAddMemoryBlock(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock,
         /* Just skip this, without even adding to MAD list */
         return;
     }
+#endif
 
     /* Check if last page is after 4GB limit and shorten this block if needed */
     if (BasePage + PageCount > MM_MAX_PAGE)
@@ -169,7 +170,7 @@ MempSetupPagingForRegion(
 
     if (!Status)
     {
-        ERR("Error during MempSetupPaging\n");
+        ERR("Error during MempSetupPaging Type=%ld\n", Type);
     }
 }
 
@@ -180,15 +181,12 @@ MempSetupPagingForRegion(
 BOOLEAN
 WinLdrSetupMemoryLayout(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
-    PFN_NUMBER i, PagesCount, MemoryMapSizeInPages, NoEntries;
-    PFN_NUMBER LastPageIndex, MemoryMapStartPage;
+    ULONG i, PagesCount, MemoryMapSizeInPages;
+    ULONG LastPageIndex, LastPageType, MemoryMapStartPage;
     PPAGE_LOOKUP_TABLE_ITEM MemoryMap;
-    ULONG LastPageType;
+    ULONG NoEntries;
     //PKTSS Tss;
-    //BOOLEAN Status;
-
-    /* Cleanup heap */
-    FrLdrHeapCleanupAll();
+    BOOLEAN Status;
 
     //
     // Creating a suitable memory map for Windows can be tricky, so let's
@@ -315,13 +313,24 @@ WinLdrSetupMemoryLayout(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock)
     /* Now we need to add high descriptors from the bios memory map */
     for (i = 0; i < BiosMemoryMapEntryCount; i++)
     {
+        ULONG BasePage = BiosMemoryMap->BasePage;
+        ULONG PageCount = BiosMemoryMap->PageCount;
+
         /* Check if its higher than the lookup table */
-        if (BiosMemoryMap->BasePage > MmHighestPhysicalPage)
+        if (BasePage + PageCount > MmHighestPhysicalPage + 1)
         {
+            /* Check if it overlaps with the lookup table */
+            if (BasePage <= MmHighestPhysicalPage)
+            {
+                /* Traim the range */
+                PageCount -= MmHighestPhysicalPage - BasePage;
+                BasePage = MmHighestPhysicalPage;
+            }
+
             /* Copy this descriptor */
             MempAddMemoryBlock(LoaderBlock,
-                               BiosMemoryMap->BasePage,
-                               BiosMemoryMap->PageCount,
+                               BasePage,
+                               PageCount,
                                BiosMemoryMap->MemoryType);
         }
     }
@@ -415,3 +424,4 @@ WinLdrInsertDescriptor(IN OUT PLOADER_PARAMETER_BLOCK LoaderBlock,
 
     return;
 }
+

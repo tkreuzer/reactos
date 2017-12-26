@@ -5,6 +5,7 @@
 
 EXTERN BootMain:PROC
 // EXTERN cmdline:DWORD
+//EXTERN Amd64InitIdt:PROC
 
 EXTERN DiskStopFloppyMotor:PROC
 
@@ -60,6 +61,9 @@ FrldrStartup:
     /* Pass the command line to BootMain */
     // mov rcx, offset cmdline
     xor rcx, rcx
+
+    /* Initialize the idt */
+    //call Amd64InitIdt
 
     /* GO! */
     call BootMain
