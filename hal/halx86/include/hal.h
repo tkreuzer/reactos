@@ -1,66 +1,113 @@
-/*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS Hardware Abstraction Layer
- * FILE:            hal/halx86/include/hal.h
- * PURPOSE:         HAL Header
- * PROGRAMMER:      Alex Ionescu (alex@relsoft.net)
- */
 
-#ifndef _HAL_PCH_
-#define _HAL_PCH_
 
-/* INCLUDES ******************************************************************/
+#pragma once
 
-/* C Headers */
+#define _NTHAL_
+#define _NTHALDLL_
+#define _NTSYSTEM_
+#define _IN_KERNEL_
+
+/* CRT headers */
 #include <stdio.h>
+#include <stdarg.h>
 
-/* WDK HAL Compilation hack */
-#include <excpt.h>
-#include <ntdef.h>
-#ifndef _MINIHAL_
-#undef NTSYSAPI
-#define NTSYSAPI __declspec(dllimport)
-#else
-#undef NTSYSAPI
-#define NTSYSAPI
-#endif
-
-/* IFS/DDK/NDK Headers */
-#include <ntifs.h>
+/* Public header */
+#include <xdk/xdk.h>
 #include <arc/arc.h>
+#include <reactos/arch/arch.h>
 
-#include <ndk/asm.h>
-#include <ndk/halfuncs.h>
-#include <ndk/inbvfuncs.h>
-#include <ndk/iofuncs.h>
-#include <ndk/kefuncs.h>
-#include <ndk/rtlfuncs.h>
+//#include "include/debug.h"
 
-/* Internal shared PCI and ACPI header */
-#include <drivers/pci/pci.h>
-#include <drivers/acpi/acpi.h>
+#define INIT_FUNCTION
 
-/* Internal kernel headers */
-#define KeGetCurrentThread _KeGetCurrentThread
-#ifdef _M_AMD64
-#include <internal/amd64/ke.h>
-#include <internal/amd64/mm.h>
-#include "internal/amd64/intrin_i.h"
+VOID
+FASTCALL
+HalpAcquireSpinLockNoIrql(
+    IN PKSPIN_LOCK SpinLock);
+
+VOID
+FASTCALL
+HalpReleaseSpinLockNoIrql(
+    IN PKSPIN_LOCK SpinLock);
+
+
+/* Internal interface */
+#include "include/pic.h"
+#include "include/pit.h"
+#include "include/cmos.h"
+
+#ifdef CONFIG_SMP
+#define HAL_BUILD_TYPE (DBG ? PRCB_BUILD_DEBUG : 0)
 #else
-#include <internal/i386/ke.h>
-#include <internal/i386/mm.h>
-#include "internal/i386/intrin_i.h"
+#define HAL_BUILD_TYPE ((DBG ? PRCB_BUILD_DEBUG : 0) | PRCB_BUILD_UNIPROCESSOR)
 #endif
 
-#define TAG_HAL    ' laH'
-#define TAG_BUS_HANDLER 'BusH'
+extern char __ImageBase;
 
-/* Internal HAL Headers */
-#include "bus.h"
-#include "halirq.h"
-#include "haldma.h"
-#include "halp.h"
-#include "mps.h"
-#include "halacpi.h"
+#define PRIMARY_VECTOR_BASE 0x30
+#define IDT_INTERNAL 0x11
+#define INITIAL_STALL_COUNT 100
+#define HAL_INITIALIZATION_FAILED 0x5C
 
-#endif /* _HAL_PCH_ */
+#define HalAddressToPteNumber(Address) ((((ULONG_PTR)Address) >> PTI_SHIFT) & 0xFFFFFFFFF)
+#define HalAddressToPte(Address) &(((PHARDWARE_PTE)PTE_BASE)[HalAddressToPteNumber(Address)])
+
+#ifdef _M_AMD64
+#define HalpGetIdtEntry(Pcr, Vector) &(((PAMD64_IDTENTRY)((Pcr)->IdtBase))[Vector])
+#define HalpRegisterInterruptHandler(v,h) Amd64RegisterInterruptHandler(KeGetPcr()->IdtBase,v,h)
+#define KfLowerIrql KeLowerIrql
+#define KiEnterInterruptTrap(TrapFrame) /* We do all neccessary in asm code */
+#define KiEoiHelper(TrapFrame) return /* Just return to the caller */
+#define HalBeginSystemInterrupt(Irql, Vector, OldIrql) (*OldIrql = 0, TRUE)
+typedef AMD64_IDTENTRY HAL_IDTENTRY;
+#else
+#define HalpGetIdtEntry(Pcr, Vector) &(((PX86_IDTENTRY)((Pcr)->IDT))[Vector])
+#define HalpRegisterInterruptHandler(v,h) x86RegisterInterruptHandler(KeGetPcr()->IdtBase,v,h)
+#define HalAddressToPte(Address) &(((PHARDWARE_PTE)PTE_BASE)[x86AddressToPti(Address)])
+#endif // _M_AMD64
+
+void HalpClockInterrupt(void);
+
+VOID
+NTAPI
+INIT_FUNCTION
+HalpRegisterVector(
+    IN UCHAR Flags,
+    IN ULONG BusVector,
+    IN ULONG SystemVector,
+    IN KIRQL Irql);
+
+VOID
+NTAPI
+INIT_FUNCTION
+HalpEnableInterruptHandler(
+    IN UCHAR Flags,
+    IN ULONG BusVector,
+    IN ULONG SystemVector,
+    IN KIRQL Irql,
+    IN PVOID Handler,
+    IN KINTERRUPT_MODE Mode);
+
+BOOLEAN
+NTAPI
+HalpBiosDisplayReset(VOID);
+
+VOID
+NTAPI
+HalpInitDma(VOID);
+
+VOID
+NTAPI
+HalpInitProcessor(
+    IN ULONG ProcessorNumber,
+    IN PLOADER_PARAMETER_BLOCK LoaderBlock);
+
+PHARDWARE_PTE
+NTAPI
+HalpAllocatePtes(
+    ULONG PageCount);
+
+VOID
+NTAPI
+HalpInitializeCpuBootstrap(
+    PLOADER_PARAMETER_BLOCK LoaderBlock);

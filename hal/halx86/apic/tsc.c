@@ -56,12 +56,12 @@ NTAPI
 HalpInitializeTsc(VOID)
 {
     ULONG_PTR Flags;
-    KIDTENTRY OldIdtEntry, *IdtPointer;
+    HAL_IDTENTRY OldIdtEntry, *IdtPointer;
     PKPCR Pcr = KeGetPcr();
     UCHAR RegisterA, RegisterB;
 
     /* Check if the CPU supports RDTSC */
-    if (!(KeGetCurrentPrcb()->FeatureBits & KF_RDTSC))
+    if (!SharedUserData->ProcessorFeatures[PF_RDTSC_INSTRUCTION_AVAILABLE])
     {
         KeBugCheck(HAL_INITIALIZATION_FAILED);
     }
@@ -80,11 +80,11 @@ HalpInitializeTsc(VOID)
     HalpWriteCmos(RTC_REGISTER_A, RegisterA);
 
     /* Save old IDT entry */
-    IdtPointer = KiGetIdtEntry(Pcr, HalpRtcClockVector);
+    IdtPointer = HalpGetIdtEntry(Pcr, HalpRtcClockVector);
     OldIdtEntry = *IdtPointer;
 
     /* Set the calibration ISR */
-    KeRegisterInterruptHandler(HalpRtcClockVector, TscCalibrationISR);
+    HalpRegisterInterruptHandler(HalpRtcClockVector, TscCalibrationISR);
 
     /* Reset TSC value to 0 */
     __writemsr(MSR_RDTSC, 0);

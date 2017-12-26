@@ -19,7 +19,7 @@ ApicInitializeLocalApic(ULONG Cpu);
 
 /* GLOBALS ******************************************************************/
 
-const USHORT HalpBuildType = HAL_BUILD_TYPE;
+//const USHORT HalpBuildType = HAL_BUILD_TYPE;
 
 /* FUNCTIONS ****************************************************************/
 

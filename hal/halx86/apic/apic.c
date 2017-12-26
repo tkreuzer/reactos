@@ -285,7 +285,7 @@ ApicInitializeLocalApic(ULONG Cpu)
     ApicWrite(APIC_LDR, ApicLogicalId(Cpu) << 24);
 
     /* Set the spurious ISR */
-    KeRegisterInterruptHandler(APIC_SPURIOUS_VECTOR, ApicSpuriousService);
+    HalpRegisterInterruptHandler(APIC_SPURIOUS_VECTOR, ApicSpuriousService);
 
     /* Create a template LVT */
     LvtEntry.Long = 0;
@@ -462,10 +462,10 @@ HalpInitializePICs(IN BOOLEAN EnableInterrupts)
     HalpVectorToIndex[DISPATCH_VECTOR] = 99;
 
     /* Set interrupt handlers in the IDT */
-    KeRegisterInterruptHandler(APIC_CLOCK_VECTOR, HalpClockInterrupt);
+    HalpRegisterInterruptHandler(APIC_CLOCK_VECTOR, HalpClockInterrupt);
 #ifndef _M_AMD64
-    KeRegisterInterruptHandler(APC_VECTOR, HalpApcInterrupt);
-    KeRegisterInterruptHandler(DISPATCH_VECTOR, HalpDispatchInterrupt);
+    HalpRegisterInterruptHandler(APC_VECTOR, HalpApcInterrupt);
+    HalpRegisterInterruptHandler(DISPATCH_VECTOR, HalpDispatchInterrupt);
 #endif
 
     /* Register the vectors for APC and dispatch interrupts */
@@ -603,7 +603,7 @@ HalEnableSystemInterrupt(
     IN KINTERRUPT_MODE InterruptMode)
 {
     IOAPIC_REDIRECTION_REGISTER ReDirReg;
-    PKPRCB Prcb = KeGetCurrentPrcb();
+    ULONG Number = KeGetCurrentProcessorNumber();
     UCHAR Index;
     ASSERT(Irql <= HIGH_LEVEL);
     ASSERT((IrqlToTpr(Irql) & 0xF0) == (Vector & 0xF0));
@@ -634,7 +634,7 @@ HalEnableSystemInterrupt(
     if (ReDirReg.DestinationMode == APIC_DM_Logical)
     {
         /* Set the bit for this cpu */
-        ReDirReg.Destination |= ApicLogicalId(Prcb->Number);
+        ReDirReg.Destination |= ApicLogicalId(Number);
     }
 
     /* Set the trigger mode */

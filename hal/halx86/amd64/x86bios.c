@@ -2,7 +2,7 @@
  * PROJECT:         ReactOS HAL
  * LICENSE:         GPL, See COPYING in the top level directory
  * FILE:            hal/halx86/amd64/x86bios.c
- * PURPOSE:         
+ * PURPOSE:
  * PROGRAMMERS:     Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
@@ -41,6 +41,10 @@ DbgDumpPage(PUCHAR MemBuffer, USHORT Segment)
     }
 }
 
+/*!
+ *
+ *  \remarks This function is called by the kernel after MmInitSystem
+ */
 VOID
 NTAPI
 HalInitializeBios(ULONG Unknown, PLOADER_PARAMETER_BLOCK LoaderBlock)
@@ -61,11 +65,8 @@ HalInitializeBios(ULONG Unknown, PLOADER_PARAMETER_BLOCK LoaderBlock)
     /* Get pointer to the pfn array */
     PfnArray = MmGetMdlPfnArray(Mdl);
 
-    /* Fill the array with low memory PFNs */
-    for (Pfn = 0; Pfn < 0x100; Pfn++)
-    {
-        PfnArray[Pfn] = Pfn;
-    }
+    /* Fill the array with the default PFN */
+    for (Pfn = 0; Pfn < 0x100; Pfn++) PfnArray[Pfn] = DEFAULT_PAGE;
 
     /* Loop the memory descriptors */
     for (ListEntry = LoaderBlock->MemoryDescriptorListHead.Flink;
@@ -81,15 +82,15 @@ HalInitializeBios(ULONG Unknown, PLOADER_PARAMETER_BLOCK LoaderBlock)
         if (Descriptor->BasePage < 0x100)
         {
             /* Check if the memory type is firmware */
-            if (Descriptor->MemoryType != LoaderFirmwarePermanent &&
-                Descriptor->MemoryType != LoaderSpecialMemory)
+            if (Descriptor->MemoryType == LoaderFirmwarePermanent ||
+                Descriptor->MemoryType == LoaderSpecialMemory)
             {
-                /* It's something else, so don't use it! */
+                /* It's firmware, use it! */
                 Last = min(Descriptor->BasePage + Descriptor->PageCount, 0x100);
                 for (Pfn = Descriptor->BasePage; Pfn < Last; Pfn++)
                 {
-                    /* Set each page to the default page */
-                    PfnArray[Pfn] = DEFAULT_PAGE;
+                    /* Use the current page */
+                    PfnArray[Pfn] = Pfn;
                 }
             }
         }
@@ -105,7 +106,7 @@ HalInitializeBios(ULONG Unknown, PLOADER_PARAMETER_BLOCK LoaderBlock)
     //DbgDumpPage(x86BiosMemoryMapping, 0xc351);
 
     x86BiosIsInitialized = TRUE;
-    
+
     HalpBiosDisplayReset();
 }
 
@@ -216,13 +217,13 @@ x86BiosWriteMemory(
     return STATUS_SUCCESS;
 }
 
-#if 0
 BOOLEAN
 NTAPI
 x86BiosCall(
     ULONG InterruptNumber,
     X86_BIOS_REGISTERS *Registers)
 {
+#if 0
     X86_VM_STATE VmState;
     struct
     {
@@ -250,7 +251,7 @@ x86BiosCall(
     InterrupTable = (PVOID)x86BiosMemoryMapping;
     VmState.Registers.SegCs = InterrupTable[InterruptNumber].SegCs;
     VmState.Registers.Eip = InterrupTable[InterruptNumber].Ip;
-    
+
     /* Make the function return on IRET */
     VmState.Flags.ReturnOnIret = 1;
 
@@ -259,10 +260,9 @@ x86BiosCall(
 
     /* Copy registers back to caller */
     *Registers = VmState.BiosRegisters;
-
+#endif
     return TRUE;
 }
-#endif
 
 BOOLEAN
 NTAPI

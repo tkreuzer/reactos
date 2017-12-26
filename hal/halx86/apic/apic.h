@@ -2,6 +2,7 @@
 #pragma once
 
 #ifdef _M_AMD64
+#define APIC_BASE 0xFFFFFFFFFFFE0000ULL
 #define IOAPIC_BASE 0xFFFFFFFFFFFE1000ULL // checkme
 #define ZERO_VECTOR          0x00 // IRQL 00
 #define APC_VECTOR           0x3D // IRQL 01
