@@ -9,8 +9,6 @@
 #include <asm.inc>
 #include <ksamd64.inc>
 
-EXTERN RtlpUse16ByteSLists:BYTE
-
 /*
 typedef union DECLSPEC_ALIGN(16) _SLIST_HEADER
 {
@@ -47,6 +45,15 @@ typedef union DECLSPEC_ALIGN(16) _SLIST_HEADER
         ULONGLONG NextEntry:60;
     } HeaderX64;
 } SLIST_HEADER, *PSLIST_HEADER;
+
+                      Region
+    <-- sign ext -->  <-><---  pointer bits in the header   --->
+    ssssssssssssssss??rrrxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx0000
+                        ^                                      ^   ^
+                        43                                     4   0
+    lowest address in kernel mode:
+    1111111111111111111000000000000000000000000000000000000000000000
+    FFFFE00000000000
 */
 
 #define SLIST8A_DEPTH_MASK       HEX(000000000000FFFF)
@@ -102,11 +109,11 @@ FUNC RtlInterlockedPopEntrySList
     /* Load ListHead->Alignment into rax */
     mov rax, [rcx]
 
-    /* Check for 16 byte SList support */
-    cmp byte ptr [rip+RtlpUse16ByteSLists], 0
-    jne RtlInterlockedPopEntrySList16
+    /* Check what kind of header this is */
+    test rdx, SLIST8B_HEADERTYPE_MASK
+    jnz RtlInterlockedPopEntrySList16
 
-    /* Use the 8 byte header */
+    /* We have an 8 byte header */
 GLOBAL_LABEL ExpInterlockedPopEntrySListResume
 
     /* Check if ListHead->NextEntry is NULL */
@@ -117,6 +124,10 @@ GLOBAL_LABEL ExpInterlockedPopEntrySListResume
     /* Copy Depth and Sequence number and adjust Depth */
     lea r8, [rax - SLIST8A_DEPTH_INC]
     and r8, (SLIST8A_SEQUENCE_MASK OR SLIST8A_DEPTH_MASK)
+
+    /* Use the 2 region bits as bits 45 - 47 */
+    and rdx, SLIST8B_REGION_MASK
+    shr rdx, (63 - 45)
 
     /* Create a pointer template from rcx in rdx */
     mov rdx, (NOT SLIST8_POINTER_MASK)
@@ -239,13 +250,6 @@ FUNC RtlInterlockedPushEntrySList
     /* Not aligned, raise an assertion */
     int HEX(2C)
 ExpInterlockedPushEntrySListChecked:
-
-    /* Make sure RtlpUse16ByteSLists is initialized */
-    cmp byte ptr [rip+RtlpUse16ByteSLists], HEX(FF)
-    jne ExpInterlockedPushEntrySListChecked2
-    /* Not initialized, raise an assertion */
-    int HEX(2C)
-ExpInterlockedPushEntrySListChecked2:
 #endif
 
     /* Load ListHead->Alignment into rax */
@@ -254,11 +258,11 @@ ExpInterlockedPushEntrySListChecked2:
     /* Load ListHead->Region into r9 */
     mov r9, [rcx + 8]
 
-    /* Check for 16 byte SList support */
-    cmp byte ptr [rip+RtlpUse16ByteSLists], 0
-    jne RtlInterlockedPushEntrySList16
+    /* Check what kind of header this is */
+    test r9, SLIST8B_HEADERTYPE_MASK
+    jnz RtlInterlockedPushEntrySList16
 
-    /* Use the 8 byte header */
+    /* We have an 8 byte header */
 
 RtlInterlockedPushEntrySListLoop:
 
@@ -384,11 +388,11 @@ FUNC RtlInterlockedFlushSList
     /* Load ListHead->Alignment into rax */
     mov rax, [rcx]
 
-    /* Check for 16 byte SList support */
-    cmp byte ptr [rip+RtlpUse16ByteSLists], 0
-    jne RtlInterlockedFlushSList16
+    /* Check what kind of header this is */
+    test rdx, SLIST8B_HEADERTYPE_MASK
+    jnz RtlInterlockedFlushSList16
 
-    /* Use the 8 byte header */
+    /* We have an 8 byte header */
 
 RtlInterlockedFlushSListLoop:
 
