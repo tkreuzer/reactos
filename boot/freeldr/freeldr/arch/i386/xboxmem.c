@@ -74,24 +74,24 @@ XboxMemInit(VOID)
   AvailableMemoryMb = InstalledMemoryMb;
 }
 
-FREELDR_MEMORY_DESCRIPTOR XboxMemoryMap[2];
+FREELDR_MEMORY_DESCRIPTOR BiosMemoryMap[2];
 
 PFREELDR_MEMORY_DESCRIPTOR
 XboxMemGetMemoryMap(ULONG *MemoryMapSize)
 {
   /* Synthesize memory map */
       /* Available RAM block */
-      XboxMemoryMap[0].BasePage = 0;
-      XboxMemoryMap[0].PageCount = AvailableMemoryMb * 1024 * 1024 / MM_PAGE_SIZE;
-      XboxMemoryMap[0].MemoryType = LoaderFree;
+      BiosMemoryMap[0].BasePage = 0;
+      BiosMemoryMap[0].PageCount = AvailableMemoryMb * 1024 * 1024 / MM_PAGE_SIZE;
+      BiosMemoryMap[0].MemoryType = LoaderFree;
 
       /* Video memory */
-      XboxMemoryMap[1].BasePage = AvailableMemoryMb * 1024 * 1024 / MM_PAGE_SIZE;
-      XboxMemoryMap[1].PageCount = (InstalledMemoryMb - AvailableMemoryMb) * 1024 * 1024 / MM_PAGE_SIZE;
-      XboxMemoryMap[1].MemoryType = LoaderFirmwarePermanent;
+      BiosMemoryMap[1].BasePage = AvailableMemoryMb * 1024 * 1024 / MM_PAGE_SIZE;
+      BiosMemoryMap[1].PageCount = (InstalledMemoryMb - AvailableMemoryMb) * 1024 * 1024 / MM_PAGE_SIZE;
+      BiosMemoryMap[1].MemoryType = LoaderFirmwarePermanent;
 
   *MemoryMapSize = 2;
-  return XboxMemoryMap;
+  return BiosMemoryMap;
 }
 
 PVOID

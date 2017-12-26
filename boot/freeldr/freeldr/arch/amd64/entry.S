@@ -4,6 +4,7 @@
 
 EXTERN BootMain:PROC
 // EXTERN cmdline:DWORD
+//EXTERN Amd64InitIdt:PROC
 
 #ifdef _USE_ML
 EXTERN __bss_start__:FWORD
@@ -57,6 +58,9 @@ FrldrStartup:
     /* Pass the command line to BootMain */
     // mov rcx, offset cmdline
     xor rcx, rcx
+
+    /* Initialize the idt */
+    //call Amd64InitIdt
 
     /* GO! */
     call BootMain

@@ -408,7 +408,7 @@ USHORT
 WinLdrDetectVersion(VOID)
 {
     LONG rc;
-    HKEY hKey;
+    FRLDRHKEY hKey;
 
     rc = RegOpenKey(
         NULL,
@@ -702,7 +702,7 @@ LoadAndBootWindows(IN OperatingSystemItem* OperatingSystem,
     }
 
     /* Append a backslash if needed */
-    if ((BootPath[0] == 0) || BootPath[strlen(BootPath) - 1] != '\\')
+    if ((strlen(BootPath) == 0) || BootPath[strlen(BootPath) - 1] != '\\')
         strcat(BootPath, "\\");
 
     /* Read booting options */
