@@ -43,6 +43,10 @@ DbgDumpPage(PUCHAR MemBuffer, USHORT Segment)
     }
 }
 
+/*!
+ *
+ *  \remarks This function is called by the kernel after MmInitSystem
+ */
 VOID
 NTAPI
 HalInitializeBios(

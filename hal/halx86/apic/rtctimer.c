@@ -148,7 +148,7 @@ HalpClockInterruptHandler(IN PKTRAP_FRAME TrapFrame)
     KiEnterInterruptTrap(TrapFrame);
 #ifdef _M_AMD64
     /* This is for debugging */
-    TrapFrame->ErrorCode = 0xc10c4;
+    //TrapFrame->ErrorCode = 0xc10c4;
 #endif
 
     /* Start the interrupt */

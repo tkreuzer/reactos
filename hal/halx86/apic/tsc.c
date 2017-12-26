@@ -59,7 +59,7 @@ HalpInitializeTsc(VOID)
     UCHAR RegisterA, RegisterB;
 
     /* Check if the CPU supports RDTSC */
-    if (!(KeGetCurrentPrcb()->FeatureBits & KF_RDTSC))
+    if (!SharedUserData->ProcessorFeatures[PF_RDTSC_INSTRUCTION_AVAILABLE])
     {
         KeBugCheck(HAL_INITIALIZATION_FAILED);
     }
@@ -81,7 +81,7 @@ HalpInitializeTsc(VOID)
     PreviousHandler = KeQueryInterruptHandler(APIC_CLOCK_VECTOR);
 
     /* Set the calibration ISR */
-    KeRegisterInterruptHandler(APIC_CLOCK_VECTOR, TscCalibrationISR);
+    HalpRegisterInterruptHandler(HalpRtcClockVector, TscCalibrationISR);
 
     /* Reset TSC value to 0 */
     __writemsr(MSR_RDTSC, 0);

@@ -1,40 +1,53 @@
-/*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS Hardware Abstraction Layer
- * FILE:            hal/halx86/include/hal.h
- * PURPOSE:         HAL Header
- * PROGRAMMER:      Alex Ionescu (alex@relsoft.net)
- */
 
-#ifndef _HAL_PCH_
-#define _HAL_PCH_
 
-/* INCLUDES ******************************************************************/
+#pragma once
 
-/* C Headers */
+#define _NTHAL_
+#define _NTHALDLL_
+#define _NTSYSTEM_
+#define _IN_KERNEL_
+
+/* CRT headers */
 #include <stdio.h>
+#include <stdarg.h>
 
-/* WDK HAL Compilation hack */
-#include <excpt.h>
-#include <ntdef.h>
-#ifndef _MINIHAL_
-#undef NTSYSAPI
-#define NTSYSAPI __declspec(dllimport)
+/* Public header */
+#include <xdk/xdk.h>
+#include <arc/arc.h>
+#include <reactos/arch/arch.h>
+
+//#include "include/debug.h"
+
+#define INIT_FUNCTION
+
+VOID
+FASTCALL
+HalpAcquireSpinLockNoIrql(
+    IN PKSPIN_LOCK SpinLock);
+
+VOID
+FASTCALL
+HalpReleaseSpinLockNoIrql(
+    IN PKSPIN_LOCK SpinLock);
+
+
+/* Internal interface */
+#include "include/pic.h"
+#include "include/pit.h"
+#include "include/cmos.h"
+
+#ifdef CONFIG_SMP
+#define HAL_BUILD_TYPE (DBG ? PRCB_BUILD_DEBUG : 0)
 #else
-#undef NTSYSAPI
-#define NTSYSAPI
+#define HAL_BUILD_TYPE ((DBG ? PRCB_BUILD_DEBUG : 0) | PRCB_BUILD_UNIPROCESSOR)
 #endif
 
-/* IFS/DDK/NDK Headers */
-#include <ntifs.h>
-#include <arc/arc.h>
+extern char __ImageBase;
 
-#include <ndk/asm.h>
-#include <ndk/halfuncs.h>
-#include <ndk/inbvfuncs.h>
-#include <ndk/iofuncs.h>
-#include <ndk/kefuncs.h>
-#include <ndk/rtlfuncs.h>
+#define PRIMARY_VECTOR_BASE 0x30
+#define IDT_INTERNAL 0x11
+#define INITIAL_STALL_COUNT 100
+#define HAL_INITIALIZATION_FAILED 0x5C
 
 /* For MSVC, this is required before using DATA_SEG (used in pcidata) */
 #ifdef _MSC_VER
@@ -42,41 +55,72 @@
 # pragma section("INITDATA", read,discard)
 #endif
 
-/* Internal shared PCI and ACPI header */
-#include <drivers/pci/pci.h>
-#include <drivers/acpi/acpi.h>
+#define HalAddressToPteNumber(Address) ((((ULONG_PTR)Address) >> PTI_SHIFT) & 0xFFFFFFFFF)
+#define HalAddressToPte(Address) &(((PHARDWARE_PTE)PTE_BASE)[HalAddressToPteNumber(Address)])
 
-/* Internal kernel headers */
 #ifdef _M_AMD64
-#include <internal/amd64/ke.h>
-#include <internal/amd64/mm.h>
-#include "internal/amd64/intrin_i.h"
+#define HalpGetIdtEntry(Pcr, Vector) &(((PAMD64_IDTENTRY)((Pcr)->IdtBase))[Vector])
+#define HalpRegisterInterruptHandler(v,h) Amd64RegisterInterruptHandler(KeGetPcr()->IdtBase,v,h)
+#define KfLowerIrql KeLowerIrql
+#define KiEnterInterruptTrap(TrapFrame) /* We do all neccessary in asm code */
+#define KiEoiHelper(TrapFrame) return /* Just return to the caller */
+#define HalBeginSystemInterrupt(Irql, Vector, OldIrql) (*OldIrql = 0, TRUE)
+typedef AMD64_IDTENTRY HAL_IDTENTRY;
 #else
-#define KeGetCurrentThread _KeGetCurrentThread
-#include <internal/i386/ke.h>
-#include <internal/i386/mm.h>
-#include "internal/i386/intrin_i.h"
-#endif
+#define HalpGetIdtEntry(Pcr, Vector) &(((PX86_IDTENTRY)((Pcr)->IDT))[Vector])
+#define HalpRegisterInterruptHandler(v,h) x86RegisterInterruptHandler(KeGetPcr()->IdtBase,v,h)
+#define HalAddressToPte(Address) &(((PHARDWARE_PTE)PTE_BASE)[x86AddressToPti(Address)])
+#endif // _M_AMD64
 
-#define TAG_HAL    ' laH'
-#define TAG_BUS_HANDLER 'BusH'
+void HalpClockInterrupt(void);
 
-/* Internal HAL Headers */
-#include "bus.h"
-#include "halirq.h"
-#include "haldma.h"
-#if defined(SARCH_PC98)
-#include <drivers/pc98/cpu.h>
-#include <drivers/pc98/pic.h>
-#include <drivers/pc98/pit.h>
-#include <drivers/pc98/rtc.h>
-#include <drivers/pc98/sysport.h>
-#include <drivers/pc98/video.h>
-#else
-#include "halhw.h"
-#endif
-#include "halp.h"
-#include "mps.h"
-#include "halacpi.h"
+VOID
+NTAPI
+INIT_FUNCTION
+HalpRegisterVector(
+    IN UCHAR Flags,
+    IN ULONG BusVector,
+    IN ULONG SystemVector,
+    IN KIRQL Irql);
+NTAPI
+INIT_FUNCTION
+HalpRegisterVector(
+    IN UCHAR Flags,
+    IN ULONG BusVector,
+    IN ULONG SystemVector,
+    IN KIRQL Irql);
 
-#endif /* _HAL_PCH_ */
+VOID
+NTAPI
+INIT_FUNCTION
+HalpEnableInterruptHandler(
+    IN UCHAR Flags,
+    IN ULONG BusVector,
+    IN ULONG SystemVector,
+    IN KIRQL Irql,
+    IN PVOID Handler,
+    IN KINTERRUPT_MODE Mode);
+
+BOOLEAN
+NTAPI
+HalpBiosDisplayReset(VOID);
+
+VOID
+NTAPI
+HalpInitDma(VOID);
+
+VOID
+NTAPI
+HalpInitProcessor(
+    IN ULONG ProcessorNumber,
+    IN PLOADER_PARAMETER_BLOCK LoaderBlock);
+
+PHARDWARE_PTE
+NTAPI
+HalpAllocatePtes(
+    ULONG PageCount);
+
+VOID
+NTAPI
+HalpInitializeCpuBootstrap(
+    PLOADER_PARAMETER_BLOCK LoaderBlock);
