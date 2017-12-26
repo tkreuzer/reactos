@@ -980,6 +980,11 @@ co_IntPeekMessage( PMSG Msg,
     RemoveMessages = RemoveMsg & PM_REMOVE;
     ProcessMask = HIWORD(RemoveMsg);
 
+    if (ThreadQueue->ptiSysLock && ThreadQueue->ptiSysLock != pti)
+    {
+       ERR("PeekMessage: Thread Q 0x%p is locked 0x%p to another pti 0x%p!\n", ThreadQueue, ThreadQueue->ptiSysLock, pti );
+    }
+
  /* Hint, "If wMsgFilterMin and wMsgFilterMax are both zero, PeekMessage returns
     all available messages (that is, no range filtering is performed)".        */
     if (!ProcessMask) ProcessMask = (QS_ALLPOSTMESSAGE|QS_ALLINPUT);

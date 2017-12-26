@@ -6206,6 +6206,7 @@ IntExtTextOutW(
     }
 
     psurf = dc->dclevel.pSurface;
+    if(!psurf) psurf = psurfDefaultBitmap;
     SurfObj = &psurf->SurfObj ;
 
     if ((fuOptions & ETO_OPAQUE) && (dc->pdcattr->ulDirty_ & DIRTY_BACKGROUND))

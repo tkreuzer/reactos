@@ -250,22 +250,22 @@ IntSetDIBits(
     PPALETTE    ppalDIB = 0;
     ULONG cjSizeImage;
 
-    if (!bmi || !Bits) return 0;
+    if (!bmi) return 0;
 
-    /* Check for uncompressed formats */
-    if ((bmi->bmiHeader.biCompression == BI_RGB) ||
+    /* Check if the header provided an image size */
+    if (bmi->bmiHeader.biSizeImage != 0)
+    {
+        /* Use the given size */
+        cjSizeImage = bmi->bmiHeader.biSizeImage;
+    }
+    /* Otherwise check for uncompressed formats */
+    else if ((bmi->bmiHeader.biCompression == BI_RGB) ||
              (bmi->bmiHeader.biCompression == BI_BITFIELDS))
     {
         /* Calculate the image size */
         cjSizeImage = DIB_GetDIBImageBytes(bmi->bmiHeader.biWidth,
                                            ScanLines,
                                            bmi->bmiHeader.biBitCount);
-    }
-    /* Check if the header provided an image size */
-    else if (bmi->bmiHeader.biSizeImage != 0)
-    {
-        /* Use the given size */
-        cjSizeImage = bmi->bmiHeader.biSizeImage;
     }
     else
     {
@@ -275,11 +275,12 @@ IntSetDIBits(
     }
 
     /* Check if the size that we have is ok */
-    if ((cjSizeImage > cjMaxBits) || (cjSizeImage == 0))
+    if (cjSizeImage > cjMaxBits)
     {
-        DPRINT1("Invalid bitmap size! cjSizeImage = %lu, cjMaxBits = %lu\n",
+        DPRINT1("Size too large! cjSizeImage = %lu, cjMaxBits = %lu\n",
                 cjSizeImage, cjMaxBits);
-        return 0;
+        //return 0;
+        __debugbreak();
     }
 
     SourceBitmap = GreCreateBitmapEx(bmi->bmiHeader.biWidth,
@@ -329,6 +330,8 @@ IntSetDIBits(
     rcDst.right = psurfDst->SurfObj.sizlBitmap.cx;
     ptSrc.x = 0;
     ptSrc.y = 0;
+
+    NT_ASSERT(psurfSrc->SurfObj.cjBits <= cjMaxBits);
 
     result = IntEngCopyBits(&psurfDst->SurfObj,
                             &psurfSrc->SurfObj,
@@ -791,7 +794,7 @@ GreGetDIBitsInternal(
         Info->bmiHeader.biWidth = psurf->SurfObj.sizlBitmap.cx;
         Info->bmiHeader.biHeight = (psurf->SurfObj.fjBitmap & BMF_TOPDOWN) ?
                                    -psurf->SurfObj.sizlBitmap.cy :
-                                   psurf->SurfObj.sizlBitmap.cy;
+                                   psurf->SurfObj.sizlBitmap.cy;;
         Info->bmiHeader.biPlanes = 1;
         Info->bmiHeader.biBitCount = BitsPerFormat(psurf->SurfObj.iBitmapFormat);
         Info->bmiHeader.biSizeImage = DIB_GetDIBImageBytes( Info->bmiHeader.biWidth,
@@ -1625,11 +1628,6 @@ NtGdiCreateDIBitmapInternal(
     NTSTATUS Status = STATUS_SUCCESS;
     PBYTE safeBits = NULL;
     HBITMAP hbmResult = NULL;
-
-    if (pjInit == NULL)
-    {
-        fInit &= ~CBM_INIT;
-    }
 
     if(pjInit && (fInit & CBM_INIT))
     {

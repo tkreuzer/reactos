@@ -415,6 +415,17 @@ static SCRIPT_STRING_ANALYSIS EDIT_UpdateUniscribeData_linedef(EDITSTATE *es, HD
 		tabdef.iScale = 0;
 		tabdef.pTabStops = es->tabs;
 		tabdef.iTabOrigin = 0;
+                //// ReactOS r57679
+		hr = ScriptStringAnalyse(udc, &es->text[index], line_def->net_length,
+		                         (3*line_def->net_length/2+16), -1,
+		                         SSA_LINK|SSA_FALLBACK|SSA_GLYPHS|SSA_TAB, -1,
+		                         NULL, NULL, NULL, &tabdef, NULL, &line_def->ssa);
+                ////
+		if (FAILED(hr))
+		{
+                       WARN("ScriptStringAnalyse failed (%x)\n",hr);
+                       line_def->ssa = NULL;
+                }
 
 		hr = ScriptStringAnalyse(udc, &es->text[index], line_def->net_length,
 #ifdef __REACTOS__
@@ -440,6 +451,12 @@ static SCRIPT_STRING_ANALYSIS EDIT_UpdateUniscribeData_linedef(EDITSTATE *es, HD
 	return line_def->ssa;
 }
 
+static inline INT get_vertical_line_count(EDITSTATE *es)
+{
+	INT vlc = (es->format_rect.bottom - es->format_rect.top) / es->line_height;
+	return max(1,vlc);
+}
+
 static SCRIPT_STRING_ANALYSIS EDIT_UpdateUniscribeData(EDITSTATE *es, HDC dc, INT line)
 {
 	LINEDEF *line_def;
@@ -456,7 +473,7 @@ static SCRIPT_STRING_ANALYSIS EDIT_UpdateUniscribeData(EDITSTATE *es, HDC dc, IN
 				udc = GetDC(es->hwndSelf);
 			if (es->font)
 				old_font = SelectObject(udc, es->font);
-
+                        //// ReactOS r57677
 			if (es->style & ES_PASSWORD)
 #ifdef __REACTOS__
 				/* ReactOS r57677 */

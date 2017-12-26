@@ -1274,10 +1274,11 @@ typedef struct _XLATEOBJ {
 #define WOC_RGN_SPRITE                    0x00000200
 #endif /* (NTDDI_VERSION >= NTDDI_VISTA) */
 
-typedef VOID (APIENTRY CALLBACK *WNDOBJCHANGEPROC)(
+typedef
+VOID
+(APIENTRY CALLBACK *WNDOBJCHANGEPROC)(
     _In_ WNDOBJ *pwo,
     _In_ FLONG fl);
-
 
 ENGAPI
 HANDLE
@@ -2656,7 +2657,7 @@ VOID
 APIENTRY
 FLOATOBJ_Add(
     _Inout_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 VOID
@@ -2677,7 +2678,7 @@ VOID
 APIENTRY
 FLOATOBJ_Div(
     _Inout_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 VOID
@@ -2697,54 +2698,54 @@ ENGAPI
 BOOL
 APIENTRY
 FLOATOBJ_Equal(
-    _In_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf,
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 BOOL
 APIENTRY
 FLOATOBJ_EqualLong(
-    _In_ PFLOATOBJ pf,
+    _In_ const FLOATOBJ *pf,
     _In_ LONG l);
 
 ENGAPI
 LONG
 APIENTRY
 FLOATOBJ_GetFloat(
-    _In_ PFLOATOBJ pf);
+    _In_ const FLOATOBJ *pf);
 
 ENGAPI
 LONG
 APIENTRY
 FLOATOBJ_GetLong(
-    _In_ PFLOATOBJ pf);
+    _In_ const FLOATOBJ *pf);
 
 ENGAPI
 BOOL
 APIENTRY
 FLOATOBJ_GreaterThan(
-    _In_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf,
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 BOOL
 APIENTRY
 FLOATOBJ_GreaterThanLong(
-    _In_ PFLOATOBJ pf,
+    _In_ const FLOATOBJ *pf,
     _In_ LONG l);
 
 ENGAPI
 BOOL
 APIENTRY
 FLOATOBJ_LessThan(
-    _In_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf,
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 BOOL
 APIENTRY
 FLOATOBJ_LessThanLong(
-    _In_ PFLOATOBJ pf,
+    _In_ const FLOATOBJ *pf,
     _In_ LONG l);
 
 ENGAPI
@@ -2752,7 +2753,7 @@ VOID
 APIENTRY
 FLOATOBJ_Mul(
     _Inout_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 VOID
@@ -2793,7 +2794,7 @@ VOID
 APIENTRY
 FLOATOBJ_Sub(
     _Inout_ PFLOATOBJ pf,
-    _In_ PFLOATOBJ pf1);
+    _In_ const FLOATOBJ *pf1);
 
 ENGAPI
 VOID

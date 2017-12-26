@@ -770,6 +770,8 @@ CLIPPING_UpdateGCRegion(PDC pDC)
         return;
     }
 #endif
+// FIXME: this seems to be broken!
+
     if (pDC->prgnAPI)
     {
         REGION_Delete(pDC->prgnAPI);

@@ -22,6 +22,7 @@ BOOLEAN UserDestroyObjectsForOwner(PUSER_HANDLE_TABLE Table, PVOID Owner);
 BOOL FASTCALL UserMarkObjectDestroy(PVOID);
 PVOID FASTCALL UserAssignmentLock(PVOID *ppvObj, PVOID pvNew);
 PVOID FASTCALL UserAssignmentUnlock(PVOID *ppvObj);
+HANDLE FASTCALL ValidateHandleNoErr(HANDLE handle, HANDLE_TYPE type);
 
 static __inline VOID
 UserRefObjectCo(PVOID obj, PUSER_REFERENCE_ENTRY UserReferenceEntry)

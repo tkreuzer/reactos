@@ -697,8 +697,8 @@ XFORMOBJ_bApplyXform(
         pptlOut = pvOut;
         for (i = cPoints - 1; i >= 0; i--)
         {
-            pptlOut[i].x = LONG2FIX(pptlIn[i].x);
-            pptlOut[i].y = LONG2FIX(pptlIn[i].y);
+            pptlOut[i].x = LTOFX(pptlIn[i].x);
+            pptlOut[i].y = LTOFX(pptlIn[i].y);
         }
 
         /* The input is in the out buffer now! */

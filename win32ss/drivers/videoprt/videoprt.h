@@ -23,6 +23,8 @@
 #define VIDEOPRT_H
 
 #include <ntifs.h>
+#include <ndk/obfuncs.h>
+#include <ndk/psfuncs.h>
 
 #define __BROKEN__
 #include <miniport.h>
