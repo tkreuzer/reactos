@@ -653,7 +653,7 @@ void MainFrameBase::FillBookmarks()
 	HiddenWindow hide(_hsidebar);
 	WindowCanvas canvas(_hwnd);
 
-	TreeView_DeleteAllItems(_hsidebar);
+	(void)TreeView_DeleteAllItems(_hsidebar);
 
 	g_Globals._icon_cache.get_icon(ICID_FAVORITES).add_to_imagelist(_himl, canvas);
 	g_Globals._icon_cache.get_icon(ICID_BOOKMARK).add_to_imagelist(_himl, canvas);
@@ -674,7 +674,7 @@ void MainFrameBase::FillBookmarks()
 
 	g_Globals._favorites.fill_tree(_hsidebar, hitem_bookmarks, _himl, canvas);
 
-	TreeView_Expand(_hsidebar, hitem_bookmarks, TVE_EXPAND);
+	(void)TreeView_Expand(_hsidebar, hitem_bookmarks, TVE_EXPAND);
 }
 
 
