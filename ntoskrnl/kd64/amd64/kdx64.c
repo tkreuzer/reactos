@@ -163,9 +163,11 @@ KdpSysReadControlSpace(IN ULONG Processor,
                        IN ULONG64 BaseAddress,
                        IN PVOID Buffer,
                        IN ULONG Length,
-                       OUT PULONG ActualLength)
+                       OUT PULONG BytesWritten)
 {
     PVOID ControlStart;
+    ULONG DataLength;
+
     PKPRCB Prcb = KiProcessorBlock[Processor];
     PKIPCR Pcr = CONTAINING_RECORD(Prcb, KIPCR, Prcb);
 
@@ -174,35 +176,37 @@ KdpSysReadControlSpace(IN ULONG Processor,
         case AMD64_DEBUG_CONTROL_SPACE_KPCR:
             /* Copy a pointer to the Pcr */
             ControlStart = &Pcr;
-            *ActualLength = sizeof(PVOID);
+            DataLength = sizeof(Pcr);
             break;
 
         case AMD64_DEBUG_CONTROL_SPACE_KPRCB:
             /* Copy a pointer to the Prcb */
             ControlStart = &Prcb;
-            *ActualLength = sizeof(PVOID);
+            DataLength = sizeof(Prcb);
             break;
 
         case AMD64_DEBUG_CONTROL_SPACE_KSPECIAL:
             /* Copy SpecialRegisters */
             ControlStart = &Prcb->ProcessorState.SpecialRegisters;
-            *ActualLength = sizeof(KSPECIAL_REGISTERS);
+            DataLength = sizeof(Prcb->ProcessorState.SpecialRegisters);
             break;
 
         case AMD64_DEBUG_CONTROL_SPACE_KTHREAD:
             /* Copy a pointer to the current Thread */
             ControlStart = &Prcb->CurrentThread;
-            *ActualLength = sizeof(PVOID);
+            DataLength = sizeof(Prcb->CurrentThread);
             break;
 
         default:
-            *ActualLength = 0;
+            *BytesWritten = 0;
             ASSERT(FALSE);
             return STATUS_UNSUCCESSFUL;
     }
 
+    *BytesWritten = min(Length, DataLength)
+
     /* Copy the memory */
-    RtlCopyMemory(Buffer, ControlStart, min(Length, *ActualLength));
+    RtlCopyMemory(Buffer, ControlStart, *BytesWritten);
 
     /* Finish up */
     return STATUS_SUCCESS;
