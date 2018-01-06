@@ -612,7 +612,7 @@ IopCheckResourceDescriptor(
                       {
                           DPRINT1("Resource conflict: IRQ (0x%x 0x%x vs. 0x%x 0x%x)\n",
                                   ResDesc->u.Interrupt.Vector, ResDesc->u.Interrupt.Level,
-                                  ResDesc2->u.Interrupt.Vector, ResDesc2->u.Interrupt.Level);
+                              ResDesc2->u.Interrupt.Vector, ResDesc2->u.Interrupt.Level); __debugbreak();
                       }
 
                       Result = TRUE;
