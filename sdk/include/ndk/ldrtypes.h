@@ -162,6 +162,11 @@ typedef struct _LDR_DATA_TABLE_ENTRY
     };
     PACTIVATION_CONTEXT EntryPointActivationContext;
     PVOID PatchInformation;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    LIST_ENTRY ForwarderLinks;
+    LIST_ENTRY ServiceTagLinks;
+    LIST_ENTRY StaticLinks;
+#endif
 } LDR_DATA_TABLE_ENTRY, *PLDR_DATA_TABLE_ENTRY;
 
 //

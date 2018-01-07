@@ -126,7 +126,11 @@ typedef struct _SHARED_CACHE_MAP
     LARGE_INTEGER ValidDataGoal;
     PVACB InitialVacbs[4];
     PVACB *Vacbs;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    EX_FAST_REF FileObjectFastRef;
+#else
     PFILE_OBJECT FileObject;
+#endif
     PVACB ActiveVacb;
     PVOID NeedToZero;
     ULONG ActivePage;
@@ -155,8 +159,18 @@ typedef struct _SHARED_CACHE_MAP
     KSPIN_LOCK BcbSpinLock;
     PVOID Reserved;
     KEVENT Event;
-    EX_PUSH_LOCK VacbPushLock;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN) //guess
+    LARGE_INTEGER HighWaterMappingOffset;
+#else
+     EX_PUSH_LOCK VacbPushLock;
+#endif
     PRIVATE_CACHE_MAP PrivateCacheMap;
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    PVOID WriteBehindWorkQueueEntry;
+    PVOLUME_CACHE_MAP VolumeCacheMap;
+    ULONG ProcImagePathHash;
+    ULONG MappedWritesInProgress;
+#endif
 } SHARED_CACHE_MAP, *PSHARED_CACHE_MAP;
 
 #endif /* _NTIFS_INCLUDED_  */
