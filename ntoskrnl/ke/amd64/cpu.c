@@ -236,6 +236,21 @@ KiGetFeatureBits(VOID)
 
 VOID
 NTAPI
+KiInitializeCpuFeatures()
+{
+    /* Enable Write-Protection */
+    __writecr0(__readcr0() | CR0_WP);
+
+    /* Disable fpu monitoring */
+    __writecr0(__readcr0() & ~CR0_MP);
+
+    /* Enable fx save restore support */
+    __writecr4(__readcr4() | CR4_FXSR);
+
+}
+
+VOID
+NTAPI
 KiGetCacheInformation(VOID)
 {
     PKIPCR Pcr = (PKIPCR)KeGetPcr();
@@ -343,6 +358,58 @@ KiGetCacheInformation(VOID)
 }
 
 VOID
+FASTCALL
+Ki386InitializeTss(IN PKTSS64 Tss,
+                   IN PVOID GdtBase,
+                   IN UINT64 Stack)
+{
+    PKGDTENTRY64 TssEntry;
+
+    /* Initialize the TSS descriptor entry */
+    TssEntry = (PVOID)((ULONG64)GdtBase + KGDT_TSS);
+    TssEntry->Bits.Type = 9;//AMD64_TSS;
+    TssEntry->Bits.Dpl = 0;
+    TssEntry->Bits.Present = 1;
+    TssEntry->Bits.System = 0;
+    TssEntry->Bits.LongMode = 0;
+    TssEntry->Bits.DefaultBig = 0;
+    TssEntry->Bits.Granularity = 0;
+    TssEntry->MustBeZero = 0;
+
+    /* Descriptor base is the TSS address */
+    TssEntry->BaseLow = (ULONG64)Tss & 0xffff;
+    TssEntry->Bits.BaseMiddle = ((ULONG64)Tss >> 16) & 0xff;
+    TssEntry->Bits.BaseHigh = ((ULONG64)Tss >> 24) & 0xff;
+    TssEntry->BaseUpper = (ULONG64)Tss >> 32;
+
+    /* Set the limit */
+    TssEntry->LimitLow = sizeof(KTSS64) -1;
+    TssEntry->Bits.LimitHigh = 0;
+
+    /* Zero out the TSS */
+    RtlZeroMemory(Tss, sizeof(KTSS));
+
+    /* FIXME: I/O Map? */
+    Tss->IoMapBase = 0x68;
+
+    /* Setup ring 0 stack pointer */
+    Tss->Rsp0 = Stack;
+
+    /* Setup a stack for Double Fault Traps */
+    Tss->Ist[1] = (ULONG64)KiDoubleFaultStack;
+
+    /* Setup a stack for CheckAbort Traps */
+    Tss->Ist[2] = (ULONG64)KiDoubleFaultStack;
+
+    /* Setup a stack for NMI Traps */
+    Tss->Ist[3] = (ULONG64)KiDoubleFaultStack;
+
+    /* Load the task register */
+    Ke386SetTr(KGDT_TSS);
+
+}
+
+VOID
 NTAPI
 KeFlushCurrentTb(VOID)
 {
@@ -371,8 +438,8 @@ KiRestoreProcessorControlState(PKPROCESSOR_STATE ProcessorState)
 
     /* Restore GDT, IDT, LDT and TSS */
     __lgdt(&ProcessorState->SpecialRegisters.Gdtr.Limit);
-//    __lldt(&ProcessorState->SpecialRegisters.Ldtr);
-//    __ltr(&ProcessorState->SpecialRegisters.Tr);
+    __lldt(&ProcessorState->SpecialRegisters.Ldtr);
+    __ltr(&ProcessorState->SpecialRegisters.Tr);
     __lidt(&ProcessorState->SpecialRegisters.Idtr.Limit);
 
     _mm_setcsr(ProcessorState->SpecialRegisters.MxCsr);
@@ -477,6 +544,39 @@ KxRestoreFloatingPointState(IN PKFLOATING_SAVE FloatingState)
 {
     UNREFERENCED_PARAMETER(FloatingState);
     return STATUS_SUCCESS;
+}
+
+BOOLEAN
+NTAPI
+KeFreezeExecution(IN PKTRAP_FRAME TrapFrame,
+                  IN PKEXCEPTION_FRAME ExceptionFrame)
+{
+    ULONG64 Flags = 0;
+
+    /* Disable interrupts and get previous state */
+    Flags = __readeflags();
+    //Flags = __getcallerseflags();
+    _disable();
+
+    /* Save freeze flag */
+    KiFreezeFlag = 4;
+
+    /* Save the old IRQL */
+    KiOldIrql = KeGetCurrentIrql();
+
+    /* Return whether interrupts were enabled */
+    return (Flags & EFLAGS_INTERRUPT_MASK) ? TRUE: FALSE;
+}
+
+VOID
+NTAPI
+KeThawExecution(IN BOOLEAN Enable)
+{
+    /* Cleanup CPU caches */
+    KeFlushCurrentTb();
+
+    /* Re-enable interrupts */
+    if (Enable) _enable();
 }
 
 BOOLEAN
