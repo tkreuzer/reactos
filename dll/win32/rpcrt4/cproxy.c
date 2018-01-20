@@ -40,10 +40,7 @@ WINE_DEFAULT_DEBUG_CHANNEL(ole);
 
 static const IRpcProxyBufferVtbl StdProxy_Vtbl;
 
-static inline StdProxyImpl *impl_from_IRpcProxyBuffer(IRpcProxyBuffer *iface)
-{
-    return CONTAINING_RECORD(iface, StdProxyImpl, IRpcProxyBuffer_iface);
-}
+#define ICOM_THIS_MULTI(impl,field,iface) impl* const This=(impl*)((char*)(iface) - offsetof(impl,field))
 
 static inline StdProxyImpl *impl_from_proxy_obj( void *iface )
 {

@@ -6,6 +6,8 @@
  * COPYRIGHT:   Copyright 2006-2009 Eric Kohl
  */
 
+DECLARE_HANDLE(LSAPR_HANDLE);
+
 /* INCLUDES ****************************************************************/
 
 #include "lsasrv.h"

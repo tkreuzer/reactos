@@ -2293,7 +2293,7 @@ WSPGetPeerName(IN SOCKET s,
         return SOCKET_ERROR;
 
     /* Allocate a buffer for the address */
-    TdiAddressSize = sizeof(TRANSPORT_ADDRESS) + Socket->SharedData->SizeOfRemoteAddress;
+    TdiAddressSize = sizeof(TRANSPORT_ADDRESS) + *NameLength;
     SocketAddress = HeapAlloc(GlobalHeap, 0, TdiAddressSize);
 
     if ( SocketAddress == NULL )
