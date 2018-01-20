@@ -1220,7 +1220,7 @@ static RPC_STATUS rpcrt4_ncacn_ip_tcp_open(RpcConnection* Connection)
 
   for (ai_cur = ai; ai_cur; ai_cur = ai_cur->ai_next)
   {
-    int val;
+    char val;
     u_long nonblocking;
 
     if (ai_cur->ai_family != AF_INET && ai_cur->ai_family != AF_INET6)

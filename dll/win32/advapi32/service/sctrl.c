@@ -749,7 +749,7 @@ RegisterServiceCtrlHandlerW(LPCWSTR lpServiceName,
     if (Service == NULL)
     {
         SetLastError(ERROR_SERVICE_NOT_IN_EXE);
-        return NULL;
+        return INVALID_HANDLE_VALUE;
     }
 
     if (!lpHandlerProc)
