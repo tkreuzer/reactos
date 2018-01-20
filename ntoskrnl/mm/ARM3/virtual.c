@@ -2147,45 +2147,6 @@ MiIsEntireRangeCommitted(IN ULONG_PTR StartingAddress,
     return TRUE;
 }
 
-NTSTATUS
-NTAPI
-MiRosProtectVirtualMemory(IN PEPROCESS Process,
-                          IN OUT PVOID *BaseAddress,
-                          IN OUT PSIZE_T NumberOfBytesToProtect,
-                          IN ULONG NewAccessProtection,
-                          OUT PULONG OldAccessProtection OPTIONAL)
-{
-    PMEMORY_AREA MemoryArea;
-    PMMSUPPORT AddressSpace;
-    ULONG OldAccessProtection_;
-    NTSTATUS Status;
-
-    *NumberOfBytesToProtect = PAGE_ROUND_UP((ULONG_PTR)(*BaseAddress) + (*NumberOfBytesToProtect)) - PAGE_ROUND_DOWN(*BaseAddress);
-    *BaseAddress = (PVOID)PAGE_ROUND_DOWN(*BaseAddress);
-
-    AddressSpace = &Process->Vm;
-    MmLockAddressSpace(AddressSpace);
-    MemoryArea = MmLocateMemoryAreaByAddress(AddressSpace, *BaseAddress);
-    if (MemoryArea == NULL || MemoryArea->DeleteInProgress)
-    {
-        MmUnlockAddressSpace(AddressSpace);
-        return STATUS_UNSUCCESSFUL;
-    }
-
-    if (OldAccessProtection == NULL) OldAccessProtection = &OldAccessProtection_;
-
-    ASSERT(MemoryArea->Type == MEMORY_AREA_SECTION_VIEW);
-    Status = MmProtectSectionView(AddressSpace,
-                                  MemoryArea,
-                                  *BaseAddress,
-                                  *NumberOfBytesToProtect,
-                                  NewAccessProtection,
-                                  OldAccessProtection);
-
-    MmUnlockAddressSpace(AddressSpace);
-
-    return Status;
-}
 
 NTSTATUS
 NTAPI
@@ -2195,7 +2156,6 @@ MiProtectVirtualMemory(IN PEPROCESS Process,
                        IN ULONG NewAccessProtection,
                        OUT PULONG OldAccessProtection OPTIONAL)
 {
-    PMEMORY_AREA MemoryArea;
     PMMVAD Vad;
     PMMSUPPORT AddressSpace;
     ULONG_PTR StartingAddress, EndingAddress;
@@ -2219,18 +2179,6 @@ MiProtectVirtualMemory(IN PEPROCESS Process,
     {
         DPRINT1("Invalid protection mask\n");
         return STATUS_INVALID_PAGE_PROTECTION;
-    }
-
-    /* Check for ROS specific memory area */
-    MemoryArea = MmLocateMemoryAreaByAddress(&Process->Vm, *BaseAddress);
-    if ((MemoryArea) && (MemoryArea->Type != MEMORY_AREA_OWNED_BY_ARM3))
-    {
-        /* Evil hack */
-        return MiRosProtectVirtualMemory(Process,
-                                         BaseAddress,
-                                         NumberOfBytesToProtect,
-                                         NewAccessProtection,
-                                         OldAccessProtection);
     }
 
     /* Lock the address space and make sure the process isn't already dead */
@@ -2284,6 +2232,25 @@ MiProtectVirtualMemory(IN PEPROCESS Process,
     /* Is this section, or private memory? */
     if (Vad->u.VadFlags.PrivateMemory == 0)
     {
+        /* Check for RosMm section view */
+        if (Vad->u.VadFlags.Spare != 0)
+        {
+            *NumberOfBytesToProtect = EndingAddress - StartingAddress + 1;
+            *BaseAddress = (PVOID)StartingAddress;
+
+            /* Pass it to RosMm section code */
+            Status = MmProtectSectionView(AddressSpace,
+                                          (PMEMORY_AREA)Vad,
+                                          *BaseAddress,
+                                          *NumberOfBytesToProtect,
+                                          NewAccessProtection,
+                                          OldAccessProtection);
+
+            /* Unlock the address space and return the status */
+            MmUnlockAddressSpace(AddressSpace);
+            return Status;
+        }
+
         /* Not yet supported */
         if (Vad->u.VadFlags.VadType == VadLargePageSection)
         {
