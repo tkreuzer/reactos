@@ -56,6 +56,7 @@ struct gdi_obj_funcs
 #define LDC_LDC           0x00000001
 #define LDC_EMFLDC        0x00000002
 
+// this needs to be synced with _LDC struct from ntgdihdl.h
 typedef struct tagWINEDC
 {
     HDC          hdc;
@@ -81,6 +82,11 @@ typedef struct tagWINEDC
     INT          saveLevel;
     HFONT        hFont;
     HPALETTE     hPalette;
+
+    POINT cur_pos;
+    int GraphicsMode;
+    DWORD layout;
+    UINT textAlign;
 } WINEDC, DC;
 
 WINEDC* get_physdev_dc( PHYSDEV dev );
@@ -136,6 +142,11 @@ typedef struct
 /* palette.c */
 extern HPALETTE WINAPI GDISelectPalette( HDC hdc, HPALETTE hpal, WORD wBkg) DECLSPEC_HIDDEN;
 extern UINT WINAPI GDIRealizePalette( HDC hdc ) DECLSPEC_HIDDEN;
+
+/* path.c */
+extern struct gdi_path *get_gdi_flat_path( DC *dc, HRGN *rgn ) DECLSPEC_HIDDEN;
+extern void free_gdi_path( struct gdi_path *path ) DECLSPEC_HIDDEN;
+extern int get_gdi_path_data( struct gdi_path *path, POINT **points, BYTE **flags ) DECLSPEC_HIDDEN;
 
 #define EMR_SETLINKEDUFI        119
 
@@ -196,12 +207,8 @@ BOOL APIENTRY NtGdiGetTransform( _In_ HDC hdc, _In_ DWORD iXform, _Out_ LPXFORM 
 HGDIOBJ WINAPI GdiFixUpHandle(HGDIOBJ hGdiObj);
 #define get_full_gdi_handle GdiFixUpHandle
 
-extern void push_dc_driver_ros(PHYSDEV *dev, PHYSDEV physdev, const struct gdi_dc_funcs *funcs);
-#define push_dc_driver push_dc_driver_ros
-#if 0
-BOOL WINAPI SetWorldTransformForMetafile(HDC hdc, const XFORM *pxform);
-#define SetWorldTransform SetWorldTransformForMetafile
-#endif
+#define GetTransform NtGdiGetTransform
+
 #ifdef _M_ARM
 #define DbgRaiseAssertionFailure() __emit(0xdefc)
 #else
