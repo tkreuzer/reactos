@@ -392,6 +392,10 @@ PciDebugPrintCmResList(IN PCM_RESOURCE_LIST PartialList)
             PciDebugPrintPartialResource(PartialDescriptor);
             Count--;
         }
+
+        /* Go to the next full descriptor */
+        FullDescriptor = (PCM_FULL_RESOURCE_DESCRIPTOR)(
+            PartialDescriptor + 1);
     }
 
     /* Done printing data */

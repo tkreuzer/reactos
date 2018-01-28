@@ -160,6 +160,11 @@ PciDuplicateUnicodeString(
     IN PCUNICODE_STRING SourceString,
     OUT PUNICODE_STRING DestinationString);
 
+PCM_PARTIAL_RESOURCE_DESCRIPTOR
+NTAPI
+PciNextPartialDescriptor(
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDescriptor);
+
 /* pdo.c */
 
 NTSTATUS

@@ -1322,6 +1322,7 @@ PdoStartDevice(
 {
     PCM_RESOURCE_LIST RawResList = IrpSp->Parameters.StartDevice.AllocatedResources;
     PCM_FULL_RESOURCE_DESCRIPTOR RawFullDesc;
+    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
     PCM_PARTIAL_RESOURCE_DESCRIPTOR RawPartialDesc;
     ULONG i, ii;
     PPDO_DEVICE_EXTENSION DeviceExtension = DeviceObject->DeviceExtension;
@@ -1334,15 +1335,19 @@ PdoStartDevice(
         return STATUS_SUCCESS;
 
     /* TODO: Assign the other resources we get to the card */
-
+;
+    RawFullDesc = &RawResList->List[0];
     for (i = 0; i < RawResList->Count; i++)
     {
-        RawFullDesc = &RawResList->List[i];
+        PartialResourceList = &RawFullDesc->PartialResourceList;
+        RawFullDesc = (PCM_FULL_RESOURCE_DESCRIPTOR)
+            (&PartialResourceList->PartialDescriptors[PartialResourceList->Count]);
 
-        for (ii = 0; ii < RawFullDesc->PartialResourceList.Count; ii++)
+        RawPartialDesc = &PartialResourceList->PartialDescriptors[0];
+        for (ii = 0;
+             ii < PartialResourceList->Count;
+             ii++, RawPartialDesc = PciNextPartialDescriptor(RawPartialDesc))
         {
-            RawPartialDesc = &RawFullDesc->PartialResourceList.PartialDescriptors[ii];
-
             if (RawPartialDesc->Type == CmResourceTypeInterrupt)
             {
                 DPRINT("Assigning IRQ %u to PCI device 0x%x on bus 0x%x\n",

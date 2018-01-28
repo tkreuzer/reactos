@@ -544,6 +544,41 @@ NTSTATUS CmiCallRegisteredCallbacks(IN REG_NOTIFY_CLASS Argument1, IN PVOID Argu
 ///////////////////////////////////////////////////////////////////////////////
 
 //
+// Resource list helpers
+//
+FORCEINLINE
+PCM_FULL_RESOURCE_DESCRIPTOR
+CmiGetNextResourceDescriptor(
+    _In_ const CM_FULL_RESOURCE_DESCRIPTOR *ResourceDescriptor)
+{
+    return (PCM_FULL_RESOURCE_DESCRIPTOR)(
+        &ResourceDescriptor->PartialResourceList.PartialDescriptors[
+            ResourceDescriptor->PartialResourceList.Count]);
+}
+
+FORCEINLINE
+PCM_PARTIAL_RESOURCE_DESCRIPTOR
+CmiGetNextPartialDescriptor(
+    _In_ const CM_PARTIAL_RESOURCE_DESCRIPTOR *PartialDescriptor)
+{
+    const CM_PARTIAL_RESOURCE_DESCRIPTOR *NextDescriptor;
+
+    /* Assume the descriptors are the fixed size ones */
+    NextDescriptor = PartialDescriptor + 1;
+
+    /* But check if this is actually a variable-sized descriptor */
+    if (PartialDescriptor->Type == CmResourceTypeDeviceSpecific)
+    {
+        /* Add the size of the variable section as well */
+        NextDescriptor = (PVOID)((ULONG_PTR)NextDescriptor +
+                                 PartialDescriptor->u.DeviceSpecificData.DataSize);
+    }
+
+    /* Now the correct pointer has been computed, return it */
+    return (PCM_PARTIAL_RESOURCE_DESCRIPTOR)NextDescriptor;
+}
+
+//
 // Mapped View Hive Functions
 //
 VOID

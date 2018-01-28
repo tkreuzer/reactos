@@ -12,6 +12,15 @@
 #define NDEBUG
 #include <debug.h>
 
+FORCEINLINE
+PIO_RESOURCE_LIST
+IopGetNextResourceList(
+    _In_ const IO_RESOURCE_LIST *ResourceList)
+{
+    return (PIO_RESOURCE_LIST)(
+        &ResourceList->Descriptors[ResourceList->Count]);
+}
+
 static
 BOOLEAN
 IopCheckDescriptorForConflict(
@@ -199,6 +208,9 @@ IopFindInterruptResource(
         }
     }
 
+    DPRINT1("Failed to satisfy interrupt requirement with IRQ 0x%x-0x%x\n",
+            IoDesc->u.Interrupt.MinimumVector,
+            IoDesc->u.Interrupt.MaximumVector);
     return FALSE;
 }
 
@@ -209,6 +221,7 @@ IopFixupResourceListWithRequirements(
 {
     ULONG i, OldCount;
     BOOLEAN AlternateRequired = FALSE;
+    PIO_RESOURCE_LIST ResList;
 
     /* Save the initial resource count when we got here so we can restore if an alternate fails */
     if (*ResourceList != NULL)
@@ -216,10 +229,10 @@ IopFixupResourceListWithRequirements(
     else
         OldCount = 0;
 
-    for (i = 0; i < RequirementsList->AlternativeLists; i++)
+    ResList = &RequirementsList->List[0];
+    for (i = 0; i < RequirementsList->AlternativeLists; i++, ResList = IopGetNextResourceList(ResList))
     {
         ULONG ii;
-        PIO_RESOURCE_LIST ResList = &RequirementsList->List[i];
 
         /* We need to get back to where we were before processing the last alternative list */
         if (OldCount == 0 && *ResourceList != NULL)
@@ -254,6 +267,7 @@ IopFixupResourceListWithRequirements(
         {
             ULONG iii;
             PCM_PARTIAL_RESOURCE_LIST PartialList = (*ResourceList) ? &(*ResourceList)->List[0].PartialResourceList : NULL;
+            PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDesc;
             PIO_RESOURCE_DESCRIPTOR IoDesc = &ResList->Descriptors[ii];
             BOOLEAN Matched = FALSE;
 
@@ -273,10 +287,11 @@ IopFixupResourceListWithRequirements(
                 break;
             }
 
-            for (iii = 0; PartialList && iii < PartialList->Count && !Matched; iii++)
+           CmDesc = &PartialList->PartialDescriptors[0];
+           for (iii = 0;
+                iii < PartialList->Count && PartialList && !Matched;
+                iii++, CmDesc = CmiGetNextPartialDescriptor(CmDesc))
             {
-                PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDesc = &PartialList->PartialDescriptors[iii];
-
                 /* First check types */
                 if (IoDesc->Type != CmDesc->Type)
                     continue;
@@ -548,11 +563,17 @@ IopCheckResourceDescriptor(
 {
     ULONG i, ii;
     BOOLEAN Result = FALSE;
+    PCM_FULL_RESOURCE_DESCRIPTOR FullDescriptor;
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR ResDesc2;
 
+    FullDescriptor = &ResourceList->List[0];
     for (i = 0; i < ResourceList->Count; i++)
     {
-        PCM_PARTIAL_RESOURCE_LIST ResList = &ResourceList->List[i].PartialResourceList;
-        for (ii = 0; ii < ResList->Count; ii++)
+        PCM_PARTIAL_RESOURCE_LIST ResList = &FullDescriptor->PartialResourceList;
+        FullDescriptor = CmiGetNextResourceDescriptor(FullDescriptor);
+
+        ResDesc2 = &ResList->PartialDescriptors[0];
+        for (ii = 0; ii < ResList->Count; ii++, ResDesc2 = CmiGetNextPartialDescriptor(ResDesc2))
         {
             PCM_PARTIAL_RESOURCE_DESCRIPTOR ResDesc2 = &ResList->PartialDescriptors[ii];
 
@@ -674,7 +695,9 @@ ByeBye:
                       sizeof(CM_PARTIAL_RESOURCE_DESCRIPTOR));
     }
 
-    return Result;
+    // Hacked, because after fixing resource list parsing
+    // we actually detect resource conflicts
+    return Silent ? Result : FALSE; // Result; 
 }
 
 static
@@ -937,6 +960,7 @@ IopTranslateDeviceResources(
 {
    PCM_PARTIAL_RESOURCE_LIST pPartialResourceList;
    PCM_PARTIAL_RESOURCE_DESCRIPTOR DescriptorRaw, DescriptorTranslated;
+   PCM_FULL_RESOURCE_DESCRIPTOR FullDescriptor;
    ULONG i, j, ListSize;
    NTSTATUS Status;
 
@@ -959,13 +983,22 @@ IopTranslateDeviceResources(
    }
    RtlCopyMemory(DeviceNode->ResourceListTranslated, DeviceNode->ResourceList, ListSize);
 
+   FullDescriptor = &DeviceNode->ResourceList->List[0];
    for (i = 0; i < DeviceNode->ResourceList->Count; i++)
    {
-      pPartialResourceList = &DeviceNode->ResourceList->List[i].PartialResourceList;
-      for (j = 0; j < pPartialResourceList->Count; j++)
+      pPartialResourceList = &FullDescriptor->PartialResourceList;
+      FullDescriptor = CmiGetNextResourceDescriptor(FullDescriptor);
+
+      DescriptorRaw = &pPartialResourceList->PartialDescriptors[0];
+      for (j = 0;
+           j < pPartialResourceList->Count;
+           j++, DescriptorRaw = CmiGetNextPartialDescriptor(DescriptorRaw))
       {
-         DescriptorRaw = &pPartialResourceList->PartialDescriptors[j];
-         DescriptorTranslated = &DeviceNode->ResourceListTranslated->List[i].PartialResourceList.PartialDescriptors[j];
+         /* Calculate the location of the translated resource descriptor */
+         DescriptorTranslated = (PCM_PARTIAL_RESOURCE_DESCRIPTOR)(
+             (PUCHAR)DeviceNode->ResourceListTranslated +
+             ((PUCHAR)DescriptorRaw - (PUCHAR)DeviceNode->ResourceList));
+
          switch (DescriptorRaw->Type)
          {
             case CmResourceTypePort:
@@ -996,14 +1029,15 @@ IopTranslateDeviceResources(
             }
             case CmResourceTypeInterrupt:
             {
+               KIRQL Irql;
                DescriptorTranslated->u.Interrupt.Vector = HalGetInterruptVector(
                   DeviceNode->ResourceList->List[i].InterfaceType,
                   DeviceNode->ResourceList->List[i].BusNumber,
                   DescriptorRaw->u.Interrupt.Level,
                   DescriptorRaw->u.Interrupt.Vector,
-                  (PKIRQL)&DescriptorTranslated->u.Interrupt.Level,
+                  &Irql,
                   &DescriptorTranslated->u.Interrupt.Affinity);
-
+               DescriptorTranslated->u.Interrupt.Level = Irql;
                if (!DescriptorTranslated->u.Interrupt.Vector)
                {
                    Status = STATUS_UNSUCCESSFUL;
@@ -1184,19 +1218,24 @@ IopCheckForResourceConflict(
 {
    ULONG i, ii;
    BOOLEAN Result = FALSE;
+   PCM_FULL_RESOURCE_DESCRIPTOR FullDescriptor;
+   PCM_PARTIAL_RESOURCE_DESCRIPTOR ResDesc;
 
+   FullDescriptor = &ResourceList1->List[0];
    for (i = 0; i < ResourceList1->Count; i++)
    {
-      PCM_PARTIAL_RESOURCE_LIST ResList = &ResourceList1->List[i].PartialResourceList;
+      PCM_PARTIAL_RESOURCE_LIST ResList = &FullDescriptor->PartialResourceList;
+      FullDescriptor = CmiGetNextResourceDescriptor(FullDescriptor);
+
+      ResDesc = &ResList->PartialDescriptors[0];
       for (ii = 0; ii < ResList->Count; ii++)
       {
-         PCM_PARTIAL_RESOURCE_DESCRIPTOR ResDesc = &ResList->PartialDescriptors[ii];
-
          Result = IopCheckResourceDescriptor(ResDesc,
                                              ResourceList2,
                                              Silent,
                                              ConflictingDescriptor);
          if (Result) goto ByeBye;
+         ResDesc = CmiGetNextPartialDescriptor(ResDesc);
       }
    }
 

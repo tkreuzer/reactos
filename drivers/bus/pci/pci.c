@@ -712,4 +712,25 @@ PciDuplicateUnicodeString(
     return STATUS_SUCCESS;
 }
 
+PCM_PARTIAL_RESOURCE_DESCRIPTOR
+NTAPI
+PciNextPartialDescriptor(PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDescriptor)
+{
+    PCM_PARTIAL_RESOURCE_DESCRIPTOR NextDescriptor;
+
+    /* Assume the descriptors are the fixed size ones */
+    NextDescriptor = CmDescriptor + 1;
+
+    /* But check if this is actually a variable-sized descriptor */
+    if (CmDescriptor->Type == CmResourceTypeDeviceSpecific)
+    {
+        /* Add the size of the variable section as well */
+        NextDescriptor = (PVOID)((ULONG_PTR)NextDescriptor +
+                                 CmDescriptor->u.DeviceSpecificData.DataSize);
+    }
+
+    /* Now the correct pointer has been computed, return it */
+    return NextDescriptor;
+}
+
 /* EOF */
