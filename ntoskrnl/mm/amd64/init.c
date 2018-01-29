@@ -424,8 +424,9 @@ MiSetupPfnForPageTable(
     Pfn->u2.ShareCount++;
 }
 
+static
 VOID
-NTAPI
+INIT_FUNCTION
 MiBuildPfnDatabaseFromPageTables(VOID)
 {
     PVOID Address = NULL;
@@ -524,8 +525,8 @@ MiBuildPfnDatabaseFromPageTables(VOID)
 #endif
 }
 
+static
 VOID
-NTAPI
 INIT_FUNCTION
 MiAddDescriptorToDatabase(
     PFN_NUMBER BasePage,
@@ -546,7 +547,7 @@ MiAddDescriptorToDatabase(
         while (PageCount--)
         {
             /* Add it to the free list */
-            Pfn->u3.e1.CacheAttribute = MiNonCached;
+            Pfn->u3.e1.CacheAttribute = MiNonCached; // FIXME: Windows ASSERTs MiChached, but why not MiNotMapped?
             MiInsertPageInFreeList(BasePage + PageCount);
 
             /* Go to the previous page */
@@ -582,8 +583,6 @@ MiAddDescriptorToDatabase(
     else
     {
         /* For now skip it */
-        DbgPrint("Skipping BasePage=0x%lx, PageCount=0x%lx, MemoryType=%lx\n",
-                 BasePage, PageCount, MemoryType);
         Pfn = &MmPfnDatabase[BasePage];
         while (PageCount--)
         {
@@ -661,6 +660,12 @@ MiBuildPfnDatabase(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     /* Reset the descriptor back so we can create the correct memory blocks */
     *MxFreeDescriptor = MxOldFreeDescriptor;
+
+    /* Now process the page tables */
+    MiBuildPfnDatabaseFromPageTables();
+
+    /* PFNs are initialized now! */
+    MiPfnsInitialized = TRUE;
 }
 
 NTSTATUS
@@ -668,7 +673,9 @@ NTAPI
 INIT_FUNCTION
 MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
+    NTSTATUS Status;
     KIRQL OldIrql;
+    ULONG Flags;
 
     ASSERT(MxPfnAllocation != 0);
 
@@ -693,27 +700,25 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     MiBuildSystemPteSpace();
 
-    /* Need to be at DISPATCH_LEVEL for MiInsertPageInFreeList */
+    /* Need to be at DISPATCH_LEVEL for MiBuildPfnDatabase */
     KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
 
     /* Map the PFN database pages */
     MiBuildPfnDatabase(LoaderBlock);
 
-    /* Now process the page tables */
-    MiBuildPfnDatabaseFromPageTables();
-
-    /* PFNs are initialized now! */
-    MiPfnsInitialized = TRUE;
-
-    //KeLowerIrql(OldIrql);
-
-    /* Need to be at DISPATCH_LEVEL for InitializePool */
-    //KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
-
     /* Initialize the nonpaged pool */
     InitializePool(NonPagedPool, 0);
 
     KeLowerIrql(OldIrql);
+
+    /* Initialize the bogus address space */
+    Flags = 0;
+    Status = MmInitializeProcessAddressSpace(PsGetCurrentProcess(), NULL, NULL, &Flags, NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("MmInitializeProcessAddressSpace(9 failed: 0x%lx\n", Status);
+        return Status;
+    }
 
     /* Initialize the balancer */
     MmInitializeBalancer((ULONG)MmAvailablePages, 0);
