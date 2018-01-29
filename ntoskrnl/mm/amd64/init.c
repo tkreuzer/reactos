@@ -668,6 +668,7 @@ INIT_FUNCTION
 MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
     KIRQL OldIrql;
+    ULONG Flags;
 
     ASSERT(MxPfnAllocation != 0);
 
@@ -697,6 +698,10 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     /* Map the PFN database pages */
     MiBuildPfnDatabase(LoaderBlock);
+
+    /* Initialize the bogus address space */
+    Flags = 0;
+    MmInitializeProcessAddressSpace(PsGetCurrentProcess(), NULL, NULL, &Flags, NULL);
 
     /* Now process the page tables */
     MiBuildPfnDatabaseFromPageTables();
