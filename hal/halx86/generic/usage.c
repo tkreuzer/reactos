@@ -317,7 +317,7 @@ HalpReportResourceUsage(IN PUNICODE_STRING HalName,
     ADDRESS_USAGE *CurrentAddress;
     LARGE_INTEGER CurrentSortValue, SortValue;
     DbgPrint("%wZ Detected\n", HalName);
-
+    //__debugbreak();
     /* Check if KD is using a COM port */
     if (KdComPortInUse)
     {
