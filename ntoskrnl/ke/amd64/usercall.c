@@ -239,8 +239,7 @@ KeUserModeCallback(
     OUT PULONG ResultLength)
 {
     ULONG_PTR OldStack;
-    PUCHAR UserArguments;
-    PUCALLOUT_FRAME CalloutFrame;
+    PULONG_PTR NewStack;
     PULONG_PTR UserStackPointer;
     NTSTATUS CallbackStatus;
 #ifdef _M_IX86
@@ -258,29 +257,23 @@ KeUserModeCallback(
     /* Enter a SEH Block */
     _SEH2_TRY
     {
-        /* Calculate and align the stack. This is unaligned by 8 bytes, since the following
-           UCALLOUT_FRAME compensates for that and on entry we already have a full stack
-           frame with home space for the next call, i.e. we are already inside the function
-           body and the stack needs to be 16 byte aligned. */
-        UserArguments = (PUCHAR)ALIGN_DOWN_POINTER_BY(OldStack - ArgumentLength, 16) - 8;
-
-        /* The callout frame is below the arguments */
-        CalloutFrame = ((PUCALLOUT_FRAME)UserArguments) - 1;
+        /* Calculate and align the stack size */
+        NewStack = (PULONG_PTR)ALIGN_DOWN_POINTER_BY(OldStack - ArgumentLength, sizeof(PVOID));
 
         /* Make sure it's all writable */
-        ProbeForWrite(CalloutFrame,
-                      sizeof(PUCALLOUT_FRAME) + ArgumentLength,
-                      sizeof(PVOID));
+        ProbeForWrite((PVOID)(NewStack - 6 * sizeof(ULONG_PTR)),
+                      ArgumentLength + 6 * sizeof(ULONG_PTR),
+                      sizeof(ULONG_PTR));
 
         /* Copy the buffer into the stack */
-        RtlCopyMemory(UserArguments, Argument, ArgumentLength);
+        RtlCopyMemory(NewStack, Argument, ArgumentLength);
 
         /* Write the arguments */
-        KiSetupUserCalloutFrame(CalloutFrame,
-                                KeGetCurrentThread()->TrapFrame,
-                                RoutineIndex,
-                                UserArguments,
-                                ArgumentLength);
+        NewStack -= 6;
+        NewStack[0] = 0;
+        NewStack[1] = RoutineIndex;
+        NewStack[2] = (ULONG_PTR)(NewStack + 6);
+        NewStack[3] = ArgumentLength;
 
         /* Save the exception list */
         Teb = KeGetCurrentThread()->Teb;
@@ -289,7 +282,7 @@ KeUserModeCallback(
 #endif // _M_IX86
 
         /* Jump to user mode */
-        *UserStackPointer = (ULONG_PTR)CalloutFrame;
+        *UserStackPointer = (ULONG_PTR)NewStack;
         CallbackStatus = KiCallUserMode(Result, ResultLength);
         if (CallbackStatus != STATUS_CALLBACK_POP_STACK)
         {
@@ -323,9 +316,6 @@ KeUserModeCallback(
 
     /* Restore stack and return */
     *UserStackPointer = OldStack;
-#ifdef _M_AMD64 // could probably  move the update to TrapFrame->Rsp from the C handler to the asm code
-    __writegsqword(FIELD_OFFSET(KIPCR, UserRsp), OldStack);
-#endif
     return CallbackStatus;
 }
 
