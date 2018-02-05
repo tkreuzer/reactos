@@ -639,6 +639,14 @@ IopCheckResourceDescriptor(
                 }
                 case CmResourceTypeInterrupt:
                 {
+                    if (ResDesc->u.Interrupt.Vector == 0xA)
+                    {
+                        //__debugbreak();
+                        DPRINT("Got Interrupt IRQ (0x%x 0x%x vs. 0x%x 0x%x)\n",
+                               ResDesc->u.Interrupt.Vector, ResDesc->u.Interrupt.Level,
+                               ResDesc2->u.Interrupt.Vector, ResDesc2->u.Interrupt.Level);
+                    }
+
                     if (ResDesc->u.Interrupt.Vector == ResDesc2->u.Interrupt.Vector)
                     {
                         if (!Silent)
@@ -809,7 +817,7 @@ IopUpdateResourceMap(
     HANDLE PnpMgrLevel1, PnpMgrLevel2, ResourceMapKey;
     UNICODE_STRING KeyName;
     OBJECT_ATTRIBUTES ObjectAttributes;
-
+    //__debugbreak();
     RtlInitUnicodeString(&KeyName,
                          L"\\Registry\\Machine\\HARDWARE\\RESOURCEMAP");
     InitializeObjectAttributes(&ObjectAttributes,
@@ -1150,6 +1158,7 @@ IopAssignDeviceResources(
        Status = IopDetectResourceConflict(DeviceNode->ResourceList, FALSE, NULL);
        if (!NT_SUCCESS(Status))
        {
+           //__debugbreak();
            DPRINT1("Boot resources for %wZ cause a resource conflict!\n", &DeviceNode->InstancePath);
            ExFreePool(DeviceNode->ResourceList);
            DeviceNode->ResourceList = NULL;
