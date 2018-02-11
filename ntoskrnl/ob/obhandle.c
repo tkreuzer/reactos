@@ -140,6 +140,7 @@ ObpReferenceProcessObjectByHandle(IN HANDLE Handle,
             /* Return the pointer */
             *Object = Thread;
             ASSERT(*Object != NULL);
+            DBG_CHECK_OBJECT(*Object);
             return STATUS_SUCCESS;
         }
 
@@ -193,6 +194,7 @@ ObpReferenceProcessObjectByHandle(IN HANDLE Handle,
 
         /* Return success */
         ASSERT(*Object != NULL);
+        DBG_CHECK_OBJECT(*Object);
         return STATUS_SUCCESS;
     }
     else
@@ -265,6 +267,7 @@ ObpInsertHandleCount(IN POBJECT_HEADER ObjectHeader)
     ULONG Size, OldSize;
     OBJECT_HANDLE_COUNT_DATABASE SingleDatabase;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(&ObjectHeader->Body);
 
     /* Get the handle info */
     HandleInfo = OBJECT_HEADER_TO_HANDLE_INFO(ObjectHeader);
@@ -339,6 +342,7 @@ ObpIncrementHandleDataBase(IN POBJECT_HEADER ObjectHeader,
     POBJECT_HANDLE_COUNT_DATABASE HandleDatabase;
     ULONG i;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(&ObjectHeader->Body);
 
     /* Get the handle info and check if we only have one entry */
     HandleInfo = OBJECT_HEADER_TO_HANDLE_INFO(ObjectHeader);
@@ -434,6 +438,7 @@ ObpChargeQuotaForObject(IN POBJECT_HEADER ObjectHeader,
 {
     POBJECT_HEADER_QUOTA_INFO ObjectQuota;
     ULONG PagedPoolCharge, NonPagedPoolCharge;
+    DBG_CHECK_OBJECT(&ObjectHeader->Body);
 
     /* Get quota information */
     ObjectQuota = OBJECT_HEADER_TO_QUOTA_INFO(ObjectHeader);
@@ -541,6 +546,7 @@ ObpDecrementHandleCount(IN PVOID ObjectBody,
     POBJECT_HANDLE_COUNT_DATABASE HandleDatabase;
     ULONG i;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(ObjectBody);
 
     /* Get the object type and header */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(ObjectBody);
@@ -653,6 +659,7 @@ ObpDecrementHandleCount(IN PVOID ObjectBody,
             ObjectBody,
             ObjectHeader->HandleCount,
             ObjectHeader->PointerCount);
+    DBG_CHECK_OBJECT(ObjectBody);
 }
 
 /*++
@@ -767,6 +774,7 @@ ObpCloseHandleTableEntry(IN PHANDLE_TABLE HandleTable,
                             ObjectType);
 
     /* Dereference the object as well */
+    DBG_CHECK_OBJECT(Body);
     ObDereferenceObject(Body);
 
     /* Return to caller */
@@ -827,6 +835,7 @@ ObpIncrementHandleCount(IN PVOID Object,
     ULONG Total;
     POBJECT_HEADER_NAME_INFO NameInfo;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the object header and type */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -1049,6 +1058,7 @@ ObpIncrementHandleCount(IN PVOID Object,
             OpenReason,
             ObjectHeader->HandleCount,
             ObjectHeader->PointerCount);
+    DBG_CHECK_OBJECT(Object);
     return Status;
 
 Quickie:
@@ -1102,6 +1112,7 @@ ObpIncrementUnnamedHandleCount(IN PVOID Object,
     POBJECT_HEADER_CREATOR_INFO CreatorInfo;
     KIRQL CalloutIrql;
     ULONG Total;
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the object header and type */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -1268,11 +1279,13 @@ ObpIncrementUnnamedHandleCount(IN PVOID Object,
             Object,
             ObjectHeader->HandleCount,
             ObjectHeader->PointerCount);
+    DBG_CHECK_OBJECT(Object);
     return Status;
 
 Quickie:
     /* Release lock and return */
     ObpReleaseObjectLock(ObjectHeader);
+    DBG_CHECK_OBJECT(Object);
     return Status;
 }
 
@@ -1327,6 +1340,7 @@ ObpCreateUnnamedHandle(IN PVOID Object,
     ACCESS_MASK GrantedAccess;
     POBJECT_TYPE ObjectType;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the object header and type */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -1433,6 +1447,7 @@ ObpCreateUnnamedHandle(IN PVOID Object,
                 Handle,
                 ObjectHeader->HandleCount,
                 ObjectHeader->PointerCount);
+        DBG_CHECK_OBJECT(Object);
         return STATUS_SUCCESS;
     }
 
@@ -1516,6 +1531,7 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
     ACCESS_MASK DesiredAccess, GrantedAccess;
     PAUX_ACCESS_DATA AuxData;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the object header and type */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -1680,6 +1696,7 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
                 Handle,
                 ObjectHeader->HandleCount,
                 ObjectHeader->PointerCount);
+        DBG_CHECK_OBJECT(Object);
         return STATUS_SUCCESS;
     }
 
@@ -1706,6 +1723,7 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
 
     /* Detach if necessary and fail */
     if (AttachedToProcess) KeUnstackDetachProcess(&ApcState);
+    DBG_CHECK_OBJECT(Object);
     return STATUS_INSUFFICIENT_RESOURCES;
 }
 
@@ -1861,6 +1879,7 @@ ObpSetHandleAttributes(IN OUT PHANDLE_TABLE_ENTRY HandleTableEntry,
 {
     POBP_SET_HANDLE_ATTRIBUTES_CONTEXT SetHandleInfo = (PVOID)Context;
     POBJECT_HEADER ObjectHeader = ObpGetHandleObject(HandleTableEntry);
+    DBG_CHECK_OBJECT(&ObjectHeader->Body);
 
     /* Check if making the handle inheritable */
     if (SetHandleInfo->Information.Inherit)
@@ -1974,6 +1993,7 @@ ObpDuplicateHandleCallback(IN PEPROCESS Process,
     {
         /* Get the object header */
         ObjectHeader = ObpGetHandleObject(HandleTableEntry);
+        DBG_CHECK_OBJECT(&ObjectHeader->Body);
 
         /* Increment the pointer count */
         InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
@@ -1991,6 +2011,7 @@ ObpDuplicateHandleCallback(IN PEPROCESS Process,
                                          HandleTableEntry->ObAttributes & OBJ_HANDLE_ATTRIBUTES,
                                          Process,
                                          ObInheritHandle);
+        DBG_CHECK_OBJECT(&ObjectHeader->Body);
         if (!NT_SUCCESS(Status))
         {
             /* Return failure */
@@ -2273,6 +2294,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
             AuditMask = 0;
         }
     }
+    DBG_CHECK_OBJECT(SourceObject);
 
     /* Check if there's no target process */
     if (!TargetProcess)
@@ -2296,6 +2318,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
         /* Return */
         ObDereferenceProcessHandleTable(SourceProcess);
         ObDereferenceObject(SourceObject);
+        DBG_CHECK_OBJECT(SourceObject);
         return Status;
     }
 
@@ -2325,6 +2348,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
         /* Return */
         ObDereferenceProcessHandleTable(SourceProcess);
         ObDereferenceObject(SourceObject);
+        DBG_CHECK_OBJECT(SourceObject);
         return STATUS_PROCESS_IS_TERMINATING;
     }
 
@@ -2412,6 +2436,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
                                          HandleAttributes,
                                          PsGetCurrentProcess(),
                                          ObDuplicateHandle);
+        DBG_CHECK_OBJECT(SourceObject);
     }
 
     /* Check if we were attached */
@@ -2443,6 +2468,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
 
         /* Dereference the source object */
         ObDereferenceObject(SourceObject);
+        DBG_CHECK_OBJECT(SourceObject);
         return Status;
     }
 
@@ -2464,6 +2490,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
 
         /* Deference the object and set failure status */
         ObDereferenceObject(SourceObject);
+        DBG_CHECK_OBJECT(SourceObject);
         Status = STATUS_INSUFFICIENT_RESOURCES;
     }
 
@@ -2490,6 +2517,7 @@ ObDuplicateObject(IN PEPROCESS SourceProcess,
             SourceObject,
             ObjectHeader->PointerCount,
             ObjectHeader->HandleCount);
+    DBG_CHECK_OBJECT(SourceObject);
     return Status;
 }
 
@@ -2626,6 +2654,7 @@ ObOpenObjectByName(IN POBJECT_ATTRIBUTES ObjectAttributes,
         ObpReleaseLookupContext(&TempBuffer->LookupContext);
         goto Cleanup;
     }
+    DBG_CHECK_OBJECT(Object);
 
     /* Check if this object has create information */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -2680,6 +2709,7 @@ ObOpenObjectByName(IN POBJECT_ATTRIBUTES ObjectAttributes,
             ObDereferenceObject(Object);
             Status = Status2;
         }
+        DBG_CHECK_OBJECT(Object);
     }
 
 Cleanup:
@@ -2752,6 +2782,7 @@ ObOpenObjectByPointer(IN PVOID Object,
     ACCESS_STATE AccessState;
     AUX_ACCESS_DATA AuxData;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(Object);
 
     /* Assume failure */
     *Handle = NULL;
@@ -2822,6 +2853,7 @@ ObOpenObjectByPointer(IN PVOID Object,
             __FUNCTION__,
             OBJECT_TO_OBJECT_HEADER(Object)->PointerCount,
             Status);
+    DBG_CHECK_OBJECT(Object);
     return Status;
 }
 
@@ -2862,6 +2894,7 @@ ObFindHandleForObject(IN PEPROCESS Process,
     OBP_FIND_HANDLE_DATA FindData;
     BOOLEAN Result = FALSE;
     PVOID ObjectTable;
+    DBG_CHECK_OBJECT(Object);
 
     /* Make sure we have an object table */
     ObjectTable = ObReferenceProcessHandleTable(Process);
@@ -2898,6 +2931,7 @@ ObFindHandleForObject(IN PEPROCESS Process,
     }
 
     /* Return the result */
+    DBG_CHECK_OBJECT(Object);
     return Result;
 }
 
@@ -2955,6 +2989,7 @@ ObInsertObject(IN PVOID Object,
     NTSTATUS Status = STATUS_SUCCESS, RealStatus;
     BOOLEAN IsNewObject;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the Header */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -3023,6 +3058,7 @@ ObInsertObject(IN PVOID Object,
                 __FUNCTION__,
                 ObjectHeader->PointerCount,
                 Status);
+        DBG_CHECK_OBJECT(Object);
         return Status;
     }
 
@@ -3040,6 +3076,7 @@ ObInsertObject(IN PVOID Object,
             /* Fail */
             ObpDereferenceNameInfo(ObjectNameInfo);
             ObDereferenceObject(Object);
+            DBG_CHECK_OBJECT(&ObjectHeader->Body);
             return Status;
         }
     }
@@ -3054,6 +3091,7 @@ ObInsertObject(IN PVOID Object,
         /* Fail */
         ObpDereferenceNameInfo(ObjectNameInfo);
         ObDereferenceObject(Object);
+        DBG_CHECK_OBJECT(&ObjectHeader->Body);
         return Status;
     }
 
@@ -3249,6 +3287,7 @@ ObInsertObject(IN PVOID Object,
         ObpDereferenceNameInfo(ObjectNameInfo);
 
         /* Remove the extra keep-alive reference */
+        DBG_CHECK_OBJECT(Object);
         ObDereferenceObject(Object);
     }
     else
@@ -3280,6 +3319,7 @@ ObInsertObject(IN PVOID Object,
             __FUNCTION__,
             OBJECT_TO_OBJECT_HEADER(Object)->PointerCount,
             RealStatus, Status);
+    DBG_CHECK_OBJECT(Object);
     return RealStatus;
 }
 

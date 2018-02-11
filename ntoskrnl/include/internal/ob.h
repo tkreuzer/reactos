@@ -34,6 +34,18 @@
 #define OBTRACE(x, fmt, ...) DPRINT(fmt, ##__VA_ARGS__)
 #endif
 
+FORCEINLINE
+VOID
+CheckObject(
+    _In_ PVOID Object)
+{
+    POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
+    ASSERT(ObjectHeader->PointerCount >= ObjectHeader->HandleCount);
+}
+
+#define DBG_CHECK_OBJECT(Object) CheckObject((PVOID)(Object))
+
+
 //
 // Mask to detect GENERIC_XXX access masks being used
 //

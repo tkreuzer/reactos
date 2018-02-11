@@ -267,6 +267,7 @@ ObpSetPermanentObject(IN PVOID ObjectBody,
                       IN BOOLEAN Permanent)
 {
     POBJECT_HEADER ObjectHeader;
+    DBG_CHECK_OBJECT(ObjectBody);
 
     /* Get the header */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(ObjectBody);
@@ -1312,6 +1313,7 @@ ObDeleteCapturedInsertInfo(IN PVOID Object)
 {
     POBJECT_HEADER ObjectHeader;
     PAGED_CODE();
+    DBG_CHECK_OBJECT(Object);
 
     /* Check if there is anything to free */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -1330,6 +1332,7 @@ ObpDeleteObjectType(IN PVOID Object)
 {
     ULONG i;
     POBJECT_TYPE ObjectType = (PVOID)Object;
+    DBG_CHECK_OBJECT(Object);
 
     /* Loop our locks */
     for (i = 0; i < 4; i++)
@@ -1361,6 +1364,7 @@ NTAPI
 ObMakeTemporaryObject(IN PVOID ObjectBody)
 {
     PAGED_CODE();
+    DBG_CHECK_OBJECT(ObjectBody);
 
     /* Call the internal API */
     ObpSetPermanentObject(ObjectBody, FALSE);
