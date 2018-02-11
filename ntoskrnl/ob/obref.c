@@ -25,6 +25,7 @@ ObReferenceObjectSafe(IN PVOID Object)
 {
     POBJECT_HEADER ObjectHeader;
     LONG_PTR OldValue, NewValue;
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the object header */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
@@ -55,6 +56,7 @@ NTAPI
 ObpDeferObjectDeletion(IN POBJECT_HEADER Header)
 {
     PVOID Entry;
+    DBG_CHECK_OBJECT(&Header->Body);
 
     /* Loop while trying to update the list */
     do
@@ -79,6 +81,7 @@ FASTCALL
 ObReferenceObjectEx(IN PVOID Object,
                     IN LONG Count)
 {
+    DBG_CHECK_OBJECT(Object);
     /* Increment the reference count and return the count now */
     return InterlockedExchangeAddSizeT(&OBJECT_TO_OBJECT_HEADER(Object)->
                                        PointerCount,
@@ -92,6 +95,7 @@ ObDereferenceObjectEx(IN PVOID Object,
 {
     POBJECT_HEADER Header;
     LONG_PTR NewCount;
+    DBG_CHECK_OBJECT(Object);
 
     /* Extract the object header */
     Header = OBJECT_TO_OBJECT_HEADER(Object);
@@ -310,6 +314,7 @@ FASTCALL
 ObfReferenceObject(IN PVOID Object)
 {
     ASSERT(Object);
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the header and increment the reference count */
     return InterlockedIncrementSizeT(&OBJECT_TO_OBJECT_HEADER(Object)->PointerCount);
@@ -321,6 +326,7 @@ ObfDereferenceObject(IN PVOID Object)
 {
     POBJECT_HEADER Header;
     LONG_PTR OldCount;
+    DBG_CHECK_OBJECT(Object);
 
     /* Extract the object header */
     Header = OBJECT_TO_OBJECT_HEADER(Object);
@@ -360,6 +366,7 @@ NTAPI
 ObDereferenceObjectDeferDelete(IN PVOID Object)
 {
     POBJECT_HEADER Header = OBJECT_TO_OBJECT_HEADER(Object);
+    DBG_CHECK_OBJECT(Object);
 
     /* Check whether the object can now be deleted. */
     if (!InterlockedDecrementSizeT(&Header->PointerCount))
@@ -386,6 +393,7 @@ ObReferenceObjectByPointer(IN PVOID Object,
                            IN KPROCESSOR_MODE AccessMode)
 {
     POBJECT_HEADER Header;
+    DBG_CHECK_OBJECT(Object);
 
     /* Get the header */
     Header = OBJECT_TO_OBJECT_HEADER(Object);
@@ -467,6 +475,7 @@ ObReferenceObjectByName(IN PUNICODE_STRING ObjectPath,
     /* Check if the lookup succeeded */
     if (NT_SUCCESS(Status))
     {
+        DBG_CHECK_OBJECT(Object);
         /* Check if access is allowed */
         if (ObpCheckObjectReference(Object,
                                     PassedAccessState,
@@ -548,6 +557,7 @@ ObReferenceObjectByHandle(IN HANDLE Handle,
                     /* Return the pointer */
                     *Object = CurrentProcess;
                     ASSERT(*Object != NULL);
+                    DBG_CHECK_OBJECT(*Object);
                     Status = STATUS_SUCCESS;
                 }
                 else
@@ -596,6 +606,7 @@ ObReferenceObjectByHandle(IN HANDLE Handle,
                     /* Return the pointer */
                     *Object = CurrentThread;
                     ASSERT(*Object != NULL);
+                    DBG_CHECK_OBJECT(*Object);
                     Status = STATUS_SUCCESS;
                 }
                 else
@@ -676,6 +687,7 @@ ObReferenceObjectByHandle(IN HANDLE Handle,
 
                 /* Return success */
                 ASSERT(*Object != NULL);
+                DBG_CHECK_OBJECT(*Object);
                 return STATUS_SUCCESS;
             }
             else
