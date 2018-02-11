@@ -1906,6 +1906,10 @@ NtSetInformationProcess(IN HANDLE ProcessHandle,
             {
                 Status = STATUS_NOT_IMPLEMENTED;
             }
+            else
+            {
+                Status = STATUS_SUCCESS;
+            }
 #else
             Status = STATUS_NOT_IMPLEMENTED;
 #endif
