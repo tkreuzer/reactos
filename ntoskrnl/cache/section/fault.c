@@ -396,16 +396,6 @@ MiCowCacheSectionPage (
 
     if (!Required->Page[0])
     {
-        SWAPENTRY SwapEntry;
-        if (MmIsPageSwapEntry(Process, Address))
-        {
-            MmGetPageFileMapping(Process, Address, &SwapEntry);
-            MmUnlockSectionSegment(Segment);
-            if (SwapEntry == MM_WAIT_ENTRY)
-                return STATUS_SUCCESS + 1; // Wait ... somebody else is getting it right now
-            else
-                return STATUS_SUCCESS; // Nonwait swap entry ... handle elsewhere
-        }
         /* Call out to acquire a page to copy to.  We'll be re-called when
          * the page has been allocated. */
         Required->Page[1] = MmGetPfnForProcess(Process, Address);
@@ -414,7 +404,6 @@ MiCowCacheSectionPage (
         Required->File = __FILE__;
         Required->Line = __LINE__;
         Required->DoAcquisition = MiGetOnePage;
-        MmCreatePageFileMapping(Process, Address, MM_WAIT_ENTRY);
         MmUnlockSectionSegment(Segment);
         return STATUS_MORE_PROCESSING_REQUIRED;
     }

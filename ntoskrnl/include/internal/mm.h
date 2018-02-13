@@ -1090,36 +1090,6 @@ MmInitGlobalKernelPageDirectory(VOID);
 
 VOID
 NTAPI
-MmGetPageFileMapping(
-	struct _EPROCESS *Process,
-	PVOID Address,
-	SWAPENTRY* SwapEntry);
-
-VOID
-NTAPI
-MmDeletePageFileMapping(
-    struct _EPROCESS *Process,
-    PVOID Address,
-    SWAPENTRY* SwapEntry
-);
-
-NTSTATUS
-NTAPI
-MmCreatePageFileMapping(
-    struct _EPROCESS *Process,
-    PVOID Address,
-    SWAPENTRY SwapEntry
-);
-
-BOOLEAN
-NTAPI
-MmIsPageSwapEntry(
-    struct _EPROCESS *Process,
-    PVOID Address
-);
-
-VOID
-NTAPI
 MmSetDirtyPage(
     struct _EPROCESS *Process,
     PVOID Address

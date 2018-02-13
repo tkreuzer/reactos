@@ -301,14 +301,6 @@ MmPageOutCacheSection(PMMSUPPORT AddressSpace,
     Entry = MmGetPageEntrySectionSegment(Segment, &TotalOffset);
     DBG_UNREFERENCED_LOCAL_VARIABLE(Entry);
 
-    if (MmIsPageSwapEntry(Process, PAddress))
-    {
-        SWAPENTRY SwapEntry;
-        MmGetPageFileMapping(Process, PAddress, &SwapEntry);
-        MmUnlockSectionSegment(Segment);
-        return SwapEntry == MM_WAIT_ENTRY ? STATUS_SUCCESS + 1 : STATUS_UNSUCCESSFUL;
-    }
-
     MmDeleteRmap(Required->Page[0], Process, Address);
     MmDeleteVirtualMapping(Process, Address, Dirty, &OurPage);
     ASSERT(OurPage == Required->Page[0]);

@@ -310,14 +310,7 @@ MmFreeMemoryArea(
             SWAPENTRY SwapEntry = 0;
             PFN_NUMBER Page = 0;
 
-            if (MmIsPageSwapEntry(Process, (PVOID)Address))
-            {
-                MmDeletePageFileMapping(Process, (PVOID)Address, &SwapEntry);
-            }
-            else
-            {
-                MmDeleteVirtualMapping(Process, (PVOID)Address, &Dirty, &Page);
-            }
+            MmDeleteVirtualMapping(Process, (PVOID)Address, &Dirty, &Page);
             if (FreePage != NULL)
             {
                 FreePage(FreePageContext, MemoryArea, (PVOID)Address,

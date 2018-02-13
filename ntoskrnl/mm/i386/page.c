@@ -413,65 +413,6 @@ MmDeleteVirtualMapping(PEPROCESS Process, PVOID Address,
     }
 }
 
-VOID
-NTAPI
-MmGetPageFileMapping(PEPROCESS Process, PVOID Address,
-                     SWAPENTRY* SwapEntry)
-/*
- * FUNCTION: Get a page file mapping
- */
-{
-    ULONG Entry = MmGetPageEntryForProcess(Process, Address);
-    *SwapEntry = Entry >> 1;
-}
-
-VOID
-NTAPI
-MmDeletePageFileMapping(PEPROCESS Process, PVOID Address,
-                        SWAPENTRY* SwapEntry)
-/*
- * FUNCTION: Delete a virtual mapping
- */
-{
-    ULONG Pte;
-    PULONG Pt;
-
-    Pt = MmGetPageTableForProcess(Process, Address, FALSE);
-
-    if (Pt == NULL)
-    {
-        *SwapEntry = 0;
-        return;
-    }
-
-    /*
-     * Atomically set the entry to zero and get the old value.
-     */
-    Pte = InterlockedExchangePte(Pt, 0);
-
-	if (Address < MmSystemRangeStart)
-	{
-		/* Remove PDE reference */
-		Process->Vm.VmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)]--;
-		ASSERT(Process->Vm.VmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)] < PTE_COUNT);
-	}
-
-    /* We don't need to flush here because page file entries
-     * are invalid translations, so the processor won't cache them */
-    MmUnmapPageTable(Pt);
-
-    if ((Pte & PA_PRESENT) || !(Pte & 0x800))
-    {
-        DPRINT1("Pte %x (want not 1 and 0x800)\n", Pte);
-        KeBugCheck(MEMORY_MANAGEMENT);
-    }
-
-    /*
-     * Return some information to the caller
-     */
-    *SwapEntry = Pte >> 1;
-}
-
 BOOLEAN
 Mmi386MakeKernelPageTableGlobal(PVOID Address)
 {
@@ -582,73 +523,6 @@ MmIsDisabledPage(PEPROCESS Process, PVOID Address)
     ULONG_PTR Entry = MmGetPageEntryForProcess(Process, Address);
     return !(Entry & PA_PRESENT) && !(Entry & 0x800) && (Entry >> PAGE_SHIFT);
 }
-
-BOOLEAN
-NTAPI
-MmIsPageSwapEntry(PEPROCESS Process, PVOID Address)
-{
-    ULONG Entry;
-    Entry = MmGetPageEntryForProcess(Process, Address);
-    return !(Entry & PA_PRESENT) && (Entry & 0x800);
-}
-
-NTSTATUS
-NTAPI
-MmCreatePageFileMapping(PEPROCESS Process,
-                        PVOID Address,
-                        SWAPENTRY SwapEntry)
-{
-    PULONG Pt;
-    ULONG Pte;
-
-    if (Process == NULL && Address < MmSystemRangeStart)
-    {
-        DPRINT1("No process\n");
-        KeBugCheck(MEMORY_MANAGEMENT);
-    }
-    if (Process != NULL && Address >= MmSystemRangeStart)
-    {
-        DPRINT1("Setting kernel address with process context\n");
-        KeBugCheck(MEMORY_MANAGEMENT);
-    }
-
-    if (SwapEntry & (1 << 31))
-    {
-        KeBugCheck(MEMORY_MANAGEMENT);
-    }
-
-    Pt = MmGetPageTableForProcess(Process, Address, FALSE);
-    if (Pt == NULL)
-    {
-        /* Nobody should page out an address that hasn't even been mapped */
-        /* But we might place a wait entry first, requiring the page table */
-        if (SwapEntry != MM_WAIT_ENTRY)
-        {
-            KeBugCheck(MEMORY_MANAGEMENT);
-        }
-        Pt = MmGetPageTableForProcess(Process, Address, TRUE);
-    }
-    Pte = InterlockedExchangePte(Pt, SwapEntry << 1);
-    if (Pte != 0)
-    {
-        KeBugCheckEx(MEMORY_MANAGEMENT, SwapEntry, (ULONG_PTR)Process, (ULONG_PTR)Address, 0);
-    }
-
-	if (Address < MmSystemRangeStart)
-	{
-		/* Add PDE reference */
-		Process->Vm.VmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)]++;
-		ASSERT(Process->Vm.VmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)] <= PTE_COUNT);
-	}
-
-    /* We don't need to flush the TLB here because it
-     * only caches valid translations and a zero PTE
-     * is not a valid translation */
-    MmUnmapPageTable(Pt);
-
-    return(STATUS_SUCCESS);
-}
-
 
 NTSTATUS
 NTAPI
