@@ -34,15 +34,13 @@ BOOL NLS_IsUnicodeOnlyLcid(LCID lcid);
 
 static const int MonthLengths[2][12] =
 {
-    { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
-    { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+	{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 };
 
-/* STATIC FUNCTIONS **********************************************************/
-
-static inline int IsLeapYear(int Year)
+static inline BOOL IsLeapYear(int Year)
 {
-    return Year % 4 == 0 && (Year % 100 != 0 || Year % 400 == 0) ? 1 : 0;
+    return Year % 4 == 0 && (Year % 100 != 0 || Year % 400 == 0);
 }
 
 /***********************************************************************
@@ -122,9 +120,8 @@ static int TIME_DayLightCompareDate( const SYSTEMTIME *date,
  *      TIME_ZONE_ID_STANDARD   Current time is standard time
  *      TIME_ZONE_ID_DAYLIGHT   Current time is daylight savings time
  */
-static
-DWORD
-TIME_CompTimeZoneID( const TIME_ZONE_INFORMATION *pTZinfo, FILETIME *lpFileTime, BOOL islocal )
+static DWORD TIME_CompTimeZoneID ( const TIME_ZONE_INFORMATION *pTZinfo,
+    FILETIME *lpFileTime, BOOL islocal )
 {
     int ret, year;
     BOOL beforeStandardDate, afterDaylightDate;
@@ -257,8 +254,292 @@ static BOOL TIME_GetTimezoneBias( const TIME_ZONE_INFORMATION *pTZinfo,
     return TRUE;
 }
 
+#ifndef __REACTOS__
+/***********************************************************************
+ *  TIME_GetSpecificTimeZoneKey
+ *
+ *  Opens the registry key for the time zone with the given name.
+ *
+ * PARAMS
+ *  key_name   [in]  The time zone name.
+ *  result     [out] The open registry key handle.
+ *
+ * RETURNS
+ *  TRUE if successful.
+ */
+static BOOL TIME_GetSpecificTimeZoneKey( const WCHAR *key_name, HANDLE *result )
+{
+    static const WCHAR Time_ZonesW[] = { '\\','R','E','G','I','S','T','R','Y','\\',
+        'M','a','c','h','i','n','e','\\',
+        'S','o','f','t','w','a','r','e','\\',
+        'M','i','c','r','o','s','o','f','t','\\',
+        'W','i','n','d','o','w','s',' ','N','T','\\',
+        'C','u','r','r','e','n','t','V','e','r','s','i','o','n','\\',
+        'T','i','m','e',' ','Z','o','n','e','s',0 };
+    HANDLE time_zones_key;
+    OBJECT_ATTRIBUTES attr;
+    UNICODE_STRING nameW;
+    NTSTATUS status;
+
+    attr.Length = sizeof(attr);
+    attr.RootDirectory = 0;
+    attr.ObjectName = &nameW;
+    attr.Attributes = 0;
+    attr.SecurityDescriptor = NULL;
+    attr.SecurityQualityOfService = NULL;
+    RtlInitUnicodeString( &nameW, Time_ZonesW );
+    status = NtOpenKey( &time_zones_key, KEY_READ, &attr );
+    if (status)
+    {
+        WARN("Unable to open the time zones key\n");
+        SetLastError( RtlNtStatusToDosError(status) );
+        return FALSE;
+    }
+
+    attr.RootDirectory = time_zones_key;
+    RtlInitUnicodeString( &nameW, key_name );
+    status = NtOpenKey( result, KEY_READ, &attr );
+
+    NtClose( time_zones_key );
+
+    if (status)
+    {
+        SetLastError( RtlNtStatusToDosError(status) );
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+static BOOL reg_query_value(HKEY hkey, LPCWSTR name, DWORD type, void *data, DWORD count)
+{
+    UNICODE_STRING nameW;
+    char buf[256];
+    KEY_VALUE_PARTIAL_INFORMATION *info = (KEY_VALUE_PARTIAL_INFORMATION *)buf;
+    NTSTATUS status;
+
+    if (count > sizeof(buf) - sizeof(KEY_VALUE_PARTIAL_INFORMATION))
+        return FALSE;
+
+    RtlInitUnicodeString(&nameW, name);
+
+    if ((status = NtQueryValueKey(hkey, &nameW, KeyValuePartialInformation,
+                                  buf, sizeof(buf), &count)))
+    {
+        SetLastError( RtlNtStatusToDosError(status) );
+        return FALSE;
+    }
+
+    if (info->Type != type)
+    {
+        SetLastError( ERROR_DATATYPE_MISMATCH );
+        return FALSE;
+    }
+
+    memcpy(data, info->Data, info->DataLength);
+    return TRUE;
+}
+
+/***********************************************************************
+ *  TIME_GetSpecificTimeZoneInfo
+ *
+ *  Returns time zone information for the given time zone and year.
+ *
+ * PARAMS
+ *  key_name   [in]  The time zone name.
+ *  year       [in]  The year, if Dynamic DST is used.
+ *  dynamic    [in]  Whether to use Dynamic DST.
+ *  result     [out] The time zone information.
+ *
+ * RETURNS
+ *  TRUE if successful.
+ */
+static BOOL TIME_GetSpecificTimeZoneInfo( const WCHAR *key_name, WORD year,
+    BOOL dynamic, DYNAMIC_TIME_ZONE_INFORMATION *tzinfo )
+{
+    static const WCHAR Dynamic_DstW[] = { 'D','y','n','a','m','i','c',' ','D','S','T',0 };
+    static const WCHAR fmtW[] = { '%','d',0 };
+    static const WCHAR stdW[] = { 'S','t','d',0 };
+    static const WCHAR dltW[] = { 'D','l','t',0 };
+    static const WCHAR tziW[] = { 'T','Z','I',0 };
+    HANDLE time_zone_key, dynamic_dst_key;
+    OBJECT_ATTRIBUTES attr;
+    UNICODE_STRING nameW;
+    WCHAR yearW[16];
+    BOOL got_reg_data = FALSE;
+    struct tz_reg_data
+    {
+        LONG bias;
+        LONG std_bias;
+        LONG dlt_bias;
+        SYSTEMTIME std_date;
+        SYSTEMTIME dlt_date;
+    } tz_data;
+
+    if (!TIME_GetSpecificTimeZoneKey( key_name, &time_zone_key ))
+        return FALSE;
+
+    if (!reg_query_value( time_zone_key, stdW, REG_SZ, tzinfo->StandardName, sizeof(tzinfo->StandardName)) ||
+        !reg_query_value( time_zone_key, dltW, REG_SZ, tzinfo->DaylightName, sizeof(tzinfo->DaylightName)))
+    {
+        NtClose( time_zone_key );
+        return FALSE;
+    }
+
+    lstrcpyW(tzinfo->TimeZoneKeyName, key_name);
+
+    if (dynamic)
+    {
+        attr.Length = sizeof(attr);
+        attr.RootDirectory = time_zone_key;
+        attr.ObjectName = &nameW;
+        attr.Attributes = 0;
+        attr.SecurityDescriptor = NULL;
+        attr.SecurityQualityOfService = NULL;
+        RtlInitUnicodeString( &nameW, Dynamic_DstW );
+        if (!NtOpenKey( &dynamic_dst_key, KEY_READ, &attr ))
+        {
+            sprintfW( yearW, fmtW, year );
+            got_reg_data = reg_query_value( dynamic_dst_key, yearW, REG_BINARY, &tz_data, sizeof(tz_data) );
+
+            NtClose( dynamic_dst_key );
+        }
+    }
+
+    if (!got_reg_data)
+    {
+        if (!reg_query_value( time_zone_key, tziW, REG_BINARY, &tz_data, sizeof(tz_data) ))
+        {
+            NtClose( time_zone_key );
+            return FALSE;
+        }
+    }
+
+    tzinfo->Bias = tz_data.bias;
+    tzinfo->StandardBias = tz_data.std_bias;
+    tzinfo->DaylightBias = tz_data.dlt_bias;
+    tzinfo->StandardDate = tz_data.std_date;
+    tzinfo->DaylightDate = tz_data.dlt_date;
+
+    tzinfo->DynamicDaylightTimeDisabled = !dynamic;
+
+    NtClose( time_zone_key );
+
+    return TRUE;
+}
+#endif // __REACTOS__
+
 
 /* FUNCTIONS ****************************************************************/
+
+#ifndef __REACTOS__
+/***********************************************************************
+ *              SetLocalTime            (KERNEL32.@)
+ *
+ *  Set the local time using current time zone and daylight
+ *  savings settings.
+ *
+ * PARAMS
+ *  systime [in] The desired local time.
+ *
+ * RETURNS
+ *  Success: TRUE. The time was set.
+ *  Failure: FALSE, if the time was invalid or caller does not have
+ *           permission to change the time.
+ */
+BOOL WINAPI SetLocalTime( const SYSTEMTIME *systime )
+{
+    FILETIME ft;
+    LARGE_INTEGER st, st2;
+    NTSTATUS status;
+
+    if( !SystemTimeToFileTime( systime, &ft ))
+        return FALSE;
+    st.u.LowPart = ft.dwLowDateTime;
+    st.u.HighPart = ft.dwHighDateTime;
+    RtlLocalTimeToSystemTime( &st, &st2 );
+
+    if ((status = NtSetSystemTime(&st2, NULL)))
+        SetLastError( RtlNtStatusToDosError(status) );
+    return !status;
+}
+
+
+/***********************************************************************
+ *           GetSystemTimeAdjustment     (KERNEL32.@)
+ *
+ *  Get the period between clock interrupts and the amount the clock
+ *  is adjusted each interrupt so as to keep it in sync with an external source.
+ *
+ * PARAMS
+ *  lpTimeAdjustment [out] The clock adjustment per interrupt in 100's of nanoseconds.
+ *  lpTimeIncrement  [out] The time between clock interrupts in 100's of nanoseconds.
+ *  lpTimeAdjustmentDisabled [out] The clock synchronisation has been disabled.
+ *
+ * RETURNS
+ *  TRUE.
+ *
+ * BUGS
+ *  Only the special case of disabled time adjustments is supported.
+ */
+BOOL WINAPI GetSystemTimeAdjustment( PDWORD lpTimeAdjustment, PDWORD lpTimeIncrement,
+    PBOOL  lpTimeAdjustmentDisabled )
+{
+    *lpTimeAdjustment = 0;
+    *lpTimeIncrement = 10000000 / sysconf(_SC_CLK_TCK);
+    *lpTimeAdjustmentDisabled = TRUE;
+    return TRUE;
+}
+
+
+/***********************************************************************
+ *              SetSystemTime            (KERNEL32.@)
+ *
+ *  Set the system time in utc.
+ *
+ * PARAMS
+ *  systime [in] The desired system time.
+ *
+ * RETURNS
+ *  Success: TRUE. The time was set.
+ *  Failure: FALSE, if the time was invalid or caller does not have
+ *           permission to change the time.
+ */
+BOOL WINAPI SetSystemTime( const SYSTEMTIME *systime )
+{
+    FILETIME ft;
+    LARGE_INTEGER t;
+    NTSTATUS status;
+
+    if( !SystemTimeToFileTime( systime, &ft ))
+        return FALSE;
+    t.u.LowPart = ft.dwLowDateTime;
+    t.u.HighPart = ft.dwHighDateTime;
+    if ((status = NtSetSystemTime(&t, NULL)))
+        SetLastError( RtlNtStatusToDosError(status) );
+    return !status;
+}
+
+/***********************************************************************
+ *              SetSystemTimeAdjustment  (KERNEL32.@)
+ *
+ *  Enables or disables the timing adjustments to the system's clock.
+ *
+ * PARAMS
+ *  dwTimeAdjustment        [in] Number of units to add per clock interrupt.
+ *  bTimeAdjustmentDisabled [in] Adjustment mode.
+ *
+ * RETURNS
+ *  Success: TRUE.
+ *  Failure: FALSE.
+ */
+BOOL WINAPI SetSystemTimeAdjustment( DWORD dwTimeAdjustment, BOOL bTimeAdjustmentDisabled )
+{
+    /* Fake function for now... */
+    FIXME("(%08x,%d): stub !\n", dwTimeAdjustment, bTimeAdjustmentDisabled);
+    return TRUE;
+}
+#endif // __REACTOS__
 
 /***********************************************************************
  *              GetTimeZoneInformation  (KERNEL32.@)
@@ -293,6 +574,31 @@ DWORD WINAPI GetTimeZoneInformation( LPTIME_ZONE_INFORMATION tzinfo )
     return TIME_ZoneID( tzinfo );
 }
 
+#ifndef __REACTOS__
+/***********************************************************************
+ *              GetTimeZoneInformationForYear  (KERNEL32.@)
+ */
+BOOL WINAPI GetTimeZoneInformationForYear( USHORT wYear,
+    PDYNAMIC_TIME_ZONE_INFORMATION pdtzi, LPTIME_ZONE_INFORMATION ptzi )
+{
+    DYNAMIC_TIME_ZONE_INFORMATION local_dtzi, result;
+
+    if (!pdtzi)
+    {
+        if (GetDynamicTimeZoneInformation(&local_dtzi) == TIME_ZONE_ID_INVALID)
+            return FALSE;
+        pdtzi = &local_dtzi;
+    }
+
+    if (!TIME_GetSpecificTimeZoneInfo(pdtzi->TimeZoneKeyName, wYear,
+            !pdtzi->DynamicDaylightTimeDisabled, &result))
+        return FALSE;
+
+    memcpy(ptzi, &result, sizeof(*ptzi));
+
+    return TRUE;
+}
+#endif // __REACTOS__
 
 /***********************************************************************
  *              SetTimeZoneInformation  (KERNEL32.@)
@@ -400,11 +706,9 @@ BOOL WINAPI SystemTimeToTzSpecificLocalTime(
  *  Success: TRUE. lpUniversalTime contains the converted time.
  *  Failure: FALSE.
  */
-BOOL
-WINAPI
-TzSpecificLocalTimeToSystemTime(LPTIME_ZONE_INFORMATION lpTimeZoneInformation,
-                                LPSYSTEMTIME lpLocalTime,
-                                LPSYSTEMTIME lpUniversalTime)
+BOOL WINAPI TzSpecificLocalTimeToSystemTime(
+    LPTIME_ZONE_INFORMATION lpTimeZoneInformation,
+    LPSYSTEMTIME lpLocalTime, LPSYSTEMTIME lpUniversalTime)
 {
     FILETIME ft;
     LONG lBias;
@@ -431,6 +735,99 @@ TzSpecificLocalTimeToSystemTime(LPTIME_ZONE_INFORMATION lpTimeZoneInformation,
     LL2FILETIME( t, &ft)
     return FileTimeToSystemTime(&ft, lpUniversalTime);
 }
+
+#ifndef __REACTOS__
+/***********************************************************************
+ *              GetSystemTimeAsFileTime  (KERNEL32.@)
+ *
+ *  Get the current time in utc format.
+ *
+ *  RETURNS
+ *   Nothing.
+ */
+VOID WINAPI GetSystemTimeAsFileTime(
+    LPFILETIME time) /* [out] Destination for the current utc time */
+{
+    LARGE_INTEGER t;
+    NtQuerySystemTime( &t );
+    time->dwLowDateTime = t.u.LowPart;
+    time->dwHighDateTime = t.u.HighPart;
+}
+
+
+/***********************************************************************
+ *              GetSystemTimePreciseAsFileTime  (KERNEL32.@)
+ *
+ *  Get the current time in utc format, with <1 us precision.
+ *
+ *  RETURNS
+ *   Nothing.
+ */
+VOID WINAPI GetSystemTimePreciseAsFileTime(
+    LPFILETIME time) /* [out] Destination for the current utc time */
+{
+    GetSystemTimeAsFileTime(time);
+}
+
+
+/*********************************************************************
+ *      TIME_ClockTimeToFileTime    (olorin@fandra.org, 20-Sep-1998)
+ *
+ *  Used by GetProcessTimes to convert clock_t into FILETIME.
+ *
+ *      Differences to UnixTimeToFileTime:
+ *          1) Divided by CLK_TCK
+ *          2) Time is relative. There is no 'starting date', so there is
+ *             no need for offset correction, like in UnixTimeToFileTime
+ */
+static void TIME_ClockTimeToFileTime(clock_t unix_time, LPFILETIME filetime)
+{
+    long clocksPerSec = sysconf(_SC_CLK_TCK);
+    ULONGLONG secs = (ULONGLONG)unix_time * 10000000 / clocksPerSec;
+    filetime->dwLowDateTime  = (DWORD)secs;
+    filetime->dwHighDateTime = (DWORD)(secs >> 32);
+}
+
+/*********************************************************************
+ *	GetProcessTimes				(KERNEL32.@)
+ *
+ *  Get the user and kernel execution times of a process,
+ *  along with the creation and exit times if known.
+ *
+ * PARAMS
+ *  hprocess       [in]  The process to be queried.
+ *  lpCreationTime [out] The creation time of the process.
+ *  lpExitTime     [out] The exit time of the process if exited.
+ *  lpKernelTime   [out] The time spent in kernel routines in 100's of nanoseconds.
+ *  lpUserTime     [out] The time spent in user routines in 100's of nanoseconds.
+ *
+ * RETURNS
+ *  TRUE.
+ *
+ * NOTES
+ *  olorin@fandra.org:
+ *  Would be nice to subtract the cpu time used by Wine at startup.
+ *  Also, there is a need to separate times used by different applications.
+ *
+ * BUGS
+ *  KernelTime and UserTime are always for the current process
+ */
+BOOL WINAPI GetProcessTimes( HANDLE hprocess, LPFILETIME lpCreationTime,
+    LPFILETIME lpExitTime, LPFILETIME lpKernelTime, LPFILETIME lpUserTime )
+{
+    struct tms tms;
+    KERNEL_USER_TIMES pti;
+
+    times(&tms);
+    TIME_ClockTimeToFileTime(tms.tms_utime,lpUserTime);
+    TIME_ClockTimeToFileTime(tms.tms_stime,lpKernelTime);
+    if (NtQueryInformationProcess( hprocess, ProcessTimes, &pti, sizeof(pti), NULL))
+        return FALSE;
+    LL2FILETIME( pti.CreateTime.QuadPart, lpCreationTime);
+    LL2FILETIME( pti.ExitTime.QuadPart, lpExitTime);
+    return TRUE;
+}
+#endif // __REACTOS__
 
 /*********************************************************************
  *	GetCalendarInfoA				(KERNEL32.@)
@@ -812,7 +1209,7 @@ int WINAPI GetCalendarInfoEx(LPCWSTR locale, CALID calendar, LPCWSTR lpReserved,
         data, len, value);
     return GetCalendarInfoW(lcid, calendar, caltype, data, len, value);
 }
-#endif
+#endif // __REACTOS__
 
 /*********************************************************************
  *	SetCalendarInfoA				(KERNEL32.@)
@@ -837,4 +1234,372 @@ int WINAPI	SetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType, LPCWST
     return 0;
 }
 
-/* EOF */
+#ifndef __REACTOS__
+/*********************************************************************
+ *      LocalFileTimeToFileTime                         (KERNEL32.@)
+ */
+BOOL WINAPI LocalFileTimeToFileTime( const FILETIME *localft, LPFILETIME utcft )
+{
+    NTSTATUS status;
+    LARGE_INTEGER local, utc;
+
+    local.u.LowPart = localft->dwLowDateTime;
+    local.u.HighPart = localft->dwHighDateTime;
+    if (!(status = RtlLocalTimeToSystemTime( &local, &utc )))
+    {
+        utcft->dwLowDateTime = utc.u.LowPart;
+        utcft->dwHighDateTime = utc.u.HighPart;
+    }
+    else SetLastError( RtlNtStatusToDosError(status) );
+
+    return !status;
+}
+
+/*********************************************************************
+ *      FileTimeToLocalFileTime                         (KERNEL32.@)
+ */
+BOOL WINAPI FileTimeToLocalFileTime( const FILETIME *utcft, LPFILETIME localft )
+{
+    NTSTATUS status;
+    LARGE_INTEGER local, utc;
+
+    utc.u.LowPart = utcft->dwLowDateTime;
+    utc.u.HighPart = utcft->dwHighDateTime;
+    if (!(status = RtlSystemTimeToLocalTime( &utc, &local )))
+    {
+        localft->dwLowDateTime = local.u.LowPart;
+        localft->dwHighDateTime = local.u.HighPart;
+    }
+    else SetLastError( RtlNtStatusToDosError(status) );
+
+    return !status;
+}
+
+/*********************************************************************
+ *      FileTimeToSystemTime                            (KERNEL32.@)
+ */
+BOOL WINAPI FileTimeToSystemTime( const FILETIME *ft, LPSYSTEMTIME syst )
+{
+    TIME_FIELDS tf;
+    LARGE_INTEGER t;
+
+    t.u.LowPart = ft->dwLowDateTime;
+    t.u.HighPart = ft->dwHighDateTime;
+    RtlTimeToTimeFields(&t, &tf);
+
+    syst->wYear = tf.Year;
+    syst->wMonth = tf.Month;
+    syst->wDay = tf.Day;
+    syst->wHour = tf.Hour;
+    syst->wMinute = tf.Minute;
+    syst->wSecond = tf.Second;
+    syst->wMilliseconds = tf.Milliseconds;
+    syst->wDayOfWeek = tf.Weekday;
+    return TRUE;
+}
+
+/*********************************************************************
+ *      SystemTimeToFileTime                            (KERNEL32.@)
+ */
+BOOL WINAPI SystemTimeToFileTime( const SYSTEMTIME *syst, LPFILETIME ft )
+{
+    TIME_FIELDS tf;
+    LARGE_INTEGER t;
+
+    tf.Year = syst->wYear;
+    tf.Month = syst->wMonth;
+    tf.Day = syst->wDay;
+    tf.Hour = syst->wHour;
+    tf.Minute = syst->wMinute;
+    tf.Second = syst->wSecond;
+    tf.Milliseconds = syst->wMilliseconds;
+
+    if( !RtlTimeFieldsToTime(&tf, &t)) {
+        SetLastError( ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+    ft->dwLowDateTime = t.u.LowPart;
+    ft->dwHighDateTime = t.u.HighPart;
+    return TRUE;
+}
+
+/*********************************************************************
+ *      CompareFileTime                                 (KERNEL32.@)
+ *
+ * Compare two FILETIME's to each other.
+ *
+ * PARAMS
+ *  x [I] First time
+ *  y [I] time to compare to x
+ *
+ * RETURNS
+ *  -1, 0, or 1 indicating that x is less than, equal to, or greater
+ *  than y respectively.
+ */
+INT WINAPI CompareFileTime( const FILETIME *x, const FILETIME *y )
+{
+    if (!x || !y) return -1;
+
+    if (x->dwHighDateTime > y->dwHighDateTime)
+        return 1;
+    if (x->dwHighDateTime < y->dwHighDateTime)
+        return -1;
+    if (x->dwLowDateTime > y->dwLowDateTime)
+        return 1;
+    if (x->dwLowDateTime < y->dwLowDateTime)
+        return -1;
+    return 0;
+}
+
+/*********************************************************************
+ *      GetLocalTime                                    (KERNEL32.@)
+ *
+ * Get the current local time.
+ *
+ * PARAMS
+ *  systime [O] Destination for current time.
+ *
+ * RETURNS
+ *  Nothing.
+ */
+VOID WINAPI GetLocalTime(LPSYSTEMTIME systime)
+{
+    FILETIME lft;
+    LARGE_INTEGER ft, ft2;
+
+    NtQuerySystemTime(&ft);
+    RtlSystemTimeToLocalTime(&ft, &ft2);
+    lft.dwLowDateTime = ft2.u.LowPart;
+    lft.dwHighDateTime = ft2.u.HighPart;
+    FileTimeToSystemTime(&lft, systime);
+}
+
+/*********************************************************************
+ *      GetSystemTime                                   (KERNEL32.@)
+ *
+ * Get the current system time.
+ *
+ * PARAMS
+ *  systime [O] Destination for current time.
+ *
+ * RETURNS
+ *  Nothing.
+ */
+VOID WINAPI GetSystemTime(LPSYSTEMTIME systime)
+{
+    FILETIME ft;
+    LARGE_INTEGER t;
+
+    NtQuerySystemTime(&t);
+    ft.dwLowDateTime = t.u.LowPart;
+    ft.dwHighDateTime = t.u.HighPart;
+    FileTimeToSystemTime(&ft, systime);
+}
+
+/*********************************************************************
+ *      GetDaylightFlag                                   (KERNEL32.@)
+ *
+ *  Specifies if daylight savings time is in operation.
+ *
+ * NOTES
+ *  This function is called from the Win98's control applet timedate.cpl.
+ *
+ * RETURNS
+ *  TRUE if daylight savings time is in operation.
+ *  FALSE otherwise.
+ */
+BOOL WINAPI GetDaylightFlag(void)
+{
+    TIME_ZONE_INFORMATION tzinfo;
+    return GetTimeZoneInformation( &tzinfo) == TIME_ZONE_ID_DAYLIGHT;
+}
+
+/***********************************************************************
+ *           DosDateTimeToFileTime   (KERNEL32.@)
+ */
+BOOL WINAPI DosDateTimeToFileTime( WORD fatdate, WORD fattime, LPFILETIME ft)
+{
+    struct tm newtm;
+#ifndef HAVE_TIMEGM
+    struct tm *gtm;
+    time_t time1, time2;
+#endif
+
+    newtm.tm_sec  = (fattime & 0x1f) * 2;
+    newtm.tm_min  = (fattime >> 5) & 0x3f;
+    newtm.tm_hour = (fattime >> 11);
+    newtm.tm_mday = (fatdate & 0x1f);
+    newtm.tm_mon  = ((fatdate >> 5) & 0x0f) - 1;
+    newtm.tm_year = (fatdate >> 9) + 80;
+    newtm.tm_isdst = -1;
+#ifdef HAVE_TIMEGM
+    RtlSecondsSince1970ToTime( timegm(&newtm), (LARGE_INTEGER *)ft );
+#else
+    time1 = mktime(&newtm);
+    gtm = gmtime(&time1);
+    time2 = mktime(gtm);
+    RtlSecondsSince1970ToTime( 2*time1-time2, (LARGE_INTEGER *)ft );
+#endif
+    return TRUE;
+}
+
+
+/***********************************************************************
+ *           FileTimeToDosDateTime   (KERNEL32.@)
+ */
+BOOL WINAPI FileTimeToDosDateTime( const FILETIME *ft, LPWORD fatdate,
+                                     LPWORD fattime )
+{
+    LARGE_INTEGER       li;
+    ULONG               t;
+    time_t              unixtime;
+    struct tm*          tm;
+
+    if (!fatdate || !fattime)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+    li.u.LowPart = ft->dwLowDateTime;
+    li.u.HighPart = ft->dwHighDateTime;
+    if (!RtlTimeToSecondsSince1970( &li, &t ))
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+    unixtime = t;
+    tm = gmtime( &unixtime );
+    *fattime = (tm->tm_hour << 11) + (tm->tm_min << 5) + (tm->tm_sec / 2);
+    *fatdate = ((tm->tm_year - 80) << 9) + ((tm->tm_mon + 1) << 5) + tm->tm_mday;
+    return TRUE;
+}
+
+/*********************************************************************
+ *      GetSystemTimes                                  (KERNEL32.@)
+ *
+ * Retrieves system timing information
+ *
+ * PARAMS
+ *  lpIdleTime [O] Destination for idle time.
+ *  lpKernelTime [O] Destination for kernel time.
+ *  lpUserTime [O] Destination for user time.
+ *
+ * RETURNS
+ *  TRUE if success, FALSE otherwise.
+ */
+BOOL WINAPI GetSystemTimes(LPFILETIME lpIdleTime, LPFILETIME lpKernelTime, LPFILETIME lpUserTime)
+{
+    LARGE_INTEGER idle_time, kernel_time, user_time;
+    SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION *sppi;
+    SYSTEM_BASIC_INFORMATION sbi;
+    NTSTATUS status;
+    ULONG ret_size;
+    int i;
+
+    TRACE("(%p,%p,%p)\n", lpIdleTime, lpKernelTime, lpUserTime);
+
+    status = NtQuerySystemInformation( SystemBasicInformation, &sbi, sizeof(sbi), &ret_size );
+    if (status != STATUS_SUCCESS)
+    {
+        SetLastError( RtlNtStatusToDosError(status) );
+        return FALSE;
+    }
+
+    sppi = HeapAlloc( GetProcessHeap(), 0,
+                      sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION) * sbi.NumberOfProcessors);
+    if (!sppi)
+    {
+        SetLastError( ERROR_OUTOFMEMORY );
+        return FALSE;
+    }
+
+    status = NtQuerySystemInformation( SystemProcessorPerformanceInformation, sppi, sizeof(*sppi) * sbi.NumberOfProcessors,
+                                       &ret_size );
+    if (status != STATUS_SUCCESS)
+    {
+        HeapFree( GetProcessHeap(), 0, sppi );
+        SetLastError( RtlNtStatusToDosError(status) );
+        return FALSE;
+    }
+
+    idle_time.QuadPart = 0;
+    kernel_time.QuadPart = 0;
+    user_time.QuadPart = 0;
+    for (i = 0; i < sbi.NumberOfProcessors; i++)
+    {
+        idle_time.QuadPart += sppi[i].IdleTime.QuadPart;
+        kernel_time.QuadPart += sppi[i].KernelTime.QuadPart;
+        user_time.QuadPart += sppi[i].UserTime.QuadPart;
+    }
+
+    if (lpIdleTime)
+    {
+        lpIdleTime->dwLowDateTime = idle_time.u.LowPart;
+        lpIdleTime->dwHighDateTime = idle_time.u.HighPart;
+    }
+    if (lpKernelTime)
+    {
+        lpKernelTime->dwLowDateTime = kernel_time.u.LowPart;
+        lpKernelTime->dwHighDateTime = kernel_time.u.HighPart;
+    }
+    if (lpUserTime)
+    {
+        lpUserTime->dwLowDateTime = user_time.u.LowPart;
+        lpUserTime->dwHighDateTime = user_time.u.HighPart;
+    }
+
+    HeapFree( GetProcessHeap(), 0, sppi );
+    return TRUE;
+}
+
+/***********************************************************************
+ *           GetDynamicTimeZoneInformation   (KERNEL32.@)
+ */
+DWORD WINAPI GetDynamicTimeZoneInformation(DYNAMIC_TIME_ZONE_INFORMATION *tzinfo)
+{
+    NTSTATUS status;
+
+    status = RtlQueryDynamicTimeZoneInformation( (RTL_DYNAMIC_TIME_ZONE_INFORMATION*)tzinfo );
+    if ( status != STATUS_SUCCESS )
+    {
+        SetLastError( RtlNtStatusToDosError(status) );
+        return TIME_ZONE_ID_INVALID;
+    }
+    return TIME_ZoneID( (TIME_ZONE_INFORMATION*)tzinfo );
+}
+
+/***********************************************************************
+ *           QueryProcessCycleTime   (KERNEL32.@)
+ */
+BOOL WINAPI QueryProcessCycleTime(HANDLE process, PULONG64 cycle)
+{
+    static int once;
+    if (!once++)
+        FIXME("(%p,%p): stub!\n", process, cycle);
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+}
+
+/***********************************************************************
+ *           QueryThreadCycleTime   (KERNEL32.@)
+ */
+BOOL WINAPI QueryThreadCycleTime(HANDLE thread, PULONG64 cycle)
+{
+    static int once;
+    if (!once++)
+        FIXME("(%p,%p): stub!\n", thread, cycle);
+    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
+    return FALSE;
+}
+
+/***********************************************************************
+ *           QueryUnbiasedInterruptTime   (KERNEL32.@)
+ */
+BOOL WINAPI QueryUnbiasedInterruptTime(ULONGLONG *time)
+{
+    TRACE("(%p)\n", time);
+    if (!time) return FALSE;
+    RtlQueryUnbiasedInterruptTime(time);
+    return TRUE;
+}
+#endif // __REACTOS__
