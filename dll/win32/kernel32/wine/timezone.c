@@ -60,8 +60,8 @@ static inline int IsLeapYear(int Year)
  *   1 if date > compareDate
  *  -2 if an error occurs
  */
-static int
-TIME_DayLightCompareDate(const SYSTEMTIME *date, const SYSTEMTIME *compareDate)
+static int TIME_DayLightCompareDate( const SYSTEMTIME *date,
+    const SYSTEMTIME *compareDate )
 {
     int limit_day, dayinsecs;
 
@@ -240,11 +240,11 @@ static DWORD TIME_ZoneID( const TIME_ZONE_INFORMATION *pTzi )
  * RETURNS
  *  TRUE when the time zone bias was calculated.
  */
-static BOOL
-TIME_GetTimezoneBias(const TIME_ZONE_INFORMATION *pTZinfo, FILETIME *lpFileTime, BOOL islocal, LONG *pBias)
+static BOOL TIME_GetTimezoneBias( const TIME_ZONE_INFORMATION *pTZinfo,
+    FILETIME *lpFileTime, BOOL islocal, LONG *pBias )
 {
     LONG bias = pTZinfo->Bias;
-    DWORD tzid = TIME_CompTimeZoneID(pTZinfo, lpFileTime, islocal);
+    DWORD tzid = TIME_CompTimeZoneID( pTZinfo, lpFileTime, islocal);
 
     if( tzid == TIME_ZONE_ID_INVALID)
         return FALSE;
@@ -259,101 +259,60 @@ TIME_GetTimezoneBias(const TIME_ZONE_INFORMATION *pTZinfo, FILETIME *lpFileTime,
 
 /* FUNCTIONS ****************************************************************/
 
-/*
- * @implemented
+/***********************************************************************
+ *              GetTimeZoneInformation  (KERNEL32.@)
+ *
+ *  Get information about the current local time zone.
+ *
+ * PARAMS
+ *  tzinfo [out] Destination for time zone information.
+ *
+ * RETURNS
+ *  TIME_ZONE_ID_INVALID    An error occurred
+ *  TIME_ZONE_ID_UNKNOWN    There are no transition time known
+ *  TIME_ZONE_ID_STANDARD   Current time is standard time
+ *  TIME_ZONE_ID_DAYLIGHT   Current time is daylight savings time
  */
-DWORD
-WINAPI
-GetTimeZoneInformation(LPTIME_ZONE_INFORMATION lpTimeZoneInformation)
+DWORD WINAPI GetTimeZoneInformation( LPTIME_ZONE_INFORMATION tzinfo )
 {
-    RTL_TIME_ZONE_INFORMATION TimeZoneInformation;
-    NTSTATUS Status;
+    NTSTATUS status;
 
     DPRINT("GetTimeZoneInformation()\n");
 
-    Status = NtQuerySystemInformation(SystemCurrentTimeZoneInformation,
-                                      &TimeZoneInformation,
-                                      sizeof(RTL_TIME_ZONE_INFORMATION),
+    status = NtQuerySystemInformation(SystemCurrentTimeZoneInformation,
+                                      tzinfo,
+                                      sizeof(TIME_ZONE_INFORMATION),
                                       NULL);
-    if (!NT_SUCCESS(Status))
+    if (!NT_SUCCESS(status))
     {
-        BaseSetLastNTError(Status);
+        BaseSetLastNTError(status);
         return TIME_ZONE_ID_INVALID;
     }
 
-    lpTimeZoneInformation->Bias = TimeZoneInformation.Bias;
-
-    wcsncpy(lpTimeZoneInformation->StandardName,
-            TimeZoneInformation.StandardName,
-            ARRAYSIZE(lpTimeZoneInformation->StandardName));
-    lpTimeZoneInformation->StandardDate.wYear = TimeZoneInformation.StandardDate.Year;
-    lpTimeZoneInformation->StandardDate.wMonth = TimeZoneInformation.StandardDate.Month;
-    lpTimeZoneInformation->StandardDate.wDay = TimeZoneInformation.StandardDate.Day;
-    lpTimeZoneInformation->StandardDate.wHour = TimeZoneInformation.StandardDate.Hour;
-    lpTimeZoneInformation->StandardDate.wMinute = TimeZoneInformation.StandardDate.Minute;
-    lpTimeZoneInformation->StandardDate.wSecond = TimeZoneInformation.StandardDate.Second;
-    lpTimeZoneInformation->StandardDate.wMilliseconds = TimeZoneInformation.StandardDate.Milliseconds;
-    lpTimeZoneInformation->StandardDate.wDayOfWeek = TimeZoneInformation.StandardDate.Weekday;
-    lpTimeZoneInformation->StandardBias = TimeZoneInformation.StandardBias;
-
-    wcsncpy(lpTimeZoneInformation->DaylightName,
-            TimeZoneInformation.DaylightName,
-            ARRAYSIZE(lpTimeZoneInformation->DaylightName));
-    lpTimeZoneInformation->DaylightDate.wYear = TimeZoneInformation.DaylightDate.Year;
-    lpTimeZoneInformation->DaylightDate.wMonth = TimeZoneInformation.DaylightDate.Month;
-    lpTimeZoneInformation->DaylightDate.wDay = TimeZoneInformation.DaylightDate.Day;
-    lpTimeZoneInformation->DaylightDate.wHour = TimeZoneInformation.DaylightDate.Hour;
-    lpTimeZoneInformation->DaylightDate.wMinute = TimeZoneInformation.DaylightDate.Minute;
-    lpTimeZoneInformation->DaylightDate.wSecond = TimeZoneInformation.DaylightDate.Second;
-    lpTimeZoneInformation->DaylightDate.wMilliseconds = TimeZoneInformation.DaylightDate.Milliseconds;
-    lpTimeZoneInformation->DaylightDate.wDayOfWeek = TimeZoneInformation.DaylightDate.Weekday;
-    lpTimeZoneInformation->DaylightBias = TimeZoneInformation.DaylightBias;
-
-    return TIME_ZoneID(lpTimeZoneInformation);
+    return TIME_ZoneID( tzinfo );
 }
 
 
-/*
- * @implemented
+/***********************************************************************
+ *              SetTimeZoneInformation  (KERNEL32.@)
+ *
+ *  Change the settings of the current local time zone.
+ *
+ * PARAMS
+ *  tzinfo [in] The new time zone.
+ *
+ * RETURNS
+ *  Success: TRUE. The time zone was updated with the settings from tzinfo.
+ *  Failure: FALSE.
  */
-BOOL
-WINAPI
-SetTimeZoneInformation(CONST TIME_ZONE_INFORMATION *lpTimeZoneInformation)
+BOOL WINAPI SetTimeZoneInformation( const TIME_ZONE_INFORMATION *tzinfo )
 {
     RTL_TIME_ZONE_INFORMATION TimeZoneInformation;
     NTSTATUS Status;
 
     DPRINT("SetTimeZoneInformation()\n");
 
-    TimeZoneInformation.Bias = lpTimeZoneInformation->Bias;
-
-    wcsncpy(TimeZoneInformation.StandardName,
-            lpTimeZoneInformation->StandardName,
-            ARRAYSIZE(TimeZoneInformation.StandardName));
-    TimeZoneInformation.StandardDate.Year = lpTimeZoneInformation->StandardDate.wYear;
-    TimeZoneInformation.StandardDate.Month = lpTimeZoneInformation->StandardDate.wMonth;
-    TimeZoneInformation.StandardDate.Day = lpTimeZoneInformation->StandardDate.wDay;
-    TimeZoneInformation.StandardDate.Hour = lpTimeZoneInformation->StandardDate.wHour;
-    TimeZoneInformation.StandardDate.Minute = lpTimeZoneInformation->StandardDate.wMinute;
-    TimeZoneInformation.StandardDate.Second = lpTimeZoneInformation->StandardDate.wSecond;
-    TimeZoneInformation.StandardDate.Milliseconds = lpTimeZoneInformation->StandardDate.wMilliseconds;
-    TimeZoneInformation.StandardDate.Weekday = lpTimeZoneInformation->StandardDate.wDayOfWeek;
-    TimeZoneInformation.StandardBias = lpTimeZoneInformation->StandardBias;
-
-    wcsncpy(TimeZoneInformation.DaylightName,
-            lpTimeZoneInformation->DaylightName,
-            ARRAYSIZE(TimeZoneInformation.DaylightName));
-    TimeZoneInformation.DaylightDate.Year = lpTimeZoneInformation->DaylightDate.wYear;
-    TimeZoneInformation.DaylightDate.Month = lpTimeZoneInformation->DaylightDate.wMonth;
-    TimeZoneInformation.DaylightDate.Day = lpTimeZoneInformation->DaylightDate.wDay;
-    TimeZoneInformation.DaylightDate.Hour = lpTimeZoneInformation->DaylightDate.wHour;
-    TimeZoneInformation.DaylightDate.Minute = lpTimeZoneInformation->DaylightDate.wMinute;
-    TimeZoneInformation.DaylightDate.Second = lpTimeZoneInformation->DaylightDate.wSecond;
-    TimeZoneInformation.DaylightDate.Milliseconds = lpTimeZoneInformation->DaylightDate.wMilliseconds;
-    TimeZoneInformation.DaylightDate.Weekday = lpTimeZoneInformation->DaylightDate.wDayOfWeek;
-    TimeZoneInformation.DaylightBias = lpTimeZoneInformation->DaylightBias;
-
-    Status = RtlSetTimeZoneInformation(&TimeZoneInformation);
+    Status = RtlSetTimeZoneInformation((LPTIME_ZONE_INFORMATION)tzinfo);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("RtlSetTimeZoneInformation() failed (Status %lx)\n", Status);
@@ -362,8 +321,8 @@ SetTimeZoneInformation(CONST TIME_ZONE_INFORMATION *lpTimeZoneInformation)
     }
 
     Status = NtSetSystemInformation(SystemCurrentTimeZoneInformation,
-                                    (PVOID)&TimeZoneInformation,
-                                    sizeof(RTL_TIME_ZONE_INFORMATION));
+                                    (PVOID)tzinfo,
+                                    sizeof(TIME_ZONE_INFORMATION));
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("NtSetSystemInformation() failed (Status %lx)\n", Status);
@@ -374,8 +333,19 @@ SetTimeZoneInformation(CONST TIME_ZONE_INFORMATION *lpTimeZoneInformation)
     return TRUE;
 }
 
-/*
- * @implemented
+/***********************************************************************
+ *              SystemTimeToTzSpecificLocalTime  (KERNEL32.@)
+ *
+ *  Convert a utc system time to a local time in a given time zone.
+ *
+ * PARAMS
+ *  lpTimeZoneInformation [in]  The desired time zone.
+ *  lpUniversalTime       [in]  The utc time to base local time on.
+ *  lpLocalTime           [out] The local time in the time zone.
+ *
+ * RETURNS
+ *  Success: TRUE. lpLocalTime contains the converted time
+ *  Failure: FALSE.
  */
 BOOL
 WINAPI
@@ -418,8 +388,19 @@ SystemTimeToTzSpecificLocalTime(CONST TIME_ZONE_INFORMATION *lpTimeZoneInformati
 }
 
 
-/*
- * @implemented (Wine 13 sep 2008)
+/***********************************************************************
+ *              TzSpecificLocalTimeToSystemTime  (KERNEL32.@)
+ *
+ *  Converts a local time to a time in utc.
+ *
+ * PARAMS
+ *  lpTimeZoneInformation [in]  The desired time zone.
+ *  lpLocalTime           [in]  The local time.
+ *  lpUniversalTime       [out] The calculated utc time.
+ *
+ * RETURNS
+ *  Success: TRUE. lpUniversalTime contains the converted time.
+ *  Failure: FALSE.
  */
 BOOL
 WINAPI
