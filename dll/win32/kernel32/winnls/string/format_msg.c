@@ -87,23 +87,14 @@ struct format_args
  */
 static LPWSTR load_message( HMODULE module, UINT id, WORD lang )
 {
-#ifdef __REACTOS__
-    MESSAGE_RESOURCE_ENTRY *mre;
-#else
     const MESSAGE_RESOURCE_ENTRY *mre;
-#endif
     WCHAR *buffer;
     NTSTATUS status;
 
     TRACE("module = %p, id = %08x\n", module, id );
 
     if (!module) module = GetModuleHandleW( NULL );
-#ifdef __REACTOS__
-    status = RtlFindMessage(module, (ULONG_PTR)RT_MESSAGETABLE, lang, id, &mre);
-    if (!NT_SUCCESS(status))
-#else
-    if ((status = RtlFindMessage( module, RT_MESSAGETABLE, lang, id, &mre )) != STATUS_SUCCESS)
-#endif
+    if ((status = RtlFindMessage( module, (ULONG_PTR)RT_MESSAGETABLE, lang, id, &mre )) != STATUS_SUCCESS)
     {
         SetLastError( RtlNtStatusToDosError(status) );
         return NULL;

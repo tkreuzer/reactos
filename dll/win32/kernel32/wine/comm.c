@@ -669,6 +669,9 @@ BOOL WINAPI ClearCommError(HANDLE handle, LPDWORD errors, LPCOMSTAT lpStat)
                          &ss, sizeof(ss), &dwBytesReturned, NULL))
         return FALSE;
 
+    TRACE("=> status %#x,%#x, in %u, out %u, eof %d, wait %d\n", ss.Errors, ss.HoldReasons,
+          ss.AmountInInQueue, ss.AmountInOutQueue, ss.EofReceived, ss.WaitForImmediate);
+
     if (errors)
     {
         *errors = 0;
@@ -811,6 +814,8 @@ BOOL WINAPI SetCommState( HANDLE handle, LPDCB lpdcb)
     SERIAL_HANDFLOW            shf;
     SERIAL_CHARS               sc;
     DWORD dwBytesReturned;
+
+    TRACE("handle %p, ptr %p\n", handle, lpdcb);
 
     if (lpdcb == NULL)
     {
@@ -1159,7 +1164,7 @@ BOOL WINAPI GetCommProperties(
     lpCommProp->dwMaxRxQueue        = 4096;
     lpCommProp->dwMaxBaud           = BAUD_115200;
     lpCommProp->dwProvSubType       = PST_RS232;
-    lpCommProp->dwProvCapabilities  = PCF_DTRDSR | PCF_PARITY_CHECK | PCF_RTSCTS | PCF_TOTALTIMEOUTS;
+    lpCommProp->dwProvCapabilities  = PCF_DTRDSR | PCF_PARITY_CHECK | PCF_RTSCTS | PCF_TOTALTIMEOUTS | PCF_INTTIMEOUTS;
     lpCommProp->dwSettableParams    = SP_BAUD | SP_DATABITS | SP_HANDSHAKING |
                                       SP_PARITY | SP_PARITY_CHECK | SP_STOPBITS ;
     lpCommProp->dwSettableBaud      = BAUD_075 | BAUD_110 | BAUD_134_5 | BAUD_150 |

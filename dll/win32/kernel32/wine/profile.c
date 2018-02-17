@@ -27,26 +27,13 @@
 #include <debug.h>
 DEBUG_CHANNEL(profile);
 
-#else /* __REACTOS__ */
+#define RELATIVE_PATH RtlPathTypeRelative
+#define CRITICAL_SECTION RTL_CRITICAL_SECTION
+#define CRITICAL_SECTION_DEBUG RTL_CRITICAL_SECTION_DEBUG
 
-#include "config.h"
-#include "wine/port.h"
-
-#include <string.h>
-#include <stdarg.h>
-
-#include "windef.h"
-#include "winbase.h"
-#include "winnls.h"
-#include "winerror.h"
-#include "winternl.h"
-#include "wine/unicode.h"
-#include "wine/library.h"
-#include "wine/debug.h"
-
-WINE_DEFAULT_DEBUG_CHANNEL(profile);
-
-#endif /* __REACTOS__ */
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'int', possible loss of data
+#endif
 
 static const char bom_utf8[] = {0xEF,0xBB,0xBF};
 
@@ -103,9 +90,9 @@ static RTL_CRITICAL_SECTION_DEBUG critsect_debug =
 {
     0, 0, &PROFILE_CritSect,
     { &critsect_debug.ProcessLocksList, &critsect_debug.ProcessLocksList },
-      0, 0, 0
+      0, 0, { (DWORD_PTR)(__FILE__ ": PROFILE_CritSect") }
 };
-static RTL_CRITICAL_SECTION PROFILE_CritSect = { &critsect_debug, -1, 0, 0, 0, 0 };
+static CRITICAL_SECTION PROFILE_CritSect = { &critsect_debug, -1, 0, 0, 0, 0 };
 
 #else /* __REACTOS__ */
 
@@ -533,7 +520,7 @@ static BOOL PROFILE_DeleteSection( PROFILESECTION **section, LPCWSTR name )
 {
     while (*section)
     {
-        if (!strcmpiW( (*section)->name, name ))
+        if ((*section)->name[0] && !strcmpiW( (*section)->name, name ))
         {
             PROFILESECTION *to_del = *section;
             *section = to_del->next;
@@ -557,7 +544,7 @@ static BOOL PROFILE_DeleteKey( PROFILESECTION **section,
 {
     while (*section)
     {
-        if (!strcmpiW( (*section)->name, section_name ))
+        if ((*section)->name[0] && !strcmpiW( (*section)->name, section_name ))
         {
             PROFILEKEY **key = &(*section)->key;
             while (*key)
@@ -589,7 +576,7 @@ static void PROFILE_DeleteAllKeys( LPCWSTR section_name)
     PROFILESECTION **section= &CurProfile->section;
     while (*section)
     {
-        if (!strcmpiW( (*section)->name, section_name ))
+        if ((*section)->name[0] && !strcmpiW( (*section)->name, section_name ))
         {
             PROFILEKEY **key = &(*section)->key;
             while (*key)
@@ -615,28 +602,31 @@ static PROFILEKEY *PROFILE_Find( PROFILESECTION **section, LPCWSTR section_name,
                                  LPCWSTR key_name, BOOL create, BOOL create_always )
 {
     LPCWSTR p;
-    int seclen = 0, keylen = 0;
+    int seclen, keylen;
 
     while (PROFILE_isspaceW(*section_name)) section_name++;
     if (*section_name)
-    {
         p = section_name + strlenW(section_name) - 1;
-        while ((p > section_name) && PROFILE_isspaceW(*p)) p--;
-        seclen = p - section_name + 1;
-    }
+    else
+        p = section_name;
+
+    while ((p > section_name) && PROFILE_isspaceW(*p)) p--;
+    seclen = p - section_name + 1;
 
     while (PROFILE_isspaceW(*key_name)) key_name++;
     if (*key_name)
-    {
         p = key_name + strlenW(key_name) - 1;
-        while ((p > key_name) && PROFILE_isspaceW(*p)) p--;
-        keylen = p - key_name + 1;
-    }
+    else
+        p = key_name;
+
+    while ((p > key_name) && PROFILE_isspaceW(*p)) p--;
+    keylen = p - key_name + 1;
 
     while (*section)
     {
-        if (!strncmpiW((*section)->name, section_name, seclen) &&
-            ((*section)->name)[seclen] == '\0')
+        if ( ((*section)->name[0])
+             && (!(strncmpiW( (*section)->name, section_name, seclen )))
+             && (((*section)->name)[seclen] == '\0') )
         {
             PROFILEKEY **key = &(*section)->key;
 
@@ -789,11 +779,7 @@ static BOOL PROFILE_Open( LPCWSTR filename, BOOL write_access )
     if (!filename)
 	filename = wininiW;
 
-#ifdef __REACTOS__
-    if ((RtlDetermineDosPathNameType_U(filename) == RtlPathTypeRelative) &&
-#else
     if ((RtlDetermineDosPathNameType_U(filename) == RELATIVE_PATH) &&
-#endif
         !strchrW(filename, '\\') && !strchrW(filename, '/'))
     {
         static const WCHAR wszSeparator[] = {'\\', 0};
@@ -897,11 +883,7 @@ static BOOL PROFILE_Open( LPCWSTR filename, BOOL write_access )
  * If return_values is TRUE, also include the corresponding values.
  */
 static INT PROFILE_GetSection( PROFILESECTION *section, LPCWSTR section_name,
-#ifdef __REACTOS__
-			       LPWSTR buffer, DWORD len, BOOL return_values )
-#else
 			       LPWSTR buffer, UINT len, BOOL return_values )
-#endif
 {
     PROFILEKEY *key;
 
@@ -911,7 +893,7 @@ static INT PROFILE_GetSection( PROFILESECTION *section, LPCWSTR section_name,
 
     while (section)
     {
-        if (!strcmpiW( section->name, section_name ))
+        if (section->name[0] && !strcmpiW( section->name, section_name ))
         {
             UINT oldlen = len;
             for (key = section->key; key; key = key->next)
@@ -952,11 +934,7 @@ static INT PROFILE_GetSection( PROFILESECTION *section, LPCWSTR section_name,
 }
 
 /* See GetPrivateProfileSectionNamesA for documentation */
-#ifdef __REACTOS__
-static INT PROFILE_GetSectionNames( LPWSTR buffer, DWORD len )
-#else
 static INT PROFILE_GetSectionNames( LPWSTR buffer, UINT len )
-#endif
 {
     LPWSTR buf;
     UINT buflen,tmplen;
@@ -1020,11 +998,7 @@ static INT PROFILE_GetSectionNames( LPWSTR buffer, UINT len )
  *
  */
 static INT PROFILE_GetString( LPCWSTR section, LPCWSTR key_name,
-#ifdef __REACTOS__
-                              LPCWSTR def_val, LPWSTR buffer, DWORD len )
-#else
                               LPCWSTR def_val, LPWSTR buffer, UINT len )
-#endif
 {
     PROFILEKEY *key = NULL;
     static const WCHAR empty_strW[] = { 0 };
@@ -1034,6 +1008,11 @@ static INT PROFILE_GetString( LPCWSTR section, LPCWSTR key_name,
     if (!def_val) def_val = empty_strW;
     if (key_name)
     {
+	if (!key_name[0])
+        {
+            PROFILE_CopyEntry(buffer, def_val, len, TRUE);
+            return strlenW(buffer);
+        }
         key = PROFILE_Find( &CurProfile->section, section, key_name, FALSE, FALSE);
         PROFILE_CopyEntry( buffer, (key && key->value) ? key->value : def_val,
                            len, TRUE );
@@ -1043,7 +1022,7 @@ static INT PROFILE_GetString( LPCWSTR section, LPCWSTR key_name,
         return strlenW( buffer );
     }
     /* no "else" here ! */
-    if (section)
+    if (section && section[0])
     {
         INT ret = PROFILE_GetSection(CurProfile->section, section, buffer, len, FALSE);
         if (!buffer[0]) /* no luck -> def_val */
