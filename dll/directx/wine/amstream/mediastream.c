@@ -18,9 +18,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifndef __REACTOS__
 #define NONAMELESSUNION
-#endif
 #define COBJMACROS
 
 #include <stdarg.h>
