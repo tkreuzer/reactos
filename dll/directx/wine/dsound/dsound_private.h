@@ -19,6 +19,7 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#ifdef __REACTOS__
 #ifndef _DSOUND_PRIVATE_H_
 #define _DSOUND_PRIVATE_H_
 
@@ -54,10 +55,20 @@
 #include <wine/list.h>
 
 WINE_DEFAULT_DEBUG_CHANNEL(dsound);
+#endif // __REACTOS__
 
 /* Linux does not support better timing than 10ms */
 #define DS_TIME_RES 2  /* Resolution of multimedia timer */
 #define DS_TIME_DEL 10  /* Delay of multimedia timer callback, and duration of HEL fragment */
+
+#ifndef __REACTOS__
+#include "wingdi.h"
+#include "mmdeviceapi.h"
+#include "audioclient.h"
+#include "mmsystem.h"
+
+#include "wine/list.h"
+#endif // !__REACTOS__
 
 extern int ds_hel_buflen DECLSPEC_HIDDEN;
 extern int ds_snd_queue_max DECLSPEC_HIDDEN;

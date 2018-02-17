@@ -19,8 +19,40 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#ifdef __REACTOS__
 #include "dsound_private.h"
 #include "devpkey.h"
+#else
+#define COBJMACROS
+#define NONAMELESSSTRUCT
+#define NONAMELESSUNION
+#include <stdarg.h>
+
+#include "windef.h"
+#include "winbase.h"
+#include "winuser.h"
+#include "mmsystem.h"
+#include "winternl.h"
+#include "winnls.h"
+#include "vfwmsgs.h"
+#include "mmddk.h"
+#include "wine/debug.h"
+#include "dsound.h"
+#include "dsound_private.h"
+#include "dsconf.h"
+
+#include "ksmedia.h"
+#include "propkey.h"
+#include "devpkey.h"
+
+#ifdef NONAMELESSSTRUCT
+# define S(x) (x).s
+#else
+# define S(x) (x)
+#endif
+
+WINE_DEFAULT_DEBUG_CHANNEL(dsound);
+#endif // __REACTOS__
 
 static WCHAR wInterface[] = { 'I','n','t','e','r','f','a','c','e',0 };
 
