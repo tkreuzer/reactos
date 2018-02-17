@@ -1,16 +1,26 @@
 /*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS system libraries
- * FILE:            dll/win32/kernel32/wine/actctx.c
- * PURPOSE:         Activation contexts
- * PROGRAMMERS:     Jacek Caban for CodeWeavers
- *                  Eric Pouech
- *                  Jon Griffiths
- *                  Dmitry Chapyshev (dmitry@reactos.org)
- *                  Samuel Serapión 
+ * Activation contexts
+ *
+ * Copyright 2004 Jon Griffiths
+ * Copyright 2007 Eric Pouech
+ * Copyright 2007 Jacek Caban for CodeWeavers
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-/* Partly synched with Wine 1.7.17 */
+/* Partly synched with Wine */
 
 #include <k32.h>
 
@@ -108,13 +118,101 @@ HANDLE WINAPI CreateActCtxW(PCACTCTXW pActCtx)
 
     TRACE("%p %08x\n", pActCtx, pActCtx ? pActCtx->dwFlags : 0);
 
+#ifdef __REACTOS__
     if ((status = RtlCreateActivationContext(0, (PVOID)pActCtx, 0, NULL, NULL, &hActCtx)))
+#else
+    if ((status = RtlCreateActivationContext(&hActCtx, pActCtx)))
+#endif
     {
         SetLastError(RtlNtStatusToDosError(status));
         return INVALID_HANDLE_VALUE;
     }
     return hActCtx;
 }
+
+#ifndef __REACTOS__
+/***********************************************************************
+ * ActivateActCtx (KERNEL32.@)
+ *
+ * Activate an activation context.
+ */
+BOOL WINAPI ActivateActCtx(HANDLE hActCtx, ULONG_PTR *ulCookie)
+{
+    NTSTATUS status;
+
+    if ((status = RtlActivateActivationContext( 0, hActCtx, ulCookie )))
+    {
+        SetLastError(RtlNtStatusToDosError(status));
+        return FALSE;
+    }
+    return TRUE;
+}
+
+/***********************************************************************
+ * DeactivateActCtx (KERNEL32.@)
+ *
+ * Deactivate an activation context.
+ */
+BOOL WINAPI DeactivateActCtx(DWORD dwFlags, ULONG_PTR ulCookie)
+{
+    RtlDeactivateActivationContext( dwFlags, ulCookie );
+    return TRUE;
+}
+
+/***********************************************************************
+ * GetCurrentActCtx (KERNEL32.@)
+ *
+ * Get the current activation context.
+ */
+BOOL WINAPI GetCurrentActCtx(HANDLE* phActCtx)
+{
+    NTSTATUS status;
+
+    if ((status = RtlGetActiveActivationContext(phActCtx)))
+    {
+        SetLastError(RtlNtStatusToDosError(status));
+        return FALSE;
+    }
+    return TRUE;
+}
+
+/***********************************************************************
+ * AddRefActCtx (KERNEL32.@)
+ *
+ * Add a reference to an activation context.
+ */
+void WINAPI AddRefActCtx(HANDLE hActCtx)
+{
+    RtlAddRefActivationContext(hActCtx);
+}
+
+/***********************************************************************
+ * ReleaseActCtx (KERNEL32.@)
+ *
+ * Release a reference to an activation context.
+ */
+void WINAPI ReleaseActCtx(HANDLE hActCtx)
+{
+    RtlReleaseActivationContext(hActCtx);
+}
+
+/***********************************************************************
+ * ZombifyActCtx (KERNEL32.@)
+ *
+ * Deactivate context without releasing it.
+ */
+BOOL WINAPI ZombifyActCtx(HANDLE hActCtx)
+{
+    NTSTATUS status;
+
+    if ((status = RtlZombifyActivationContext(hActCtx)))
+    {
+        SetLastError(RtlNtStatusToDosError(status));
+        return FALSE;
+    }
+    return TRUE;
+}
+#endif // __REACTOS__
 
 /***********************************************************************
  * FindActCtxSectionStringA (KERNEL32.@)
@@ -195,4 +293,24 @@ BOOL WINAPI FindActCtxSectionGuid(DWORD dwFlags, const GUID* lpExtGuid,
     return TRUE;
 }
 
-/* EOF */
+#ifndef __REACTOS__
+/***********************************************************************
+ * QueryActCtxW (KERNEL32.@)
+ *
+ * Get information about an activation context.
+ */
+BOOL WINAPI QueryActCtxW(DWORD dwFlags, HANDLE hActCtx, PVOID pvSubInst,
+                         ULONG ulClass, PVOID pvBuff, SIZE_T cbBuff,
+                         SIZE_T *pcbLen)
+{
+    NTSTATUS status;
+
+    if ((status = RtlQueryInformationActivationContext( dwFlags, hActCtx, pvSubInst, ulClass,
+                                                        pvBuff, cbBuff, pcbLen )))
+    {
+        SetLastError(RtlNtStatusToDosError(status));
+        return FALSE;
+    }
+    return TRUE;
+}
+#endif // __REACTOS__
