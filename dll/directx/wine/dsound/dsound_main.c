@@ -32,13 +32,6 @@
  *      Remove DS_HEL_FRAGS and use mixer fragment length for it
  */
 
-#ifdef __REACTOS__
-#include "dsound_private.h"
-#include "devpkey.h"
-
-#include <winreg.h>
-#include <rpcproxy.h>
-#else
 #include <stdarg.h>
 
 #define COBJMACROS
@@ -71,7 +64,6 @@
 #include "dsound_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dsound);
-#endif // __REACTOS__
 
 struct list DSOUND_renderers = LIST_INIT(DSOUND_renderers);
 CRITICAL_SECTION DSOUND_renderers_lock;

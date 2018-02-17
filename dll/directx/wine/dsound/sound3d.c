@@ -37,12 +37,6 @@
  *      Optimize WINMM and negotiate fragment size, decrease DS_HEL_MARGIN
  */
 
-#ifdef __REACTOS__
-#include "dsound_private.h"
-
-/* default velocity of sound in the air */
-#define DEFAULT_VELOCITY 340
-#else
 #include <stdarg.h>
 #include <math.h>	/* Insomnia - pow() function */
 
@@ -62,7 +56,6 @@
 #define DEFAULT_VELOCITY 340
 
 WINE_DEFAULT_DEBUG_CHANNEL(dsound3d);
-#endif // __REACTOS__
 
 /*******************************************************************************
  *              Auxiliary functions

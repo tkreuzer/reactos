@@ -19,10 +19,6 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#ifdef __REACTOS__
-#include "dsound_private.h"
-#include "devpkey.h"
-#else
 #define COBJMACROS
 #define NONAMELESSSTRUCT
 #define NONAMELESSUNION
@@ -52,7 +48,6 @@
 #endif
 
 WINE_DEFAULT_DEBUG_CHANNEL(dsound);
-#endif // __REACTOS__
 
 static WCHAR wInterface[] = { 'I','n','t','e','r','f','a','c','e',0 };
 

@@ -20,55 +20,19 @@
  */
 
 #ifdef __REACTOS__
-#ifndef _DSOUND_PRIVATE_H_
-#define _DSOUND_PRIVATE_H_
-
-#include <wine/config.h>
-
-#include <assert.h>
-#include <math.h>
-#include <stdarg.h>
-
-#define WIN32_NO_STATUS
-#define _INC_WINDOWS
-#define COM_NO_WINDOWS_H
-
-#define COBJMACROS
-#define NONAMELESSSTRUCT
-#define NONAMELESSUNION
-
-#include <windef.h>
-#include <winbase.h>
-#include <winnls.h>
-#include <wingdi.h>
-#include <winternl.h>
-#include <objbase.h>
-#include <audioclient.h>
-#include <mmddk.h>
-#include <dsound.h>
-#include <dsconf.h>
 #include <dsdriver.h>
-#include <vfwmsgs.h>
-#include <mmdeviceapi.h>
-
-#include <wine/debug.h>
-#include <wine/list.h>
-
-WINE_DEFAULT_DEBUG_CHANNEL(dsound);
 #endif // __REACTOS__
 
 /* Linux does not support better timing than 10ms */
 #define DS_TIME_RES 2  /* Resolution of multimedia timer */
 #define DS_TIME_DEL 10  /* Delay of multimedia timer callback, and duration of HEL fragment */
 
-#ifndef __REACTOS__
 #include "wingdi.h"
 #include "mmdeviceapi.h"
 #include "audioclient.h"
 #include "mmsystem.h"
 
 #include "wine/list.h"
-#endif // !__REACTOS__
 
 extern int ds_hel_buflen DECLSPEC_HIDDEN;
 extern int ds_snd_queue_max DECLSPEC_HIDDEN;
@@ -436,5 +400,3 @@ BOOL DSOUND_check_supported(IAudioClient *client, DWORD rate,
 UINT DSOUND_create_timer(LPTIMECALLBACK cb, DWORD_PTR user) DECLSPEC_HIDDEN;
 HRESULT enumerate_mmdevices(EDataFlow flow, GUID *guids,
         LPDSENUMCALLBACKW cb, void *user) DECLSPEC_HIDDEN;
-
-#endif /* _DSOUND_PRIVATE_H_ */
