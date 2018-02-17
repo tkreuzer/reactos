@@ -9,5 +9,8 @@
 #include <dsound.h>
 #include <initguid.h>
 #include <dsdriver.h>
+#include <wingdi.h> // needed by audioclient.h
+#include <audioclient.h>
+#include <mmdeviceapi.h>
 
 /* NO CODE HERE, THIS IS JUST REQUIRED FOR THE GUID DEFINITIONS */
