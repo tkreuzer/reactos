@@ -25,8 +25,10 @@
 #ifndef __WINE_WINED3D_PRIVATE_H
 #define __WINE_WINED3D_PRIVATE_H
 
+#ifdef __REACTOS__
 #include <wine/config.h>
 #include <wine/port.h>
+#endif // __REACTOS__
 
 #ifdef USE_WIN32_OPENGL
 #define WINE_GLAPI __stdcall
@@ -34,40 +36,35 @@
 #define WINE_GLAPI
 #endif
 
-#ifdef HAVE_FLOAT_H
-# include <float.h>
-#endif
-
 #include <assert.h>
-#include <stdio.h>
-
-#include <ntstatus.h>
+#include <stdarg.h>
+#include <math.h>
+#include <limits.h>
+#include "ntstatus.h"
 #define WIN32_NO_STATUS
-#define _INC_WINDOWS
-#define COM_NO_WINDOWS_H
-
 #define NONAMELESSUNION
 #define NONAMELESSSTRUCT
 #define COBJMACROS
+#include "windef.h"
+#include "winbase.h"
+#include "winreg.h"
+#include "wingdi.h"
+#include "winuser.h"
+#include "winternl.h"
+#include "ddk/d3dkmthk.h"
+#include "wine/debug.h"
+#include "wine/unicode.h"
 
-#include <windef.h>
-#include <winbase.h>
-#include <wingdi.h>
-#include <winuser.h>
-#include <wine/winternl.h>
-#include <ddk/d3dkmthk.h>
-#include <objbase.h>
-
-#include <wine/debug.h>
-#include <wine/list.h>
-#include <wine/rbtree.h>
-#include <wine/wined3d.h>
-
+#include "objbase.h"
+#include "wine/wined3d.h"
 #include "wined3d_gl.h"
-#include <wine/wgl_driver.h>
+#include "wine/list.h"
+#include "wine/rbtree.h"
+#include "wine/wgl_driver.h"
 
+#ifdef __REACTOS__
 #include <reactos/undocuser.h>
-
+#endif // __REACTOS__
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof((array)[0]))
 #endif

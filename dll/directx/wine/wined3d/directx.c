@@ -21,10 +21,13 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include "wined3d_private.h"
-#include <winternl.h>
+#include "config.h"
+#include "wine/port.h"
 
-#include <wine/unicode.h>
+#include <stdio.h>
+
+#include "wined3d_private.h"
+#include "winternl.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(d3d);
 WINE_DECLARE_DEBUG_CHANNEL(d3d_perf);

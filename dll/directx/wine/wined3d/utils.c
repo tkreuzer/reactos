@@ -24,6 +24,11 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#include "config.h"
+#include "wine/port.h"
+
+#include <stdio.h>
+
 #include "wined3d_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(d3d);
@@ -2892,10 +2897,10 @@ static void query_internal_format(struct wined3d_adapter *adapter,
 #ifdef __REACTOS__
             if (gl_info->limits.samples) {
 #endif
-                max_log2 = wined3d_log2i(min(gl_info->limits.samples,
-                        sizeof(format->multisample_types) * 8));
-                for (i = 1; i <= max_log2; ++i)
-                    format->multisample_types |= 1u << ((1u << i) - 1);
+            max_log2 = wined3d_log2i(min(gl_info->limits.samples,
+                    sizeof(format->multisample_types) * 8));
+            for (i = 1; i <= max_log2; ++i)
+                format->multisample_types |= 1u << ((1u << i) - 1);
 #ifdef __REACTOS__
             }
 #endif
