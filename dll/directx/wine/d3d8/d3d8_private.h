@@ -23,27 +23,22 @@
 #ifndef __WINE_D3D8_PRIVATE_H
 #define __WINE_D3D8_PRIVATE_H
 
+#ifdef __REACTOS__
 #include <config.h>
+#endif // __REACTOS__
 
 #include <assert.h>
 #include <stdarg.h>
 
-#define WIN32_NO_STATUS
-#define _INC_WINDOWS
-#define COM_NO_WINDOWS_H
-
 #define NONAMELESSUNION
 #define NONAMELESSSTRUCT
 #define COBJMACROS
-#include <windef.h>
-#include <winbase.h>
-#include <wingdi.h>
-
-#include <wine/debug.h>
-WINE_DEFAULT_DEBUG_CHANNEL(d3d8);
-
-#include <d3d8.h>
-#include <wine/wined3d.h>
+#include "windef.h"
+#include "winbase.h"
+#include "wingdi.h"
+#include "wine/debug.h"
+#include "d3d8.h"
+#include "wine/wined3d.h"
 
 #define D3DPRESENTFLAGS_MASK 0x00000fffu
 
