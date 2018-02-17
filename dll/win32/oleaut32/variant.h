@@ -19,7 +19,10 @@
  */
 
 #pragma once
-
+#include "windef.h"
+#include "winerror.h"
+#include "objbase.h"
+#include "oleauto.h"
 #include "windef.h"
 #include "winerror.h"
 #include "objbase.h"
