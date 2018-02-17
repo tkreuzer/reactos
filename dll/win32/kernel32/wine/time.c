@@ -348,44 +348,41 @@ BOOL WINAPI SetTimeZoneInformation( const TIME_ZONE_INFORMATION *tzinfo )
  *  Success: TRUE. lpLocalTime contains the converted time
  *  Failure: FALSE.
  */
-BOOL
-WINAPI
-SystemTimeToTzSpecificLocalTime(CONST TIME_ZONE_INFORMATION *lpTimeZoneInformation,
-                                CONST SYSTEMTIME *lpUniversalTime,
-                                LPSYSTEMTIME lpLocalTime)
+
+BOOL WINAPI SystemTimeToTzSpecificLocalTime(
+    const TIME_ZONE_INFORMATION *lpTimeZoneInformation,
+    const SYSTEMTIME *lpUniversalTime, LPSYSTEMTIME lpLocalTime )
 {
-    TIME_ZONE_INFORMATION TzInfo;
-    FILETIME FileTime;
-    LONGLONG llTime;
+    FILETIME ft;
     LONG lBias;
+    LONGLONG llTime;
+    TIME_ZONE_INFORMATION tzinfo;
 
     if (lpTimeZoneInformation != NULL)
     {
-        TzInfo = *lpTimeZoneInformation;
+        tzinfo = *lpTimeZoneInformation;
     }
     else
     {
-        if (GetTimeZoneInformation(&TzInfo) == TIME_ZONE_ID_INVALID)
+        if (GetTimeZoneInformation(&tzinfo) == TIME_ZONE_ID_INVALID)
             return FALSE;
     }
 
+#ifdef __REACTOS__
     if (!lpUniversalTime || !lpLocalTime)
         return FALSE;
+#endif // __REACTOS__
 
-    if (!SystemTimeToFileTime(lpUniversalTime, &FileTime))
+    if (!SystemTimeToFileTime(lpUniversalTime, &ft))
         return FALSE;
-
-    FILETIME2LL(&FileTime, llTime)
-
-    if (!TIME_GetTimezoneBias(&TzInfo, &FileTime, FALSE, &lBias))
+    FILETIME2LL( &ft, llTime)
+    if (!TIME_GetTimezoneBias(&tzinfo, &ft, FALSE, &lBias))
         return FALSE;
-
     /* convert minutes to 100-nanoseconds-ticks */
     llTime -= (LONGLONG)lBias * TICKSPERMIN;
+    LL2FILETIME( llTime, &ft)
 
-    LL2FILETIME( llTime, &FileTime)
-
-    return FileTimeToSystemTime(&FileTime, lpLocalTime);
+    return FileTimeToSystemTime(&ft, lpLocalTime);
 }
 
 
