@@ -27,7 +27,7 @@
 #include <stdio.h>
 
 #include "wined3d_private.h"
-#include "wine/winternl.h"
+#include "winternl.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(d3d);
 WINE_DECLARE_DEBUG_CHANNEL(d3d_perf);
