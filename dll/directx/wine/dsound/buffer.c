@@ -92,13 +92,7 @@ static HRESULT WINAPI IDirectSoundNotifyImpl_SetNotificationPositions(
 		    notify[i].dwOffset,notify[i].hEventNotify);
 	}
 
-	if (This->dsb->hwnotify) {
-	    HRESULT hres;
-	    hres = IDsDriverNotify_SetNotificationPositions(This->dsb->hwnotify, howmuch, notify);
-	    if (hres != DS_OK)
-		    WARN("IDsDriverNotify_SetNotificationPositions failed\n");
-	    return hres;
-        } else if (howmuch > 0) {
+	if (howmuch > 0) {
 	    /* Make an internal copy of the caller-supplied array.
 	     * Replace the existing copy if one is already present. */
 	    HeapFree(GetProcessHeap(), 0, This->dsb->notifies);
@@ -111,11 +105,11 @@ static HRESULT WINAPI IDirectSoundNotifyImpl_SetNotificationPositions(
 	    }
 	    CopyMemory(This->dsb->notifies, notify, howmuch * sizeof(DSBPOSITIONNOTIFY));
 	    This->dsb->nrofnotifies = howmuch;
-        } else {
-           HeapFree(GetProcessHeap(), 0, This->dsb->notifies);
-           This->dsb->notifies = NULL;
-           This->dsb->nrofnotifies = 0;
-        }
+	} else {
+	   HeapFree(GetProcessHeap(), 0, This->dsb->notifies);
+	   This->dsb->notifies = NULL;
+	   This->dsb->nrofnotifies = 0;
+	}
 
 	return S_OK;
 }
@@ -226,14 +220,6 @@ static HRESULT WINAPI IDirectSoundBufferImpl_SetVolume(IDirectSoundBuffer8 *ifac
 			DSOUND_RecalcVolPan(&(This->volpan));
 	}
 
-	if (vol != oldVol) {
-		if (This->hwbuf) {
-			hres = IDsDriverBuffer_SetVolumePan(This->hwbuf, &(This->volpan));
-	    		if (hres != DS_OK)
-		    		WARN("IDsDriverBuffer_SetVolumePan failed\n");
-		}
-	}
-
 	RtlReleaseResource(&This->lock);
 	/* **** */
 
@@ -316,18 +302,11 @@ static HRESULT WINAPI IDirectSoundBufferImpl_Play(IDirectSoundBuffer8 *iface, DW
 	RtlAcquireResourceExclusive(&This->lock, TRUE);
 
 	This->playflags = flags;
-	if (This->state == STATE_STOPPED && !This->hwbuf) {
+	if (This->state == STATE_STOPPED) {
 		This->leadin = TRUE;
 		This->state = STATE_STARTING;
 	} else if (This->state == STATE_STOPPING)
 		This->state = STATE_PLAYING;
-	if (This->hwbuf) {
-		hres = IDsDriverBuffer_Play(This->hwbuf, 0, 0, This->playflags);
-		if (hres != DS_OK)
-			WARN("IDsDriverBuffer_Play failed\n");
-		else
-			This->state = STATE_PLAYING;
-	}
 
 	RtlReleaseResource(&This->lock);
 	/* **** */
@@ -351,13 +330,6 @@ static HRESULT WINAPI IDirectSoundBufferImpl_Stop(IDirectSoundBuffer8 *iface)
 	{
 		This->state = STATE_STOPPED;
 		DSOUND_CheckEvent(This, 0, 0);
-	}
-	if (This->hwbuf) {
-		hres = IDsDriverBuffer_Stop(This->hwbuf);
-		if (hres != DS_OK)
-			WARN("IDsDriverBuffer_Stop failed\n");
-		else
-			This->state = STATE_STOPPED;
 	}
 
 	RtlReleaseResource(&This->lock);
@@ -399,36 +371,31 @@ static HRESULT WINAPI IDirectSoundBufferImpl_GetCurrentPosition(IDirectSoundBuff
         DWORD *playpos, DWORD *writepos)
 {
         IDirectSoundBufferImpl *This = impl_from_IDirectSoundBuffer8(iface);
-	HRESULT	hres;
+	DWORD pos;
 
 	TRACE("(%p,%p,%p)\n",This,playpos,writepos);
 
 	RtlAcquireResourceShared(&This->lock, TRUE);
-	if (This->hwbuf) {
-		hres=IDsDriverBuffer_GetPosition(This->hwbuf,playpos,writepos);
-		if (hres != DS_OK) {
-		    WARN("IDsDriverBuffer_GetPosition failed\n");
-		    return hres;
-		}
-	} else {
-		DWORD pos = This->sec_mixpos;
 
-		/* sanity */
-		if (pos >= This->buflen){
-			FIXME("Bad play position. playpos: %d, buflen: %d\n", pos, This->buflen);
-			pos %= This->buflen;
-		}
+	pos = This->sec_mixpos;
 
-		if (playpos)
-			*playpos = pos;
-		if (writepos)
-			*writepos = pos;
+	/* sanity */
+	if (pos >= This->buflen){
+		FIXME("Bad play position. playpos: %d, buflen: %d\n", pos, This->buflen);
+		pos %= This->buflen;
 	}
-	if (writepos && This->state != STATE_STOPPED && (!This->hwbuf || !(This->device->drvdesc.dwFlags & DSDDESC_DONTNEEDWRITELEAD))) {
+
+	if (playpos)
+		*playpos = pos;
+	if (writepos)
+		*writepos = pos;
+
+	if (writepos && This->state != STATE_STOPPED) {
 		/* apply the documented 10ms lead to writepos */
 		*writepos += This->writelead;
 		*writepos %= This->buflen;
 	}
+
 	RtlReleaseResource(&This->lock);
 
 	TRACE("playpos = %d, writepos = %d, buflen=%d (%p, time=%d)\n",
@@ -538,44 +505,31 @@ static HRESULT WINAPI IDirectSoundBufferImpl_Lock(IDirectSoundBuffer8 *iface, DW
 	/* **** */
 	RtlAcquireResourceShared(&This->lock, TRUE);
 
-	if (!(This->device->drvdesc.dwFlags & DSDDESC_DONTNEEDSECONDARYLOCK) && This->hwbuf) {
-		hres = IDsDriverBuffer_Lock(This->hwbuf,
-				     lplpaudioptr1, audiobytes1,
-				     lplpaudioptr2, audiobytes2,
-				     writecursor, writebytes,
-				     0);
-		if (hres != DS_OK) {
-			WARN("IDsDriverBuffer_Lock failed\n");
-			RtlReleaseResource(&This->lock);
-			return hres;
-		}
+	if (writecursor+writebytes <= This->buflen) {
+		*(LPBYTE*)lplpaudioptr1 = This->buffer->memory+writecursor;
+		if (This->sec_mixpos >= writecursor && This->sec_mixpos < writecursor + writebytes && This->state == STATE_PLAYING)
+			WARN("Overwriting mixing position, case 1\n");
+		*audiobytes1 = writebytes;
+		if (lplpaudioptr2)
+			*(LPBYTE*)lplpaudioptr2 = NULL;
+		if (audiobytes2)
+			*audiobytes2 = 0;
+		TRACE("Locked %p(%i bytes) and %p(%i bytes) writecursor=%d\n",
+		  *(LPBYTE*)lplpaudioptr1, *audiobytes1, lplpaudioptr2 ? *(LPBYTE*)lplpaudioptr2 : NULL, audiobytes2 ? *audiobytes2: 0, writecursor);
+		TRACE("->%d.0\n",writebytes);
 	} else {
-		if (writecursor+writebytes <= This->buflen) {
-			*(LPBYTE*)lplpaudioptr1 = This->buffer->memory+writecursor;
-			if (This->sec_mixpos >= writecursor && This->sec_mixpos < writecursor + writebytes && This->state == STATE_PLAYING)
-				WARN("Overwriting mixing position, case 1\n");
-			*audiobytes1 = writebytes;
-			if (lplpaudioptr2)
-				*(LPBYTE*)lplpaudioptr2 = NULL;
-			if (audiobytes2)
-				*audiobytes2 = 0;
-			TRACE("Locked %p(%i bytes) and %p(%i bytes) writecursor=%d\n",
-			  *(LPBYTE*)lplpaudioptr1, *audiobytes1, lplpaudioptr2 ? *(LPBYTE*)lplpaudioptr2 : NULL, audiobytes2 ? *audiobytes2: 0, writecursor);
-			TRACE("->%d.0\n",writebytes);
-		} else {
-			DWORD remainder = writebytes + writecursor - This->buflen;
-			*(LPBYTE*)lplpaudioptr1 = This->buffer->memory+writecursor;
-			*audiobytes1 = This->buflen-writecursor;
-			if (This->sec_mixpos >= writecursor && This->sec_mixpos < writecursor + writebytes && This->state == STATE_PLAYING)
-				WARN("Overwriting mixing position, case 2\n");
-			if (lplpaudioptr2)
-				*(LPBYTE*)lplpaudioptr2 = This->buffer->memory;
-			if (audiobytes2)
-				*audiobytes2 = writebytes-(This->buflen-writecursor);
-			if (audiobytes2 && This->sec_mixpos < remainder && This->state == STATE_PLAYING)
-				WARN("Overwriting mixing position, case 3\n");
-			TRACE("Locked %p(%i bytes) and %p(%i bytes) writecursor=%d\n", *(LPBYTE*)lplpaudioptr1, *audiobytes1, lplpaudioptr2 ? *(LPBYTE*)lplpaudioptr2 : NULL, audiobytes2 ? *audiobytes2: 0, writecursor);
-		}
+		DWORD remainder = writebytes + writecursor - This->buflen;
+		*(LPBYTE*)lplpaudioptr1 = This->buffer->memory+writecursor;
+		*audiobytes1 = This->buflen-writecursor;
+		if (This->sec_mixpos >= writecursor && This->sec_mixpos < writecursor + writebytes && This->state == STATE_PLAYING)
+			WARN("Overwriting mixing position, case 2\n");
+		if (lplpaudioptr2)
+			*(LPBYTE*)lplpaudioptr2 = This->buffer->memory;
+		if (audiobytes2)
+			*audiobytes2 = writebytes-(This->buflen-writecursor);
+		if (audiobytes2 && This->sec_mixpos < remainder && This->state == STATE_PLAYING)
+			WARN("Overwriting mixing position, case 3\n");
+		TRACE("Locked %p(%i bytes) and %p(%i bytes) writecursor=%d\n", *(LPBYTE*)lplpaudioptr1, *audiobytes1, lplpaudioptr2 ? *(LPBYTE*)lplpaudioptr2 : NULL, audiobytes2 ? *audiobytes2: 0, writecursor);
 	}
 
 	RtlReleaseResource(&This->lock);
@@ -607,12 +561,7 @@ static HRESULT WINAPI IDirectSoundBufferImpl_SetCurrentPosition(IDirectSoundBuff
            or anything like that to reduce latency. The data already prebuffered cannot be changed */
 
 	/* position HW buffer if applicable, else just start mixing from new location instead */
-	if (This->hwbuf) {
-		hres = IDsDriverBuffer_SetPosition(This->hwbuf, This->buf_mixpos);
-		if (hres != DS_OK)
-			WARN("IDsDriverBuffer_SetPosition failed\n");
-	}
-	else if (oldpos != newpos)
+	if (oldpos != newpos)
 		/* FIXME: Perhaps add a call to DSOUND_MixToTemporary here? Not sure it's needed */
 		This->buf_mixpos = DSOUND_secpos_to_bufpos(This, newpos, 0, NULL);
 
@@ -647,12 +596,6 @@ static HRESULT WINAPI IDirectSoundBufferImpl_SetPan(IDirectSoundBuffer8 *iface, 
 	if (This->volpan.lPan != pan) {
 		This->volpan.lPan = pan;
 		DSOUND_RecalcVolPan(&(This->volpan));
-
-		if (This->hwbuf) {
-			hres = IDsDriverBuffer_SetVolumePan(This->hwbuf, &(This->volpan));
-			if (hres != DS_OK)
-				WARN("IDsDriverBuffer_SetVolumePan failed\n");
-		}
 	}
 
 	RtlReleaseResource(&This->lock);
@@ -690,22 +633,16 @@ static HRESULT WINAPI IDirectSoundBufferImpl_Unlock(IDirectSoundBuffer8 *iface, 
 
 	TRACE("(%p,%p,%d,%p,%d)\n", This,p1,x1,p2,x2);
 
-	/* **** */
-	RtlAcquireResourceShared(&This->lock, TRUE);
-
-	if (!(This->device->drvdesc.dwFlags & DSDDESC_DONTNEEDSECONDARYLOCK) && This->hwbuf) {
-		hres = IDsDriverBuffer_Unlock(This->hwbuf, p1, x1, p2, x2);
-		if (hres != DS_OK)
-			WARN("IDsDriverBuffer_Unlock failed\n");
-	}
-
-	RtlReleaseResource(&This->lock);
-	/* **** */
-
 	if (!p2)
 		x2 = 0;
 
-	if (!This->hwbuf && (x1 || x2))
+    if((p1 && ((BYTE*)p1 < This->buffer->memory ||
+                    (BYTE*)p1 >= This->buffer->memory + This->buflen)) ||
+            (p2 && ((BYTE*)p2 < This->buffer->memory ||
+                    (BYTE*)p2 >= This->buffer->memory + This->buflen)))
+        return DSERR_INVALIDPARAM;
+
+	if (x1 || x2)
 	{
 		RtlAcquireResourceShared(&This->device->buffer_list_lock, TRUE);
 		LIST_FOR_EACH_ENTRY(iter, &This->buffer->buffers, IDirectSoundBufferImpl, entry )
@@ -820,8 +757,7 @@ static HRESULT WINAPI IDirectSoundBufferImpl_GetCaps(IDirectSoundBuffer8 *iface,
 	}
 
 	caps->dwFlags = This->dsbd.dwFlags;
-	if (This->hwbuf) caps->dwFlags |= DSBCAPS_LOCHARDWARE;
-	else caps->dwFlags |= DSBCAPS_LOCSOFTWARE;
+	caps->dwFlags |= DSBCAPS_LOCSOFTWARE;
 
 	caps->dwBufferBytes = This->buflen;
 
@@ -937,7 +873,6 @@ HRESULT IDirectSoundBufferImpl_Create(
 	LPWAVEFORMATEX wfex = dsbd->lpwfxFormat;
 	HRESULT err = DS_OK;
 	DWORD capf = 0;
-	int use_hw;
 	TRACE("(%p,%p,%p)\n",device,pdsb,dsbd);
 
 	if (dsbd->dwBufferBytes < DSBSIZE_MIN || dsbd->dwBufferBytes > DSBSIZE_MAX) {
@@ -956,10 +891,10 @@ HRESULT IDirectSoundBufferImpl_Create(
 
 	TRACE("Created buffer at %p\n", dsb);
 
-        dsb->ref = 1;
-        dsb->numIfaces = 1;
+	dsb->ref = 1;
+	dsb->numIfaces = 1;
 	dsb->device = device;
-        dsb->IDirectSoundBuffer8_iface.lpVtbl = &dsbvt;
+	dsb->IDirectSoundBuffer8_iface.lpVtbl = &dsbvt;
 	dsb->iks = NULL;
 
 	/* size depends on version */
@@ -983,7 +918,6 @@ HRESULT IDirectSoundBufferImpl_Create(
 	dsb->notify = NULL;
 	dsb->notifies = NULL;
 	dsb->nrofnotifies = 0;
-	dsb->hwnotify = 0;
 
 	/* Check necessary hardware mixing capabilities */
 	if (wfex->nChannels==2) capf |= DSCAPS_SECONDARYSTEREO;
@@ -991,24 +925,7 @@ HRESULT IDirectSoundBufferImpl_Create(
 	if (wfex->wBitsPerSample==16) capf |= DSCAPS_SECONDARY16BIT;
 	else capf |= DSCAPS_SECONDARY8BIT;
 
-	use_hw = !!(dsbd->dwFlags & DSBCAPS_LOCHARDWARE);
-	TRACE("use_hw = %d, capf = 0x%08x, device->drvcaps.dwFlags = 0x%08x\n", use_hw, capf, device->drvcaps.dwFlags);
-	if (use_hw && ((device->drvcaps.dwFlags & capf) != capf || !device->driver))
-	{
-		if (device->driver)
-			WARN("Format not supported for hardware buffer\n");
-		HeapFree(GetProcessHeap(),0,dsb->pwfx);
-		HeapFree(GetProcessHeap(),0,dsb);
-		*pdsb = NULL;
-		if ((device->drvcaps.dwFlags & capf) != capf)
-			return DSERR_BADFORMAT;
-		return DSERR_GENERIC;
-	}
-
-	/* FIXME: check hardware sample rate mixing capabilities */
-	/* FIXME: check app hints for software/hardware buffer (STATIC, LOCHARDWARE, etc) */
-	/* FIXME: check whether any hardware buffers are left */
-	/* FIXME: handle DSDHEAP_CREATEHEAP for hardware buffers */
+	TRACE("capf = 0x%08x, device->drvcaps.dwFlags = 0x%08x\n", capf, device->drvcaps.dwFlags);
 
 	/* Allocate an empty buffer */
 	dsb->buffer = HeapAlloc(GetProcessHeap(),0,sizeof(*(dsb->buffer)));
@@ -1020,35 +937,15 @@ HRESULT IDirectSoundBufferImpl_Create(
 		return DSERR_OUTOFMEMORY;
 	}
 
-	/* Allocate system memory for buffer if applicable */
-	if ((device->drvdesc.dwFlags & DSDDESC_USESYSTEMMEMORY) || !use_hw) {
-		dsb->buffer->memory = HeapAlloc(GetProcessHeap(),0,dsb->buflen);
-		if (dsb->buffer->memory == NULL) {
-			WARN("out of memory\n");
-			HeapFree(GetProcessHeap(),0,dsb->pwfx);
-			HeapFree(GetProcessHeap(),0,dsb->buffer);
-			HeapFree(GetProcessHeap(),0,dsb);
-			*pdsb = NULL;
-			return DSERR_OUTOFMEMORY;
-		}
-	}
-
-	/* Allocate the hardware buffer */
-	if (use_hw) {
-		err = IDsDriver_CreateSoundBuffer(device->driver,wfex,dsbd->dwFlags,0,
-						  &(dsb->buflen),&(dsb->buffer->memory),
-						  (LPVOID*)&(dsb->hwbuf));
-		if (FAILED(err))
-		{
-			WARN("Failed to create hardware secondary buffer: %08x\n", err);
-			if (device->drvdesc.dwFlags & DSDDESC_USESYSTEMMEMORY)
-				HeapFree(GetProcessHeap(),0,dsb->buffer->memory);
-			HeapFree(GetProcessHeap(),0,dsb->buffer);
-			HeapFree(GetProcessHeap(),0,dsb->pwfx);
-			HeapFree(GetProcessHeap(),0,dsb);
-			*pdsb = NULL;
-			return DSERR_GENERIC;
-		}
+	/* Allocate system memory for buffer */
+	dsb->buffer->memory = HeapAlloc(GetProcessHeap(),0,dsb->buflen);
+	if (dsb->buffer->memory == NULL) {
+		WARN("out of memory\n");
+		HeapFree(GetProcessHeap(),0,dsb->pwfx);
+		HeapFree(GetProcessHeap(),0,dsb->buffer);
+		HeapFree(GetProcessHeap(),0,dsb);
+		*pdsb = NULL;
+		return DSERR_OUTOFMEMORY;
 	}
 
 	dsb->buffer->ref = 1;
@@ -1115,15 +1012,11 @@ void secondarybuffer_destroy(IDirectSoundBufferImpl *This)
     DirectSoundDevice_RemoveBuffer(This->device, This);
     RtlDeleteResource(&This->lock);
 
-    if (This->hwbuf)
-        IDsDriverBuffer_Release(This->hwbuf);
-    if (!This->hwbuf || (This->device->drvdesc.dwFlags & DSDDESC_USESYSTEMMEMORY)) {
-        This->buffer->ref--;
-        list_remove(&This->entry);
-        if (This->buffer->ref == 0) {
-            HeapFree(GetProcessHeap(), 0, This->buffer->memory);
-            HeapFree(GetProcessHeap(), 0, This->buffer);
-        }
+    This->buffer->ref--;
+    list_remove(&This->entry);
+    if (This->buffer->ref == 0) {
+        HeapFree(GetProcessHeap(), 0, This->buffer->memory);
+        HeapFree(GetProcessHeap(), 0, This->buffer);
     }
 
     HeapFree(GetProcessHeap(), 0, This->tmp_buffer);
@@ -1188,20 +1081,6 @@ HRESULT IDirectSoundBufferImpl_Duplicate(
         HeapFree(GetProcessHeap(),0,dsb);
         *ppdsb = NULL;
         return DSERR_OUTOFMEMORY;
-    }
-
-    if (pdsb->hwbuf) {
-        TRACE("duplicating hardware buffer\n");
-
-        hres = IDsDriver_DuplicateSoundBuffer(device->driver, pdsb->hwbuf,
-                                              (LPVOID *)&dsb->hwbuf);
-        if (FAILED(hres)) {
-            WARN("IDsDriver_DuplicateSoundBuffer failed (%08x)\n", hres);
-            HeapFree(GetProcessHeap(),0,dsb->pwfx);
-            HeapFree(GetProcessHeap(),0,dsb);
-            *ppdsb = NULL;
-            return hres;
-        }
     }
 
     dsb->buffer->ref++;
@@ -1288,30 +1167,9 @@ static HRESULT WINAPI IKsBufferPropertySetImpl_Get(
     PULONG pcbReturned )
 {
     IKsBufferPropertySetImpl *This = (IKsBufferPropertySetImpl *)iface;
-    PIDSDRIVERPROPERTYSET ps;
+
     TRACE("(iface=%p,guidPropSet=%s,dwPropID=%d,pInstanceData=%p,cbInstanceData=%d,pPropData=%p,cbPropData=%d,pcbReturned=%p)\n",
     This,debugstr_guid(guidPropSet),dwPropID,pInstanceData,cbInstanceData,pPropData,cbPropData,pcbReturned);
-
-    if (This->dsb->hwbuf) {
-        IDsDriver_QueryInterface(This->dsb->hwbuf, &IID_IDsDriverPropertySet, (void **)&ps);
-
-        if (ps) {
-        DSPROPERTY prop;
-        HRESULT hres;
-
-        prop.s.Set = *guidPropSet;
-        prop.s.Id = dwPropID;
-        prop.s.Flags = 0;  /* unused */
-        prop.s.InstanceId = (ULONG_PTR)This->dsb->device;
-
-
-        hres = IDsDriverPropertySet_Get(ps, &prop, pInstanceData, cbInstanceData, pPropData, cbPropData, pcbReturned);
-
-        IDsDriverPropertySet_Release(ps);
-
-        return hres;
-        }
-    }
 
     return E_PROP_ID_UNSUPPORTED;
 }
@@ -1326,27 +1184,8 @@ static HRESULT WINAPI IKsBufferPropertySetImpl_Set(
     ULONG cbPropData )
 {
     IKsBufferPropertySetImpl *This = (IKsBufferPropertySetImpl *)iface;
-    PIDSDRIVERPROPERTYSET ps;
+
     TRACE("(%p,%s,%d,%p,%d,%p,%d)\n",This,debugstr_guid(guidPropSet),dwPropID,pInstanceData,cbInstanceData,pPropData,cbPropData);
-
-    if (This->dsb->hwbuf) {
-        IDsDriver_QueryInterface(This->dsb->hwbuf, &IID_IDsDriverPropertySet, (void **)&ps);
-
-        if (ps) {
-        DSPROPERTY prop;
-        HRESULT hres;
-
-        prop.s.Set = *guidPropSet;
-        prop.s.Id = dwPropID;
-        prop.s.Flags = 0;  /* unused */
-        prop.s.InstanceId = (ULONG_PTR)This->dsb->device;
-        hres = IDsDriverPropertySet_Set(ps,&prop,pInstanceData,cbInstanceData,pPropData,cbPropData);
-
-        IDsDriverPropertySet_Release(ps);
-
-        return hres;
-        }
-    }
 
     return E_PROP_ID_UNSUPPORTED;
 }
@@ -1358,22 +1197,8 @@ static HRESULT WINAPI IKsBufferPropertySetImpl_QuerySupport(
     PULONG pTypeSupport )
 {
     IKsBufferPropertySetImpl *This = (IKsBufferPropertySetImpl *)iface;
-    PIDSDRIVERPROPERTYSET ps;
+
     TRACE("(%p,%s,%d,%p)\n",This,debugstr_guid(guidPropSet),dwPropID,pTypeSupport);
-
-    if (This->dsb->hwbuf) {
-        IDsDriver_QueryInterface(This->dsb->hwbuf, &IID_IDsDriverPropertySet, (void **)&ps);
-
-        if (ps) {
-            HRESULT hres;
-
-            hres = IDsDriverPropertySet_QuerySupport(ps,guidPropSet, dwPropID,pTypeSupport);
-
-            IDsDriverPropertySet_Release(ps);
-
-            return hres;
-        }
-    }
 
     return E_PROP_ID_UNSUPPORTED;
 }

@@ -675,7 +675,7 @@ static DWORD DSOUND_MixToPrimary(const DirectSoundDevice *device, DWORD writepos
 
 		TRACE("MixToPrimary for %p, state=%d\n", dsb, dsb->state);
 
-		if (dsb->buflen && dsb->state && !dsb->hwbuf) {
+		if (dsb->buflen && dsb->state) {
 			TRACE("Checking %p, mixlen=%d\n", dsb, mixlen);
 			RtlAcquireResourceShared(&dsb->lock, TRUE);
 			/* if buffer is stopping it is stopped now */
@@ -724,17 +724,21 @@ static DWORD DSOUND_MixToPrimary(const DirectSoundDevice *device, DWORD writepos
 
 static void DSOUND_WaveQueue(DirectSoundDevice *device, BOOL force)
 {
-	DWORD prebuf_frags, wave_writepos, wave_fragpos, i;
+	DWORD prebuf_frames, buf_offs_bytes, wave_fragpos;
+	int prebuf_frags;
+	BYTE *buffer;
+	HRESULT hr;
+
 	TRACE("(%p)\n", device);
 
 	/* calculate the current wave frag position */
 	wave_fragpos = (device->pwplay + device->pwqueue) % device->helfrags;
 
 	/* calculate the current wave write position */
-	wave_writepos = wave_fragpos * device->fraglen;
+	buf_offs_bytes = wave_fragpos * device->fraglen;
 
-	TRACE("wave_fragpos = %i, wave_writepos = %i, pwqueue = %i, prebuf = %i\n",
-		wave_fragpos, wave_writepos, device->pwqueue, device->prebuf);
+	TRACE("wave_fragpos = %i, buf_offs_bytes = %i, pwqueue = %i, prebuf = %i\n",
+		wave_fragpos, buf_offs_bytes, device->pwqueue, device->prebuf);
 
 	if (!force)
 	{
@@ -758,23 +762,50 @@ static void DSOUND_WaveQueue(DirectSoundDevice *device, BOOL force)
 
 	TRACE("prebuf_frags = %i\n", prebuf_frags);
 
+	if(!prebuf_frags)
+		return;
+
 	/* adjust queue */
 	device->pwqueue += prebuf_frags;
 
-	/* get out of CS when calling the wave system */
-	LeaveCriticalSection(&(device->mixlock));
-	/* **** */
+	prebuf_frames = ((prebuf_frags + wave_fragpos > device->helfrags) ?
+			(device->helfrags - wave_fragpos) :
+			(prebuf_frags)) * device->fraglen / device->pwfx->nBlockAlign;
 
-	/* queue up the new buffers */
-	for(i=0; i<prebuf_frags; i++){
-		TRACE("queueing wave buffer %i\n", wave_fragpos);
-		waveOutWrite(device->hwo, &device->pwave[wave_fragpos], sizeof(WAVEHDR));
-		wave_fragpos++;
-		wave_fragpos %= device->helfrags;
+	hr = IAudioRenderClient_GetBuffer(device->render, prebuf_frames, &buffer);
+	if(FAILED(hr)){
+		WARN("GetBuffer failed: %08x\n", hr);
+		return;
 	}
 
-	/* **** */
-	EnterCriticalSection(&(device->mixlock));
+	memcpy(buffer, device->buffer + buf_offs_bytes,
+			prebuf_frames * device->pwfx->nBlockAlign);
+
+	hr = IAudioRenderClient_ReleaseBuffer(device->render, prebuf_frames, 0);
+	if(FAILED(hr)){
+		WARN("ReleaseBuffer failed: %08x\n", hr);
+		return;
+	}
+
+	/* check if anything wrapped */
+	prebuf_frags = prebuf_frags + wave_fragpos - device->helfrags;
+	if(prebuf_frags > 0){
+		prebuf_frames = prebuf_frags * device->fraglen / device->pwfx->nBlockAlign;
+
+		hr = IAudioRenderClient_GetBuffer(device->render, prebuf_frames, &buffer);
+		if(FAILED(hr)){
+			WARN("GetBuffer failed: %08x\n", hr);
+			return;
+		}
+
+		memcpy(buffer, device->buffer, prebuf_frames * device->pwfx->nBlockAlign);
+
+		hr = IAudioRenderClient_ReleaseBuffer(device->render, prebuf_frames, 0);
+		if(FAILED(hr)){
+			WARN("ReleaseBuffer failed: %08x\n", hr);
+			return;
+		}
+	}
 
 	TRACE("queue now = %i\n", device->pwqueue);
 }
@@ -786,16 +817,44 @@ static void DSOUND_WaveQueue(DirectSoundDevice *device, BOOL force)
  */
 static void DSOUND_PerformMix(DirectSoundDevice *device)
 {
+	UINT64 clock_pos, clock_freq, pos_bytes;
+	UINT delta_frags;
+	HRESULT hr;
+
 	TRACE("(%p)\n", device);
 
 	/* **** */
-	EnterCriticalSection(&(device->mixlock));
+	EnterCriticalSection(&device->mixlock);
+
+	hr = IAudioClock_GetFrequency(device->clock, &clock_freq);
+	if(FAILED(hr)){
+		WARN("GetFrequency failed: %08x\n", hr);
+        LeaveCriticalSection(&device->mixlock);
+		return;
+	}
+
+	hr = IAudioClock_GetPosition(device->clock, &clock_pos, NULL);
+	if(FAILED(hr)){
+		WARN("GetCurrentPadding failed: %08x\n", hr);
+        LeaveCriticalSection(&device->mixlock);
+		return;
+	}
+
+	pos_bytes = (clock_pos * device->pwfx->nBlockAlign * clock_freq) /
+        device->pwfx->nSamplesPerSec;
+
+	delta_frags = (pos_bytes - device->last_pos_bytes) / device->fraglen;
+	if(delta_frags > 0){
+		device->pwplay += delta_frags;
+		device->pwplay %= device->helfrags;
+		device->pwqueue -= delta_frags;
+		device->last_pos_bytes = pos_bytes - (pos_bytes % device->fraglen);
+	}
 
 	if (device->priolevel != DSSCL_WRITEPRIMARY) {
 		BOOL recover = FALSE, all_stopped = FALSE;
 		DWORD playpos, writepos, writelead, maxq, frag, prebuff_max, prebuff_left, size1, size2, mixplaypos, mixplaypos2;
 		LPVOID buf1, buf2;
-		BOOL lock = (device->hwbuf && !(device->drvdesc.dwFlags & DSDDESC_DONTNEEDPRIMARYLOCK));
 		int nfiller;
 
 		/* the sound of silence */
@@ -808,7 +867,7 @@ static void DSOUND_PerformMix(DirectSoundDevice *device)
 		}
 
 		TRACE("primary playpos=%d, writepos=%d, clrpos=%d, mixpos=%d, buflen=%d\n",
-		      playpos,writepos,device->playpos,device->mixpos,device->buflen);
+			playpos,writepos,device->playpos,device->mixpos,device->buflen);
 		assert(device->playpos < device->buflen);
 
 		mixplaypos = DSOUND_bufpos_to_mixpos(device, device->playpos);
@@ -816,7 +875,7 @@ static void DSOUND_PerformMix(DirectSoundDevice *device)
 
 		/* calc maximum prebuff */
 		prebuff_max = (device->prebuf * device->fraglen);
-		if (!device->hwbuf && playpos + prebuff_max >= device->helfrags * device->fraglen)
+		if (playpos + prebuff_max >= device->helfrags * device->fraglen)
 			prebuff_max += device->buflen - device->helfrags * device->fraglen;
 
 		/* check how close we are to an underrun. It occurs when the writepos overtakes the mixpos */
@@ -845,30 +904,17 @@ static void DSOUND_PerformMix(DirectSoundDevice *device)
 			size2 = playpos;
 			FillMemory(device->mix_buffer + mixplaypos, device->mix_buffer_len - mixplaypos, 0);
 			FillMemory(device->mix_buffer, mixplaypos2, 0);
-			if (lock)
-				IDsDriverBuffer_Lock(device->hwbuf, &buf1, &size1, &buf2, &size2, device->playpos, size1+size2, 0);
 			FillMemory(buf1, size1, nfiller);
 			if (playpos && (!buf2 || !size2))
 				FIXME("%d: (%d, %d)=>(%d, %d) There should be an additional buffer here!!\n", __LINE__, device->playpos, device->mixpos, playpos, writepos);
 			FillMemory(buf2, size2, nfiller);
-			if (lock)
-				IDsDriverBuffer_Unlock(device->hwbuf, buf1, size1, buf2, size2);
 		} else {
 			buf1 = device->buffer + device->playpos;
 			buf2 = NULL;
 			size1 = playpos - device->playpos;
 			size2 = 0;
 			FillMemory(device->mix_buffer + mixplaypos, mixplaypos2 - mixplaypos, 0);
-			if (lock)
-				IDsDriverBuffer_Lock(device->hwbuf, &buf1, &size1, &buf2, &size2, device->playpos, size1+size2, 0);
 			FillMemory(buf1, size1, nfiller);
-			if (buf2 && size2)
-			{
-				FIXME("%d: There should be no additional buffer here!!\n", __LINE__);
-				FillMemory(buf2, size2, nfiller);
-			}
-			if (lock)
-				IDsDriverBuffer_Unlock(device->hwbuf, buf1, size1, buf2, size2);
 		}
 		device->playpos = playpos;
 
@@ -877,9 +923,6 @@ static void DSOUND_PerformMix(DirectSoundDevice *device)
 
 		TRACE("prebuff_left = %d, prebuff_max = %dx%d=%d, writelead=%d\n",
 			prebuff_left, device->prebuf, device->fraglen, prebuff_max, writelead);
-
-		if (lock)
-			IDsDriverBuffer_Lock(device->hwbuf, &buf1, &size1, &buf2, &size2, writepos, maxq, 0);
 
 		/* do the mixing */
 		frag = DSOUND_MixToPrimary(device, writepos, maxq, recover, &all_stopped);
@@ -897,27 +940,14 @@ static void DSOUND_PerformMix(DirectSoundDevice *device)
 		device->mixpos = writepos + frag;
 		device->mixpos %= device->buflen;
 
-		if (lock)
-		{
-			DWORD frag2 = (frag > size1 ? frag - size1 : 0);
-			frag -= frag2;
-			if (frag2 > size2)
-			{
-				FIXME("Buffering too much! (%d, %d, %d, %d)\n", maxq, frag, size2, frag2 - size2);
-				frag2 = size2;
-			}
-			IDsDriverBuffer_Unlock(device->hwbuf, buf1, frag, buf2, frag2);
-		}
-
 		/* update prebuff left */
 		prebuff_left = DSOUND_BufPtrDiff(device->buflen, device->mixpos, playpos);
 
 		/* check if have a whole fragment */
 		if (prebuff_left >= device->fraglen){
 
-			/* update the wave queue if using wave system */
-			if (!device->hwbuf)
-				DSOUND_WaveQueue(device, FALSE);
+			/* update the wave queue */
+			DSOUND_WaveQueue(device, FALSE);
 
 			/* buffers are full. start playing if applicable */
 			if(device->state == STATE_STARTING){
@@ -955,12 +985,7 @@ static void DSOUND_PerformMix(DirectSoundDevice *device)
 
 	} else {
 
-		/* update the wave queue if using wave system */
-		if (!device->hwbuf)
-			DSOUND_WaveQueue(device, TRUE);
-		else
-			/* Keep alsa happy, which needs GetPosition called once every 10 ms */
-			IDsDriverBuffer_GetPosition(device->hwbuf, NULL, NULL);
+		DSOUND_WaveQueue(device, TRUE);
 
 		/* in the DSSCL_WRITEPRIMARY mode, the app is totally in charge... */
 		if (device->state == STATE_STARTING) {
@@ -990,13 +1015,6 @@ void CALLBACK DSOUND_timer(UINT timerID, UINT msg, DWORD_PTR dwUser,
 	TRACE("(%d,%d,0x%lx,0x%lx,0x%lx)\n",timerID,msg,dwUser,dw1,dw2);
 	TRACE("entering at %d\n", start_time);
 
-	if (DSOUND_renderer[device->drvdesc.dnDevNode] != device) {
-		ERR("dsound died without killing us?\n");
-		timeKillEvent(timerID);
-		timeEndPeriod(DS_TIME_RES);
-		return;
-	}
-
 	RtlAcquireResourceShared(&(device->buffer_list_lock), TRUE);
 
 	if (device->ref)
@@ -1006,38 +1024,4 @@ void CALLBACK DSOUND_timer(UINT timerID, UINT msg, DWORD_PTR dwUser,
 
 	end_time = GetTickCount();
 	TRACE("completed processing at %d, duration = %d\n", end_time, end_time - start_time);
-}
-
-void CALLBACK DSOUND_callback(HWAVEOUT hwo, UINT msg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
-{
-	DirectSoundDevice * device = (DirectSoundDevice*)dwUser;
-	TRACE("(%p,%x,%lx,%lx,%lx)\n",hwo,msg,dwUser,dw1,dw2);
-	TRACE("entering at %d, msg=%08x(%s)\n", GetTickCount(), msg,
-		msg==MM_WOM_DONE ? "MM_WOM_DONE" : msg==MM_WOM_CLOSE ? "MM_WOM_CLOSE" : 
-		msg==MM_WOM_OPEN ? "MM_WOM_OPEN" : "UNKNOWN");
-
-	/* check if packet completed from wave driver */
-	if (msg == MM_WOM_DONE) {
-
-		/* **** */
-		EnterCriticalSection(&(device->mixlock));
-
-		TRACE("done playing primary pos=%d\n", device->pwplay * device->fraglen);
-
-		/* update playpos */
-		device->pwplay++;
-		device->pwplay %= device->helfrags;
-
-		/* sanity */
-		if(device->pwqueue == 0){
-			ERR("Wave queue corrupted!\n");
-		}
-
-		/* update queue */
-		device->pwqueue--;
-
-		LeaveCriticalSection(&(device->mixlock));
-		/* **** */
-	}
-	TRACE("completed\n");
 }

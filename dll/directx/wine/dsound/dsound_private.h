@@ -48,6 +48,7 @@
 #include <dsconf.h>
 #include <dsdriver.h>
 #include <vfwmsgs.h>
+#include <mmdeviceapi.h>
 
 #include <wine/debug.h>
 #include <wine/list.h>
@@ -58,18 +59,9 @@ WINE_DEFAULT_DEBUG_CHANNEL(dsound);
 #define DS_TIME_RES 2  /* Resolution of multimedia timer */
 #define DS_TIME_DEL 10  /* Delay of multimedia timer callback, and duration of HEL fragment */
 
-/* direct sound hardware acceleration levels */
-#define DS_HW_ACCEL_FULL        0	/* default on Windows 98 */
-#define DS_HW_ACCEL_STANDARD    1	/* default on Windows 2000 */
-#define DS_HW_ACCEL_BASIC       2
-#define DS_HW_ACCEL_EMULATION   3
-
-extern int ds_emuldriver DECLSPEC_HIDDEN;
 extern int ds_hel_buflen DECLSPEC_HIDDEN;
 extern int ds_snd_queue_max DECLSPEC_HIDDEN;
-extern int ds_snd_queue_min DECLSPEC_HIDDEN;
 extern int ds_snd_shadow_maxsize DECLSPEC_HIDDEN;
-extern int ds_hw_accel DECLSPEC_HIDDEN;
 extern int ds_default_sample_rate DECLSPEC_HIDDEN;
 extern int ds_default_bits_per_sample DECLSPEC_HIDDEN;
 
@@ -101,6 +93,19 @@ extern const mixfunc mixfunctions[4] DECLSPEC_HIDDEN;
 typedef void (*normfunc)(const void *, void *, unsigned);
 extern const normfunc normfunctions[4] DECLSPEC_HIDDEN;
 
+#ifndef __REACTOS__
+typedef struct _DSVOLUMEPAN
+{
+    DWORD	dwTotalLeftAmpFactor;
+    DWORD	dwTotalRightAmpFactor;
+    LONG	lVolume;
+    DWORD	dwVolAmpFactor;
+    LONG	lPan;
+    DWORD	dwPanLeftAmpFactor;
+    DWORD	dwPanRightAmpFactor;
+} DSVOLUMEPAN,*PDSVOLUMEPAN;
+#endif // __REACTOS__
+
 /*****************************************************************************
  * IDirectSoundDevice implementation structure
  */
@@ -109,16 +114,12 @@ struct DirectSoundDevice
     LONG                        ref;
 
     GUID                        guid;
-    PIDSDRIVER                  driver;
-    DSDRIVERDESC                drvdesc;
-    DSDRIVERCAPS                drvcaps;
+    DSCAPS                      drvcaps;
     DWORD                       priolevel;
     PWAVEFORMATEX               pwfx;
-    HWAVEOUT                    hwo;
-    LPWAVEHDR                   pwave;
     UINT                        timerID, pwplay, pwqueue, prebuf, helfrags;
+    UINT64                      last_pos_bytes;
     DWORD                       fraglen;
-    PIDSDRIVERBUFFER            hwbuf;
     LPBYTE                      buffer;
     DWORD                       writelead, buflen, state, playpos, mixpos;
     int                         nrofbuffers;
@@ -139,6 +140,14 @@ struct DirectSoundDevice
     IDirectSound3DListenerImpl*	listener;
     DS3DLISTENER                ds3dl;
     BOOL                        ds3dl_need_recalc;
+
+    IMMDevice *mmdevice;
+    IAudioClient *client;
+    IAudioClock *clock;
+    IAudioStreamVolume *volume;
+    IAudioRenderClient *render;
+
+    struct list entry;
 };
 
 /* reference counted buffer memory for duplicated buffer memory */
@@ -195,7 +204,6 @@ struct IDirectSoundBufferImpl
     /* IDirectSoundBufferImpl fields */
     DirectSoundDevice*          device;
     RTL_RWLOCK                  lock;
-    PIDSDRIVERBUFFER            hwbuf;
     PWAVEFORMATEX               pwfx;
     BufferMemory*               buffer;
     LPBYTE                      tmp_buffer;
@@ -214,7 +222,6 @@ struct IDirectSoundBufferImpl
     IDirectSoundNotifyImpl*     notify;
     LPDSBPOSITIONNOTIFY         notifies;
     int                         nrofnotifies;
-    PIDSDRIVERNOTIFY            hwnotify;
 
     /* DirectSound3DBuffer fields */
     IDirectSound3DBufferImpl*   ds3db;
@@ -245,31 +252,26 @@ void secondarybuffer_destroy(IDirectSoundBufferImpl *This) DECLSPEC_HIDDEN;
  */
 struct DirectSoundCaptureDevice
 {
-    /* IDirectSoundCaptureImpl fields */
     GUID                               guid;
     LONG                               ref;
 
-    /* DirectSound driver stuff */
-    PIDSCDRIVER                        driver;
-    DSDRIVERDESC                       drvdesc;
-    DSCDRIVERCAPS                      drvcaps;
-    PIDSCDRIVERBUFFER                  hwbuf;
+    DSCCAPS                            drvcaps;
 
-    /* wave driver info */
-    HWAVEIN                            hwi;
-
-    /* more stuff */
     LPBYTE                             buffer;
-    DWORD                              buflen;
+    DWORD                              buflen, write_pos_bytes;
 
     PWAVEFORMATEX                      pwfx;
 
     IDirectSoundCaptureBufferImpl*     capture_buffer;
     DWORD                              state;
-    LPWAVEHDR                          pwave;
-    int                                nrofpwaves;
-    int                                index;
+    UINT timerID;
     CRITICAL_SECTION                   lock;
+
+    IMMDevice *mmdevice;
+    IAudioClient *client;
+    IAudioCaptureClient *capture;
+
+    struct list entry;
 };
 
 /*****************************************************************************
@@ -291,7 +293,6 @@ struct IDirectSoundCaptureBufferImpl
     IDirectSoundCaptureNotifyImpl*      notify;
     LPDSBPOSITIONNOTIFY                 notifies;
     int                                 nrofnotifies;
-    PIDSDRIVERNOTIFY                    hwnotify;
 };
 
 /*****************************************************************************
@@ -385,7 +386,6 @@ void DSOUND_MixToTemporary(const IDirectSoundBufferImpl *dsb, DWORD writepos, DW
 DWORD DSOUND_secpos_to_bufpos(const IDirectSoundBufferImpl *dsb, DWORD secpos, DWORD secmixpos, DWORD* overshot) DECLSPEC_HIDDEN;
 
 void CALLBACK DSOUND_timer(UINT timerID, UINT msg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2) DECLSPEC_HIDDEN;
-void CALLBACK DSOUND_callback(HWAVEOUT hwo, UINT msg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2) DECLSPEC_HIDDEN;
 
 /* sound3d.c */
 
@@ -404,14 +404,26 @@ HRESULT DSOUND_CaptureCreate8(REFIID riid, LPDIRECTSOUNDCAPTURE8 *ppDSC8) DECLSP
 
 #define DSOUND_FREQSHIFT (20)
 
-extern DirectSoundDevice* DSOUND_renderer[MAXWAVEDRIVERS] DECLSPEC_HIDDEN;
-extern GUID DSOUND_renderer_guids[MAXWAVEDRIVERS] DECLSPEC_HIDDEN;
+extern CRITICAL_SECTION DSOUND_renderers_lock DECLSPEC_HIDDEN;
+extern CRITICAL_SECTION DSOUND_capturers_lock DECLSPEC_HIDDEN;
+extern struct list DSOUND_capturers DECLSPEC_HIDDEN;
+extern struct list DSOUND_renderers DECLSPEC_HIDDEN;
 
-extern DirectSoundCaptureDevice * DSOUND_capture[MAXWAVEDRIVERS] DECLSPEC_HIDDEN;
+extern GUID DSOUND_renderer_guids[MAXWAVEDRIVERS] DECLSPEC_HIDDEN;
 extern GUID DSOUND_capture_guids[MAXWAVEDRIVERS] DECLSPEC_HIDDEN;
+
+extern WCHAR wine_vxd_drv[] DECLSPEC_HIDDEN;
 
 HRESULT mmErr(UINT err) DECLSPEC_HIDDEN;
 void setup_dsound_options(void) DECLSPEC_HIDDEN;
 const char * dumpCooperativeLevel(DWORD level) DECLSPEC_HIDDEN;
+
+HRESULT get_mmdevice(EDataFlow flow, const GUID *tgt, IMMDevice **device) DECLSPEC_HIDDEN;
+
+BOOL DSOUND_check_supported(IAudioClient *client, DWORD rate,
+        DWORD depth, WORD channels) DECLSPEC_HIDDEN;
+UINT DSOUND_create_timer(LPTIMECALLBACK cb, DWORD_PTR user) DECLSPEC_HIDDEN;
+HRESULT enumerate_mmdevices(EDataFlow flow, GUID *guids,
+        LPDSENUMCALLBACKW cb, void *user) DECLSPEC_HIDDEN;
 
 #endif /* _DSOUND_PRIVATE_H_ */
