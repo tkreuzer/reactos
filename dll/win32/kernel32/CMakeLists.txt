@@ -70,7 +70,7 @@ list(APPEND SOURCE
     wine/muldiv.c
     wine/profile.c
     wine/res.c
-    wine/timezone.c
+    wine/time.c
     winnls/string/casemap.c
     winnls/string/collation.c
     winnls/string/digitmap.c
