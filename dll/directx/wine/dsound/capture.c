@@ -25,9 +25,6 @@
  *	Make DirectSoundCaptureCreate and DirectSoundCaptureCreate8 behave differently
  */
 
-#ifdef __REACTOS__
-#include "dsound_private.h"
-#else
 #include <stdarg.h>
 
 #define COBJMACROS
@@ -45,7 +42,6 @@
 #include "dsound_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dsound);
-#endif // __REACTOS__
 
 
 /*****************************************************************************

@@ -34,9 +34,6 @@
  * Sound is LITTLE endian
  */
 
-#ifdef __REACTOS__
-#include "dsound_private.h"
-#else
 #include "config.h"
 
 #include <stdarg.h>
@@ -52,7 +49,6 @@
 #include "dsound_private.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(dsound);
-#endif // __REACTOS__
 
 #ifdef WORDS_BIGENDIAN
 #define le16(x) RtlUshortByteSwap((x))
