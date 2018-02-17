@@ -18,6 +18,7 @@
 DEBUG_CHANNEL(time);
 
 BOOL NLS_IsUnicodeOnlyLcid(LCID lcid);
+#define CAL_RETURN_GENITIVE_NAMES LOCALE_RETURN_GENITIVE_NAMES
 
 /* TYPES *********************************************************************/
 
@@ -546,7 +547,7 @@ int WINAPI GetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType,
         LOCALE_SABBREVMONTHNAME13,
         LOCALE_SYEARMONTH,
         0, /* CAL_ITWODIGITYEARMAX */
-#if (WINVER >= 0x0600) /* ReactOS */
+#ifndef __REACTOS__
         LOCALE_SSHORTESTDAYNAME1,
         LOCALE_SSHORTESTDAYNAME2,
         LOCALE_SSHORTESTDAYNAME3,
@@ -554,9 +555,9 @@ int WINAPI GetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType,
         LOCALE_SSHORTESTDAYNAME5,
         LOCALE_SSHORTESTDAYNAME6,
         LOCALE_SSHORTESTDAYNAME7,
-#endif
         LOCALE_SMONTHDAY,
         0, /* CAL_SABBREVERASTRING */
+#endif // __REACTOS__
     };
     DWORD localeflags = 0;
     CALTYPE calinfo;
@@ -586,11 +587,7 @@ int WINAPI GetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType,
 
     calinfo = CalType & 0xffff;
 
-#ifdef __REACTOS__
-    if (CalType & LOCALE_RETURN_GENITIVE_NAMES)
-#else
     if (CalType & CAL_RETURN_GENITIVE_NAMES)
-#endif
         localeflags |= LOCALE_RETURN_GENITIVE_NAMES;
 
     switch (calinfo) {
