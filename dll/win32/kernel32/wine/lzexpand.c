@@ -33,22 +33,6 @@
  *
  */
 
-#ifdef __REACTOS__
-
-#include <k32.h>
-
-#define NDEBUG
-#include <debug.h>
-DEBUG_CHANNEL(kernel32file);
-
-#define HFILE_ERROR ((HFILE)-1)
-
-#include "lzexpand.h"
-
-#define _lwrite(a, b, c) (long)(_hwrite(a, b, (long)c))
-
-#else /* __REACTOS__ */
-
 #include "config.h"
 
 #include <string.h>
@@ -68,8 +52,6 @@ DEBUG_CHANNEL(kernel32file);
 #include "wine/debug.h"
 
 WINE_DEFAULT_DEBUG_CHANNEL(file);
-
-#endif /* __REACTOS__ */
 
 /* The readahead length of the decompressor. Reading single bytes
  * using _lread() would be SLOW.
@@ -494,11 +476,7 @@ LONG WINAPI LZCopy( HFILE src, HFILE dest )
 
 	/* not compressed? just copy */
         if (!IS_LZ_HANDLE(src))
-#ifdef __REACTOS__
-		xread=(_readfun)_hread; // ROSHACK
-#else
 		xread=_lread;
-#endif
 	else
 		xread=(_readfun)LZRead;
 	len=0;
@@ -611,34 +589,3 @@ void WINAPI LZClose( HFILE fd )
             HeapFree( GetProcessHeap(), 0, lzs );
         }
 }
-
-#ifdef __REACTOS__
-
-/*
- * @implemented
- */
-VOID
-WINAPI
-LZCloseFile(IN HFILE FileHandle)
-{
-    /* One function uses _lclose, the other CloseHandle -- same thing */
-    LZClose(FileHandle);
-}
-
-/*
- * @unimplemented
- */
-ULONG
-WINAPI
-LZCreateFileW(IN LPCWSTR FileName,
-              IN DWORD dwDesiredAccess,
-              IN DWORD dwShareMode,
-              IN DWORD dwCreationDisposition,
-              IN LPWSTR lpString1)
-{
-    WARN(" LZCreateFileW Not implemented!\n");
-    SetLastError(ERROR_CALL_NOT_IMPLEMENTED);
-    return ERROR_CALL_NOT_IMPLEMENTED;
-}
-
-#endif /* __REACTOS__ */

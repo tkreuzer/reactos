@@ -18,32 +18,25 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-#include <k32.h>
+#include "config.h"
+#include "wine/port.h"
 
-typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
-#undef SERIAL_LSRMST_ESCAPE
-#undef SERIAL_LSRMST_LSR_DATA
-#undef SERIAL_LSRMST_LSR_NODATA
-#undef SERIAL_LSRMST_MST
-#undef SERIAL_IOC_FCR_FIFO_ENABLE
-#undef SERIAL_IOC_FCR_RCVR_RESET
-#undef SERIAL_IOC_FCR_XMIT_RESET
-#undef SERIAL_IOC_FCR_DMA_MODE
-#undef SERIAL_IOC_FCR_RES1
-#undef SERIAL_IOC_FCR_RES2
-#undef SERIAL_IOC_FCR_RCVR_TRIGGER_LSB
-#undef SERIAL_IOC_FCR_RCVR_TRIGGER_MSB
-#undef SERIAL_IOC_MCR_DTR
-#undef SERIAL_IOC_MCR_RTS
-#undef SERIAL_IOC_MCR_OUT1
-#undef SERIAL_IOC_MCR_OUT2
-#undef SERIAL_IOC_MCR_LOOP
-#undef IOCTL_SERIAL_LSRMST_INSERT
-#include <ntddser.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
 
-#define NDEBUG
-#include <debug.h>
-DEBUG_CHANNEL(comm);
+#include "windef.h"
+#include "winbase.h"
+#include "winerror.h"
+#include "winioctl.h"
+#include "ddk/ntddser.h"
+
+#include "wine/server.h"
+#include "wine/unicode.h"
+
+#include "wine/debug.h"
+
+WINE_DEFAULT_DEBUG_CHANNEL(comm);
 
 /***********************************************************************
  *           COMM_Parse*   (Internal)

@@ -1,28 +1,55 @@
 /*
- * COPYRIGHT:       See COPYING in the top level directory
- * PROJECT:         ReactOS system libraries
- * FILE:            dll/win32/kernel32/wine/timezone.c
- * PURPOSE:         Time conversion functions
- * PROGRAMMER:      Ariadne
- *                  DOSDATE and DOSTIME structures from Onno Hovers
- * UPDATE HISTORY:
- *                  Created 19/01/99
+ * Win32 kernel time functions
+ *
+ * Copyright 1995 Martin von Loewis and Cameron Heide
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-/* INCLUDES ******************************************************************/
+#include "config.h"
 
-#include <k32.h>
+#include <string.h>
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#include <stdarg.h>
+#include <stdlib.h>
+#include <time.h>
+#ifdef HAVE_SYS_TIME_H
+# include <sys/time.h>
+#endif
+#ifdef HAVE_SYS_TIMES_H
+# include <sys/times.h>
+#endif
+#ifdef HAVE_SYS_LIMITS_H
+#include <sys/limits.h>
+#elif defined(HAVE_MACHINE_LIMITS_H)
+#include <machine/limits.h>
+#endif
 
-#define NDEBUG
-#include <debug.h>
-DEBUG_CHANNEL(time);
+#include "ntstatus.h"
+#define WIN32_NO_STATUS
+#define NONAMELESSUNION
+#include "windef.h"
+#include "winbase.h"
+#include "winternl.h"
+#include "kernel_private.h"
+#include "wine/unicode.h"
+#include "wine/debug.h"
 
-BOOL NLS_IsUnicodeOnlyLcid(LCID lcid);
-#define CAL_RETURN_GENITIVE_NAMES LOCALE_RETURN_GENITIVE_NAMES
-
-/* TYPES *********************************************************************/
-
-#define TICKSPERMIN 600000000
+WINE_DEFAULT_DEBUG_CHANNEL(time);
 
 #define CALINFO_MAX_YEAR 2029
 
@@ -148,7 +175,7 @@ static DWORD TIME_CompTimeZoneID ( const TIME_ZONE_INFORMATION *pTZinfo,
 
         if (!islocal) {
             FILETIME2LL( lpFileTime, llTime );
-            llTime -= pTZinfo->Bias * (LONGLONG)TICKSPERMIN;
+            llTime -= pTZinfo->Bias * (LONGLONG)600000000;
             LL2FILETIME( llTime, &ftTemp)
             lpFileTime = &ftTemp;
         }
@@ -157,7 +184,7 @@ static DWORD TIME_CompTimeZoneID ( const TIME_ZONE_INFORMATION *pTZinfo,
         year = SysTime.wYear;
 
         if (!islocal) {
-            llTime -= pTZinfo->DaylightBias * (LONGLONG)TICKSPERMIN;
+            llTime -= pTZinfo->DaylightBias * (LONGLONG)600000000;
             LL2FILETIME( llTime, &ftTemp)
             FileTimeToSystemTime(lpFileTime, &SysTime);
         }
@@ -174,7 +201,7 @@ static DWORD TIME_CompTimeZoneID ( const TIME_ZONE_INFORMATION *pTZinfo,
 
         if (!islocal) {
             llTime -= ( pTZinfo->StandardBias - pTZinfo->DaylightBias )
-                * (LONGLONG)TICKSPERMIN;
+                * (LONGLONG)600000000;
             LL2FILETIME( llTime, &ftTemp)
             FileTimeToSystemTime(lpFileTime, &SysTime);
         }
@@ -254,7 +281,6 @@ static BOOL TIME_GetTimezoneBias( const TIME_ZONE_INFORMATION *pTZinfo,
     return TRUE;
 }
 
-#ifndef __REACTOS__
 /***********************************************************************
  *  TIME_GetSpecificTimeZoneKey
  *
@@ -427,12 +453,8 @@ static BOOL TIME_GetSpecificTimeZoneInfo( const WCHAR *key_name, WORD year,
 
     return TRUE;
 }
-#endif // __REACTOS__
 
 
-/* FUNCTIONS ****************************************************************/
-
-#ifndef __REACTOS__
 /***********************************************************************
  *              SetLocalTime            (KERNEL32.@)
  *
@@ -539,7 +561,6 @@ BOOL WINAPI SetSystemTimeAdjustment( DWORD dwTimeAdjustment, BOOL bTimeAdjustmen
     FIXME("(%08x,%d): stub !\n", dwTimeAdjustment, bTimeAdjustmentDisabled);
     return TRUE;
 }
-#endif // __REACTOS__
 
 /***********************************************************************
  *              GetTimeZoneInformation  (KERNEL32.@)
@@ -559,22 +580,15 @@ DWORD WINAPI GetTimeZoneInformation( LPTIME_ZONE_INFORMATION tzinfo )
 {
     NTSTATUS status;
 
-    DPRINT("GetTimeZoneInformation()\n");
-
-    status = NtQuerySystemInformation(SystemCurrentTimeZoneInformation,
-                                      tzinfo,
-                                      sizeof(TIME_ZONE_INFORMATION),
-                                      NULL);
-    if (!NT_SUCCESS(status))
+    status = RtlQueryTimeZoneInformation( (RTL_TIME_ZONE_INFORMATION*)tzinfo );
+    if ( status != STATUS_SUCCESS )
     {
-        BaseSetLastNTError(status);
+        SetLastError( RtlNtStatusToDosError(status) );
         return TIME_ZONE_ID_INVALID;
     }
-
     return TIME_ZoneID( tzinfo );
 }
 
-#ifndef __REACTOS__
 /***********************************************************************
  *              GetTimeZoneInformationForYear  (KERNEL32.@)
  */
@@ -598,7 +612,6 @@ BOOL WINAPI GetTimeZoneInformationForYear( USHORT wYear,
 
     return TRUE;
 }
-#endif // __REACTOS__
 
 /***********************************************************************
  *              SetTimeZoneInformation  (KERNEL32.@)
@@ -614,30 +627,11 @@ BOOL WINAPI GetTimeZoneInformationForYear( USHORT wYear,
  */
 BOOL WINAPI SetTimeZoneInformation( const TIME_ZONE_INFORMATION *tzinfo )
 {
-    RTL_TIME_ZONE_INFORMATION TimeZoneInformation;
-    NTSTATUS Status;
-
-    DPRINT("SetTimeZoneInformation()\n");
-
-    Status = RtlSetTimeZoneInformation((LPTIME_ZONE_INFORMATION)tzinfo);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("RtlSetTimeZoneInformation() failed (Status %lx)\n", Status);
-        BaseSetLastNTError(Status);
-        return FALSE;
-    }
-
-    Status = NtSetSystemInformation(SystemCurrentTimeZoneInformation,
-                                    (PVOID)tzinfo,
-                                    sizeof(TIME_ZONE_INFORMATION));
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("NtSetSystemInformation() failed (Status %lx)\n", Status);
-        BaseSetLastNTError(Status);
-        return FALSE;
-    }
-
-    return TRUE;
+    NTSTATUS status;
+    status = RtlSetTimeZoneInformation( (const RTL_TIME_ZONE_INFORMATION *)tzinfo );
+    if ( status != STATUS_SUCCESS )
+        SetLastError( RtlNtStatusToDosError(status) );
+    return !status;
 }
 
 /***********************************************************************
@@ -674,18 +668,13 @@ BOOL WINAPI SystemTimeToTzSpecificLocalTime(
             return FALSE;
     }
 
-#ifdef __REACTOS__
-    if (!lpUniversalTime || !lpLocalTime)
-        return FALSE;
-#endif // __REACTOS__
-
     if (!SystemTimeToFileTime(lpUniversalTime, &ft))
         return FALSE;
     FILETIME2LL( &ft, llTime)
     if (!TIME_GetTimezoneBias(&tzinfo, &ft, FALSE, &lBias))
         return FALSE;
     /* convert minutes to 100-nanoseconds-ticks */
-    llTime -= (LONGLONG)lBias * TICKSPERMIN;
+    llTime -= (LONGLONG)lBias * 600000000;
     LL2FILETIME( llTime, &ft)
 
     return FileTimeToSystemTime(&ft, lpLocalTime);
@@ -707,8 +696,8 @@ BOOL WINAPI SystemTimeToTzSpecificLocalTime(
  *  Failure: FALSE.
  */
 BOOL WINAPI TzSpecificLocalTimeToSystemTime(
-    LPTIME_ZONE_INFORMATION lpTimeZoneInformation,
-    LPSYSTEMTIME lpLocalTime, LPSYSTEMTIME lpUniversalTime)
+    const TIME_ZONE_INFORMATION *lpTimeZoneInformation,
+    const SYSTEMTIME *lpLocalTime, LPSYSTEMTIME lpUniversalTime)
 {
     FILETIME ft;
     LONG lBias;
@@ -731,12 +720,12 @@ BOOL WINAPI TzSpecificLocalTimeToSystemTime(
     if (!TIME_GetTimezoneBias(&tzinfo, &ft, TRUE, &lBias))
         return FALSE;
     /* convert minutes to 100-nanoseconds-ticks */
-    t += (LONGLONG)lBias * TICKSPERMIN;
+    t += (LONGLONG)lBias * 600000000;
     LL2FILETIME( t, &ft)
     return FileTimeToSystemTime(&ft, lpUniversalTime);
 }
 
-#ifndef __REACTOS__
+
 /***********************************************************************
  *              GetSystemTimeAsFileTime  (KERNEL32.@)
  *
@@ -827,7 +816,6 @@ BOOL WINAPI GetProcessTimes( HANDLE hprocess, LPFILETIME lpCreationTime,
     LL2FILETIME( pti.ExitTime.QuadPart, lpExitTime);
     return TRUE;
 }
-#endif // __REACTOS__
 
 /*********************************************************************
  *	GetCalendarInfoA				(KERNEL32.@)
@@ -941,7 +929,6 @@ int WINAPI GetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType,
         LOCALE_SABBREVMONTHNAME13,
         LOCALE_SYEARMONTH,
         0, /* CAL_ITWODIGITYEARMAX */
-#ifndef __REACTOS__
         LOCALE_SSHORTESTDAYNAME1,
         LOCALE_SSHORTESTDAYNAME2,
         LOCALE_SSHORTESTDAYNAME3,
@@ -951,7 +938,6 @@ int WINAPI GetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType,
         LOCALE_SSHORTESTDAYNAME7,
         LOCALE_SMONTHDAY,
         0, /* CAL_SABBREVERASTRING */
-#endif // __REACTOS__
     };
     DWORD localeflags = 0;
     CALTYPE calinfo;
@@ -1209,7 +1195,6 @@ int WINAPI GetCalendarInfoEx(LPCWSTR locale, CALID calendar, LPCWSTR lpReserved,
         data, len, value);
     return GetCalendarInfoW(lcid, calendar, caltype, data, len, value);
 }
-#endif // __REACTOS__
 
 /*********************************************************************
  *	SetCalendarInfoA				(KERNEL32.@)
@@ -1234,7 +1219,6 @@ int WINAPI	SetCalendarInfoW(LCID Locale, CALID Calendar, CALTYPE CalType, LPCWST
     return 0;
 }
 
-#ifndef __REACTOS__
 /*********************************************************************
  *      LocalFileTimeToFileTime                         (KERNEL32.@)
  */
@@ -1602,4 +1586,3 @@ BOOL WINAPI QueryUnbiasedInterruptTime(ULONGLONG *time)
     RtlQueryUnbiasedInterruptTime(time);
     return TRUE;
 }
-#endif // __REACTOS__

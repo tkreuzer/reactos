@@ -20,15 +20,18 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
-/* Partly synched with Wine */
+#include "config.h"
+#include "wine/port.h"
 
-#include <k32.h>
+#include <stdarg.h>
+#include "windef.h"
+#include "winbase.h"
+#include "winerror.h"
+#include "winnls.h"
+#include "winternl.h"
+#include "wine/debug.h"
 
-#define NDEBUG
-#include <debug.h>
-DEBUG_CHANNEL(actctx);
-
-#define ACTCTX_FAKE_HANDLE ((HANDLE) 0xf00baa)
+WINE_DEFAULT_DEBUG_CHANNEL(actctx);
 
 /***********************************************************************
  * CreateActCtxA (KERNEL32.@)
