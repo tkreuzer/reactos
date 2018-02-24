@@ -652,7 +652,6 @@ ScmRemoveServiceImage(PSERVICE_IMAGE pServiceImage)
     HeapFree(GetProcessHeap(), 0, pServiceImage);
 }
 
-static
 VOID
 ScmDereferenceServiceImage(
     _Inout_ PSERVICE_IMAGE pServiceImage)
@@ -2021,6 +2020,30 @@ ScmStartUserModeService(PSERVICE Service,
     return ScmSendStartCommand(Service, argc, argv);
 }
 
+VOID
+ScmUpdateServiceStatus(
+    PSERVICE Service)
+{
+    DWORD dwError;
+
+    /* Check if the service is supposed to be running */
+    if (Service->Status.dwCurrentState != SERVICE_STOPPED)
+    {
+        /* Check if the service process is still alive */
+        dwError = ScmControlService(Service->lpImage->hControlPipe,
+                                    Service->lpServiceName,
+                                    (SERVICE_STATUS_HANDLE)Service,
+                                    SERVICE_CONTROL_INTERROGATE);
+        if (dwError != ERROR_SUCCESS)
+        {
+            /* Service was terminated, cleanup */
+            ScmDereferenceServiceImage(Service->lpImage);
+            Service->lpImage = NULL;
+            Service->Status.dwCurrentState = SERVICE_STOPPED;
+            DPRINT1("Service %s was terminated!\n", Service->lpServiceName);
+        }
+    }
+}
 
 static DWORD
 ScmLoadService(PSERVICE Service,

@@ -6016,6 +6016,34 @@ done:
     return dwError;
 }
 
+VOID
+ScmDereferenceServiceImage(
+    _Inout_ PSERVICE_IMAGE pServiceImage);
+
+/*
+service: tcpsvcs.exe
+
+- sc query tcpsvcs
+=> stopped
+- sc start tcpsvcs
+=> running
+- taskmgr kill tcpsvcs.exe
+- sc query tcpsvcs
+=> running
+- sc stop tcpsvcs
+=> can't stop (ERROR_NO_DATA - The pipe is being closed)
+- sc start tcpsvcs
+=> running, service runs
+
+- taskmgr kill tcpsvcs.exe
+- service manager
+=> running, can't stop, can't start, only restart works
+
+TODO:
+- Make services.exe detect killed processes on sc query
+- Make sc.exe able to stop if it was killed
+- Make service manager able to query current state
+*/
 
 /* Function 40 */
 DWORD
@@ -6030,6 +6058,7 @@ RQueryServiceStatusEx(
     LPSERVICE_STATUS_PROCESS lpStatus;
     PSERVICE_HANDLE hSvc;
     PSERVICE lpService;
+    DWORD dwError;
 
     DPRINT("RQueryServiceStatusEx() called\n");
 
@@ -6066,7 +6095,21 @@ RQueryServiceStatusEx(
     }
 
     /* Lock the service database shared */
-    ScmLockDatabaseShared();
+    ScmLockDatabaseExclusive();
+    __debugbreak();
+    /* Check if the service process is still alive */
+    dwError = ScmControlService(lpService->lpImage->hControlPipe,
+                                lpService->lpServiceName,
+                                (SERVICE_STATUS_HANDLE)lpService,
+                                SERVICE_CONTROL_INTERROGATE);
+    if (dwError != ERROR_SUCCESS)
+    {
+        /* Service was terminated, cleanup */
+        ScmDereferenceServiceImage(lpService->lpImage);
+        lpService->lpImage = NULL;
+        lpService->Status.dwCurrentState = SERVICE_STOPPED;
+        DPRINT1("Service %s was terminated!\n", lpService->lpServiceName);
+    }
 
     lpStatus = (LPSERVICE_STATUS_PROCESS)lpBuffer;
 
