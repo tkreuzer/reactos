@@ -1,4 +1,8 @@
 
+// HACK!!!
+#define MmMapViewInSessionSpace MmMapViewInSystemSpace
+#define MmUnmapViewInSessionSpace MmUnmapViewInSystemSpace
+
 typedef struct _ENGSECTION
 {
     PVOID pvSectionObject;
