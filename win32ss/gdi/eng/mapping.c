@@ -485,8 +485,8 @@ EngFreeModule(
     PFILEVIEW pFileView = (PFILEVIEW)h;
     NTSTATUS Status;
 
-    /* FIXME: Use system space because ARM3 doesn't support executable sections yet */
-    Status = MmUnmapViewInSystemSpace(pFileView->pvKView);
+    /* Unmap the section */
+    Status = MmUnmapViewInSessionSpace(pFileView->pvKView);
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("MmUnmapViewInSessionSpace failed: 0x%lx\n", Status);
