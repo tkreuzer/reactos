@@ -310,7 +310,7 @@ void OnImage(
 
 	//	store the image size
 
-	SetWindowLong(hDlg, DWL_USER, image_size);
+	SetWindowLongPtr(hDlg, DWLP_USER, image_size);
 
 	//	setup disktype controls
 
@@ -446,7 +446,7 @@ void OnMediaType(
 	ULONG			media_size;
 	ULONG			image_size;
 
-	image_size = GetWindowLong(hDlg, DWL_USER);
+	image_size = GetWindowLongPtr(hDlg, DWLP_USER);
 
 	if (image_size == INVALID_FILE_SIZE) {
 		return;
@@ -530,7 +530,7 @@ DWORD OnOK(
 
 		//	file is specified
 
-		if (GetWindowLong(hDlg, DWL_USER) == INVALID_FILE_SIZE) {
+		if (GetWindowLongPtr(hDlg, DWLP_USER) == INVALID_FILE_SIZE) {
 
 			//	create a new image
 
@@ -545,7 +545,7 @@ DWORD OnOK(
 
 	//	open the image
 
-	hDevice = VfdOpenDevice(GetWindowLong(hDlg, GWL_USERDATA));
+	hDevice = VfdOpenDevice(GetWindowLongPtr(hDlg, GWLP_USERDATA));
 
 	if (hDevice == INVALID_HANDLE_VALUE) {
 		ret = GetLastError();
