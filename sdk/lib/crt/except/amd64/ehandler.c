@@ -8,6 +8,20 @@
 #include <precomp.h>
 #include <winnt.h>
 
+typedef struct _C_SCOPE_TABLE_ENTRY
+{
+    ULONG Begin;
+    ULONG End;
+    ULONG Handler;
+    ULONG Target;
+} C_SCOPE_TABLE_ENTRY, *PC_SCOPE_TABLE_ENTRY;
+
+typedef struct _C_SCOPE_TABLE
+{
+    ULONG NumEntries;
+    C_SCOPE_TABLE_ENTRY Entry[1];
+} C_SCOPE_TABLE, *PC_SCOPE_TABLE;
+
 
 _CRTIMP
 EXCEPTION_DISPOSITION
