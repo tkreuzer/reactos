@@ -8,6 +8,20 @@
 #include <precomp.h>
 #include <winnt.h>
 
+typedef struct _C_SCOPE_TABLE_ENTRY
+{
+    ULONG Begin;
+    ULONG End;
+    ULONG Handler;
+    ULONG Target;
+} C_SCOPE_TABLE_ENTRY, *PC_SCOPE_TABLE_ENTRY;
+
+typedef struct _C_SCOPE_TABLE
+{
+    ULONG NumEntries;
+    C_SCOPE_TABLE_ENTRY Entry[1];
+} C_SCOPE_TABLE, *PC_SCOPE_TABLE;
+
 
 _CRTIMP
 EXCEPTION_DISPOSITION
@@ -41,11 +55,10 @@ __C_specific_handler(
     ScopeTable = (PSCOPE_TABLE)DispatcherContext->HandlerData;
 
     /* Loop while we have scope table entries */
-    while (DispatcherContext->ScopeIndex < ScopeTable->Count)
+    for (i = DispatcherContext->ScopeIndex;
+         DispatcherContext->ScopeIndex < ScopeTable->Count;
+         i++, DispatcherContext->ScopeIndex++)
     {
-        /* Use i as index and update the dispatcher context */
-        i = DispatcherContext->ScopeIndex++;
-
         /* Get the start and end of the scrope */
         BeginAddress = ScopeTable->ScopeRecord[i].BeginAddress;
         EndAddress = ScopeTable->ScopeRecord[i].EndAddress;
@@ -56,41 +69,35 @@ __C_specific_handler(
             continue;
         }
 
-        /* Check if this is an unwind */
-        if (ExceptionRecord->ExceptionFlags & EXCEPTION_UNWIND)
+        /* Check if this is a target unwind */
+        if (ExceptionRecord->ExceptionFlags & EXCEPTION_TARGET_UNWIND)
         {
-            /* Check if this is a target unwind */
-            if (ExceptionRecord->ExceptionFlags & EXCEPTION_TARGET_UNWIND)
+            /* Check if the target is within the scope itself */
+            if ((TargetIpOffset >= BeginAddress) &&
+                (TargetIpOffset <  EndAddress))
             {
-                /* Check if the target is within the scope itself */
-                if ((TargetIpOffset >= BeginAddress) &&
-                    (TargetIpOffset <  EndAddress))
-                {
-                    return ExceptionContinueSearch;
-                }
+                return ExceptionContinueSearch;
             }
+        }
 
-            /* Check if this is a termination handler / finally function */
-            if (ScopeTable->ScopeRecord[i].JumpTarget == 0)
+        /* Check if this is a termination handler / finally function */
+        if (ScopeTable->ScopeRecord[i].JumpTarget == 0)
+        {
+            /* Is this an unwind? */
+            if (ExceptionRecord->ExceptionFlags & EXCEPTION_UNWIND)
             {
                 /* Call the handler */
                 Handler = ScopeTable->ScopeRecord[i].HandlerAddress;
                 TerminationHandler = (PTERMINATION_HANDLER)(ImageBase + Handler);
                 TerminationHandler(TRUE, EstablisherFrame);
             }
-            else if (ScopeTable->ScopeRecord[i].JumpTarget == TargetIpOffset)
-            {
-                return ExceptionContinueSearch;
-            }
         }
-        else
+        else if (ScopeTable->ScopeRecord[i].JumpTarget == TargetIpOffset)
         {
-            /* We are only unterested in exception handlers */
-            if (ScopeTable->ScopeRecord[i].JumpTarget == 0)
-            {
-                continue;
-            }
-
+            return ExceptionContinueSearch;
+        }
+        else if ((ExceptionRecord->ExceptionFlags & EXCEPTION_UNWIND) == 0)
+        {
             /* This is an exception filter, get the handler address */
             Handler = ScopeTable->ScopeRecord[i].HandlerAddress;
 
