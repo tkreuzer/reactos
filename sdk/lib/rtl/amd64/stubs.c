@@ -81,15 +81,6 @@ RtlInitializeContext(IN HANDLE ProcessHandle,
     return;
 }
 
-NTSYSAPI
-VOID
-RtlRestoreContext(
-    PCONTEXT ContextRecord,
-    PEXCEPTION_RECORD ExceptionRecord)
-{
-    UNIMPLEMENTED;
-}
-
 NTSTATUS
 NTAPI
 RtlQueueApcWow64Thread(
