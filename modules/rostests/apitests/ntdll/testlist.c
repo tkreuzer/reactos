@@ -3,6 +3,7 @@
 #define STANDALONE
 #include <apitest.h>
 
+#ifndef _RTL_TEST
 extern void func_LdrEnumResources(void);
 extern void func_load_notifications(void);
 extern void func_NtAcceptConnectPort(void);
@@ -48,6 +49,7 @@ extern void func_NtSetVolumeInformationFile(void);
 extern void func_NtSystemInformation(void);
 extern void func_NtUnloadDriver(void);
 extern void func_NtWriteFile(void);
+#endif // _RTL_TEST
 extern void func_RtlAllocateHeap(void);
 extern void func_RtlBitmap(void);
 extern void func_RtlComputePrivatizedDllName_U(void);
@@ -88,12 +90,15 @@ extern void func_RtlUpcaseUnicodeStringToCountedOemString(void);
 extern void func_RtlValidateUnicodeString(void);
 extern void func_RtlxUnicodeStringToAnsiSize(void);
 extern void func_RtlxUnicodeStringToOemSize(void);
+#ifndef _RTL_TEST
 extern void func_StackOverflow(void);
 extern void func_TimerResolution(void);
 extern void func_UserModeException(void);
+#endif
 
 const struct test winetest_testlist[] =
 {
+#ifndef _RTL_TEST
     { "LdrEnumResources",               func_LdrEnumResources },
     { "load_notifications",             func_load_notifications },
     { "NtAcceptConnectPort",            func_NtAcceptConnectPort },
@@ -139,6 +144,7 @@ const struct test winetest_testlist[] =
     { "NtSystemInformation",            func_NtSystemInformation },
     { "NtUnloadDriver",                 func_NtUnloadDriver },
     { "NtWriteFile",                    func_NtWriteFile },
+#endif // _RTL_TEST
     { "RtlAllocateHeap",                func_RtlAllocateHeap },
     { "RtlBitmapApi",                   func_RtlBitmap },
     { "RtlComputePrivatizedDllName_U",  func_RtlComputePrivatizedDllName_U },
@@ -179,9 +185,11 @@ const struct test winetest_testlist[] =
     { "RtlUnicodeToOemN",               func_RtlUnicodeToOemN },
     { "RtlUpcaseUnicodeStringToCountedOemString", func_RtlUpcaseUnicodeStringToCountedOemString },
     { "RtlValidateUnicodeString",       func_RtlValidateUnicodeString },
+#ifndef _RTL_TEST
     { "StackOverflow",                  func_StackOverflow },
     { "TimerResolution",                func_TimerResolution },
     { "UserModeException",              func_UserModeException },
+#endif
 
     { 0, 0 }
 };
