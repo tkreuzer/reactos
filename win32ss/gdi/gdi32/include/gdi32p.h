@@ -692,6 +692,7 @@ typedef enum _DCFUNC
     DCFUNC_SetMapMode,
     DCFUNC_SetPixel,
     DCFUNC_SetPolyFillMode,
+    DCFUNC_SetRelAbs,
     DCFUNC_SetROP2,
     DCFUNC_SetStretchBltMode,
     DCFUNC_SetTextAlign,
