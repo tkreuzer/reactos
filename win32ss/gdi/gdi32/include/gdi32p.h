@@ -650,6 +650,7 @@ typedef enum _DCFUNC
     DCFUNC_SelectFont,
     DCFUNC_SelectPalette,
     DCFUNC_SelectPen,
+    DCFUNC_SetArcDirection,
     DCFUNC_SetDCBrushColor,
     DCFUNC_SetDCPenColor,
     DCFUNC_SetDIBitsToDevice,
