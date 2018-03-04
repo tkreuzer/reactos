@@ -234,7 +234,7 @@ add_pch(freeldr_common include/freeldr.h PCH_SOURCE)
 add_dependencies(freeldr_common bugcodes asm xdk)
 
 ## GCC builds need this extra thing for some reason...
-if(ARCH STREQUAL "i386" AND NOT MSVC)
+if(ARCH STREQUAL "i386")
     target_link_libraries(freeldr_common mini_hal)
 endif()
 

@@ -58,6 +58,8 @@ EXTERN __bss_end__:DWORD
 //ASSUME nothing
 #endif
 
+.code32
+
     /* Align to 32 bits boundary */
     .align 4
 
@@ -180,7 +182,10 @@ mbfail:
 mbstop:
     jmp short mbstop  /* We should never get here */
 
-.code16
+//.code16
+// The following code is 16 bit code, but we compile it as 32 bit code to be
+// compatible with the microsoft assembler, which doesn't support mixing
+// 16 and 32 bit code. This is ok, since the opcodes are identical.
 mb4:
     /* Disable protected mode */
     mov eax, cr0
