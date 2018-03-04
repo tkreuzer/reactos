@@ -17,6 +17,40 @@
 #include "cabman.h"
 #include "dfp.h"
 
+
+#if defined(_WIN32)
+#define GetSizeOfFile(handle) _GetSizeOfFile(handle)
+static LONG _GetSizeOfFile(FILEHANDLE handle)
+{
+    ULONG size = GetFileSize(handle, NULL);
+    if (size == INVALID_FILE_SIZE)
+        return -1;
+
+    return size;
+}
+#define ReadFileData(handle, buffer, size, bytesread) _ReadFileData(handle, buffer, size, bytesread)
+static BOOL _ReadFileData(FILEHANDLE handle, void* buffer, ULONG size, PULONG bytesread)
+{
+    return ReadFile(handle, buffer, size, (LPDWORD)bytesread, NULL);
+}
+#else
+#define GetSizeOfFile(handle) _GetSizeOfFile(handle)
+static LONG _GetSizeOfFile(FILEHANDLE handle)
+{
+    LONG size;
+    fseek(handle, 0, SEEK_END);
+    size = ftell(handle);
+    fseek(handle, 0, SEEK_SET);
+    return size;
+}
+#define ReadFileData(handle, buffer, size, bytesread) _ReadFileData(handle, buffer, size, bytesread)
+static bool _ReadFileData(FILEHANDLE handle, void* buffer, ULONG size, PULONG bytesread)
+{
+    *bytesread = fread(buffer, 1, size, handle);
+    return *bytesread == size;
+}
+#endif
+
 /* CDFParser */
 
 CDFParser::CDFParser()
@@ -60,31 +94,31 @@ CDFParser::~CDFParser()
     PDISK_NUMBER DNNext;
 
     if (FileBuffer)
-        free(FileBuffer);
+        FreeMemory(FileBuffer);
     CNNext = CabinetName;
     while (CNNext != NULL)
     {
         CNPrev = CNNext->Next;
-        free(CNNext);
+        FreeMemory(CNNext);
         CNNext = CNPrev;
     }
     CNNext = DiskLabel;
     while (CNNext != NULL)
     {
         CNPrev = CNNext->Next;
-        free(CNNext);
+        FreeMemory(CNNext);
         CNNext = CNPrev;
     }
     DNNext = MaxDiskSize;
     while (DNNext != NULL)
     {
         DNPrev = DNNext->Next;
-        free(DNNext);
+        FreeMemory(DNNext);
         DNNext = DNPrev;
     }
 
     if (InfFileHandle != NULL)
-        fclose(InfFileHandle);
+        CloseFile(InfFileHandle);
 }
 
 void CDFParser::WriteInfLine(char* InfLine)
@@ -92,6 +126,9 @@ void CDFParser::WriteInfLine(char* InfLine)
     char buf[PATH_MAX];
     char eolbuf[2];
     char* destpath;
+#if defined(_WIN32)
+    ULONG BytesWritten;
+#endif
 
     if (DontGenerateInf)
         return;
@@ -112,28 +149,53 @@ void CDFParser::WriteInfLine(char* InfLine)
             strcpy(buf, InfFileName);
 
         /* Create .inf file, overwrite if it already exists */
+#if defined(_WIN32)
+        InfFileHandle = CreateFile(buf,     // Create this file
+            GENERIC_WRITE,                  // Open for writing
+            0,                              // No sharing
+            NULL,                           // No security
+            CREATE_ALWAYS,                  // Create or overwrite
+            FILE_ATTRIBUTE_NORMAL,          // Normal file
+            NULL);                          // No attribute template
+        if (InfFileHandle == INVALID_HANDLE_VALUE)
+        {
+            DPRINT(MID_TRACE, ("Error creating '%u'.\n", (UINT)GetLastError()));
+            return;
+        }
+#else /* !_WIN32 */
         InfFileHandle = fopen(buf, "wb");
         if (InfFileHandle == NULL)
         {
-            DPRINT(MID_TRACE, ("Error creating INF file.\n"));
+            DPRINT(MID_TRACE, ("Error creating '%i'.\n", errno));
             return;
         }
+#endif
     }
 
-    if (fwrite(InfLine, strlen(InfLine), 1, InfFileHandle) < 1)
+#if defined(_WIN32)
+    if (!WriteFile(InfFileHandle, InfLine, (DWORD)strlen(InfLine), (LPDWORD)&BytesWritten, NULL))
     {
-        DPRINT(MID_TRACE, ("Error writing INF file.\n"));
+        DPRINT(MID_TRACE, ("ERROR WRITING '%u'.\n", (UINT)GetLastError()));
         return;
     }
+#else
+    if (fwrite(InfLine, strlen(InfLine), 1, InfFileHandle) < 1)
+        return;
+#endif
 
     eolbuf[0] = 0x0d;
     eolbuf[1] = 0x0a;
 
-    if (fwrite(eolbuf, sizeof(eolbuf), 1, InfFileHandle) < 1)
+#if defined(_WIN32)
+    if (!WriteFile(InfFileHandle, eolbuf, sizeof(eolbuf), (LPDWORD)&BytesWritten, NULL))
     {
-        DPRINT(MID_TRACE, ("Error writing INF file.\n"));
+        DPRINT(MID_TRACE, ("ERROR WRITING '%u'.\n", (UINT)GetLastError()));
         return;
     }
+#else
+    if (fwrite(eolbuf, 1, sizeof(eolbuf), InfFileHandle) < 1)
+        return;
+#endif
 }
 
 
@@ -146,43 +208,54 @@ ULONG CDFParser::Load(char* FileName)
  *     Status of operation
  */
 {
+    ULONG BytesRead;
     LONG FileSize;
 
     if (FileLoaded)
         return CAB_STATUS_SUCCESS;
 
-    /* Open the directive file */
+    /* Create cabinet file, overwrite if it already exists */
+#if defined(_WIN32)
+    FileHandle = CreateFile(FileName, // Create this file
+        GENERIC_READ,                 // Open for reading
+        0,                            // No sharing
+        NULL,                         // No security
+        OPEN_EXISTING,                // Open the file
+        FILE_ATTRIBUTE_NORMAL,        // Normal file
+        NULL);                        // No attribute template
+    if (FileHandle == INVALID_HANDLE_VALUE)
+        return CAB_STATUS_CANNOT_OPEN;
+#else /* !_WIN32 */
     FileHandle = fopen(FileName, "rb");
     if (FileHandle == NULL)
-    {
         return CAB_STATUS_CANNOT_OPEN;
-    }
+#endif
 
     FileSize = GetSizeOfFile(FileHandle);
     if (FileSize == -1)
     {
-        fclose(FileHandle);
+        CloseFile(FileHandle);
         return CAB_STATUS_CANNOT_OPEN;
     }
 
     FileBufferSize = (ULONG)FileSize;
 
-    FileBuffer = (char*)malloc(FileBufferSize);
+    FileBuffer = (char*)AllocateMemory(FileBufferSize);
     if (!FileBuffer)
     {
-        fclose(FileHandle);
+        CloseFile(FileHandle);
         return CAB_STATUS_NOMEMORY;
     }
 
-    if ( fread(FileBuffer, FileBufferSize, 1, FileHandle) < 1 )
+    if (!ReadFileData(FileHandle, FileBuffer, FileBufferSize, &BytesRead))
     {
-        fclose(FileHandle);
-        free(FileBuffer);
+        CloseFile(FileHandle);
+        FreeMemory(FileBuffer);
         FileBuffer = NULL;
         return CAB_STATUS_CANNOT_READ;
     }
 
-    fclose(FileHandle);
+    CloseFile(FileHandle);
 
     FileLoaded = true;
 
@@ -498,7 +571,7 @@ bool CDFParser::SetDiskName(PCABINET_NAME *List, ULONG Number, char* String)
         CN = CN->Next;
     }
 
-    CN = (PCABINET_NAME)malloc(sizeof(CABINET_NAME));
+    CN = (PCABINET_NAME)AllocateMemory(sizeof(CABINET_NAME));
     if (!CN)
         return false;
 
@@ -564,7 +637,7 @@ bool CDFParser::SetDiskNumber(PDISK_NUMBER *List, ULONG Number, ULONG Value)
         DN = DN->Next;
     }
 
-    DN = (PDISK_NUMBER)malloc(sizeof(DISK_NUMBER));
+    DN = (PDISK_NUMBER)AllocateMemory(sizeof(DISK_NUMBER));
     if (!DN)
         return false;
 
