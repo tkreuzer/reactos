@@ -159,6 +159,8 @@ CmpGetValueData(IN PHHIVE Hive,
     return TRUE;
 }
 
+#undef KeBugCheckEx
+
 /*
  * NOTE: This function doesn't support big values, contrary to CmpGetValueData.
  */

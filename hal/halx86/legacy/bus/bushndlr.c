@@ -11,6 +11,7 @@
 #include <hal.h>
 #define NDEBUG
 #include <debug.h>
+#undef KeBugCheckEx
 
 /* GLOBALS ********************************************************************/
 

@@ -102,6 +102,8 @@ DbgPrint (
     return 0;
 }
 
+#undef KeBugCheckEx
+
 VOID
 NTAPI
 KeBugCheckEx(
