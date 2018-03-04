@@ -24,6 +24,12 @@
 
 DBG_DEFAULT_CHANNEL(WARNING);
 
+#if defined(_MSC_VER)
+#pragma section(".bss$0",long,read)
+__declspec(allocate(".bss$0")) char _bss_start__;
+#endif
+
+
 /* FUNCTIONS ******************************************************************/
 
 VOID __cdecl BootMain(IN PCCH CmdLine)
