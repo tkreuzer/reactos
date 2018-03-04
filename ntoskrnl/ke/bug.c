@@ -13,6 +13,9 @@
 #define NDEBUG
 #include <debug.h>
 
+#undef KeBugCheck
+#undef KeBugCheckEx
+
 /* GLOBALS *******************************************************************/
 
 LIST_ENTRY KeBugcheckCallbackListHead;
@@ -805,6 +808,14 @@ KeBugCheckWithTf(IN ULONG BugCheckCode,
             MessageId = BUGCODE_PSS_MESSAGE;
             break;
     }
+
+#if DBG
+    sprintf(AnsiName,
+            "\r\nFile: '%s' Line: %lu\r\n\r\n",
+            (PCSTR)KiBugCheckData[0],
+            (ULONG)KiBugCheckData[1]);
+            InbvDisplayString(AnsiName);
+#endif
 
     /* Save bugcheck data */
     KiBugCheckData[0] = BugCheckCode;

@@ -102,6 +102,8 @@ DbgPrint (
     return 0;
 }
 
+#undef KeBugCheckEx
+
 // FIXME: DECLSPEC_NORETURN
 VOID
 NTAPI

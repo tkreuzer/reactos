@@ -461,6 +461,7 @@ MsgBoxPrint(const char *Format, ...)
     return 0;
 }
 
+#undef KeBugCheckEx
 DECLSPEC_NORETURN
 VOID
 NTAPI

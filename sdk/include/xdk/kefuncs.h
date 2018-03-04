@@ -119,6 +119,14 @@ VOID
 NTAPI
 KeBugCheck(
   _In_ ULONG BugCheckCode);
+
+#if DBG && defined(__REACTOS__)
+#define KeBugCheck(Code) \
+    KiBugCheckData[0] = (ULONG_PTR)__FILE__, \
+    KiBugCheckData[1] = (ULONG_PTR)__LINE__, \
+    KeBugCheckExDebug(Code, 0, 0, 0, 0)
+#endif
+
 $endif(_NTDDK_)
 $if (_WDMDDK_ || _NTDDK_)
 #if defined(SINGLE_GROUP_LEGACY_API)
@@ -254,6 +262,33 @@ KeBugCheckEx(
   _In_ ULONG_PTR BugCheckParameter2,
   _In_ ULONG_PTR BugCheckParameter3,
   _In_ ULONG_PTR BugCheckParameter4);
+
+#if DBG && defined(__REACTOS__)
+extern NTSYSAPI ULONG_PTR KiBugCheckData[5];
+
+FORCEINLINE
+DECLSPEC_NORETURN
+VOID
+KeBugCheckExDebug(
+    _In_ ULONG BugCheckCode,
+    _In_ ULONG_PTR BugCheckParameter1,
+    _In_ ULONG_PTR BugCheckParameter2,
+    _In_ ULONG_PTR BugCheckParameter3,
+    _In_ ULONG_PTR BugCheckParameter4)
+{
+    KeBugCheckEx(BugCheckCode,
+                 BugCheckParameter1,
+                 BugCheckParameter2,
+                 BugCheckParameter3,
+                 BugCheckParameter4);
+}
+
+#define KeBugCheckEx(Code, P1, P2, P3, P4) \
+    KiBugCheckData[0] = (ULONG_PTR)__FILE__, \
+    KiBugCheckData[1] = (ULONG_PTR)__LINE__, \
+    KeBugCheckExDebug(Code, P1, P2, P3, P4)
+
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTKERNELAPI
