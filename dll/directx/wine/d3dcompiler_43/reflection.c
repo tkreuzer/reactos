@@ -1131,7 +1131,7 @@ static HRESULT d3dcompiler_parse_stat(struct d3dcompiler_shader_reflection *r, c
 #endif
     TRACE("GSOutputTopology: %x\n", r->gs_output_topology);
 
-    read_dword(&ptr, &r->gs_max_output_vertex_count);
+    read_dword(&ptr, (DWORD*)&r->gs_max_output_vertex_count);
     TRACE("GSMaxOutputVertexCount: %u\n", r->gs_max_output_vertex_count);
 
     skip_dword_unknown(&ptr, 2);
@@ -1146,7 +1146,7 @@ static HRESULT d3dcompiler_parse_stat(struct d3dcompiler_shader_reflection *r, c
 
     skip_dword_unknown(&ptr, 1);
 
-    read_dword(&ptr, &r->c_control_points);
+    read_dword(&ptr, (DWORD*)&r->c_control_points);
     TRACE("cControlPoints: %u\n", r->c_control_points);
 
 #ifdef __REACTOS__ /* DWORD* cast added */
@@ -1507,16 +1507,16 @@ static HRESULT d3dcompiler_parse_rdef(struct d3dcompiler_shader_reflection *r, c
 #endif
             TRACE("Input bind Dimension: %#x\n", desc->Dimension);
 
-            read_dword(&ptr, &desc->NumSamples);
+            read_dword(&ptr, (DWORD*)&desc->NumSamples);
             TRACE("Input bind NumSamples: %u\n", desc->NumSamples);
 
-            read_dword(&ptr, &desc->BindPoint);
+            read_dword(&ptr, (DWORD*)&desc->BindPoint);
             TRACE("Input bind BindPoint: %u\n", desc->BindPoint);
 
-            read_dword(&ptr, &desc->BindCount);
+            read_dword(&ptr, (DWORD*)&desc->BindCount);
             TRACE("Input bind BindCount: %u\n", desc->BindCount);
 
-            read_dword(&ptr, &desc->uFlags);
+            read_dword(&ptr, (DWORD*)&desc->uFlags);
             TRACE("Input bind uFlags: %u\n", desc->uFlags);
         }
     }
@@ -1561,10 +1561,10 @@ static HRESULT d3dcompiler_parse_rdef(struct d3dcompiler_shader_reflection *r, c
                 goto err_out;
             }
 
-            read_dword(&ptr, &cb->size);
+            read_dword(&ptr, (DWORD*)&cb->size);
             TRACE("Cbuffer size: %u\n", cb->size);
 
-            read_dword(&ptr, &cb->flags);
+            read_dword(&ptr, (DWORD*)&cb->flags);
             TRACE("Cbuffer flags: %u\n", cb->flags);
 
 #ifdef __REACTOS__ /* DWORD* cast added */

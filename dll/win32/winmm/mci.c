@@ -2278,7 +2278,7 @@ HTASK WINAPI mciGetCreatorTask(MCIDEVICEID uDeviceID)
     LPWINE_MCIDRIVER	wmd;
     HTASK ret = 0;
 
-    if ((wmd = MCI_GetDriver(uDeviceID))) ret = (HTASK)wmd->CreatorThread;
+    if ((wmd = MCI_GetDriver(uDeviceID))) ret = (HTASK)UlongToHandle(wmd->CreatorThread);
 
     TRACE("(%u) => %p\n", uDeviceID, ret);
     return ret;

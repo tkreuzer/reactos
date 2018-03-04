@@ -41,6 +41,7 @@ typedef unsigned int (__cdecl typeof(jpeg_write_scanlines))(struct jpeg_compress
 
 typedef void (*png_error_ptr_1)(struct png_struct_def *, const char *);
 typedef void (*png_rw_ptr_1)(struct png_struct_def *, unsigned char *, __typeof_uintptr);
+#endif
 typedef void (*png_flush_ptr_1)(struct png_struct_def *);
 typedef struct png_info_def* (__cdecl typeof(png_create_info_struct))(struct png_struct_def *);
 typedef struct png_struct_def * (__cdecl typeof(png_create_read_struct))(const char *, void *, png_error_ptr_1, png_error_ptr_1);
@@ -84,6 +85,7 @@ typedef void (__cdecl typeof(png_set_filter))(struct png_struct_def *, int, int)
 typedef void (__cdecl typeof(png_set_swap))(struct png_struct_def *);
 typedef void *thandle_t_1;
 typedef __typeof_intptr (*TIFFReadWriteProc_1)(thandle_t_1, void *, __typeof_intptr);
+#endif
 typedef unsigned int (*TIFFSeekProc_1)(void *, unsigned int, int);
 typedef int (*TIFFCloseProc_1)(thandle_t_1);
 typedef unsigned int (*TIFFSizeProc_1)(thandle_t_1);

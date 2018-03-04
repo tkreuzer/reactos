@@ -1108,7 +1108,7 @@ static CodecInfo* Open(LPICOPEN icinfo)
 
   if (icinfo == NULL) {
     TRACE("(NULL)\n");
-    return (LPVOID)0xFFFF0000;
+    return (LPVOID)(ULONG_PTR)0xFFFF0000; // CHECKME!
   }
 
   if (compare_fourcc(icinfo->fccType, ICTYPE_VIDEO)) return NULL;

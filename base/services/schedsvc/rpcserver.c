@@ -250,7 +250,7 @@ NetrJobEnum(
         {
             TRACE("dwIndex: %lu\n", dwIndex);
             dwEntrySize = sizeof(AT_ENUM) +
-                          (wcslen(CurrentJob->Command) + 1) * sizeof(WCHAR);
+                          (DWORD)(wcslen(CurrentJob->Command) + 1) * sizeof(WCHAR);
             TRACE("dwEntrySize: %lu\n", dwEntrySize);
 
             if ((PreferedMaximumLength != ULONG_MAX) &&
