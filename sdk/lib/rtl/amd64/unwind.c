@@ -468,11 +468,10 @@ GetEstablisherFrame(
         return Context->Rsp;
     }
 
-    if ((CodeOffset >= UnwindInfo->SizeOfProlog) ||
-        ((UnwindInfo->Flags & UNW_FLAG_CHAININFO) != 0))
+    // FIXME
+    if (UnwindInfo->Flags & UNW_FLAG_CHAININFO)
     {
-        return GetReg(Context, UnwindInfo->FrameRegister) -
-               UnwindInfo->FrameOffset * 16;
+        __debugbreak();
     }
 
     /* Loop all unwind ops */
@@ -480,11 +479,17 @@ GetEstablisherFrame(
          i < UnwindInfo->CountOfCodes;
          i += UnwindOpSlots(UnwindInfo->UnwindCode[i]))
     {
+        /* Bail out, if the Unwind code is ahead of Rip */
+        if (UnwindInfo->UnwindCode[i].CodeOffset > CodeOffset)
+        {
+            break;
+        }
+
         /* Check for SET_FPREG */
         if (UnwindInfo->UnwindCode[i].UnwindOp == UWOP_SET_FPREG)
         {
-            return GetReg(Context, UnwindInfo->FrameRegister) -
-                   UnwindInfo->FrameOffset * 16;
+            return GetReg(Context, UnwindInfo->FrameRegister)
+                UnwindInfo->FrameOffset * 16;
         }
     }
 
@@ -604,13 +609,14 @@ RepeatChainedInfo:
                 i += 3;
                 break;
 
-            case UWOP_EPILOG:
-                i += 1;
+            case UWOP_SAVE_XMM:
+                __debugbreak();
+                i += 2;
                 break;
 
-            case UWOP_SPARE_CODE:
-                ASSERT(FALSE);
-                i += 2;
+            case UWOP_SAVE_XMM_FAR:
+                __debugbreak();
+                i += 3;
                 break;
 
             case UWOP_SAVE_XMM128:
