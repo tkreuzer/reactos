@@ -96,20 +96,77 @@ ExpInterlockedPopEntrySList:
 FUNC RtlInterlockedPopEntrySList
     .ENDPROLOG
 
+    /* Copy rcx to r8, as we need rcx for the exchange */
+    mov r8, rcx
+
     /* Load ListHead->Region into rdx */
     mov rdx, [rcx + 8]
 
     /* Load ListHead->Alignment into rax */
     mov rax, [rcx]
 
-    /* Check for 16 byte SList support */
-    cmp byte ptr [RtlpUse16ByteSLists], 0
-    jne RtlInterlockedPopEntrySList16
-
-    /* Use the 8 byte header */
-
 ENDFUNC
 FUNC ExpInterlockedPopEntrySListResume
+    .ENDPROLOG
+
+    /* Check for 16 byte SList support */
+    cmp byte ptr [RtlpUse16ByteSLists], 0
+    je ExpInterlockedPopEntrySListResume8
+
+    /* This is a 16 byte header
+       r8 == ListHead
+       rdx == ListHead->Region
+       rax == ListHead->Alignment */
+
+    /* Set r9 = ListHead->NextEntry and check if it is NULL */
+    mov r9, rdx
+    and r9, SLIST16B_NEXTENTRY_MASK
+    jz RtlInterlockedPopEntrySListEmpty
+
+ENDFUNC
+FUNC ExpInterlockedPopEntrySListFault16
+    .SAVEREG rbx, P3Home
+    .ENDPROLOG
+
+    /* Set NewListHead.Next = ListHead->NextEntry->Next */
+    mov rcx, [r9]
+
+    /* Set NewListHead.HeaderType = 1 and  NewListHead.Init = 1 */
+    or rcx, (SLIST16B_HEADERTYPE_MASK or SLIST16B_INIT_MASK)
+
+    /* Copy Depth and Sequence number and adjust Depth */
+    lea rbx, [rax - SLIST16A_DEPTH_INC]
+
+ENDFUNC
+FUNC ExpInterlockedPopEntrySListEnd16
+    .SAVEREG rbx, P3Home
+    .ENDPROLOG
+
+    /* If [r8] equals rdx:rax, exchange it with rcx:rbx */
+    lock cmpxchg16b [r8]
+
+    /* If not equal, retry with rdx:rax, being the content of [r8] now */
+    jne ExpInterlockedPopEntrySListResume16
+
+    /* Copy the old NextEntry pointer to rax */
+    mov rax, rdx
+    and rax, SLIST16B_NEXTENTRY_MASK
+
+    /* Return */
+    mov rbx, [rsp + P3Home]
+    ret
+
+ENDFUNC
+FUNC RtlInterlockedPopEntrySListEmpty
+    .ENDPROLOG
+
+    xor rax, rax
+    mov rbx, [rsp + P3Home]
+    ret
+
+////////////////////////////////////////////////////////////////////////////
+ENDFUNC
+FUNC ExpInterlockedPopEntrySListResume8
     .ENDPROLOG
 
     /* Check if ListHead->NextEntry is NULL */
@@ -131,6 +188,7 @@ FUNC ExpInterlockedPopEntrySListResume
     /* Combine to new pointer in rdx */
     or rdx, r9
 
+///////////////////////////////////////////////////////////////////////
 ENDFUNC
 FUNC ExpInterlockedPopEntrySListFault
     .ENDPROLOG
@@ -172,72 +230,7 @@ FUNC RtlInterlockedPopEntrySListEmpty
     xor rax, rax
     ret
 
-ENDFUNC
-FUNC RtlInterlockedPopEntrySList16
-    mov [rsp + P3Home], rbx
-    .SAVEREG rbx, P3Home
-    .ENDPROLOG
 
-    /* This is a 16 byte header
-       rcx == ListHead
-       rdx == ListHead->Region
-       rax == ListHead->Alignment */
-
-    /* Copy rcx to r8, as we need rcx for the exchange */
-    mov r8, rcx
-
-ENDFUNC
-FUNC ExpInterlockedPopEntrySListResume16
-    .SAVEREG rbx, P3Home
-    .ENDPROLOG
-
-    /* Set r9 = ListHead->NextEntry and check if it is NULL */
-    mov r9, rdx
-    and r9, SLIST16B_NEXTENTRY_MASK
-    jz RtlInterlockedPopEntrySListEmpty16
-
-ENDFUNC
-FUNC ExpInterlockedPopEntrySListFault16
-    .SAVEREG rbx, P3Home
-    .ENDPROLOG
-
-    /* Set NewListHead.Next = ListHead->NextEntry->Next */
-    mov rcx, [r9]
-
-    /* Set NewListHead.HeaderType = 1 and  NewListHead.Init = 1 */
-    or rcx, (SLIST16B_HEADERTYPE_MASK or SLIST16B_INIT_MASK)
-
-    /* Copy Depth and Sequence number and adjust Depth */
-    lea rbx, [rax - SLIST16A_DEPTH_INC]
-
-ENDFUNC
-FUNC ExpInterlockedPopEntrySListEnd16
-    .SAVEREG rbx, P3Home
-    .ENDPROLOG
-
-    /* If [r8] equals rdx:rax, exchange it with rcx:rbx */
-    lock cmpxchg16b [r8]
-
-    /* If not equal, retry with rdx:rax, being the content of [r8] now */
-    jne ExpInterlockedPopEntrySListResume16
-
-    /* Copy the old NextEntry pointer to rax */
-    mov rax, rdx
-    and rax, SLIST16B_NEXTENTRY_MASK
-
-    /* Return */
-    mov rbx, [rsp + P3Home]
-    ret
-
-ENDFUNC
-FUNC RtlInterlockedPopEntrySListEmpty16
-    .ENDPROLOG
-
-    xor rax, rax
-    mov rbx, [rsp + P3Home]
-    ret
-
-ENDFUNC
 
 /* PSLIST_ENTRY
  * NTAPI
