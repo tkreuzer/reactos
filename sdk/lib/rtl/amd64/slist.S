@@ -83,9 +83,9 @@ PUBLIC ExpInterlockedPopEntrySListEnd16
 PUBLIC ExpInterlockedPushEntrySList
 PUBLIC ExpInterlockedFlushSList
 
+PUBLIC RtlInterlockedFlushSList
 PUBLIC RtlInterlockedPopEntrySList
 PUBLIC RtlInterlockedPushEntrySList
-PUBLIC RtlInterlockedFlushSList
 
 /* PSLIST_ENTRY
  * NTAPI
@@ -96,18 +96,71 @@ ExpInterlockedPopEntrySList:
 FUNC RtlInterlockedPopEntrySList
     .ENDPROLOG
 
+    /* Copy rcx to r8, as we need rcx for the exchange */
+    mov r8, rcx
+
     /* Load ListHead->Region into rdx */
     mov rdx, [rcx + 8]
 
     /* Load ListHead->Alignment into rax */
     mov rax, [rcx]
 
-    /* Check for 16 byte SList support */
-    cmp byte ptr [rip+RtlpUse16ByteSLists], 0
-    jne RtlInterlockedPopEntrySList16
-
     /* Use the 8 byte header */
 GLOBAL_LABEL ExpInterlockedPopEntrySListResume
+
+    /* Check for 16 byte SList support */
+    cmp byte ptr [RtlpUse16ByteSLists], 0
+    je ExpInterlockedPopEntrySListResume8
+
+    /* This is a 16 byte header
+       r8 == ListHead
+       rdx == ListHead->Region
+       rax == ListHead->Alignment */
+
+    /* Set r9 = ListHead->NextEntry and check if it is NULL */
+    mov r9, rdx
+    and r9, SLIST16B_NEXTENTRY_MASK
+    jz RtlInterlockedPopEntrySListEmpty
+
+ExpInterlockedPopEntrySListFault16 LABEL PROC
+
+    /* Set NewListHead.Next = ListHead->NextEntry->Next */
+    mov rcx, [r9]
+
+    /* Set NewListHead.HeaderType = 1 and  NewListHead.Init = 1 */
+    or rcx, (SLIST16B_HEADERTYPE_MASK or SLIST16B_INIT_MASK)
+
+    /* Copy Depth and Sequence number and adjust Depth */
+    lea rbx, [rax - SLIST16A_DEPTH_INC]
+
+ExpInterlockedPopEntrySListEnd16 LABEL PROC
+
+    /* If [r8] equals rdx:rax, exchange it with rcx:rbx */
+    lock cmpxchg16b [r8]
+
+    /* If not equal, retry with rdx:rax, being the content of [r8] now */
+    jne ExpInterlockedPopEntrySListResume16
+
+    /* Copy the old NextEntry pointer to rax */
+    mov rax, rdx
+    and rax, SLIST16B_NEXTENTRY_MASK
+
+    /* Return */
+    mov rbx, [rsp + P3Home]
+    ret
+
+ENDFUNC
+FUNC RtlInterlockedPopEntrySListEmpty
+    .ENDPROLOG
+
+    xor rax, rax
+    mov rbx, [rsp + P3Home]
+    ret
+
+////////////////////////////////////////////////////////////////////////////
+ENDFUNC
+FUNC ExpInterlockedPopEntrySListResume8
+    .ENDPROLOG
 
     /* Check if ListHead->NextEntry is NULL */
     mov r9, rax
@@ -167,60 +220,6 @@ RtlInterlockedPopEntrySListEmpty:
 ENDFUNC
 
 
-FUNC RtlInterlockedPopEntrySList16
-    mov [rsp + P3Home], rbx
-    .SAVEREG rbx, P3Home
-    .ENDPROLOG
-
-    /* This is a 16 byte header
-       rcx == ListHead
-       rdx == ListHead->Region
-       rax == ListHead->Alignment */
-
-    /* Copy rcx to r8, as we need rcx for the exchange */
-    mov r8, rcx
-
-GLOBAL_LABEL ExpInterlockedPopEntrySListResume16
-
-    /* Set r9 = ListHead->NextEntry and check if it is NULL */
-    mov r9, rdx
-    and r9, SLIST16B_NEXTENTRY_MASK
-    jz RtlInterlockedPopEntrySListEmpty16
-
-GLOBAL_LABEL ExpInterlockedPopEntrySListFault16
-
-    /* Set NewListHead.Next = ListHead->NextEntry->Next */
-    mov rcx, [r9]
-
-    /* Set NewListHead.HeaderType = 1 and  NewListHead.Init = 1 */
-    or rcx, (SLIST16B_HEADERTYPE_MASK or SLIST16B_INIT_MASK)
-
-    /* Copy Depth and Sequence number and adjust Depth */
-    lea rbx, [rax - SLIST16A_DEPTH_INC]
-
-GLOBAL_LABEL ExpInterlockedPopEntrySListEnd16
-
-    /* If [r8] equals rdx:rax, exchange it with rcx:rbx */
-    lock cmpxchg16b [r8]
-
-    /* If not equal, retry with rdx:rax, being the content of [r8] now */
-    jne ExpInterlockedPopEntrySListResume16
-
-    /* Copy the old NextEntry pointer to rax */
-    mov rax, rdx
-    and rax, SLIST16B_NEXTENTRY_MASK
-
-    /* Return */
-    mov rbx, [rsp + P3Home]
-    ret
-
-RtlInterlockedPopEntrySListEmpty16:
-
-    xor rax, rax
-    mov rbx, [rsp + P3Home]
-    ret
-ENDFUNC
-
 
 /* PSLIST_ENTRY
  * NTAPI
@@ -230,6 +229,8 @@ ENDFUNC
  */
 ExpInterlockedPushEntrySList:
 FUNC RtlInterlockedPushEntrySList
+    mov [rsp + P3Home], rbp
+    .SAVEREG rbp, P3Home
     .ENDPROLOG
 
 #if DBG
@@ -309,9 +310,6 @@ RtlInterlockedPushEntrySListEmpty:
 ENDFUNC
 
 FUNC RtlInterlockedPushEntrySList16
-    mov [rsp + P3Home], rbx
-    .SAVEREG rbx, P3Home
-    .ENDPROLOG
 
     /* This is a 16 byte header
        rcx = ListHead
