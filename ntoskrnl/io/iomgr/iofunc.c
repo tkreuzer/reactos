@@ -1554,7 +1554,7 @@ NtFlushBuffersFile(IN HANDLE FileHandle,
     else
     {
         /* Use local event */
-        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO);
+        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO_EVENT);
         if (!Event)
         {
             /* We failed */
@@ -2419,7 +2419,7 @@ NtQueryInformationFile(IN HANDLE FileHandle,
     else
     {
         /* Use local event */
-        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO);
+        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO_EVENT);
         if (!Event)
         {
             ObDereferenceObject(FileObject);
@@ -2469,7 +2469,7 @@ NtQueryInformationFile(IN HANDLE FileHandle,
             /* Free the event if we had one */
             if (LocalEvent)
             {
-                ExFreePoolWithTag(Event, TAG_IO);
+                ExFreePoolWithTag(Event, TAG_IO_EVENT);
             }
 
             /* If FO was locked, unlock it */
@@ -2620,7 +2620,7 @@ NtQueryInformationFile(IN HANDLE FileHandle,
             _SEH2_END;
 
             /* Free the event */
-            ExFreePoolWithTag(Event, TAG_IO);
+            ExFreePoolWithTag(Event, TAG_IO_EVENT);
         }
         else
         {
@@ -2651,7 +2651,7 @@ NtQueryInformationFile(IN HANDLE FileHandle,
         {
             /* Clear it in the IRP for completion */
             Irp->UserEvent = NULL;
-            ExFreePoolWithTag(Event, TAG_IO);
+            ExFreePoolWithTag(Event, TAG_IO_EVENT);
         }
 
         /* Set the caller IOSB */
@@ -3246,7 +3246,7 @@ NtSetInformationFile(IN HANDLE FileHandle,
     else
     {
         /* Use local event */
-        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO);
+        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO_EVENT);
         if (!Event)
         {
             ObDereferenceObject(FileObject);
@@ -3470,7 +3470,7 @@ NtSetInformationFile(IN HANDLE FileHandle,
             _SEH2_END;
 
             /* Free the event */
-            ExFreePoolWithTag(Event, TAG_IO);
+            ExFreePoolWithTag(Event, TAG_IO_EVENT);
         }
         else
         {
@@ -3501,7 +3501,7 @@ NtSetInformationFile(IN HANDLE FileHandle,
         {
             /* Clear it in the IRP for completion */
             Irp->UserEvent = NULL;
-            ExFreePoolWithTag(Event, TAG_IO);
+            ExFreePoolWithTag(Event, TAG_IO_EVENT);
         }
 
         /* Set the caller IOSB */
@@ -3672,7 +3672,7 @@ NtUnlockFile(IN HANDLE FileHandle,
     else
     {
         /* Use local event */
-        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO);
+        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO_EVENT);
         if (!Event)
         {
             ObDereferenceObject(FileObject);
@@ -4346,7 +4346,7 @@ NtQueryVolumeInformationFile(IN HANDLE FileHandle,
     if (!BooleanFlagOn(FileObject->Flags, FO_SYNCHRONOUS_IO))
     {
         /* Use local event */
-        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO);
+        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO_EVENT);
         if (!Event)
         {
             ObDereferenceObject(FileObject);
@@ -4524,7 +4524,7 @@ NtSetVolumeInformationFile(IN HANDLE FileHandle,
     else
     {
         /* Use local event */
-        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO);
+        Event = ExAllocatePoolWithTag(NonPagedPool, sizeof(KEVENT), TAG_IO_EVENT);
         if (!Event)
         {
             ObDereferenceObject(FileObject);
