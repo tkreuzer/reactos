@@ -24,7 +24,7 @@ nettcpip.inf
 ports.inf
 scsi.inf
 unknown.inf
-usbport.inf
+;usbport.inf
 volume.inf
 audio.inf
 ks.inf
