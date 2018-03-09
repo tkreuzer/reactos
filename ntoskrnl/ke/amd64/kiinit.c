@@ -232,6 +232,11 @@ KiInitializeCpu(PKIPCR Pcr)
     /* Enable syscall instruction and no-execute support */
     __writemsr(MSR_EFER, __readmsr(MSR_EFER) | MSR_SCE | MSR_NXE);
 
+#if DBG
+    /* On debug builds, enable last branch recording */
+    __writemsr(MSR_DEBUG_CTL, __readmsr(MSR_DEBUG_CTL) | MSR_DEBUG_CTL_LBR);
+#endif
+
     /* Initialize the PAT */
     Pat = (PAT_WB << 0)  | (PAT_WC << 8) | (PAT_UCM << 16) | (PAT_UC << 24) |
           (PAT_WB << 32) | (PAT_WC << 40) | (PAT_UCM << 48) | (PAT_UC << 56);

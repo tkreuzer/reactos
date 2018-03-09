@@ -259,6 +259,17 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
     /* Zero out the context to avoid leaking kernel stack memor to user mode */
     RtlZeroMemory(&Context, sizeof(Context));
 
+    /* Capture last branch MSRs */
+    TrapFrame->DebugControl = __readmsr(MSR_DEBUG_CTL);
+    TrapFrame->LastBranchToRip = __readmsr(MSR_LAST_BRANCH_TO);
+    TrapFrame->LastBranchFromRip = __readmsr(MSR_LAST_BRANCH_FROM);
+    TrapFrame->LastExceptionToRip = __readmsr(MSR_LAST_EXCEPTION_TO);
+    TrapFrame->LastExceptionFromRip = __readmsr(MSR_LAST_EXCEPTION_FROM);
+
+#if DBG
+    __writemsr(MSR_DEBUG_CTL, __readmsr(MSR_DEBUG_CTL) | MSR_DEBUG_CTL_LBR);
+#endif
+
     /* Set the context flags */
     Context.ContextFlags = CONTEXT_ALL;
 
@@ -679,7 +690,7 @@ KiXmmExceptionHandler(
     {
         /* Invalid operation */
         ExceptionCode = STATUS_FLOAT_INVALID_OPERATION;
-    }
+}
     else if ((TrapFrame->MxCsr & _MM_EXCEPT_DENORM) &&
              !(TrapFrame->MxCsr & _MM_MASK_DENORM))
     {
