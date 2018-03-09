@@ -91,6 +91,14 @@ KeConnectInterrupt(IN PKINTERRUPT Interrupt)
     ASSERT(Interrupt->SynchronizeIrql >= Interrupt->Irql);
     ASSERT(Interrupt->Irql == (Interrupt->Vector >> 4));
 
+    /* Make sure the vector is within the allowed range */
+    if (Interrupt->Vector < PRIMARY_VECTOR_BASE)
+    {
+        DPRINT1("FIXME: KeConnectInterrupt() with invalid vector 0x%lx!\n", Interrupt->Vector);
+        //__debugbreak();
+        //return FALSE;
+    }
+
     /* Check if its already connected */
     if (Interrupt->Connected) return TRUE;
 
