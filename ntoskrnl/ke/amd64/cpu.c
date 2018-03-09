@@ -376,7 +376,7 @@ KiRestoreProcessorControlState(PKPROCESSOR_STATE ProcessorState)
     __lidt(&ProcessorState->SpecialRegisters.Idtr.Limit);
 
     _mm_setcsr(ProcessorState->SpecialRegisters.MxCsr);
-//    __writemsr(MSR_DEBUG_CTL, ProcessorState->SpecialRegisters.DebugControl);
+    __writemsr(MSR_DEBUG_CTL, ProcessorState->SpecialRegisters.DebugControl);
 //    ProcessorState->SpecialRegisters.LastBranchToRip
 //    ProcessorState->SpecialRegisters.LastBranchFromRip
 //    ProcessorState->SpecialRegisters.LastExceptionToRip
@@ -418,11 +418,11 @@ KiSaveProcessorControlState(OUT PKPROCESSOR_STATE ProcessorState)
     __sidt(&ProcessorState->SpecialRegisters.Idtr.Limit);
 
     ProcessorState->SpecialRegisters.MxCsr = _mm_getcsr();
-//    ProcessorState->SpecialRegisters.DebugControl = __readmsr(MSR_DEBUG_CTL);
-//    ProcessorState->SpecialRegisters.LastBranchToRip = __readmsr(MSR_LAST_BRANCH_TO);
-//    ProcessorState->SpecialRegisters.LastBranchFromRip = __readmsr(MSR_LAST_BRANCH_FROM);
-//    ProcessorState->SpecialRegisters.LastExceptionToRip = __readmsr(MSR_LAST_EXCEPTION_TO);
-//    ProcessorState->SpecialRegisters.LastExceptionFromRip = __readmsr(MSR_LAST_EXCEPTION_FROM);
+    ProcessorState->SpecialRegisters.DebugControl = __readmsr(MSR_DEBUG_CTL);
+    ProcessorState->SpecialRegisters.LastBranchToRip = __readmsr(MSR_LAST_BRANCH_TO);
+    ProcessorState->SpecialRegisters.LastBranchFromRip = __readmsr(MSR_LAST_BRANCH_FROM);
+    ProcessorState->SpecialRegisters.LastExceptionToRip = __readmsr(MSR_LAST_EXCEPTION_TO);
+    ProcessorState->SpecialRegisters.LastExceptionFromRip = __readmsr(MSR_LAST_EXCEPTION_FROM);
 
     /* Save MSRs */
     ProcessorState->SpecialRegisters.MsrGsBase = __readmsr(X86_MSR_GSBASE);

@@ -256,6 +256,17 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
     /* Increase number of Exception Dispatches */
     KeGetCurrentPrcb()->KeExceptionDispatchCount++;
 #if 0
+    /* Capture last branch MSRs */
+    TrapFrame->DebugControl = __readmsr(MSR_DEBUG_CTL);
+    TrapFrame->LastBranchToRip = __readmsr(MSR_LAST_BRANCH_TO);
+    TrapFrame->LastBranchFromRip = __readmsr(MSR_LAST_BRANCH_FROM);
+    TrapFrame->LastExceptionToRip = __readmsr(MSR_LAST_EXCEPTION_TO);
+    TrapFrame->LastExceptionFromRip = __readmsr(MSR_LAST_EXCEPTION_FROM);
+
+#if DBG
+    __writemsr(MSR_DEBUG_CTL, __readmsr(MSR_DEBUG_CTL) | MSR_DEBUG_CTL_LBR);
+#endif
+
     /* Zero out the context to avoid leaking kernel stack memor to user mode */
     RtlZeroMemory(&Context, sizeof(Context));
 
