@@ -359,23 +359,21 @@ EngBitBlt(
 static
 VOID
 AdjustOffsetAndSize(
-    _Out_ PPOINTL pptOffset,
-    _Out_ PSIZEL psizTrg,
+    _Inout_ PPOINTL pptOffset,
+    _Inout_ PSIZEL psizTrg,
     _In_ PPOINTL pptlSrc,
     _In_ PSIZEL psizSrc)
 {
-    LONG x, y, cxMax, cyMax;
+    LONG cxMax, cyMax;
 
-    x = pptlSrc->x + pptOffset->x;
-    if (x < 0) pptOffset->x -= x, x = 0;
+    /* Adjust the offset for negative point coordinates */
+    if (pptlSrc->x < -pptOffset->x) pptOffset->x = -pptlSrc->x;
+    if (pptlSrc->y < -pptOffset->y) pptOffset->y = -pptlSrc->y;
 
-    cxMax = psizSrc->cx - x;
+    /* Adjust the size for points beyond the surface size */
+    cxMax = psizSrc->cx - pptlSrc->x + pptOffset->x;
     if (psizTrg->cx > cxMax) psizTrg->cx = cxMax;
-
-    y = pptlSrc->y + pptOffset->y;
-    if (y < 0) pptOffset->y -= y, y = 0;
-
-    cyMax = psizSrc->cy - y;
+    cyMax = psizSrc->cy - pptlSrc->y + pptOffset->y;
     if (psizTrg->cy > cyMax) psizTrg->cy = cyMax;
 }
 
