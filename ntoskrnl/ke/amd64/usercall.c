@@ -133,7 +133,9 @@ KiInitializeUserApc(
 NTSTATUS
 FASTCALL
 KiUserModeCallout(
-    _Out_ PKCALLOUT_FRAME CalloutFrame)
+    _Out_ PKCALLOUT_FRAME CalloutFrame,
+    _In_ PVOID Argument,
+    _In_ ULONG ArgumentLength)
 {
     PKTHREAD CurrentThread;
     PKTRAP_FRAME TrapFrame;
@@ -141,6 +143,10 @@ KiUserModeCallout(
     PKIPCR Pcr;
     ULONG_PTR InitialStack;
     NTSTATUS Status;
+    PULONG_PTR UserStackPointer;
+    ULONG_PTR OldStack;
+    PUCALLOUT_FRAME UserCalloutFrame;
+    PUCHAR UserArguments;
 
     /* Get the current thread */
     CurrentThread = KeGetCurrentThread();
@@ -151,6 +157,34 @@ KiUserModeCallout(
     /* Check if we are attached or APCs are disabled */
     ASSERT((CurrentThread->ApcStateIndex == OriginalApcEnvironment) &&
         (CurrentThread->CombinedApcDisable == 0));
+
+    /* Get the current user-mode stack */
+    UserStackPointer = KiGetUserModeStackAddress();
+    OldStack = *UserStackPointer;
+
+    /* Calculate and align the stack. This is unaligned by 8 bytes, since the following
+    UCALLOUT_FRAME compensates for that and on entry we already have a full stack
+    frame with home space for the next call, i.e. we are already inside the function
+    body and the stack needs to be 16 byte aligned. */
+    UserArguments = (PUCHAR)ALIGN_DOWN_POINTER_BY(OldStack - ArgumentLength, 16) - 8;
+
+    /* The callout frame is below the arguments */
+    UserCalloutFrame = ((PUCALLOUT_FRAME)UserArguments) - 1;
+
+    /* Set the new user mode stack */
+    *UserStackPointer = (ULONG_PTR)UserCalloutFrame;
+
+    /* Enter a SEH Block */
+    _SEH2_TRY
+    {
+    }
+    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+    {
+        /* Get the SEH exception */
+        _SEH2_YIELD(return _SEH2_GetExceptionCode());
+    }
+    _SEH2_END;
+
 
     /* Align stack on a 16-byte boundary */
     InitialStack = (ULONG_PTR)ALIGN_DOWN_POINTER_BY(CalloutFrame, 16);
@@ -283,9 +317,19 @@ KeUserModeCallback(
         ExceptionList = Teb->NtTib.ExceptionList;
 #endif // _M_IX86
 
-        /* Jump to user mode */
-        *UserStackPointer = (ULONG_PTR)CalloutFrame;
-        CallbackStatus = KiCallUserMode(RoutineIndex, Argument, ArgumentLength, Result, ResultLength);
+    }
+    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+    {
+        /* Get the SEH exception */
+        _SEH2_YIELD(return _SEH2_GetExceptionCode());
+    }
+    _SEH2_END;
+
+    CallbackStatus = KiCallUserMode(RoutineIndex, Argument, ArgumentLength, Result, ResultLength);
+
+    /* Enter a SEH Block */
+    _SEH2_TRY
+    {
         if (CallbackStatus != STATUS_CALLBACK_POP_STACK)
         {
 #ifdef _M_IX86
