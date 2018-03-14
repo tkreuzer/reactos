@@ -952,12 +952,14 @@ KiInsertQueueApc(
     IN KPRIORITY PriorityBoost
 );
 
+#ifndef _M_AMD64
 NTSTATUS
 NTAPI
 KiCallUserMode(
     IN PVOID *OutputBuffer,
     IN PULONG OutputLength
 );
+#endif
 
 DECLSPEC_NORETURN
 VOID

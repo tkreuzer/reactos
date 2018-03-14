@@ -390,6 +390,14 @@ KiGetUserModeStackAddress(void)
     return &PsGetCurrentThread()->Tcb.TrapFrame->Rsp;
 }
 
+NTSTATUS
+KiCallUserMode(
+    _In_ ULONG RoutineIndex,
+    _In_ PVOID Argument,
+    _In_ ULONG ArgumentLength,
+    _In_ PVOID *OutputBuffer,
+    _In_ PULONG OutputLength);
+
 #endif /* __NTOSKRNL_INCLUDE_INTERNAL_AMD64_KE_H */
 
 /* EOF */

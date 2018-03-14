@@ -285,7 +285,7 @@ KeUserModeCallback(
 
         /* Jump to user mode */
         *UserStackPointer = (ULONG_PTR)CalloutFrame;
-        CallbackStatus = KiCallUserMode(Result, ResultLength);
+        CallbackStatus = KiCallUserMode(RoutineIndex, Argument, ArgumentLength, Result, ResultLength);
         if (CallbackStatus != STATUS_CALLBACK_POP_STACK)
         {
 #ifdef _M_IX86
