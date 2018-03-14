@@ -467,6 +467,14 @@ KiGetUserModeStackAddress(void)
     return &PsGetCurrentThread()->Tcb.TrapFrame->Rsp;
 }
 
+NTSTATUS
+KiCallUserMode(
+    _In_ ULONG RoutineIndex,
+    _In_ PVOID Argument,
+    _In_ ULONG ArgumentLength,
+    _In_ PVOID *OutputBuffer,
+    _In_ PULONG OutputLength);
+
 VOID
 KiSetTrapContext(
     _Out_ PKTRAP_FRAME TrapFrame,
