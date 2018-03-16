@@ -39,7 +39,6 @@ PUBLIC KiCallUserMode
     mov [rsp + ExP5], rax
 
     /* Call the C function */
-    mov rcx, rsp
     call KiUserModeCallout
 
     /* Restore the registers from the KEXCEPTION_FRAME */

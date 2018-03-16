@@ -107,6 +107,30 @@ KiInitializeUserApc(
     TrapFrame->EFlags |= EFLAGS_INTERRUPT_MASK;
 }
 
+VOID
+KiSetupUserCalloutFrame(
+    _Out_ PUCALLOUT_FRAME UserCalloutFrame,
+    _In_ PKTRAP_FRAME TrapFrame,
+    _In_ ULONG ApiNumber,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength)
+{
+#ifdef _M_IX86
+    CalloutFrame->Reserved = 0;
+    CalloutFrame->ApiNumber = ApiNumber;
+    CalloutFrame->Buffer = (ULONG_PTR)NewStack;
+    CalloutFrame->Length = ArgumentLength;
+#elif defined(_M_AMD64)
+    UserCalloutFrame->Buffer = (PVOID)(UserCalloutFrame + 1);
+    UserCalloutFrame->Length = BufferLength;
+    UserCalloutFrame->ApiNumber = ApiNumber;
+    UserCalloutFrame->MachineFrame.Rip = TrapFrame->Rip;
+    UserCalloutFrame->MachineFrame.Rsp = TrapFrame->Rsp;
+#else
+#error "KiSetupUserCalloutFrame not implemented!"
+#endif
+}
+
 /*
  * Stack layout for KiUserModeCallout:
  * ----------------------------------
@@ -133,7 +157,7 @@ KiInitializeUserApc(
 NTSTATUS
 FASTCALL
 KiUserModeCallout(
-    _Out_ PKCALLOUT_FRAME CalloutFrame,
+    _In_ ULONG RoutineIndex,
     _In_ PVOID Argument,
     _In_ ULONG ArgumentLength)
 {
@@ -147,6 +171,7 @@ KiUserModeCallout(
     ULONG_PTR OldStack;
     PUCALLOUT_FRAME UserCalloutFrame;
     PUCHAR UserArguments;
+    PKCALLOUT_FRAME CalloutFrame;
 
     /* Get the current thread */
     CurrentThread = KeGetCurrentThread();
@@ -177,6 +202,24 @@ KiUserModeCallout(
     /* Enter a SEH Block */
     _SEH2_TRY
     {
+        /* Make sure it's all writable */
+        ProbeForWrite(UserCalloutFrame,
+                      sizeof(PUCALLOUT_FRAME) + ArgumentLength,
+                      sizeof(PVOID));
+
+        /* Copy the buffer into the stack */
+        RtlCopyMemory(UserArguments, Argument, ArgumentLength);
+
+        /* Write the arguments */
+        KiSetupUserCalloutFrame(UserCalloutFrame,
+                                KeGetCurrentThread()->TrapFrame,
+                                RoutineIndex,
+                                UserArguments,
+                                ArgumentLength);
+
+#ifdef _M_IX86
+    ExceptionList = Teb->NtTib.ExceptionList;
+#endif // _M_IX86
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
@@ -185,6 +228,7 @@ KiUserModeCallout(
     }
     _SEH2_END;
 
+    CalloutFrame = (PKCALLOUT_FRAME)((PUCHAR)_AddressOfReturnAddress() + sizeof(PVOID));
 
     /* Align stack on a 16-byte boundary */
     InitialStack = (ULONG_PTR)ALIGN_DOWN_POINTER_BY(CalloutFrame, 16);
@@ -234,29 +278,7 @@ KiUserModeCallout(
     KiServiceExit(&CallbackTrapFrame, 0);
 }
 
-VOID
-KiSetupUserCalloutFrame(
-    _Out_ PUCALLOUT_FRAME UserCalloutFrame,
-    _In_ PKTRAP_FRAME TrapFrame,
-    _In_ ULONG ApiNumber,
-    _In_ PVOID Buffer,
-    _In_ ULONG BufferLength)
-{
-#ifdef _M_IX86
-    CalloutFrame->Reserved = 0;
-    CalloutFrame->ApiNumber = ApiNumber;
-    CalloutFrame->Buffer = (ULONG_PTR)NewStack;
-    CalloutFrame->Length = ArgumentLength;
-#elif defined(_M_AMD64)
-    UserCalloutFrame->Buffer = (PVOID)(UserCalloutFrame + 1);
-    UserCalloutFrame->Length = BufferLength;
-    UserCalloutFrame->ApiNumber = ApiNumber;
-    UserCalloutFrame->MachineFrame.Rip = TrapFrame->Rip;
-    UserCalloutFrame->MachineFrame.Rsp = TrapFrame->Rsp;
-#else
-#error "KiSetupUserCalloutFrame not implemented!"
-#endif
-}
+
 
 NTSTATUS
 NTAPI
@@ -268,8 +290,6 @@ KeUserModeCallback(
     OUT PULONG ResultLength)
 {
     ULONG_PTR OldStack;
-    PUCHAR UserArguments;
-    PUCALLOUT_FRAME CalloutFrame;
     PULONG_PTR UserStackPointer;
     NTSTATUS CallbackStatus;
 #ifdef _M_IX86
@@ -284,46 +304,9 @@ KeUserModeCallback(
     UserStackPointer = KiGetUserModeStackAddress();
     OldStack = *UserStackPointer;
 
-    /* Enter a SEH Block */
-    _SEH2_TRY
-    {
-        /* Calculate and align the stack. This is unaligned by 8 bytes, since the following
-           UCALLOUT_FRAME compensates for that and on entry we already have a full stack
-           frame with home space for the next call, i.e. we are already inside the function
-           body and the stack needs to be 16 byte aligned. */
-        UserArguments = (PUCHAR)ALIGN_DOWN_POINTER_BY(OldStack - ArgumentLength, 16) - 8;
+    /* Save the exception list */
+    Teb = KeGetCurrentThread()->Teb;
 
-        /* The callout frame is below the arguments */
-        CalloutFrame = ((PUCALLOUT_FRAME)UserArguments) - 1;
-
-        /* Make sure it's all writable */
-        ProbeForWrite(CalloutFrame,
-                      sizeof(PUCALLOUT_FRAME) + ArgumentLength,
-                      sizeof(PVOID));
-
-        /* Copy the buffer into the stack */
-        RtlCopyMemory(UserArguments, Argument, ArgumentLength);
-
-        /* Write the arguments */
-        KiSetupUserCalloutFrame(CalloutFrame,
-                                KeGetCurrentThread()->TrapFrame,
-                                RoutineIndex,
-                                UserArguments,
-                                ArgumentLength);
-
-        /* Save the exception list */
-        Teb = KeGetCurrentThread()->Teb;
-#ifdef _M_IX86
-        ExceptionList = Teb->NtTib.ExceptionList;
-#endif // _M_IX86
-
-    }
-    _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
-    {
-        /* Get the SEH exception */
-        _SEH2_YIELD(return _SEH2_GetExceptionCode());
-    }
-    _SEH2_END;
 
     CallbackStatus = KiCallUserMode(RoutineIndex, Argument, ArgumentLength, Result, ResultLength);
 
