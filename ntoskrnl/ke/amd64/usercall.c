@@ -308,6 +308,25 @@ KeUserModeCallback(
     Teb = KeGetCurrentThread()->Teb;
 
 
+        /* Make sure it's all writable */
+        ProbeForWrite(CalloutFrame,
+                      sizeof(PUCALLOUT_FRAME) + ArgumentLength,
+                      sizeof(PVOID));
+
+        /* Copy the buffer into the stack */
+        RtlCopyMemory(UserArguments, Argument, ArgumentLength);
+
+        /* Write the arguments */
+        KiSetupUserCalloutFrame(CalloutFrame,
+                                KeGetCurrentThread()->TrapFrame,
+                                RoutineIndex,
+                                UserArguments,
+                                ArgumentLength);
+
+    /* Save the exception list */
+    Teb = KeGetCurrentThread()->Teb;
+
+
     CallbackStatus = KiCallUserMode(RoutineIndex, Argument, ArgumentLength, Result, ResultLength);
 
     /* Enter a SEH Block */
