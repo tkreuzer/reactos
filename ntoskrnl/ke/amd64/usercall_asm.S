@@ -19,11 +19,8 @@ EXTERN KiUserModeCallout:PROC
 ;
 ; NTSTATUS
 ; KiCallUserMode (
-;     _In_ ULONG RoutineIndex@<rcx>,
-;     _In_ PVOID Argument@<rdx>,
-;     _In_ ULONG ArgumentLength@<r8>,
-;     _In_ PVOID *OutputBuffer@<r9>,
-;     _In_ PULONG OutputLength);
+;     _In_ PVOID *OutputBuffer@<rcx>,
+;     _In_ PULONG OutputLength@<rdx>);
 ;
 PUBLIC KiCallUserMode
 .PROC KiCallUserMode
@@ -33,12 +30,11 @@ PUBLIC KiCallUserMode
     GENERATE_EXCEPTION_FRAME
 
     /* Save OutputBuffer and OutputLength */
-    mov [rsp + ExOutputBuffer], r9
-    mov rax, [rsp + ExReturn + 5 * 8]
-    mov [rsp + ExOutputLength], rax
-    mov [rsp + ExP5], rax
+    mov [rsp + ExOutputBuffer], rcx
+    mov [rsp + ExOutputLength], rdx
 
     /* Call the C function */
+    mov rcx, rsp
     call KiUserModeCallout
 
     /* Restore the registers from the KEXCEPTION_FRAME */
