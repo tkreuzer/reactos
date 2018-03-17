@@ -266,7 +266,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
 #if DBG
     __writemsr(MSR_DEBUG_CTL, __readmsr(MSR_DEBUG_CTL) | MSR_DEBUG_CTL_LBR);
 #endif
-
+#endif
     /* Zero out the context to avoid leaking kernel stack memor to user mode */
     RtlZeroMemory(&Context, sizeof(Context));
 
