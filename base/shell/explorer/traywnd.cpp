@@ -1326,6 +1326,7 @@ GetPrimaryScreenRect:
 
             m_Monitor = m_DraggingMonitor;
             m_Position = m_DraggingPosition;
+            if (m_Position == -1) __debugbreak();
             IsDragging = FALSE;
 
             m_TrayRects[m_Position] = rcTray;
@@ -1348,6 +1349,7 @@ GetPrimaryScreenRect:
                 }
 
                 m_Position = GetDraggingRectFromRect(&rcTray, &m_Monitor);
+                if (m_Position == -1) __debugbreak();
 
                 if (!(pwp->flags & (SWP_NOMOVE | SWP_NOSIZE)))
                 {
@@ -1361,7 +1363,7 @@ GetPrimaryScreenRect:
 
                 m_TrayRects[m_Position] = rcTray;
             }
-            else
+            else if (m_Position != (DWORD)-1)
             {
                 /* If the user isn't resizing the tray window we need to make sure the
                    new size or position is valid. this is to prevent changes to the window
@@ -1451,6 +1453,7 @@ ChangePos:
            the area that the taskbar covers. */
         if (!g_TaskbarSettings.sr.AutoHide)
         {
+            if (m_Position == -1) __debugbreak();
             switch (m_Position)
             {
             case ABE_TOP:
@@ -1513,6 +1516,7 @@ ChangePos:
         DlgFrameSize.cy = GetSystemMetrics(SM_CYDLGFRAME);
 
         m_Position = g_TaskbarSettings.sr.Position;
+        if (m_Position == -1) __debugbreak();
         rcScreen = g_TaskbarSettings.sr.Rect;
         GetScreenRectFromRect(&rcScreen, MONITOR_DEFAULTTONEAREST);
 
@@ -1738,6 +1742,7 @@ ChangePos:
         margins.cy = taskbarRect.bottom - taskbarRect.top - clientRect.bottom + clientRect.top;
 
         /* Calculate the new size of the rebar and make it resize, then change the new taskbar size */
+        if (m_Position == -1) __debugbreak();
         switch (m_Position)
         {
         case ABE_TOP:
@@ -1864,6 +1869,7 @@ ChangePos:
         switch (m_AutoHideState)
         {
         case AUTOHIDE_HIDING:
+            if (m_Position == -1) __debugbreak();
             switch (m_Position)
             {
             case ABE_LEFT:
@@ -1901,6 +1907,7 @@ ChangePos:
             /* fallthrough */
         case AUTOHIDE_HIDDEN:
 
+            if (m_Position == -1) __debugbreak();
             switch (m_Position)
             {
             case ABE_LEFT:
@@ -2000,6 +2007,7 @@ ChangePos:
         int iSizerPart[4] = {TBP_SIZINGBARLEFT, TBP_SIZINGBARTOP, TBP_SIZINGBARRIGHT, TBP_SIZINGBARBOTTOM};
         SIZE size;
 
+        if (m_Position == -1) __debugbreak();
         ASSERT(m_Position <= ABE_BOTTOM);
 
         HRESULT hr = GetThemePartSize(m_Theme, NULL, iSizerPart[m_Position], 0, NULL, TS_TRUE, &size);
@@ -2590,6 +2598,7 @@ ChangePos:
         m_StartButton.GetWindowRect(&rcStartBtn);
         GetWindowInfo(m_hWnd, &wi);
 
+        if (m_Position == -1) __debugbreak();
         switch (m_Position)
         {
             case ABE_TOP:
