@@ -244,7 +244,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
 
     /* Increase number of Exception Dispatches */
     KeGetCurrentPrcb()->KeExceptionDispatchCount++;
-
+#if 0
     /* Capture last branch MSRs */
     TrapFrame->DebugControl = __readmsr(MSR_DEBUG_CTL);
     TrapFrame->LastBranchToRip = __readmsr(MSR_LAST_BRANCH_TO);
@@ -255,7 +255,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
 #if DBG
     __writemsr(MSR_DEBUG_CTL, __readmsr(MSR_DEBUG_CTL) | MSR_DEBUG_CTL_LBR);
 #endif
-
+#endif
     /* Set the context flags */
     Context.ContextFlags = CONTEXT_ALL;
 
