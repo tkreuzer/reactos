@@ -255,7 +255,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
 
     /* Increase number of Exception Dispatches */
     KeGetCurrentPrcb()->KeExceptionDispatchCount++;
-
+#if 0
     /* Zero out the context to avoid leaking kernel stack memor to user mode */
     RtlZeroMemory(&Context, sizeof(Context));
 
@@ -269,7 +269,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
 #if DBG
     __writemsr(MSR_DEBUG_CTL, __readmsr(MSR_DEBUG_CTL) | MSR_DEBUG_CTL_LBR);
 #endif
-
+#endif
     /* Set the context flags */
     Context.ContextFlags = CONTEXT_ALL;
 
