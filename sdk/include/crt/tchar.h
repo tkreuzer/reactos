@@ -108,11 +108,10 @@ extern "C" {
   typedef wint_t _TINT;
 #endif
 
-#ifndef NO_OLDNAMES
 #ifndef _TCHAR_DEFINED
 #define _TCHAR_DEFINED
-  typedef wchar_t TCHAR,*PTCHAR;
-  typedef wchar_t TBYTE,*PTBYTE;
+#ifndef	NO_OLDNAMES
+  typedef wchar_t TCHAR;
 #endif
 #endif
 
@@ -624,7 +623,9 @@ extern "C" {
 #define _tcscpy_s strcpy_s
 #define _tcsdup _strdup
 #define _tcslen strlen
+#if 0
 #define _tcsnlen strnlen
+#endif
 #define _tcsxfrm strxfrm
 #define _tcsxfrm_l _strxfrm_l
 #define _tcserror strerror
@@ -772,12 +773,11 @@ extern "C" {
 #define __TCHAR_DEFINED
 #endif
 
-#ifndef NO_OLDNAMES
 #ifndef _TCHAR_DEFINED
-#define _TCHAR_DEFINED
-  typedef char TCHAR,*PTCHAR;
-  typedef unsigned char TBYTE,*PTBYTE;
+#ifndef	NO_OLDNAMES
+  typedef char TCHAR;
 #endif
+#define _TCHAR_DEFINED
 #endif
 
 #ifdef _MB_MAP_DIRECT

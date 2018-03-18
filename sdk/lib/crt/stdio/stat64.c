@@ -62,6 +62,8 @@ int CDECL _tstat64(const _TCHAR *path, struct __stat64 *buf)
   else
     buf->st_dev = buf->st_rdev = _getdrive() - 1;
 
+  plen = _tcslen(path);
+
   /* Dir, or regular file? */
   if (hfi.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
     mode |= (_S_IFDIR | ALL_S_IEXEC);
@@ -73,8 +75,8 @@ int CDECL _tstat64(const _TCHAR *path, struct __stat64 *buf)
     {
 
       TCHAR4 ext = (TCHAR4)_totlower(path[plen-1])
-                   | ((TCHAR4)_totlower(path[plen-2]) << TCSIZE_BITS)
-                   | ((TCHAR4)_totlower(path[plen-3]) << 2*TCSIZE_BITS);
+                   | (_totlower(path[plen-2]) << TCSIZE)
+                   | ((TCHAR4)_totlower(path[plen-3]) << (2*TCSIZE));
 
       if (ext == EXE || ext == BAT || ext == CMD || ext == COM)
           mode |= ALL_S_IEXEC;

@@ -126,6 +126,9 @@ extern "C" {
 
 #endif /* _INTEGRAL_MAX_BITS >= 64 */
 
+
+#endif /* _INTEGRAL_MAX_BITS >= 64 */
+
 #define __stat64 _stat64
 
 #endif /* !_STAT_DEFINED */
@@ -139,13 +142,10 @@ extern "C" {
 #define _S_IWRITE 0x0080
 #define _S_IEXEC 0x0040
 
-  _CRTIMP
-  int
-  __cdecl
-  _fstat(
-    _In_ int _FileDes,
-    _Out_ struct _stat *_Stat);
-
+  _CRTIMP int __cdecl _fstat(int _FileDes,struct _stat *_Stat);
+  _CRTIMP int __cdecl _fstat32(int _FileDes,struct _stat32 *_Stat);
+  _CRTIMP int __cdecl _stat(const char *_Name,struct _stat *_Stat);
+  _CRTIMP int __cdecl _stat32(const char *_Name,struct _stat32 *_Stat);
   _CRTIMP
   int
   __cdecl
@@ -215,28 +215,14 @@ extern "C" {
 
 #ifndef _WSTAT_DEFINED
 #define _WSTAT_DEFINED
-
-  _CRTIMP
-  int
-  __cdecl
-  _wstat(
-    _In_z_ const wchar_t *_Name,
-    _Out_ struct _stat *_Stat);
-
-  _CRTIMP
-  int
-  __cdecl
-  _wstat32(
-    _In_z_ const wchar_t *_Name,
-    _Out_ struct _stat32 *_Stat);
-
+  _CRTIMP int __cdecl _wstat(const wchar_t *_Name,struct _stat *_Stat);
+  _CRTIMP int __cdecl _wstat32(const wchar_t *_Name,struct _stat32 *_Stat);
 #if _INTEGRAL_MAX_BITS >= 64
-  _CRTIMP
-  int
-  __cdecl
-  _wstat32i64(
-    _In_z_ const wchar_t *_Name,
-    _Out_ struct _stat32i64 *_Stat);
+  _CRTIMP int __cdecl _wstat32i64(const wchar_t *_Name,struct _stat32i64 *_Stat);
+  _CRTIMP int __cdecl _wstat64i32(const wchar_t *_Name,struct _stat64i32 *_Stat);
+  _CRTIMP int __cdecl _wstat64(const wchar_t *_Name,struct _stat64 *_Stat);
+#endif
+#endif
 
   _CRTIMP
   int

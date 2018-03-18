@@ -16,6 +16,72 @@
 
 #include <internal/wine/eh.h>
 
+typedef struct MSVCRT_threadlocaleinfostruct {
+    int refcount;
+    unsigned int lc_codepage;
+    unsigned int lc_collate_cp;
+    unsigned long lc_handle[6];
+    LC_ID lc_id[6];
+    struct {
+        char *locale;
+        wchar_t *wlocale;
+        int *refcount;
+        int *wrefcount;
+    } lc_category[6];
+    int lc_clike;
+    int mb_cur_max;
+    int *lconv_intl_refcount;
+    int *lconv_num_refcount;
+    int *lconv_mon_refcount;
+    struct MSVCRT_lconv *lconv;
+    int *ctype1_refcount;
+    unsigned short *ctype1;
+    unsigned short *pctype;
+    unsigned char *pclmap;
+    unsigned char *pcumap;
+    struct __lc_time_data *lc_time_curr;
+} MSVCRT_threadlocinfo;
+
+typedef struct MSVCRT_threadmbcinfostruct {
+    int refcount;
+    int mbcodepage;
+    int ismbcodepage;
+    int mblcid;
+    unsigned short mbulinfo[6];
+    char mbctype[257];
+    char mbcasemap[256];
+} MSVCRT_threadmbcinfo;
+
+struct MSVCRT_lconv {
+    char* decimal_point;
+    char* thousands_sep;
+    char* grouping;
+    char* int_curr_symbol;
+    char* currency_symbol;
+    char* mon_decimal_point;
+    char* mon_thousands_sep;
+    char* mon_grouping;
+    char* positive_sign;
+    char* negative_sign;
+    char int_frac_digits;
+    char frac_digits;
+    char p_cs_precedes;
+    char p_sep_by_space;
+    char n_cs_precedes;
+    char n_sep_by_space;
+    char p_sign_posn;
+    char n_sign_posn;
+};
+
+typedef struct MSVCRT_threadlocaleinfostruct *MSVCRT_pthreadlocinfo;
+typedef struct MSVCRT_threadmbcinfostruct *MSVCRT_pthreadmbcinfo;
+
+typedef struct MSVCRT_localeinfo_struct
+{
+    MSVCRT_pthreadlocinfo locinfo;
+    MSVCRT_pthreadmbcinfo mbcinfo;
+} MSVCRT__locale_tstruct, *MSVCRT__locale_t;
+
 /* TLS data */
 extern DWORD tls_index;
 
