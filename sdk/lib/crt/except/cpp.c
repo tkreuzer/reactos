@@ -656,6 +656,21 @@ void * __stdcall MSVCRT_type_info_vector_dtor(type_info * _this, unsigned int fl
 }
 
 /* vtables */
+#ifdef _WIN64
+
+#define __ASM_VTABLE(name,funcs) \
+    __asm__(".data\n" \
+            "\t.align 8\n" \
+            "\t.quad " __ASM_NAME(#name "_rtti") "\n" \
+            "\t.globl " __ASM_NAME("MSVCRT_" #name "_vtable") "\n" \
+            __ASM_NAME("MSVCRT_" #name "_vtable") ":\n" \
+            "\t.quad " THISCALL_NAME(MSVCRT_ ## name ## _vector_dtor) "\n" \
+            funcs "\n\t.text");
+
+#define __ASM_EXCEPTION_VTABLE(name) \
+    __ASM_VTABLE(name, "\t.quad " THISCALL_NAME(MSVCRT_what_exception) )
+
+#else
 
 #ifdef __GNUC__
 #ifdef _WIN64
