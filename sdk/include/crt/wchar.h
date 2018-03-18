@@ -2306,12 +2306,6 @@ _CRTIMP int __cdecl iswblank(wint_t _C);
   _CRTIMP
   wchar_t*
   __cdecl
-  _wasctime(
-    _In_ const struct tm *_Tm);
-
-  _CRTIMP
-  wchar_t*
-  __cdecl
   _wctime32(
     _In_ const __time32_t *_Time);
 

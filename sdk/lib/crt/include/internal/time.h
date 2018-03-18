@@ -10,11 +10,11 @@
 #define LEAPDAY 59
 
 static __inline
-__time64_t
+time_t
 FileTimeToUnixTime(const FILETIME *FileTime, USHORT *millitm)
 {
     ULARGE_INTEGER ULargeInt;
-    __time64_t time;
+    time_t time;
 
     ULargeInt.LowPart = FileTime->dwLowDateTime;
     ULargeInt.HighPart = FileTime->dwHighDateTime;

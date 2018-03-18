@@ -143,7 +143,7 @@ extern "C" {
   _CRTIMP wchar_t ***__cdecl __p__wenviron(void);
   _CRTIMP char **__cdecl __p__pgmptr(void);
   _CRTIMP wchar_t **__cdecl __p__wpgmptr(void);
-#endif
+//#endif
 
 // FIXME: move inside _M_CEE_PURE section
   _CRTIMP int *__cdecl __p___argc();

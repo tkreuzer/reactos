@@ -191,6 +191,9 @@ typedef struct __JUMP_BUFFER {
 #define _JMP_BUF_DEFINED
 #endif
 
+#if 0
+  void * __cdecl __MINGW_NOTHROW mingw_getsp(void);
+
 #ifdef USE_MINGW_SETJMP_TWO_ARGS
 #ifndef _INC_SETJMPEX
 #if defined(__x86_64)
@@ -215,8 +218,11 @@ typedef struct __JUMP_BUFFER {
   int __MINGW_NOTHROW __cdecl setjmp(jmp_buf _Buf);
 #endif /* !USE_MINGW_SETJMP_TWO_ARGS */
 
+#endif // 0
+
   __declspec(noreturn) __MINGW_NOTHROW void __cdecl ms_longjmp(jmp_buf _Buf,int _Value)/* throw(...)*/;
   __declspec(noreturn) __MINGW_NOTHROW void __cdecl longjmp(jmp_buf _Buf,int _Value);
+  int __cdecl setjmp(jmp_buf _Buf);
 
 #ifdef __cplusplus
 }

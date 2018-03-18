@@ -45,9 +45,9 @@ _getcwd(
 
   struct _finddata32_t {
     unsigned attrib;
-    __time32_t time_create;
-    __time32_t time_access;
-    __time32_t time_write;
+    time_t time_create;
+    time_t time_access;
+    time_t time_write;
     _fsize_t size;
     char name[260];
   };
@@ -56,10 +56,10 @@ _getcwd(
 
   struct _finddatai64_t {
     unsigned attrib;
-    time_t time_create;
-    time_t time_access;
-    time_t time_write;
-    __MINGW_EXTENSION __int64 size;
+    __time32_t time_create;
+    __time32_t time_access;
+    __time32_t time_write;
+    __int64 size;
     char name[260];
   };
 
@@ -121,7 +121,7 @@ _getcwd(
     time_t time_create;
     time_t time_access;
     time_t time_write;
-    __MINGW_EXTENSION __int64 size;
+    __int64 size;
     wchar_t name[260];
   };
 
@@ -170,13 +170,27 @@ _getcwd(
 #define	W_OK	2	/* Check for write permission */
 #define	R_OK	4	/* Check for read permission */
 
-  _Check_return_
-  _CRTIMP
-  int
-  __cdecl
-  _access(
-    _In_z_ const char *_Filename,
-    _In_ int _AccessMode);
+  _CRTIMP int __cdecl _access(const char *_Filename,int _AccessMode);
+  _CRTIMP int __cdecl _chmod(const char *_Filename,int _Mode);
+  _CRTIMP int __cdecl _chsize(int _FileHandle,long _Size);
+  _CRTIMP int __cdecl _close(int _FileHandle);
+  _CRTIMP int __cdecl _commit(int _FileHandle);
+  _CRTIMP int __cdecl _creat(const char *_Filename,int _PermissionMode);
+  _CRTIMP int __cdecl _dup(int _FileHandle);
+  _CRTIMP int __cdecl _dup2(int _FileHandleSrc,int _FileHandleDst);
+  _CRTIMP int __cdecl _eof(int _FileHandle);
+  _CRTIMP long __cdecl _filelength(int _FileHandle);
+  _CRTIMP intptr_t __cdecl _findfirst(const char *_Filename, struct _finddata_t *_FindData);
+  _CRTIMP intptr_t __cdecl _findfirst32(const char *_Filename,struct _finddata32_t *_FindData);
+  _CRTIMP int __cdecl _findnext(intptr_t _FindHandle,struct _finddata_t *_FindData);
+  _CRTIMP int __cdecl _findnext32(intptr_t _FindHandle,struct _finddata32_t *_FindData);
+  _CRTIMP int __cdecl _findclose(intptr_t _FindHandle);
+  _CRTIMP int __cdecl _isatty(int _FileHandle);
+  _CRTIMP int __cdecl _locking(int _FileHandle,int _LockMode,long _NumOfBytes);
+  _CRTIMP long __cdecl _lseek(int _FileHandle,long _Offset,int _Origin);
+  _CRTIMP char *__cdecl _mktemp(char *_TemplateName);
+  _CRTIMP int __cdecl _pipe(int *_PtHandles,unsigned int _PipeSize,int _TextMode);
+  _CRTIMP int __cdecl _read(int _FileHandle,void *_DstBuf,unsigned int _MaxCharCount);
 
   _Check_return_
   _CRTIMP

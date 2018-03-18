@@ -34,6 +34,67 @@
 #define EH_STACK_INVALID    0x08
 #define EH_NESTED_CALL      0x10
 
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4733)
+#endif
+
+#ifndef _M_ARM
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable:4733)
+#endif
+
+static inline EXCEPTION_REGISTRATION_RECORD *__wine_push_frame( EXCEPTION_REGISTRATION_RECORD *frame )
+{
+#if defined(__i386__)
+    frame->Next = (struct _EXCEPTION_REGISTRATION_RECORD *)__readfsdword(0);
+	__writefsdword(0, (unsigned long)frame);
+    return frame->Next;
+#else
+	NT_TIB *teb = (NT_TIB *)NtCurrentTeb();
+	frame->Next = teb->ExceptionList;
+	teb->ExceptionList = frame;
+	return frame->Next;
+#endif
+}
+
+static inline EXCEPTION_REGISTRATION_RECORD *__wine_pop_frame( EXCEPTION_REGISTRATION_RECORD *frame )
+{
+#if defined(__i386__)
+	__writefsdword(0, (unsigned long)frame->Next);
+    return frame->Next;
+#else
+	NT_TIB *teb = (NT_TIB *)NtCurrentTeb();
+	teb->ExceptionList = frame->Next;
+	return frame->Next;
+#endif
+}
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+#endif
+
+#define __TRY _SEH2_TRY
+#define __EXCEPT(func) _SEH2_EXCEPT(func(_SEH2_GetExceptionInformation()))
+#define __EXCEPT_PAGE_FAULT _SEH2_EXCEPT(_SEH2_GetExceptionCode() == STATUS_ACCESS_VIOLATION)
+#define __EXCEPT_ALL _SEH2_EXCEPT(_SEH_EXECUTE_HANDLER)
+#define __ENDTRY _SEH2_END
+#define __FINALLY(func) _SEH2_FINALLY { func(!_SEH2_AbnormalTermination()); }
+
+#define CXX_FRAME_MAGIC    0x19930520
+#define CXX_EXCEPTION      0xe06d7363
+
 typedef void (*vtable_ptr)();
 
 /* type_info object, see cpp.c for inplementation */
