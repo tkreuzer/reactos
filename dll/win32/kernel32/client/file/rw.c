@@ -35,7 +35,7 @@ WriteFile(IN HANDLE hFile,
 
     hFile = TranslateStdHandle(hFile);
 
-    if (IsConsoleHandle(hFile))
+    if (IsConsoleHandle((ULONG_PTR)hFile))
     {
         return WriteConsoleA(hFile,
                              lpBuffer,
