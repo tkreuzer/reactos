@@ -11,20 +11,20 @@ BOOL msvcrt_init_tls(void)
   msvcrt_tls_index = TlsAlloc();
 
   if (msvcrt_tls_index == TLS_OUT_OF_INDEXES)
-  {
+{
     ERR("TlsAlloc() failed!\n");
-    return FALSE;
+     return FALSE;
   }
-  return TRUE;
+   return TRUE;
 }
 
 BOOL msvcrt_free_tls(void)
 {
   if (!TlsFree(msvcrt_tls_index))
-  {
+     {
     ERR("TlsFree() failed!\n");
     return FALSE;
-  }
+     }
   return TRUE;
 }
 
@@ -34,7 +34,7 @@ thread_data_t *msvcrt_get_thread_data(void)
     DWORD err = GetLastError();  /* need to preserve last error */
 
     if (!(ptr = TlsGetValue( msvcrt_tls_index )))
-    {
+	  {
         if (!(ptr = HeapAlloc( GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(*ptr) )))
             _amsg_exit( _RT_THREAD );
         if (!TlsSetValue( msvcrt_tls_index, ptr )) _amsg_exit( _RT_THREAD );
@@ -43,17 +43,17 @@ thread_data_t *msvcrt_get_thread_data(void)
         ptr->random_seed = 1;
         ptr->locinfo = MSVCRT_locale->locinfo;
         ptr->mbcinfo = MSVCRT_locale->mbcinfo;
-    }
+	  }
     SetLastError( err );
     return ptr;
-}
+     }
 
 void msvcrt_free_tls_mem(void)
 {
   thread_data_t *tls = TlsGetValue(msvcrt_tls_index);
 
   if (tls)
-  {
+     {
     CloseHandle(tls->handle);
     HeapFree(GetProcessHeap(),0,tls->efcvt_buffer);
     HeapFree(GetProcessHeap(),0,tls->asctime_buffer);
@@ -65,9 +65,9 @@ void msvcrt_free_tls_mem(void)
     //    free_locinfo(tls->locinfo);
     //    free_mbcinfo(tls->mbcinfo);
     //}
-  }
+	  }
   HeapFree(GetProcessHeap(), 0, tls);
-}
+	  }
 
 /* EOF */
 

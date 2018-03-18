@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <crtdefs.h>
 #include <limits.h>
-//#include <windows.h>
+#include <windows.h>
 
 #define _EXIT_LOCK1 8
 
@@ -23,9 +23,10 @@
 _PVFV *__onexitbegin;
 _PVFV *__onexitend;
 
-extern _onexit_t __cdecl __dllonexit (_onexit_t, _PVFV**, _PVFV**);
+extern _CRTIMP _onexit_t __dllonexit (_onexit_t, _PVFV**, _PVFV**);
 extern _onexit_t (__cdecl * __MINGW_IMP_SYMBOL(_onexit)) (_onexit_t func);
 
+#if 0
 /* INTERNAL: call atexit functions */
 void __call_atexit(void)
 {
@@ -98,3 +99,4 @@ atexit (_PVFV func)
 {
   return (_onexit((_onexit_t)func) == NULL) ? -1 : 0;
 }
+#endif
