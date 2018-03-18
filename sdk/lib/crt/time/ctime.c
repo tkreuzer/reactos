@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT:   LGPL, See LGPL.txt in the top level directory
+ * COPYRIGHT:   See COPYING in the top level directory
  * PROJECT:     ReactOS CRT library
  * FILE:        lib/sdk/crt/time/ctime.c
  * PURPOSE:     Implementation of ctime, _ctime_s
@@ -12,9 +12,6 @@
 #include <tchar.h>
 #include <time.h>
 #include "bitsfixup.h"
-
-/* Doesn't really exist, but we need it here */
-_CRTIMP errno_t __cdecl localtime_s(struct tm *_Tm,const time_t *_Time);
 
 /******************************************************************************
  * \name _tctime_s

@@ -143,7 +143,9 @@ extern _CRTIMP int _commode;
 #define _IOERR 0x0020
 #define _IOSTRG 0x0040
 #define _IORW 0x0080
-#define _USERBUF 0x0100
+#ifdef _POSIX_
+#define _IOAPPEND 0x0200
+#endif
 
 #define _TWO_DIGIT_EXPONENT 0x1
 
@@ -679,7 +681,6 @@ extern _CRTIMP int _commode;
 #if __MINGW_GNUC_PREREQ(4,4)
 #pragma push_macro("vsnprintf")
 #pragma push_macro("snprintf")
-#endif
   #undef vsnprintf
   #undef snprintf
 
@@ -700,26 +701,20 @@ extern _CRTIMP int _commode;
   int __cdecl vsprintf(char *_Dest,const char *_Format,va_list _Args);
 
 #ifndef __NO_ISOCEXT  /* externs in libmingwex.a */
-__CRT_INLINE int __cdecl __MINGW_NOTHROW snprintf(char * s, size_t n, const char * f, ...)
-{
-	int r;
-	__VALIST a;
-	__mingw_va_start(a, f);
-	r = _vsnprintf (s, n, f, a);
-	__mingw_va_end(a);
-	return r;
-}
-
-__CRT_INLINE int __cdecl __MINGW_NOTHROW vsnprintf (char * s, size_t n, const char * f, __VALIST a)
-{
-	return _vsnprintf (s, n, f, a);
-}
-
-int __cdecl __MINGW_NOTHROW vscanf (const char * __restrict__ f, __VALIST a);
-int __cdecl __MINGW_NOTHROW vfscanf (FILE * __restrict__ o, const char * __restrict__ f,
-		     __VALIST a);
-int __cdecl __MINGW_NOTHROW vsscanf (const char * __restrict__ s,
-		     const char * __restrict__ f, __VALIST a);
+  __CRT_INLINE int __cdecl snprintf(char* s, size_t n, const char*  format, ...) {
+	  int r;
+	  va_list a;
+	  __mingw_va_start(a, format);
+	  r = _vsnprintf (s, n, format, a);
+	  __mingw_va_end(a);
+	  return r;
+  }
+  __CRT_INLINE int __cdecl vsnprintf (char* s, size_t n, const char* format,va_list arg) {
+    return _vsnprintf ( s, n, format, arg);
+  }
+  int __cdecl vscanf(const char * __restrict__ Format, va_list argp);
+  int __cdecl vfscanf (FILE * __restrict__ fp, const char * Format,va_list argp);
+  int __cdecl vsscanf (const char * __restrict__ _Str,const char * __restrict__ Format,va_list argp);
 #endif
 
 /* Restore may prior defined macros snprintf/vsnprintf.  */
@@ -727,12 +722,21 @@ int __cdecl __MINGW_NOTHROW vsscanf (const char * __restrict__ s,
 #pragma pop_macro("snprintf")
 #pragma pop_macro("vsnprintf")
 #endif
-
-#ifndef vsnprintf
-  #define vsnprintf _vsnprintf
-#endif
-#ifndef snprintf
-  #define snprintf _snprintf
+/* Check if vsnprintf and snprintf are defaulting to gnu-style.  */
+#if defined(USE_MINGW_GNU_SNPRINTF) && USE_MINGW_GNU_SNPRINTF
+  #ifndef vsnprint
+    #define vsnprintf __mingw_vsnprintf
+  #endif
+  #ifndef snprintf
+    #define snprintf __mingw_snprintf
+  #endif
+#else
+  #ifndef vsnprint
+    #define vsnprintf _vsnprintf
+  #endif
+  #ifndef snprintf
+    #define snprintf _snprintf
+  #endif
 #endif
 
   _Check_return_
@@ -743,13 +747,8 @@ int __cdecl __MINGW_NOTHROW vsscanf (const char * __restrict__ s,
     _In_z_ _Printf_format_string_ const char *_Format,
     va_list _ArgList);
 
-#ifdef _SAFECRT_IMPL
-#define _set_printf_count_output(i)
-#define _get_printf_count_output() (FALSE)
-#else
   _CRTIMP int __cdecl _set_printf_count_output(_In_ int _Value);
-  _CRTIMP int __cdecl _get_printf_count_output(void);
-#endif
+  _CRTIMP int __cdecl _get_printf_count_output();
 
 #ifndef _WSTDIO_DEFINED
 
@@ -972,9 +971,9 @@ int __cdecl __MINGW_NOTHROW vsscanf (const char * __restrict__ s,
 #pragma warning(pop)
 #endif /* _MSC_VER */
   }
-  _CRTIMP int __cdecl vwscanf (const wchar_t *, va_list);
-  _CRTIMP int __cdecl vfwscanf (FILE *,const wchar_t *,va_list);
-  _CRTIMP int __cdecl vswscanf (const wchar_t *,const wchar_t *,va_list);
+  int __cdecl vwscanf (const wchar_t *, va_list);
+  int __cdecl vfwscanf (FILE *,const wchar_t *,va_list);
+  int __cdecl vswscanf (const wchar_t *,const wchar_t *,va_list);
 #endif
   _CRTIMP int __cdecl _swprintf(wchar_t *_Dest,const wchar_t *_Format,...);
   _CRTIMP int __cdecl _vswprintf(wchar_t *_Dest,const wchar_t *_Format,va_list _Args);

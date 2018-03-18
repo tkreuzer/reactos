@@ -4,17 +4,11 @@
  * No warranty is given; refer to the file DISCLAIMER within this package.
  */
 
-#ifndef _INC_MINGW
-#define _INC_MINGW
+#ifndef _INC_CRTDEFS
+#define _INC_CRTDEFS
 
 #ifndef _INTEGRAL_MAX_BITS
 #define _INTEGRAL_MAX_BITS 64
-#endif
-
-#ifndef _WIN64
- #ifndef _USE_32BIT_TIME_T
-  #define _USE_32BIT_TIME_T
- #endif
 #endif
 
 #ifndef MINGW64
@@ -25,14 +19,32 @@
 #define MINGW64_VERSION_STATE	"alpha"
 #endif
 
-#ifdef __GNUC__
- /* These compilers do support __declspec */
-# if !defined(__MINGW32__) && !defined(__MINGW64__) && !defined(__CYGWIN32__)
-#  define __declspec(x) __attribute__((x))
+#ifdef _WIN64
+#ifdef __stdcall
+#undef __stdcall
+#endif
+#define __stdcall
+#endif
+
+#if defined(_MSC_VER)
+# ifdef _DLL
+#  ifndef __MINGW_IMPORT
+#   define __MINGW_IMPORT  __declspec(dllimport)
+#  endif
+#  ifndef _CRTIMP
+#   define _CRTIMP  __declspec(dllimport)
+#  endif
+# else
+#  ifndef __MINGW_IMPORT
+#   define __MINGW_IMPORT
+#  endif
+# ifndef _CRTIMP
+#  define _CRTIMP
 # endif
+#endif
 # define __DECLSPEC_SUPPORTED
 # define __attribute__(x) /* nothing */
-# define __restrict__ /* nothing */
+# define __restrict__/* nothing */
 #elif defined(__GNUC__)
 # ifdef __declspec
 #  ifndef __MINGW_IMPORT
@@ -45,15 +57,19 @@ limitations in handling dllimport attribute.  */
 #   endif
 #  endif
 #  ifndef _CRTIMP
-#   ifdef __USE_CRTIMP
-#    ifdef _DLL
-#     define _CRTIMP  __attribute__ ((dllimport))
+#    undef __USE_CRTIMP
+#    if !defined (_CRTBLD) && !defined (_SYSCRT)
+#      define __USE_CRTIMP 1
+#    endif
+#    ifdef __USE_CRTIMP
+#     ifdef _DLL
+#      define _CRTIMP  __attribute__ ((dllimport))
+#    else
+#      define _CRTIMP
+#    endif
 #    else
 #     define _CRTIMP
 #    endif
-#   else
-#    define _CRTIMP
-#   endif
 #  endif
 #  define __DECLSPEC_SUPPORTED
 # else /* __declspec */
@@ -63,22 +79,20 @@ limitations in handling dllimport attribute.  */
 #   define _CRTIMP
 #  endif
 # endif /* __declspec */
+#else
+# ifndef __MINGW_IMPORT
+#  define __MINGW_IMPORT __declspec(dllimport)
+# endif
+# ifndef _CRTIMP
+#  define _CRTIMP __declspec(dllimport)
+# endif
+# define __DECLSPEC_SUPPORTED
+# define __attribute__(x)/* nothing */
+#endif
 
 #ifdef _MSC_VER
 #define __restrict__ /* nothing */
 #endif
-
-/*
-   The next two defines can cause problems if user code adds the __cdecl attribute
-   like so:
-   void __attribute__ ((__cdecl)) foo(void);
-*/
-# ifndef __cdecl
-#  define __cdecl  __attribute__ ((__cdecl__))
-# endif
-# ifndef __stdcall
-#  define __stdcall __attribute__ ((__stdcall__))
-# endif
 
 #if defined (__GNUC__) && defined (__GNUC_MINOR__)
 #define __MINGW_GNUC_PREREQ(major, minor) \
@@ -89,7 +103,9 @@ limitations in handling dllimport attribute.  */
 #endif
 
 #if defined (_MSC_VER)
-#define __MINGW_MSC_PREREQ(major, minor) (_MSC_VER >= (major * 100 + minor * 10))
+#define __MINGW_MSC_PREREQ(major,minor) \
+  ((_MSC_VER /100) > (major) \
+   || ((_MSC)VER /100) == (major) && (_MSC_VER) % 100) >=(minor)))
 #else
 #define __MINGW_MSC_PREREQ(major, minor) 0
 #endif
@@ -101,7 +117,9 @@ limitations in handling dllimport attribute.  */
 #elif defined(_MSC_VER)
 # define __CRT_INLINE __inline
 #elif defined(__GNUC__)
-# if defined(__clang__) || ( __MINGW_GNUC_PREREQ(4, 3)  &&  __STDC_VERSION__ >= 199901L)
+# if defined(_MSC_VER)
+#  define __CRT_INLINE __inline
+# elif  __GNUC_STDC_INLINE__
 #  define __CRT_INLINE extern inline __attribute__((__always_inline__,__gnu_inline__))
 # else
 #  define __CRT_INLINE extern __inline__ __attribute__((__always_inline__))
@@ -215,27 +233,99 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 # define __MSVCRT_VERSION__ 0x0700
 #endif
 
+#if defined(__GNUC__)
+#define __mingw_va_start(v,l) __builtin_va_start(v,l)
+#define __mingw_va_end(v) __builtin_va_end(v)
+#define __mingw_va_arg(v,l)     __builtin_va_arg(v,l)
+#define __mingw_va_copy(d,s) __builtin_va_copy(d,s)
+#elif defined(_MSC_VER)
+#define __mingw_va_start(v,l) __msc_va_start(v,l)
+#define __mingw_va_end(v) __msc_va_end(v)
+#define __mingw_va_arg(v,l)     __msc_va_arg(v,l)
+#define __mingw_va_copy(d,s) __msc_va_copy(d,s)
+#endif
+
 //#ifndef WINVER
 //#define WINVER 0x0502
 //#endif
 
-#ifndef _UINTPTR_T_DEFINED
-#define _UINTPTR_T_DEFINED
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x502
+#endif
+
+#ifndef _INT128_DEFINED
+#define _INT128_DEFINED
+#ifdef __GNUC__
+#define __int8 char
+#define __int16 short
+#define __int32 int
+#define __int64 long long
 #ifdef _WIN64
-  typedef unsigned __int64 uintptr_t;
+   typedef int __int128 __attribute__ ((mode (TI)));
+# endif
+# define __ptr32
+# define __ptr64
+# if ( __MINGW_GNUC_PREREQ(4, 3)  &&  __STDC_VERSION__ >= 199901L)
+#  define __forceinline extern inline __attribute__((__always_inline__,__gnu_inline__))
+# else
+#  define __forceinline extern __inline__ __attribute__((__always_inline__))
+# endif
+#endif
+
+#define __ptr32
+#define __ptr64
+#define __unaligned __attribute ((packed))
+#define __forceinline extern __inline
+#endif
+#endif
+
+#ifndef _WIN32
+#error Only Win32 target is supported!
+#endif
+
+#ifdef __cplusplus
+#ifndef __nothrow
+#define __nothrow __declspec(nothrow)
+#endif
 #else
-  typedef unsigned int uintptr_t;
+#ifndef __nothrow
+#define __nothrow
 #endif
 #endif
 
-#include <mingw32/intrin.h>
+#undef _CRT_PACKING
+#define _CRT_PACKING 8
 
-#endif /* !_INC_MINGW */
+#ifdef _WIN64
+#undef USE_MINGW_SETJMP_TWO_ARGS
+#define USE_MINGW_SETJMP_TWO_ARGS
+#endif
+
+#ifndef _W64
+#define _W64
+#endif
+
+#ifndef _CRTIMP_ALTERNATIVE
+#define _CRTIMP_ALTERNATIVE _CRTIMP
+#define _CRT_ALTERNATIVE_IMPORTED
+#endif
+
+#ifndef _MRTIMP2
+#define _MRTIMP2  _CRTIMP
+#endif
+
+#ifndef _WCHAR_T_DEFINED
+#define _WCHAR_T_DEFINED
+#ifndef __cplusplus
+  typedef unsigned short wchar_t;
+#endif
+#endif
 
 #ifndef _WCTYPE_T_DEFINED
 #define _WCTYPE_T_DEFINED
   typedef unsigned short wint_t;
   typedef unsigned short wctype_t;
+#endif
 
 #ifndef __GNUC_VA_LIST
 #define __GNUC_VA_LIST
@@ -395,39 +485,3 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 #pragma pack(pop)
 #define _DECLSPEC_INTRIN_TYPE
 #endif
-
-/* Define to a function attribute for Microsoft hotpatch assembly prefix. */
-#ifndef DECLSPEC_HOTPATCH
-#if defined(_MSC_VER) || defined(__clang__)
-/* FIXME: http://llvm.org/bugs/show_bug.cgi?id=20888 */
-#define DECLSPEC_HOTPATCH
-#else
-#define DECLSPEC_HOTPATCH __attribute__((__ms_hook_prologue__))
-#endif
-#endif /* DECLSPEC_HOTPATCH */
-
-#ifndef __INTRIN_INLINE
-#  define __INTRIN_INLINE extern __inline__ __attribute__((__always_inline__,__gnu_inline__,artificial))
-#endif
-
-#ifndef HAS_BUILTIN
-#  ifdef __clang__
-#    define HAS_BUILTIN(x) __has_builtin(x)
-#  else
-#    define HAS_BUILTIN(x) 0
-#  endif
-#endif
-
-#ifdef __cplusplus
-#  define __mingw_ovr  inline __cdecl
-#elif defined (__GNUC__)
-#  define __mingw_ovr static \
-      __attribute__ ((__unused__)) __inline__ __cdecl
-#else
-#  define __mingw_ovr static __cdecl
-#endif /* __cplusplus */
-
-#include "_mingw_mac.h"
-
-#endif /* !_INC_MINGW */
-

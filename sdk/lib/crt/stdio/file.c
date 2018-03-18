@@ -140,9 +140,12 @@ static int MSVCRT_umask = 0;
 /* INTERNAL: static data for tmpnam and _wtmpname functions */
 static int tmpnam_unique;
 
-/* This critical section protects the MSVCRT_fstreams table
- * and MSVCRT_stream_idx from race conditions. It also
- * protects fd critical sections creation code.
+/* This critical section protects the tables fdesc and fstreams,
+ * and their related indexes, fdstart, fdend,
+ * and MSVCRT_stream_idx, from race conditions.
+ * It doesn't protect against race conditions manipulating the underlying files
+ * or flags; doing so would probably be better accomplished with per-file
+ * protection, rather than locking the whole table for every change.
  */
 static CRITICAL_SECTION MSVCRT_file_cs;
 static CRITICAL_SECTION_DEBUG MSVCRT_file_cs_debug =

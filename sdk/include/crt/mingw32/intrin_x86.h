@@ -983,7 +983,7 @@ __INTRIN_INLINE unsigned char __readfsbyte(unsigned long Offset)
 __INTRIN_INLINE unsigned short __readfsword(unsigned long Offset)
 {
 	unsigned short value;
-	__asm__ __volatile__("movw %%fs:%a[Offset], %w[value]" : [value] "=r" (value) : [Offset] "ir" (Offset));
+	__asm__ __volatile__("movw %%fs:%a[Offset], %w[value]" : [value] "=q" (value) : [Offset] "irm" (Offset));
 	return value;
 }
 #endif
@@ -992,7 +992,7 @@ __INTRIN_INLINE unsigned short __readfsword(unsigned long Offset)
 __INTRIN_INLINE unsigned long __readfsdword(unsigned long Offset)
 {
 	unsigned long value;
-	__asm__ __volatile__("movl %%fs:%a[Offset], %k[value]" : [value] "=r" (value) : [Offset] "ir" (Offset));
+	__asm__ __volatile__("movl %%fs:%a[Offset], %k[value]" : [value] "=q" (value) : [Offset] "irm" (Offset));
 	return value;
 }
 #endif
@@ -1016,7 +1016,7 @@ __INTRIN_INLINE void __incfsdword(unsigned long Offset)
 __INTRIN_INLINE void __addfsbyte(unsigned long Offset, unsigned char Data)
 {
 	if(!__builtin_constant_p(Offset))
-		__asm__ __volatile__("addb %b[Offset], %%fs:%a[Offset]" : : [Offset] "r" (Offset) : "memory");
+		__asm__ __volatile__("addb %k[Offset], %%fs:%a[Offset]" : : [Offset] "r" (Offset) : "memory");
 	else
 		__asm__ __volatile__("addb %b[Data], %%fs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "iq" (Data) : "memory");
 }
@@ -1024,7 +1024,7 @@ __INTRIN_INLINE void __addfsbyte(unsigned long Offset, unsigned char Data)
 __INTRIN_INLINE void __addfsword(unsigned long Offset, unsigned short Data)
 {
 	if(!__builtin_constant_p(Offset))
-		__asm__ __volatile__("addw %w[Offset], %%fs:%a[Offset]" : : [Offset] "r" (Offset) : "memory");
+		__asm__ __volatile__("addw %k[Offset], %%fs:%a[Offset]" : : [Offset] "r" (Offset) : "memory");
 	else
 		__asm__ __volatile__("addw %w[Data], %%fs:%a[Offset]" : : [Offset] "ir" (Offset), [Data] "iq" (Data) : "memory");
 }
@@ -1213,6 +1213,7 @@ __INTRIN_INLINE unsigned short __cdecl _rotl16(unsigned short value, unsigned ch
 }
 #endif
 
+#ifndef __MSVCRT__
 #if !HAS_BUILTIN(_rotl)
 __INTRIN_INLINE unsigned int __cdecl _rotl(unsigned int value, int shift)
 {
@@ -1744,10 +1745,13 @@ __INTRIN_INLINE void __writecr4(unsigned __int64 Data)
 	__asm__("mov %[Data], %%cr4" : : [Data] "r" (Data) : "memory");
 }
 
-__INTRIN_INLINE void __writecr8(unsigned __int64 Data)
+#if !HAS_BUILTIN(__writecr8)
+__INTRIN_INLINE void __writecr8(unsigned long long Data)
 {
 	__asm__("mov %[Data], %%cr8" : : [Data] "r" (Data) : "memory");
 }
+#endif
+#endif
 
 __INTRIN_INLINE unsigned long long __readcr0(void)
 {
@@ -1777,55 +1781,11 @@ __INTRIN_INLINE unsigned long long __readcr4(void)
 	return value;
 }
 
-__INTRIN_INLINE unsigned long long __readcr8(void)
+#ifdef __x86_64__
+__INTRIN_INLINE unsigned __int64 __readcr8(void)
 {
 	unsigned long long value;
 	__asm__ __volatile__("movq %%cr8, %q[value]" : [value] "=r" (value));
-	return value;
-}
-
-#else /* __x86_64__ */
-
-__INTRIN_INLINE void __writecr0(unsigned int Data)
-{
-	__asm__("mov %[Data], %%cr0" : : [Data] "r" (Data) : "memory");
-}
-
-__INTRIN_INLINE void __writecr3(unsigned int Data)
-{
-	__asm__("mov %[Data], %%cr3" : : [Data] "r" (Data) : "memory");
-}
-
-__INTRIN_INLINE void __writecr4(unsigned int Data)
-{
-	__asm__("mov %[Data], %%cr4" : : [Data] "r" (Data) : "memory");
-}
-
-__INTRIN_INLINE unsigned long __readcr0(void)
-{
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr0, %[value]" : [value] "=r" (value));
-	return value;
-}
-
-__INTRIN_INLINE unsigned long __readcr2(void)
-{
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr2, %[value]" : [value] "=r" (value));
-	return value;
-}
-
-__INTRIN_INLINE unsigned long __readcr3(void)
-{
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr3, %[value]" : [value] "=r" (value));
-	return value;
-}
-
-__INTRIN_INLINE unsigned long __readcr4(void)
-{
-	unsigned long value;
-	__asm__ __volatile__("mov %%cr4, %[value]" : [value] "=r" (value));
 	return value;
 }
 
@@ -1893,72 +1853,6 @@ __INTRIN_INLINE void __writedr(unsigned reg, unsigned long long value)
 			break;
 		case 7:
 			__asm__("movq %q[value], %%dr7" : : [value] "r" (value) : "memory");
-			break;
-	}
-}
-
-#else /* __x86_64__ */
-
-__INTRIN_INLINE unsigned int __readdr(unsigned int reg)
-{
-	unsigned int value;
-	switch (reg)
-	{
-		case 0:
-			__asm__ __volatile__("mov %%dr0, %[value]" : [value] "=r" (value));
-			break;
-		case 1:
-			__asm__ __volatile__("mov %%dr1, %[value]" : [value] "=r" (value));
-			break;
-		case 2:
-			__asm__ __volatile__("mov %%dr2, %[value]" : [value] "=r" (value));
-			break;
-		case 3:
-			__asm__ __volatile__("mov %%dr3, %[value]" : [value] "=r" (value));
-			break;
-		case 4:
-			__asm__ __volatile__("mov %%dr4, %[value]" : [value] "=r" (value));
-			break;
-		case 5:
-			__asm__ __volatile__("mov %%dr5, %[value]" : [value] "=r" (value));
-			break;
-		case 6:
-			__asm__ __volatile__("mov %%dr6, %[value]" : [value] "=r" (value));
-			break;
-		case 7:
-			__asm__ __volatile__("mov %%dr7, %[value]" : [value] "=r" (value));
-			break;
-	}
-	return value;
-}
-
-__INTRIN_INLINE void __writedr(unsigned reg, unsigned int value)
-{
-	switch (reg)
-	{
-		case 0:
-			__asm__("mov %[value], %%dr0" : : [value] "r" (value) : "memory");
-			break;
-		case 1:
-			__asm__("mov %[value], %%dr1" : : [value] "r" (value) : "memory");
-			break;
-		case 2:
-			__asm__("mov %[value], %%dr2" : : [value] "r" (value) : "memory");
-			break;
-		case 3:
-			__asm__("mov %[value], %%dr3" : : [value] "r" (value) : "memory");
-			break;
-		case 4:
-			__asm__("mov %[value], %%dr4" : : [value] "r" (value) : "memory");
-			break;
-		case 5:
-			__asm__("mov %[value], %%dr5" : : [value] "r" (value) : "memory");
-			break;
-		case 6:
-			__asm__("mov %[value], %%dr6" : : [value] "r" (value) : "memory");
-			break;
-		case 7:
-			__asm__("mov %[value], %%dr7" : : [value] "r" (value) : "memory");
 			break;
 	}
 }

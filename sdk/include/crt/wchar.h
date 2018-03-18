@@ -679,7 +679,7 @@ _CRTIMP int __cdecl iswblank(wint_t _C);
   };
 #endif
 
-#if _INTEGRAL_MAX_BITS >= 64
+/* #if _INTEGRAL_MAX_BITS >= 64 */
 
   struct _stat32i64 {
     _dev_t st_dev;
@@ -722,7 +722,7 @@ _CRTIMP int __cdecl iswblank(wint_t _C);
     __time64_t st_mtime;
     __time64_t st_ctime;
   };
-#endif
+/* #endif */
 
 #define __stat64 _stat64
 
