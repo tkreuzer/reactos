@@ -954,6 +954,11 @@ MI_WRITE_VALID_PTE(IN PMMPTE PointerPte,
     /* Write the valid PTE */
     ASSERT(PointerPte->u.Hard.Valid == 0);
     ASSERT(TempPte.u.Hard.Valid == 1);
+    if ((PointerPte >= MiAddressToPde(0)) &&
+        (PointerPte <= MiAddressToPde((PVOID)(LONG_PTR)-1)))
+    {
+        ASSERT(PointerPte->u.Hard.NoExecute == 0);
+    }
     *PointerPte = TempPte;
 }
 
