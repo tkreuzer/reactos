@@ -243,6 +243,8 @@ KiPrepareUserDebugData(void)
     _disable();
 }
 
+void __swapgs(void);
+
 VOID
 NTAPI
 KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
@@ -252,6 +254,12 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
                     IN BOOLEAN FirstChance)
 {
     CONTEXT Context;
+
+    if ((PVOID)KeGetCurrentPrcb() < MmSystemRangeStart)
+    {
+        __swapgs();
+        __debugbreak();
+    }
 
     /* Increase number of Exception Dispatches */
     KeGetCurrentPrcb()->KeExceptionDispatchCount++;
