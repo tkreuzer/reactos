@@ -195,6 +195,8 @@ MACRO(ExitTrap, Flags)
 IntsEnabled:
 #endif
 
+    cli
+
     /* Swap gs to user mode */
     swapgs
 
