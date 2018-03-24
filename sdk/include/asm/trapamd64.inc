@@ -30,7 +30,6 @@ TF_CHECKUSERAPC         = HEX(100)
  */
 MACRO(EnterTrap, Flags)
     LOCAL kernel_mode_entry
-    LOCAL GsOk
 
     /* Save the trap flags for this trap */
     CurrentTrapFlags = VAL(Flags)
@@ -157,16 +156,6 @@ kernel_mode_entry:
 
     /* Make sure the direction flag is cleared */
     cld
-
-#if DBG
-    mov ecx, MSR_GS_BASE
-    rdmsr
-    test edx, edx
-    js GsOk
-    swapgs
-    int 3
-GsOk:
-#endif
 ENDM
 
 /*
