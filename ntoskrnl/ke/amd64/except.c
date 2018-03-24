@@ -254,10 +254,20 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
                     IN BOOLEAN FirstChance)
 {
     CONTEXT Context;
+    PKIPCR Pcr;
 
-    if ((PVOID)KeGetCurrentPrcb() < MmSystemRangeStart)
+    if ((PVOID)__readmsr(MSR_GS_BASE) < MmSystemRangeStart)
     {
         __swapgs();
+        __debugbreak();
+    }
+
+    Pcr = (PKIPCR)KeGetPcr();
+    if ((PVOID)Pcr < MmSystemRangeStart)
+    {
+        Pcr = (PKIPCR)__readmsr(MSR_GS_BASE);
+        Pcr->Self = (PKPCR)Pcr;
+        Pcr->CurrentPrcb = &Pcr->Prcb;
         __debugbreak();
     }
 
@@ -672,7 +682,7 @@ KiGeneralProtectionFaultHandler(
         TrapFrame->SegEs = (KGDT64_R3_DATA | RPL_MASK);
         return STATUS_SUCCESS;
     }
-
+    __debugbreak();
     /* Get Instruction Pointer */
     Instructions = (PUCHAR)TrapFrame->Rip;
 
