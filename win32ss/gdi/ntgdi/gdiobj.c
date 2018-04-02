@@ -278,10 +278,10 @@ InitGdiHandleTable(void)
         DPRINT1("INITGDI: Could not allocate a GDI handle table.\n");
         return status;
     }
-
+    __debugbreak();
     /* Map the section in session space */
     status = MmMapViewInSessionSpace(gpvGdiHdlTblSection,
-                                     (PVOID*)&gpentHmgr,
+                                     (PVOID*)&GdiHandleTable,
                                      &cjViewSize);
     if (!NT_SUCCESS(status))
     {
@@ -304,8 +304,7 @@ InitGdiHandleTable(void)
 
     gulFirstFree = 0;
     gulFirstUnused = RESERVE_ENTRIES_COUNT;
-
-    GdiHandleTable = (PVOID)gpentHmgr;
+    gpentHmgr = (PENTRY)&GdiHandleTable->Entries[0];
 
     /* Initialize the lookaside lists */
     gpaLookasideList = ExAllocatePoolWithTag(NonPagedPool,
