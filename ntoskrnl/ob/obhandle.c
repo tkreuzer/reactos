@@ -1389,8 +1389,8 @@ ObpCreateUnnamedHandle(IN PVOID Object,
     if (AdditionalReferences)
     {
         /* Add them to the header */
-        InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
-                                    AdditionalReferences);
+        InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount,
+                                      AdditionalReferences);
     }
 
     /* Save the access mask */
@@ -1440,8 +1440,8 @@ ObpCreateUnnamedHandle(IN PVOID Object,
     if (AdditionalReferences)
     {
         /* Dereference it as many times as required */
-        InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
-                                    -(LONG)AdditionalReferences);
+        InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount,
+                                     -(LONG)AdditionalReferences);
     }
 
     /* Decrement the handle count and detach */
@@ -1696,8 +1696,8 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
         if (AdditionalReferences > 1)
         {
             /* Dereference it many times */
-            InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
-                                        -(LONG)(AdditionalReferences - 1));
+            InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount,
+                                         -(LONG)(AdditionalReferences - 1));
         }
 
         /* Dereference the object one last time */
