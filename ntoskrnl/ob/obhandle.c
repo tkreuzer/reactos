@@ -558,7 +558,7 @@ ObpDecrementHandleCount(IN PVOID ObjectBody,
     ProcessHandleCount = 0;
 
     /* Decrement the handle count */
-    NewCount = InterlockedDecrementSizeT(&ObjectHeader->HandleCount);
+    NewCount = InterlockedDecrementLongPtr(&ObjectHeader->HandleCount);
 
     /* Check if we're out of handles and this was an exclusive object */
     if (!(NewCount) && (ObjectHeader->Flags & OB_FLAG_EXCLUSIVE))
@@ -966,7 +966,7 @@ ObpIncrementHandleCount(IN PVOID Object,
     }
 
     /* Increase the handle count */
-    InterlockedIncrementSizeT(&ObjectHeader->HandleCount);
+    InterlockedIncrementLongPtr(&ObjectHeader->HandleCount);
     ProcessHandleCount = 0;
 
     /* Check if we have a handle database */
@@ -1193,7 +1193,7 @@ ObpIncrementUnnamedHandleCount(IN PVOID Object,
     }
 
     /* Increase the handle count */
-    InterlockedIncrementSizeT(&ObjectHeader->HandleCount);
+    InterlockedIncrementLongPtr(&ObjectHeader->HandleCount);
     ProcessHandleCount = 0;
 
     /* Check if we have a handle database */
@@ -1388,8 +1388,8 @@ ObpCreateUnnamedHandle(IN PVOID Object,
     if (AdditionalReferences)
     {
         /* Add them to the header */
-        InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
-                                    AdditionalReferences);
+        InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount,
+                                      AdditionalReferences);
     }
 
     /* Save the access mask */
@@ -1439,8 +1439,8 @@ ObpCreateUnnamedHandle(IN PVOID Object,
     if (AdditionalReferences)
     {
         /* Dereference it as many times as required */
-        InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
-                                    -(LONG)AdditionalReferences);
+        InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount,
+                                     -(LONG)AdditionalReferences);
     }
 
     /* Decrement the handle count and detach */
@@ -1695,8 +1695,8 @@ ObpCreateHandle(IN OB_OPEN_REASON OpenReason,
         if (AdditionalReferences > 1)
         {
             /* Dereference it many times */
-            InterlockedExchangeAddSizeT(&ObjectHeader->PointerCount,
-                                        -(LONG)(AdditionalReferences - 1));
+            InterlockedExchangeAddLongPtr(&ObjectHeader->PointerCount,
+                                         -(LONG)(AdditionalReferences - 1));
         }
 
         /* Dereference the object one last time */
@@ -1975,7 +1975,7 @@ ObpDuplicateHandleCallback(IN PEPROCESS Process,
         ObjectHeader = ObpGetHandleObject(HandleTableEntry);
 
         /* Increment the pointer count */
-        InterlockedIncrementSizeT(&ObjectHeader->PointerCount);
+        InterlockedIncrementLongPtr(&ObjectHeader->PointerCount);
 
         /* Release the handle lock */
         ExUnlockHandleTableEntry(HandleTable, OldEntry);

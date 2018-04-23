@@ -1545,11 +1545,15 @@ XIPInit(
     (SIZE_T)InterlockedExchange((PLONG)Target, (LONG)Value)
 #endif
 
+#define InterlockedIncrementLongPtr InterlockedIncrementSizeT
+#define InterlockedDecrementLongPtr InterlockedDecrementSizeT
+#define InterlockedExchangeAddLongPtr InterlockedExchangeAddSizeT
+
 #define ExfInterlockedCompareExchange64UL(Destination, Exchange, Comperand) \
    (ULONGLONG)ExfInterlockedCompareExchange64((PLONGLONG)(Destination), (PLONGLONG)(Exchange), (PLONGLONG)(Comperand))
 
 __forceinline
-SIZE_T
+LONG_PTR
 InterlockedCompareExchangeLongPtr(PLONG_PTR Destination, LONG_PTR Exchange, LONG_PTR Comperand)
 {
     return (LONG_PTR)InterlockedCompareExchangePointer((PVOID*)Destination, (PVOID)Exchange, (PVOID)Comperand);
