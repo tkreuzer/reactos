@@ -36,6 +36,10 @@ RtlPcToFileHeader(
     BOOLEAN InSystem;
     KIRQL OldIrql;
 
+    // CHECKME!
+    /* Acquire the loaded module spinlock */
+    OldIrql = KeAcquireSpinLockRaiseToSynch(&PsLoadedModuleSpinLock);
+
     /* Get the base for this file */
     if ((ULONG_PTR)PcValue > (ULONG_PTR)MmHighestUserAddress)
     {
@@ -53,6 +57,9 @@ RtlPcToFileHeader(
         /* User mode is not handled here! */
         *BaseOfImage = NULL;
     }
+
+    /* Release lock */
+    KeReleaseSpinLock(&PsLoadedModuleSpinLock, OldIrql);
 
     return *BaseOfImage;
 }
