@@ -13,6 +13,12 @@
 #define NDEBUG
 #include <debug.h>
 
+VOID
+KiSetTrapContext(
+    _Out_ PKTRAP_FRAME TrapFrame,
+    _In_ PCONTEXT Context,
+    _In_ KPROCESSOR_MODE RequestorMode);
+
 /* FUNCTIONS ******************************************************************/
 
 
