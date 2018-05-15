@@ -609,14 +609,13 @@ RepeatChainedInfo:
                 i += 3;
                 break;
 
-            case UWOP_SAVE_XMM:
-                __debugbreak();
-                i += 2;
+            case UWOP_EPILOG:
+                i += 1;
                 break;
 
-            case UWOP_SAVE_XMM_FAR:
+            case UWOP_SPARE_CODE:
                 __debugbreak();
-                i += 3;
+                i += 2;
                 break;
 
             case UWOP_SAVE_XMM128:
