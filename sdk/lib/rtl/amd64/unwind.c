@@ -717,6 +717,13 @@ RtlpUnwindInternal(
         /* Save Rip before the virtual unwind */
         DispatcherContext.ControlPc = UnwindContext.Rip;
 
+        /* Check if we have a valid RIP */
+        if ((RtlpGetMode() == KernelMode) &&
+            ((LONG64)UnwindContext.Rip > 0))
+        {
+            __debugbreak();
+        }
+
         /* Do a virtual unwind to get the next frame */
         ExceptionRoutine = RtlVirtualUnwind(HandlerType,
                                             ImageBase,
