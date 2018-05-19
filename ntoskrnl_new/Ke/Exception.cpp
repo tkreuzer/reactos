@@ -5,7 +5,6 @@ extern "C" {
 
 //; ??? @ stdcall -stub -arch=??? KiCoprocessorError()
 //@ stdcall -stub KeEnterKernelDebugger()
-//@ stdcall -stub KeRaiseUserException(long)
 
 NTSTATUS
 NTAPI
@@ -18,5 +17,15 @@ NtRaiseException (
     return STATUS_NOT_IMPLEMENTED;
 }
 
+//@ stdcall -stub KeRaiseUserException(long)
+// from Ke_NUKE
+NTSTATUS
+NTAPI
+KeRaiseUserException(
+    IN NTSTATUS ExceptionCode)
+{
+    __debugbreak();
+    return 0;
+}
 
 }; // extern "C"
