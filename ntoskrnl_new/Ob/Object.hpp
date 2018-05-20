@@ -153,6 +153,7 @@ protected: /// FIXME: can we make these private?
 
 private:
 
+    // FIXME: WinDbg looks for ObpInfoMaskToOffset!
     static UCHAR HeaderInfoSize[MAX_INFO_MASK + 1];
 
 protected:
