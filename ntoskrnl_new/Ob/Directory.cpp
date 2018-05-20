@@ -222,6 +222,17 @@ OBJECT_DIRECTORY::FindChainLink (
     return FALSE;
 }
 
+/*! \name OBJECT_DIRECTORY::InsertObject
+ *
+ *  \brief Inserts a named object into an object directory.
+ *
+ *  \param [in] Object
+ *      The object that is to be inserted into the directory.
+ *
+ *  \remarks
+ *      The caller is responsible for making sure that the object has a header
+ *      name info and is not already inserted into a directory.
+ */
 NTSTATUS
 OBJECT_DIRECTORY::InsertObject (
     _In_ POBJECT Object)
