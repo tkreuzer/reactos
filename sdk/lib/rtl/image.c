@@ -326,7 +326,7 @@ RtlImageRvaToSection(
     while (Count--)
     {
         Va = SWAPD(Section->VirtualAddress);
-        if ((Va <= Rva) && (Rva < Va + SWAPD(Section->SizeOfRawData)))
+        if ((Va <= Rva) && (Rva < Va + SWAPD(Section->Misc.VirtualSize)))
             return Section;
         Section++;
     }
@@ -352,7 +352,7 @@ RtlImageRvaToVa(
 
     if ((Section == NULL) ||
         (Rva < SWAPD(Section->VirtualAddress)) ||
-        (Rva >= SWAPD(Section->VirtualAddress) + SWAPD(Section->SizeOfRawData)))
+        (Rva >= SWAPD(Section->VirtualAddress) + SWAPD(Section->Misc.VirtualSize)))
     {
         Section = RtlImageRvaToSection(NtHeader, BaseAddress, Rva);
         if (Section == NULL)
@@ -362,8 +362,9 @@ RtlImageRvaToVa(
             *SectionHeader = Section;
     }
 
-    return (PVOID)((ULONG_PTR)BaseAddress + Rva +
-                   (ULONG_PTR)SWAPD(Section->PointerToRawData) -
+    return (PVOID)((ULONG_PTR)BaseAddress +
+                   Rva +
+                   SWAPD(Section->PointerToRawData) -
                    (ULONG_PTR)SWAPD(Section->VirtualAddress));
 }
 
