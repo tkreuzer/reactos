@@ -120,7 +120,7 @@ CmpCompareCompressedName(IN PCUNICODE_STRING SearchName,
     p = SearchName->Buffer;
     pp = (PUCHAR)CompressedName;
     SearchLength = (SearchName->Length / sizeof(WCHAR));
-    while (SearchLength > 0 && NameLength > 0)
+    while ((SearchLength > 0) && (NameLength > 0))
     {
         /* Get the characters */
         chr1 = *p++;

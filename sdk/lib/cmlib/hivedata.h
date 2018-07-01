@@ -42,6 +42,7 @@
 #define HSECTOR_SIZE                    0x200
 #define HSECTOR_COUNT                   8
 
+#define HV_BLOCK_SIZE                  4096
 #define HV_LOG_HEADER_SIZE              FIELD_OFFSET(HBASE_BLOCK, Reserved2)
 
 //
@@ -93,9 +94,9 @@ typedef ULONG HCELL_INDEX, *PHCELL_INDEX;
 #define HCELL_OFFSET_SHIFT              0
 
 #define HvGetCellType(Cell)             \
-    ((ULONG)(((Cell) & HCELL_TYPE_MASK) >> HCELL_TYPE_SHIFT))
+    ((ULONG)((Cell & HCELL_TYPE_MASK) >> HCELL_TYPE_SHIFT))
 #define HvGetCellBlock(Cell)            \
-    ((ULONG)(((Cell) & HCELL_BLOCK_MASK) >> HCELL_BLOCK_SHIFT))
+    ((ULONG)((Cell & HCELL_BLOCK_MASK) >> HCELL_BLOCK_SHIFT))
 
 typedef enum
 {
@@ -292,9 +293,9 @@ typedef struct _HHIVE
     PRELEASE_CELL_ROUTINE ReleaseCellRoutine;
     PALLOCATE_ROUTINE Allocate;
     PFREE_ROUTINE Free;
-    PFILE_SET_SIZE_ROUTINE FileSetSize;
-    PFILE_WRITE_ROUTINE FileWrite;
     PFILE_READ_ROUTINE FileRead;
+    PFILE_WRITE_ROUTINE FileWrite;
+    PFILE_SET_SIZE_ROUTINE FileSetSize;
     PFILE_FLUSH_ROUTINE FileFlush;
 
 #if (NTDDI_VERSION >= NTDDI_WIN7)
@@ -312,12 +313,10 @@ typedef struct _HHIVE
     BOOLEAN Log;
 #endif
     BOOLEAN DirtyFlag;
-#if (NTDDI_VERSION >= NTDDI_VISTA) // NTDDI_LONGHORN
     ULONG HvBinHeadersUse;
     ULONG HvFreeCellsUse;
-    ULONG HvUsedCellsUse;
+    ULONG HvUsedcellsUse;
     ULONG CmUsedCellsUse;
-#endif
     ULONG HiveFlags;
 #if (NTDDI_VERSION < NTDDI_VISTA) // NTDDI_LONGHORN
     ULONG LogSize;
