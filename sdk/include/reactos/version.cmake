@@ -30,7 +30,7 @@ endif()
 set(COMMIT_HASH "unknown-hash")
 set(REVISION "unknown-revision")
 
-if((EXISTS "${REACTOS_SOURCE_DIR}/.git") AND (NOT NO_REACTOS_BUILDNO))
+if((EXISTS "${CMAKE_SOURCE_DIR}/.git") AND (NOT NO_REACTOS_BUILDNO))
     find_package(Git)
     if(GIT_FOUND)
         execute_process(
@@ -57,5 +57,5 @@ if((EXISTS "${REACTOS_SOURCE_DIR}/.git") AND (NOT NO_REACTOS_BUILDNO))
     endif()
 endif()
 
-configure_file(sdk/include/reactos/version.h.cmake ${REACTOS_BINARY_DIR}/sdk/include/reactos/version.h)
-configure_file(sdk/include/reactos/buildno.h.cmake ${REACTOS_BINARY_DIR}/sdk/include/reactos/buildno.h)
+configure_file(sdk/include/reactos/version.h.cmake ${CMAKE_BINARY_DIR}/sdk/include/reactos/version.h)
+configure_file(sdk/include/reactos/buildno.h.cmake ${CMAKE_BINARY_DIR}/sdk/include/reactos/buildno.h)
