@@ -380,7 +380,7 @@ RtlpDeleteAvlTreeNode(IN PRTL_AVL_TABLE Table,
     if (Node == DeleteNode) return;
 
     /* Copy the deleted node itself */
-    RtlpCopyAvlNodeData(DeleteNode, Node);
+    *DeleteNode = *Node;
 
     /* Pick the right node to unlink */
     Node1 = RtlIsLeftChildAvl(Node) ?

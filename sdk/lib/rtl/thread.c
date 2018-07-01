@@ -291,7 +291,9 @@ RtlExitUserThread(NTSTATUS Status)
     LdrShutdownThread();
 
     /* Shut us down */
+#if (NTDDI_VERSION < NTDDI_LONGHORN)
     NtCurrentTeb()->FreeStackOnTermination = TRUE;
+#endif
     NtTerminateThread(NtCurrentThread(), Status);
 }
 

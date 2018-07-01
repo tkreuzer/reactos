@@ -25,14 +25,6 @@
 #define RtlIsLeftChildAvl           RtlIsLeftChild
 
 FORCEINLINE
-VOID
-RtlpCopyAvlNodeData(IN PRTL_BALANCED_LINKS Node1,
-                    IN PRTL_BALANCED_LINKS Node2)
-{
-    *Node1 = *Node2;
-}
-
-FORCEINLINE
 RTL_GENERIC_COMPARE_RESULTS
 RtlpAvlCompareRoutine(IN PRTL_AVL_TABLE Table,
                       IN PVOID Buffer,

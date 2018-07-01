@@ -103,18 +103,20 @@ struct _HEAP_COMMON_ENTRY
             };
             UCHAR UnusedBytes;
         };
+#ifndef _M_AMD64
+        PVOID SubSegmentCode;
+#endif
         struct
         {
             USHORT FunctionIndex;
             USHORT ContextValue;
-        };
-        struct
-        {
-            ULONG InterceptorValue;
             USHORT UnusedBytesLength;
             UCHAR EntryOffset;
             UCHAR ExtendedBlockSignature;
         };
+#ifndef _M_AMD64
+        ULONG InterceptorValue;
+#endif
         struct
         {
             ULONG Code1;
