@@ -259,6 +259,7 @@ typedef struct _KDDEBUGGER_DATA64
     GCC_ULONG64 MmSessionBase;
     GCC_ULONG64 MmSessionSize;
     GCC_ULONG64 MmSystemParentTablePage;
+#if (NTDDI_VERSION >= NTDDI_WS03)
     GCC_ULONG64 MmVirtualTranslationBase;
     USHORT OffsetKThreadNextProcessor;
     USHORT OffsetKThreadTeb;
@@ -306,10 +307,36 @@ typedef struct _KDDEBUGGER_DATA64
     USHORT Gdt64R3CmTeb;
     GCC_ULONG64 IopNumTriageDumpDataBlocks;
     GCC_ULONG64 IopTriageDumpDataBlocks;
-#if 0 // Longhorn/Vista and later
+#endif
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
     GCC_ULONG64 VfCrashDataBlock;
     GCC_ULONG64 MmBadPagesDetected;
     GCC_ULONG64 MmZeroedPageSingleBitErrorsDetected;
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN7)
+    GCC_ULONG64 EtwpDebuggerData;
+    USHORT OffsetPrcbContext;
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN8)
+    USHORT OffsetPrcbMaxBreakpoints;
+    USHORT OffsetPrcbMaxWatchpoints;
+    ULONG OffsetKThreadStackLimit;
+    ULONG OffsetKThreadStackBase;
+    ULONG OffsetKThreadQueueListEntry;
+    ULONG OffsetEThreadIrpList;
+    USHORT OffsetPrcbIdleThread;
+    USHORT OffsetPrcbNormalDpcState;
+    USHORT OffsetPrcbDpcStack;
+    USHORT OffsetPrcbIsrStack;
+    USHORT SizeKDPC_STACK_FRAME;
+#endif
+#if (NTDDI_VERSION >= NTDDI_WINBLUE)
+    USHORT OffsetKPriQueueThreadListHead;
+    USHORT OffsetKThreadWaitReason;
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN10RS1)
+    USHORT Padding;
+    ULONG64 PteBase;
 #endif
 } KDDEBUGGER_DATA64, *PKDDEBUGGER_DATA64;
 

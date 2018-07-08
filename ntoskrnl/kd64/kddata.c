@@ -516,20 +516,20 @@ DBGKD_GET_VERSION64 KdVersionBlock =
 KDDEBUGGER_DATA64 KdDebuggerDataBlock =
 {
     {{0}},
-    0,
+    0, // KernBase
     {(ULONG_PTR)RtlpBreakWithStatusInstruction},
-    0,
+    0, // SavedContext
     FIELD_OFFSET(KTHREAD, CallbackStack),
 #if defined(_M_ARM) || defined(_M_AMD64)
-    0,
-    0,
+    0, // NextCallback
+    0, // FramePointer
 #else
     FIELD_OFFSET(KCALLOUT_FRAME, CallbackStack),
     FIELD_OFFSET(KCALLOUT_FRAME, CBSTACK_FRAME_POINTER),
 #endif
-    FALSE,
+    sizeof(MMPTE) > 4, // PaeEnabled
     {(ULONG_PTR)KiCallUserMode},
-    0,
+    0, // KeUserCallbackDispatcher
     {(ULONG_PTR)&PsLoadedModuleList},
     {(ULONG_PTR)&PsActiveProcessHead},
     {(ULONG_PTR)&PspCidTable},
@@ -568,7 +568,7 @@ KDDEBUGGER_DATA64 KdDebuggerDataBlock =
     {(ULONG_PTR)&MmDriverCommit},
     {(ULONG_PTR)&MmProcessCommit},
     {(ULONG_PTR)&MmPagedPoolCommit},
-    {0},
+    {0}, // MmExtendedCommit
     {(ULONG_PTR)&MmZeroedPageListHead},
     {(ULONG_PTR)&MmFreePageListHead},
     {(ULONG_PTR)&MmStandbyPageListHead},
@@ -582,12 +582,12 @@ KDDEBUGGER_DATA64 KdDebuggerDataBlock =
     {(ULONG_PTR)&MmSystemRangeStart},
     {(ULONG_PTR)&MmUserProbeAddress},
     {(ULONG_PTR)KdPrintDefaultCircularBuffer},
-    {(ULONG_PTR)KdPrintDefaultCircularBuffer + 1},
+    {(ULONG_PTR)&KdPrintDefaultCircularBuffer[sizeof(KdPrintDefaultCircularBuffer)]},
     {(ULONG_PTR)&KdPrintWritePointer},
     {(ULONG_PTR)&KdPrintRolloverCount},
     {(ULONG_PTR)&MmLoadedUserImageList},
     {(ULONG_PTR)&NtBuildLab},
-    {0},
+    {0}, // KiNormalSystemCall
     {(ULONG_PTR)KiProcessorBlock},
     {(ULONG_PTR)&MmUnloadedDrivers},
     {(ULONG_PTR)&MmLastUnloadedDrivers},
@@ -602,16 +602,16 @@ KDDEBUGGER_DATA64 KdDebuggerDataBlock =
     {(ULONG_PTR)&MmPhysicalMemoryBlock},
     {(ULONG_PTR)&MmSessionBase},
     {(ULONG_PTR)&MmSessionSize},
-    {0},
-    {0},
+    {0}, // MmSystemParentTablePage
+    {0}, // MmVirtualTranslationBase
     FIELD_OFFSET(KTHREAD, NextProcessor),
     FIELD_OFFSET(KTHREAD, Teb),
     FIELD_OFFSET(KTHREAD, KernelStack),
     FIELD_OFFSET(KTHREAD, InitialStack),
     FIELD_OFFSET(KTHREAD, ApcState.Process),
     FIELD_OFFSET(KTHREAD, State),
-    0,
-    0,
+    0, // OffsetKThreadBStore
+    0, // OffsetKThreadBStoreLimit
     sizeof(EPROCESS),
     FIELD_OFFSET(EPROCESS, Peb),
     FIELD_OFFSET(EPROCESS, InheritedFromUniqueProcessId),
@@ -632,8 +632,8 @@ KDDEBUGGER_DATA64 KdDebuggerDataBlock =
     KPCR_SELF_PCR_OFFSET,
     KPCR_CURRENT_PRCB_OFFSET,
     KPCR_CONTAINED_PRCB_OFFSET,
-    0,
-    0,
+    0, // OffsetPcrInitialBStore
+    0, // OffsetPcrBStoreLimit
 #if defined(_M_ARM)
     _WARN("KPCR_INITIAL_STACK_OFFSET, KPCR_STACK_LIMIT_OFFSET and KPRCB_PCR_PAGE_OFFSET not properly defined on ARM")
     0,
@@ -649,30 +649,30 @@ KDDEBUGGER_DATA64 KdDebuggerDataBlock =
     //
     // x86 GDT/LDT/TSS constants
     //
-    KGDT_R0_CODE,
-    KGDT_R0_DATA,
-    KGDT_R0_PCR,
-    KGDT_R3_CODE,
-    KGDT_R3_DATA,
-    KGDT_R3_TEB,
-    KGDT_LDT,
-    KGDT_TSS,
-    0,
-    0,
+    KGDT_R0_CODE, // GdtR0Code
+    KGDT_R0_DATA, // GdtR0Data
+    KGDT_R0_PCR, // GdtR0Pcr
+    KGDT_R3_CODE, // GdtR3Code
+    KGDT_R3_DATA, // GdtR3Data
+    KGDT_R3_TEB, // GdtR3Teb
+    KGDT_LDT, // GdtLdt
+    KGDT_TSS, // GdtTss
+    0, // Gdt64R3CmCode
+    0, // Gdt64R3CmTeb
 #elif defined(_M_AMD64)
     //
     // AMD64 GDT/LDT/TSS constants
     //
-    KGDT64_R0_CODE,
-    KGDT64_R3_DATA,
-    KGDT64_R3_DATA,
-    KGDT64_R3_CODE,
-    KGDT64_R3_DATA,
-    KGDT64_R3_DATA,
-    0,
-    KGDT64_SYS_TSS,
-    0,
-    0,
+    KGDT64_R0_CODE, // GdtR0Code
+    KGDT64_R3_DATA, // GdtR0Data
+    KGDT64_R3_DATA, // GdtR0Pcr
+    KGDT64_R3_CODE, // GdtR3Code
+    KGDT64_R3_DATA, // GdtR3Data
+    0, // GdtR3Teb
+    0, // GdtLdt
+    KGDT64_SYS_TSS, // GdtTss
+    KGDT64_R3_CMCODE, // Gdt64R3CmCode
+    KGDT64_R3_CMTEB, // Gdt64R3CmTeb
 #else
     //
     // No GDT/LDT/TSS on other architectures
@@ -690,4 +690,34 @@ KDDEBUGGER_DATA64 KdDebuggerDataBlock =
 #endif
     {(ULONG_PTR)&IopNumTriageDumpDataBlocks},
     {(ULONG_PTR)IopTriageDumpDataBlocks},
+#if (NTDDI_VERSION >= NTDDI_LONGHORN)
+    {(ULONG_PTR)&VfCrashDataBlock},
+    {(ULONG_PTR)MmBadPagesDetected},
+    {(ULONG_PTR)MmZeroedPageSingleBitErrorsDetected},
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN7)
+    {(ULONG_PTR)EtwpDebuggerData},
+    FIELD_OFFSET(KPRCB, Context), // OffsetPrcbContext
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN8)
+    FIELD_OFFSET(KPRCB, MaxBreakpoints), // OffsetPrcbMaxBreakpoints
+    FIELD_OFFSET(KPRCB, MaxWatchpoints), // OffsetPrcbMaxWatchpoints
+    FIELD_OFFSET(KTHREAD, StackLimit), // OffsetKThreadStackLimit
+    FIELD_OFFSET(KTHREAD, StackBase), // OffsetKThreadStackBase
+    FIELD_OFFSET(KTHREAD, QueueListEntry), // OffsetKThreadQueueListEntry
+    FIELD_OFFSET(ETHREAD, IrpList), // OffsetEThreadIrpList
+    FIELD_OFFSET(KPRCB, IdleThread), // OffsetPrcbIdleThread
+    FIELD_OFFSET(KPRCB, NormalDpcState), // OffsetPrcbNormalDpcState
+    FIELD_OFFSET(KPRCB, DpcStack), // OffsetPrcbDpcStack
+    FIELD_OFFSET(KPRCB, IsrStack), // OffsetPrcbIsrStack
+    sizeof(KDPC_STACK_FRAME), // SizeKDPC_STACK_FRAME
+#endif
+#if (NTDDI_VERSION >= NTDDI_WINBLUE)
+    FIELD_OFFSET(KPRIORITY_QUEUE, ThreadListHead), // OffsetKPriQueueThreadListHead
+    FIELD_OFFSET(KTHREAD, WaitReason), // OffsetKThreadWaitReason
+#endif
+#if (NTDDI_VERSION >= NTDDI_WIN10RS1)
+    0, // Padding
+    PTE_BASE // PteBase;
+#endif
 };
