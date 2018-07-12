@@ -87,21 +87,225 @@ ENDM
 
 /* Helper Macros *************************************************************/
 
+/*
+ *  DISPATCH_EXCEPTION - prepare EXCEPTION_RECORD and call KiDispatchException
+ */
 MACRO(DispatchException, Status, Number, P1, P2, P3)
-    mov eax, Status
-    mov edx, Number
-    mov r9, P1
-    mov r10, P2
-    mov r11, P3
-    call InternalDispatchException
+
+    /* rsp+0x28 points to EXCEPTION_RECORD, set it up */
+    mov dword ptr [rsp + 0x28 + EXCEPTION_RECORD_ExceptionCode], \Code
+    mov dword ptr [rsp + 0x28 + EXCEPTION_RECORD_ExceptionFlags], 0
+    mov qword ptr [rsp + 0x28 + EXCEPTION_RECORD_ExceptionRecord], 0
+    mov rax, [rbp + KTRAP_FRAME_Rip]
+    mov [rsp + 0x28 + EXCEPTION_RECORD_ExceptionAddress], rax
+    mov dword ptr [rsp + 0x28 + EXCEPTION_RECORD_NumberParameters], \NumParams
+
+.if \NumParams >= 1
+    mov qword ptr [rsp + 0x28 + EXCEPTION_RECORD_ExceptionInformation + 0x00], \p1
+.endif
+.if \NumParams >= 2
+    mov qword ptr [rsp + 0x28 + EXCEPTION_RECORD_ExceptionInformation + 0x08], \p2
+.endif
+.if \NumParams >= 3
+    mov qword ptr [rsp + 0x28 + EXCEPTION_RECORD_ExceptionInformation + 0x10], \p3
+.endif
+
+    mov byte ptr [rsp + 0x20], 1  // FirstChance
+    mov r9b, [rbp + KTRAP_FRAME_PreviousMode] // PreviousMode
+    mov r8, rbp                   // TrapFrame
+    xor rdx, rdx                  // ExceptionFrame
+    lea rcx, [rsp + 0x28]         // ExceptionRecord
+    call _KiDispatchException
 ENDM
 
-MACRO(Fatal, BugcheckCode)
-    /* Bugcheck */
-    mov ecx, BugcheckCode
-    mov rdx, rbp
-    call KiSystemFatalException
+
+#define TRAPFLAG_VOLATILES HEX(01)
+#define TRAPFLAG_NONVOLATILES HEX(02)
+#define TRAPFLAG_XMM HEX(04)
+#define TRAPFLAG_SEGMENTS HEX(08)
+#define TRAPFLAG_DEBUG HEX(10)
+#define TRAPFLAG_HAS_ERRORCODE HEX(100)
+
+#define TRAPFLAG_SYSTEMSERVICE (TRAPFLAG_VOLATILES|TRAPFLAG_DEBUG)
+#define TRAPFLAG_ALL HEX(ff)
+
+/*
+ * Stack Layout:
+ * |-------------------|
+ * | KTRAP_FRAME       |
+ * |-------------------| <- rbp
+ * | EXCEPTION_RECORD  |
+ * |-------------------|
+ * | KEXCEPTION_FRAME  |
+ * |-------------------| <- rsp
+ *
+ */
+
+/*
+ * ENTER_TRAP_FRAME - Allocate KTRAP_FRAME_LENGTH and save registers to it
+ */
+.macro ENTER_TRAP_FRAME AllocSize Flags
+.set SIZE_INITIAL_FRAME, 7 * 8
+//.set SIZE_LOCAL_DATA, SIZE_EXCEPTION_RECORD + 0x28
+.set SIZE_TRAP_FRAME_ALLOC, KTRAP_FRAME_LENGTH - SIZE_INITIAL_FRAME + \AllocSize
+.set TRAPFLAGS, \Flags
+
+    /* Save rbp */
+    push rbp
+    .pushreg rbp
+
+    /* Make room for a KTRAP_FRAME and function parameters */
+    sub rsp, SIZE_TRAP_FRAME_ALLOC
+    .allocstack SIZE_TRAP_FRAME_ALLOC
+
+    /* Point rbp to the KTRAP_FRAME */
+    lea rbp, [rsp + \AllocSize]
+
+// KTRAP_FRAME_P1Home
+// KTRAP_FRAME_P2Home
+// KTRAP_FRAME_P3Home
+// KTRAP_FRAME_P4Home
+// KTRAP_FRAME_P5
+
+if (TRAPFLAGS AND TRAPFLAG_NONVOLATILES)
+    /* Save non-volatile registers */
+    mov [rbp + KTRAP_FRAME_Rbx], rbx
+    mov [rbp + KTRAP_FRAME_Rdi], rdi
+    mov [rbp + KTRAP_FRAME_Rsi], rsi
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_VOLATILES)
+    /* Save volatile registers */
+    mov [rbp + KTRAP_FRAME_Rax], rax
+    mov [rbp + KTRAP_FRAME_Rcx], rcx
+    mov [rbp + KTRAP_FRAME_Rdx], rdx
+    mov [rbp + KTRAP_FRAME_R8], r8
+    mov [rbp + KTRAP_FRAME_R9], r9
+    mov [rbp + KTRAP_FRAME_R10], r10
+    mov [rbp + KTRAP_FRAME_R11], r11
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_XMM)
+    /* Save xmm registers */
+    movdqa [rbp + KTRAP_FRAME_Xmm0], xmm0
+    movdqa [rbp + KTRAP_FRAME_Xmm1], xmm1
+    movdqa [rbp + KTRAP_FRAME_Xmm2], xmm2
+    movdqa [rbp + KTRAP_FRAME_Xmm3], xmm3
+    movdqa [rbp + KTRAP_FRAME_Xmm4], xmm4
+    movdqa [rbp + KTRAP_FRAME_Xmm5], xmm5
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_SEGMENTS)
+    /* Save segment selectors */
+    mov ax, ds
+    mov [rbp + KTRAP_FRAME_SegDs], ax
+    mov ax, es
+    mov [rbp + KTRAP_FRAME_SegEs], ax
+    mov ax, fs
+    mov [rbp + KTRAP_FRAME_SegFs], ax
+    mov ax, gs
+    mov [rbp + KTRAP_FRAME_SegGs], ax
+endif
+
+    /* Save previous mode and swap gs when it was UserMode */
+    mov ax, [rbp + KTRAP_FRAME_SegCs]
+    and ax, 1
+    mov [rbp + KTRAP_FRAME_PreviousMode], al
+    jz dont_swap
+    swapgs
+dont_swap:
+
+    /* Save previous irql */
+    mov rax, cr8
+    mov [rbp + KTRAP_FRAME_PreviousIrql], al
+
+// KTRAP_FRAME_FaultIndicator
+// KTRAP_FRAME_ExceptionActive
+// KTRAP_FRAME_MxCsr
+
+if (TRAPFLAGS AND TRAPFLAG_DEBUG)
+    /* Save debug registers */
+    mov rax, dr0
+    mov [rbp + KTRAP_FRAME_Dr0], rax
+    mov rax, dr1
+    mov [rbp + KTRAP_FRAME_Dr1], rax
+    mov rax, dr2
+    mov [rbp + KTRAP_FRAME_Dr2], rax
+    mov rax, dr3
+    mov [rbp + KTRAP_FRAME_Dr3], rax
+    mov rax, dr6
+    mov [rbp + KTRAP_FRAME_Dr6], rax
+    mov rax, dr7
+    mov [rbp + KTRAP_FRAME_Dr7], rax
+endif
+
+// KTRAP_FRAME_DebugControl
+// KTRAP_FRAME_LastBranchToRip
+// KTRAP_FRAME_LastBranchFromRip
+// KTRAP_FRAME_LastExceptionToRip
+// KTRAP_FRAME_LastExceptionFromRip
+// KTRAP_FRAME_TrapFrame
+
+    /* Make sure the direction flag is cleared */
+    cld
 ENDM
+
+
+/*
+ *  LEAVE_TRAP_FRAME - Restore registers and free stack space
+ */
+MACRO(LEAVE_TRAP_FRAME)
+LOCAL dont_swap_back
+if (TRAPFLAGS AND TRAPFLAG_SEGMENTS)
+    /* Restore segment selectors */
+    mov ax, [rbp + KTRAP_FRAME_SegDs]
+    mov ds, ax
+    mov ax, [rbp + KTRAP_FRAME_SegEs]
+    mov es, ax
+    mov ax, [rbp + KTRAP_FRAME_SegFs]
+    mov fs, ax
+endif
+
+    test byte ptr [rbp + KTRAP_FRAME_PreviousMode], 1
+    jz dont_swap_back
+    swapgs
+dont_swap_back:
+
+if (TRAPFLAGS AND TRAPFLAG_NONVOLATILES)
+    /* Restore non-volatile registers */
+    mov rbx, [rbp + KTRAP_FRAME_Rbx]
+    mov rdi, [rbp + KTRAP_FRAME_Rdi]
+    mov rsi, [rbp + KTRAP_FRAME_Rsi]
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_VOLATILES)
+    /* Restore volatile registers */
+    mov rax, [rbp + KTRAP_FRAME_Rax]
+    mov rcx, [rbp + KTRAP_FRAME_Rcx]
+    mov rdx, [rbp + KTRAP_FRAME_Rdx]
+    mov r8, [rbp + KTRAP_FRAME_R8]
+    mov r9, [rbp + KTRAP_FRAME_R9]
+    mov r10, [rbp + KTRAP_FRAME_R10]
+    mov r11, [rbp + KTRAP_FRAME_R11]
+endif
+
+if (TRAPFLAGS AND TRAPFLAG_XMM)
+    /* Restore xmm registers */
+    movdqa xmm0, [rbp + KTRAP_FRAME_Xmm0]
+    movdqa xmm1, [rbp + KTRAP_FRAME_Xmm1]
+    movdqa xmm2, [rbp + KTRAP_FRAME_Xmm2]
+    movdqa xmm3, [rbp + KTRAP_FRAME_Xmm3]
+    movdqa xmm4, [rbp + KTRAP_FRAME_Xmm4]
+    movdqa xmm5, [rbp + KTRAP_FRAME_Xmm5]
+endif
+
+    /* Restore rbp */
+    mov rbp, [rbp + KTRAP_FRAME_Rbp]
+
+    /* Adjust stack pointer (plus one qword for rbp, one for error code) */
+    add rsp, SIZE_TRAP_FRAME_ALLOC + 0x10
+ENDM
+
 
 
 /* FUNCTIONS *****************************************************************/
@@ -223,10 +427,15 @@ FUNC KiDivideErrorFault
     sti
 
     /* Dispatch the exception */
-    DispatchException STATUS_INTEGER_DIVIDE_BY_ZERO, 0, 0, 0, 0
+    mov eax, STATUS_INTEGER_DIVIDE_BY_ZERO
+    mov edx, 0
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
     /* Return */
-    ExitTrap TF_SAVE_ALL
+    ExitTrap /* TF_SAVE_ALL */
 ENDFUNC
 
 
@@ -245,8 +454,14 @@ FUNC KiDebugTrapOrFault
     sti
 
 KiDebugTrapOrFaultKMode:
+
     /* Dispatch the exception */
-    DispatchException STATUS_SINGLE_STEP, 0, 0, 0, 0
+    mov eax, STATUS_SINGLE_STEP
+    mov edx, 0
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -259,7 +474,8 @@ FUNC KiNmiInterrupt
     EnterTrap TF_SAVE_ALL
 
     UNIMPLEMENTED KiNmiInterrupt
-    int 3
+
+    jmp $
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -268,8 +484,10 @@ ENDFUNC
 
 PUBLIC KiBreakpointTrap
 FUNC KiBreakpointTrap
+    .pushframe 0
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    push 0
+    .allocstack 0x8
 
     /* Check if the frame was from kernelmode */
     test word ptr [rbp + KTRAP_FRAME_SegCs], 3
@@ -281,6 +499,15 @@ FUNC KiBreakpointTrap
 KiBreakpointTrapKMode:
     /* Dispatch the exception */
     DispatchException STATUS_BREAKPOINT, 3, BREAKPOINT_BREAK, 0, 0
+
+//    lea rcx, MsgBreakpointTrap[rip]
+//    mov rdx, rbp
+//    call qword ptr FrLdrDbgPrint[rip]
+
+    /* Increase Rip to skip the int3 */
+    inc qword ptr [rbp + KTRAP_FRAME_Rip]
+
+    DISPATCH_EXCEPTION STATUS_BREAKPOINT, 3, 0, 0, 0
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -296,7 +523,12 @@ FUNC KiOverflowTrap
     sti
 
     /* Dispatch the exception */
-    DispatchException STATUS_INTEGER_OVERFLOW, 3, 0, 0, 0
+    mov eax, STATUS_INTEGER_OVERFLOW
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -306,21 +538,28 @@ ENDFUNC
 PUBLIC KiBoundFault
 FUNC KiBoundFault
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    EnterTrap TRAPFLAG_ALL
 
     /* Check if the frame was from kernelmode */
     test word ptr [rbp + KTRAP_FRAME_SegCs], 3
     jnz KiBoundFaultUserMode
 
     /* Bugcheck */
-    Fatal EXCEPTION_BOUND_CHECK
+    mov ecx, EXCEPTION_BOUND_CHECK
+    mov rdx, rbp
+    call KiSystemFatalException
 
 KiBoundFaultUserMode:
     /* Enable interrupts for user-mode */
     sti
 
     /* Dispatch the exception */
-    DispatchException STATUS_ARRAY_BOUNDS_EXCEEDED, 0, 0, 0, 0
+    mov eax, STATUS_INTEGER_OVERFLOW
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -330,7 +569,7 @@ ENDFUNC
 PUBLIC KiInvalidOpcodeFault
 FUNC KiInvalidOpcodeFault
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    EnterTrap TRAPFLAG_ALL
 
     TRAPINFO KiInvalidOpcodeFault
 
@@ -351,7 +590,12 @@ KiInvalidOpcodeKernel:
     /* Kernel mode fault */
 
     /* Dispatch the exception */
-    DispatchException STATUS_ILLEGAL_INSTRUCTION, 3, 0, 0, 0
+    mov eax, STATUS_ILLEGAL_INSTRUCTION
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -361,7 +605,7 @@ ENDFUNC
 PUBLIC KiNpxNotAvailableFault
 FUNC KiNpxNotAvailableFault
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    EnterTrap TRAPFLAG_ALL
 
     /* Call the C handler */
     mov rcx, rbp
@@ -372,7 +616,11 @@ FUNC KiNpxNotAvailableFault
     jz KiNpxNotAvailableFaultExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
 KiNpxNotAvailableFaultExit:
     /* Return */
@@ -383,7 +631,7 @@ ENDFUNC
 PUBLIC KiDoubleFaultAbort
 FUNC KiDoubleFaultAbort
     /* A zero error code is pushed */
-    EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
+    EnterTrap (TRAPFLAG_HAS_ERROR_CODE OR TRAPFLAG_ALL)
 
     lea rcx, MsgDoubleFault[rip]
     mov rdx, [rbp + KTRAP_FRAME_FaultAddress]
@@ -391,7 +639,10 @@ FUNC KiDoubleFaultAbort
     call qword ptr FrLdrDbgPrint[rip]
 
     /* Bugcheck */
-    Fatal 8 // EXCEPTION_DOUBLE_FAULT
+    mov ecx, 8 // EXCEPTION_DOUBLE_FAULT
+    mov rdx, rbp
+    call KiSystemFatalException
+
     jmp $
 ENDFUNC
 
@@ -399,10 +650,13 @@ ENDFUNC
 PUBLIC KiNpxSegmentOverrunAbort
 FUNC KiNpxSegmentOverrunAbort
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    EnterTrap TRAPFLAG_ALL
 
     /* Bugcheck */
-    Fatal EXCEPTION_NPX_OVERRUN
+    mov ecx, EXCEPTION_NPX_OVERRUN
+    mov rdx, rbp
+    call KiSystemFatalException
+
 
     jmp $
 ENDFUNC
@@ -414,7 +668,10 @@ FUNC KiInvalidTssFault
     EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
 
     /* Bugcheck */
-    Fatal EXCEPTION_INVALID_TSS
+    mov ecx, EXCEPTION_INVALID_TSS
+    mov rdx, rbp
+    call KiSystemFatalException
+
     jmp $
 ENDFUNC
 
@@ -425,7 +682,10 @@ FUNC KiSegmentNotPresentFault
     EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
 
     /* Bugcheck */
-    Fatal EXCEPTION_SEGMENT_NOT_PRESENT
+    mov ecx, EXCEPTION_SEGMENT_NOT_PRESENT
+    mov rdx, rbp
+    call KiSystemFatalException
+
     jmp $
 ENDFUNC
 
@@ -436,7 +696,10 @@ FUNC KiStackFault
     EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
 
     /* Bugcheck */
-    Fatal EXCEPTION_STACK_FAULT
+    mov ecx, EXCEPTION_STACK_FAULT
+    mov rdx, rbp
+    call KiSystemFatalException
+
     jmp $
 ENDFUNC
 
@@ -460,7 +723,11 @@ FUNC KiGeneralProtectionFault
     jge KiGpfExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
 KiGpfFatal:
 
@@ -474,7 +741,6 @@ KiGpfFatal:
     call KeBugCheckWithTf
 
 KiGpfExit:
-    /* Return */
     /* Return */
     ExitTrap TF_SAVE_ALL
 ENDFUNC
@@ -567,13 +833,11 @@ ENDFUNC
 PUBLIC KiFloatingErrorFault
 FUNC KiFloatingErrorFault
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    EnterTrap TRAPFLAG_ALL
 
     UNIMPLEMENTED KiFloatingErrorFault
-    int 3
 
-    /* Return */
-    ExitTrap TF_SAVE_ALL
+    jmp $
 ENDFUNC
 
 
@@ -582,8 +846,14 @@ FUNC KiAlignmentFault
     /* We have an error code */
     EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
 
+    /* Enable interrupts */
+    sti
+
     /* Bugcheck */
-    Fatal EXCEPTION_ALIGNMENT_CHECK
+    mov ecx, EXCEPTION_ALIGNMENT_CHECK
+    mov rdx, rbp
+    call KiSystemFatalException
+
     jmp $
 ENDFUNC
 
@@ -594,7 +864,10 @@ FUNC KiMcheckAbort
     EnterTrap TF_SAVE_ALL
 
     /* Bugcheck */
-    Fatal HEX(12)
+    mov ecx, HEX(12)
+    mov rdx, rbp
+    call KiSystemFatalException
+
     jmp $
 ENDFUNC
 
@@ -602,7 +875,7 @@ ENDFUNC
 PUBLIC KiXmmException
 FUNC KiXmmException
     /* Push pseudo error code */
-    EnterTrap TF_SAVE_ALL
+    EnterTrap TRAPFLAG_ALL
 
     /* Call the C handler */
     mov rcx, rbp
@@ -613,7 +886,11 @@ FUNC KiXmmException
     jge KiXmmExit
 
     /* Dispatch the exception */
-    DispatchException eax, 3, 0, 0, 0
+    mov edx, 3
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
 KiXmmExit:
     /* Return */
@@ -632,7 +909,12 @@ FUNC KiRaiseAssertion
     sub qword ptr [rbp + KTRAP_FRAME_Rip], 2
 
     /* Dispatch the exception */
-    DispatchException STATUS_ASSERTION_FAILURE, 0, 0, 0, 0
+    mov eax, STATUS_ASSERTION_FAILURE
+    mov edx, 0
+    mov r9, 0
+    mov r10, 0
+    mov r11, 0
+    call InternalDispatchException
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -641,16 +923,22 @@ ENDFUNC
 
 PUBLIC KiDebugServiceTrap
 FUNC KiDebugServiceTrap
-   /* No error code */
-    EnterTrap TF_SAVE_ALL
+    /* Push pseudo error code */
+    push 0
+    .allocstack 0x08
+
+    EnterTrap (SIZE_EXCEPTION_RECORD + 0x28), 0
 
     TRAPINFO KiDebugServiceTrap
 
     /* Increase Rip to skip the int3 */
     inc qword ptr [rbp + KTRAP_FRAME_Rip]
 
-    /* Dispatch the exception (Params = service, buffer, legth) */
-    DispatchException STATUS_BREAKPOINT, 3, [rbp+KTRAP_FRAME_Rax], [rbp+KTRAP_FRAME_Rcx], [rbp+KTRAP_FRAME_Rdx]
+    /* Call KiDispatchException */
+    mov r8, [rbp+KTRAP_FRAME_Rax] // Service
+    mov rcx, [rbp+KTRAP_FRAME_Rcx] // Buffer
+    mov rdx, [rbp+KTRAP_FRAME_Rdx] // Length
+    DISPATCH_EXCEPTION STATUS_BREAKPOINT, 3, r8, rcx, rdx
 
     /* Return */
     ExitTrap TF_SAVE_ALL
@@ -745,7 +1033,8 @@ PUBLIC KiIpiInterrupt
 PUBLIC KiUnexpectedInterrupt
 FUNC KiUnexpectedInterrupt
     /* The error code is the vector */
-    EnterTrap (TF_HAS_ERROR_CODE OR TF_SAVE_ALL)
+    cli
+    EnterTrap (TRAPFLAG_HAS_ERRORCODE OR TRAPFLAG_ALL)
 
 #if 0
     /* Set bugcheck parameters */
