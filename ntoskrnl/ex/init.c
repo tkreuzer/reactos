@@ -927,7 +927,7 @@ ExpInitializeExecutive(IN ULONG Cpu,
     PLDR_DATA_TABLE_ENTRY NtosEntry;
     PMESSAGE_RESOURCE_ENTRY MsgEntry;
     ANSI_STRING CSDString;
-    size_t Remaining = 0;
+    SIZE_T Remaining = 0;
     PCHAR RcEnd = NULL;
     CHAR VersionBuffer[65];
 
@@ -1347,8 +1347,8 @@ Phase1InitializationDiscard(IN PVOID Context)
     PCHAR StringBuffer, EndBuffer, BeginBuffer, MpString = "";
     PINIT_BUFFER InitBuffer;
     ANSI_STRING TempString;
-    ULONG LastTzBias, Length, YearHack = 0, Disposition, MessageCode = 0;
-    SIZE_T Size;
+    ULONG LastTzBias, Size, YearHack = 0, Disposition, MessageCode = 0;
+    SIZE_T Length;
     size_t Remaining;
     PRTL_USER_PROCESS_INFORMATION ProcessInfo;
     KEY_VALUE_PARTIAL_INFORMATION KeyPartialInfo;
@@ -1832,7 +1832,7 @@ Phase1InitializationDiscard(IN PVOID Context)
                                          KeyValuePartialInformation,
                                          &KeyPartialInfo,
                                          sizeof(KeyPartialInfo),
-                                         &Length);
+                                         &Size);
                 if (!(NT_SUCCESS(Status) || Status == STATUS_BUFFER_OVERFLOW))
                 {
                     AlternateShell = FALSE;
@@ -1990,17 +1990,17 @@ Phase1InitializationDiscard(IN PVOID Context)
     ZwClose(ProcessInfo->ProcessHandle);
 
     /* Free the initial process environment */
-    Size = 0;
+    Length = 0;
     ZwFreeVirtualMemory(NtCurrentProcess(),
                         (PVOID*)&Environment,
-                        &Size,
+                        &Length,
                         MEM_RELEASE);
 
     /* Free the initial process parameters */
-    Size = 0;
+    Length = 0;
     ZwFreeVirtualMemory(NtCurrentProcess(),
                         (PVOID*)&ProcessParameters,
-                        &Size,
+                        &Length,
                         MEM_RELEASE);
 
     /* Increase init phase */

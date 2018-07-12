@@ -454,7 +454,7 @@ PspExitThread(IN NTSTATUS ExitStatus)
     PEPROCESS CurrentProcess;
     PETHREAD Thread, OtherThread, PreviousThread = NULL;
     PVOID DeallocationStack;
-    SIZE_T Dummy;
+    ULONG_PTR Dummy;
     BOOLEAN Last = FALSE;
     PTERMINATION_PORT TerminationPort, NextPort;
     PLIST_ENTRY FirstEntry, CurrentEntry;
