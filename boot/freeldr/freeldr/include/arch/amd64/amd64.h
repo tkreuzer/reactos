@@ -38,6 +38,36 @@
 
 #ifndef ASM
 
+VOID
+FORCEINLINE
+__lgdt(void *gdt)
+{
+    asm volatile ("lgdt %0\n" : : "m"(*(short*)gdt));
+}
+
+PKGDTENTRY64
+FORCEINLINE
+KiGetGdtEntry(PVOID pGdt, USHORT Index)
+{
+    return (PKGDTENTRY64)((ULONG64)pGdt + (Index & ~RPL_MASK));
+}
+
+VOID
+FORCEINLINE
+KiInitGdtEntry(PKGDTENTRY64 Entry, ULONG64 Base, ULONG Limit, UCHAR Type, UCHAR Dpl)
+{
+    Entry->Bits.Type = Type;
+    Entry->Bits.Present = 1;
+    Entry->Bits.Dpl = Dpl;
+    Entry->BaseLow = (USHORT)(Base & 0xFFFF);
+    Entry->Bytes.BaseMiddle = (UCHAR)(Base >> 16);
+    Entry->Bytes.BaseHigh = (UCHAR)(Base >> 24);
+    Entry->BaseUpper = (ULONG)(Base >> 32);
+    Entry->LimitLow = (USHORT)(Limit & 0xFFFF);
+    Entry->Bits.LimitHigh = (ULONG)((Limit >> 16) & 0xf);
+    Entry->MustBeZero = 0;
+}
+
 VOID FrLdrSetupGdtIdt(VOID);
 #endif
 
