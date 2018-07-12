@@ -23,8 +23,6 @@ extern "C" {
 #define EXCEPTION_VM86_INTx       0x80000110
 #define EXCEPTION_VM86_STI        0x80000111
 #define EXCEPTION_VM86_PICRETURN  0x80000112
-
-#ifndef _RTLTYPES_H
 struct _EXCEPTION_REGISTRATION_RECORD;
 
 typedef
@@ -42,17 +40,6 @@ struct _EXCEPTION_REGISTRATION_RECORD
     struct _EXCEPTION_REGISTRATION_RECORD * Prev;
     PEXCEPTION_HANDLER Handler;
 };
-#else
-typedef struct _WINE_EXCEPTION_REGISTRATION_RECORD
-{
-    PVOID Prev;
-    PEXCEPTION_ROUTINE Handler;
-} WINE_EXCEPTION_REGISTRATION_RECORD, *PWINE_EXCEPTION_REGISTRATION_RECORD;
-
-#define _EXCEPTION_REGISTRATION_RECORD _WINE_EXCEPTION_REGISTRATION_RECORD
-#define EXCEPTION_REGISTRATION_RECORD WINE_EXCEPTION_REGISTRATION_RECORD
-#define PEXCEPTION_REGISTRATION_RECORD PWINE_EXCEPTION_REGISTRATION_RECORD
-#endif
 
 #define __TRY _SEH2_TRY
 #define __EXCEPT(func) _SEH2_EXCEPT(func(_SEH2_GetExceptionInformation()))
@@ -80,6 +67,7 @@ typedef struct _WINE_EXCEPTION_REGISTRATION_RECORD
 #define siglongjmp(buf,val) longjmp(buf,val)
 #endif
 
+#ifdef _M_X86
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable:4733)
@@ -94,7 +82,7 @@ static inline EXCEPTION_REGISTRATION_RECORD *__wine_push_frame( EXCEPTION_REGIST
 #else
     NT_TIB *teb = (NT_TIB *)NtCurrentTeb();
     frame->Prev = teb->ExceptionList;
-    teb->ExceptionList = (PVOID)frame;
+    teb->ExceptionList = frame;
     return frame->Prev;
 #endif
 }
@@ -106,8 +94,7 @@ static inline EXCEPTION_REGISTRATION_RECORD *__wine_pop_frame( EXCEPTION_REGISTR
     return frame->Prev;
 #else
     NT_TIB *teb = (NT_TIB *)NtCurrentTeb();
-    frame->Prev = teb->ExceptionList;
-    teb->ExceptionList = (PVOID)frame;
+    teb->ExceptionList = frame->Prev;
     return frame->Prev;
 #endif
 }
