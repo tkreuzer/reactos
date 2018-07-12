@@ -117,6 +117,7 @@ KiInitMachineDependent(VOID)
                 }
             }
         }
+        // KiInitializePAT();
     }
 
     /* If there's no NPX, then we're emulating the FPU */
@@ -335,6 +336,204 @@ KiInitMachineDependent(VOID)
 #endif
 }
 
+#if 0 // old stuff
+
+VOID
+NTAPI
+KiInitMachineDependent(VOID)
+{
+    ULONG Protect;
+    ULONG CpuCount;
+    BOOLEAN FbCaching = FALSE;
+    NTSTATUS Status;
+    ULONG ReturnLength;
+    ULONG i, Affinity, Sample = 0;
+    PFX_SAVE_AREA FxSaveArea;
+    ULONG MXCsrMask = 0xFFBF;
+    ULONG Dummy[4];
+    KI_SAMPLE_MAP Samples[4];
+    PKI_SAMPLE_MAP CurrentSample = Samples;
+
+    /* Loop every CPU */
+    i = KeActiveProcessors;
+    for (Affinity = 1; i; Affinity <<= 1)
+    {
+        /* Check if this is part of the set */
+        if (i & Affinity)
+        {
+            /* Run on this CPU */
+            i &= ~Affinity;
+            KeSetSystemAffinityThread(Affinity);
+        }
+    }
+
+    /* Check if FXSR was found */
+    if (KeFeatureBits & KF_FXSR)
+    {
+        /* Do an IPI call to enable the FXSR */
+        CpuCount = KeNumberProcessors;
+        KeIpiGenericCall(Ki386EnableFxsr, (ULONG_PTR)&CpuCount);
+
+        /* Do an IPI call to enable XMMI exceptions */
+        CpuCount = KeNumberProcessors;
+        KeIpiGenericCall(Ki386EnableXMMIExceptions, (ULONG_PTR)&CpuCount);
+
+        /* FIXME: Implement and enable XMM Page Zeroing for Mm */
+
+        /* Patch the RtlPrefetchMemoryNonTemporal routine to enable it */
+        Protect = MmGetPageProtect(NULL, RtlPrefetchMemoryNonTemporal);
+        MmSetPageProtect(NULL,
+                         RtlPrefetchMemoryNonTemporal,
+                         Protect | PAGE_IS_WRITABLE);
+        *(PCHAR)RtlPrefetchMemoryNonTemporal = 0x90;
+        MmSetPageProtect(NULL, RtlPrefetchMemoryNonTemporal, Protect);
+    }
+
+    /* Loop every CPU */
+    i = KeActiveProcessors;
+    for (Affinity = 1; i; Affinity <<= 1)
+    {
+        /* Check if this is part of the set */
+        if (i & Affinity)
+        {
+            /* Run on this CPU */
+            i &= ~Affinity;
+            KeSetSystemAffinityThread(Affinity);
+
+            /* Reset MHz to 0 for this CPU */
+            KeGetCurrentPrcb()->MHz = 0;
+
+
+                /* Start sampling loop */
+                for (;;)
+                {
+                    /* Do a dummy CPUID to start the sample */
+                    CPUID(Dummy, 0);
+
+                    /* Fill out the starting data */
+                    CurrentSample->PerfStart = KeQueryPerformanceCounter(NULL);
+                    CurrentSample->TSCStart = __rdtsc();
+                    CurrentSample->PerfFreq.QuadPart = -50000;
+
+                    /* Sleep for this sample */
+                    KeDelayExecutionThread(KernelMode,
+                                           FALSE,
+                                           &CurrentSample->PerfFreq);
+
+                    /* Do another dummy CPUID */
+                    CPUID(Dummy, 0);
+
+                    /* Fill out the ending data */
+                    CurrentSample->PerfEnd =
+                        KeQueryPerformanceCounter(&CurrentSample->PerfFreq);
+                    CurrentSample->TSCEnd = __rdtsc();
+
+                    /* Calculate the differences */
+                    CurrentSample->PerfDelta = CurrentSample->PerfEnd.QuadPart -
+                                               CurrentSample->PerfStart.QuadPart;
+                    CurrentSample->TSCDelta = CurrentSample->TSCEnd -
+                                              CurrentSample->TSCStart;
+
+                    /* Compute CPU Speed */
+                    CurrentSample->MHz = (ULONG)((CurrentSample->TSCDelta *
+                                                  CurrentSample->
+                                                  PerfFreq.QuadPart + 500000) /
+                                                 (CurrentSample->PerfDelta *
+                                                  1000000));
+
+                    /* Check if this isn't the first sample */
+                    if (Sample)
+                    {
+                        /* Check if we got a good precision within 1MHz */
+                        if ((CurrentSample->MHz == CurrentSample[-1].MHz) ||
+                            (CurrentSample->MHz == CurrentSample[-1].MHz + 1) ||
+                            (CurrentSample->MHz == CurrentSample[-1].MHz - 1))
+                        {
+                            /* We did, stop sampling */
+                            break;
+                        }
+                    }
+
+                    /* Move on */
+                    CurrentSample++;
+                    Sample++;
+
+                    if (Sample == sizeof(Samples) / sizeof(Samples[0]))
+                    {
+                        /* Restart */
+                        CurrentSample = Samples;
+                        Sample = 0;
+                    }
+                }
+
+                /* Save the CPU Speed */
+                KeGetCurrentPrcb()->MHz = CurrentSample[-1].MHz;
+
+            /* Check if we have MTRR */
+            if (KeFeatureBits & KF_MTRR)
+            {
+                /* Then manually initialize MTRR for the CPU */
+                KiInitializeMTRR(i ? FALSE : TRUE);
+            }
+
+            /* Check if we have AMD MTRR and initialize it for the CPU */
+            if (KeFeatureBits & KF_AMDK6MTRR) KiAmdK6InitializeMTRR();
+
+            /* Check if the CPU supports FXSR */
+            if (KeFeatureBits & KF_FXSR)
+            {
+                /* Get the current thread NPX state */
+                FxSaveArea = (PVOID)
+                             ((ULONG_PTR)KeGetCurrentThread()->InitialStack -
+                             NPX_FRAME_LENGTH);
+
+                /* Clear initial MXCsr mask */
+                FxSaveArea->U.FxArea.MXCsrMask = 0;
+
+                /* Save the current NPX State */
+#ifdef __GNUC__
+                asm volatile("fxsave %0\n\t" : "=m" (*FxSaveArea));
+#else
+                __asm fxsave [FxSaveArea]
+#endif
+                /* Check if the current mask doesn't match the reserved bits */
+                if (FxSaveArea->U.FxArea.MXCsrMask != 0)
+                {
+                    /* Then use whatever it's holding */
+                    MXCsrMask = FxSaveArea->U.FxArea.MXCsrMask;
+                }
+
+                /* Check if nobody set the kernel-wide mask */
+                if (!KiMXCsrMask)
+                {
+                    /* Then use the one we calculated above */
+                    KiMXCsrMask = MXCsrMask;
+                }
+                else
+                {
+                    /* Was it set to the same value we found now? */
+                    if (KiMXCsrMask != MXCsrMask)
+                    {
+                        /* No, something is definitely wrong */
+                        KEBUGCHECKEX(MULTIPROCESSOR_CONFIGURATION_NOT_SUPPORTED,
+                                     KF_FXSR,
+                                     KiMXCsrMask,
+                                     MXCsrMask,
+                                     0);
+                    }
+                }
+
+                /* Now set the kernel mask */
+                KiMXCsrMask &= MXCsrMask;
+            }
+        }
+    }
+
+    /* Return affinity back to where it was */
+    KeRevertToUserAffinityThread();
+}
+#endif
+
 VOID
 NTAPI
 KiInitializePcr(IN PKIPCR Pcr,
@@ -505,6 +704,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
 
     /* Detect and set the CPU Type */
     KiSetProcessorType();
+    TssEntry->MustBeZero = 0;
 
     /* Initialize the Power Management Support for this PRCB */
 //    PoInitializePrcb(Prcb);
@@ -707,18 +907,13 @@ NTAPI
 KiSystemStartup(IN ULONG_PTR Dummy,
                 IN PROS_LOADER_PARAMETER_BLOCK LoaderBlock)
 {
-    KiRosPrepareForSystemStartup(Dummy, LoaderBlock);
-}
-
-
-VOID
-NTAPI
-KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
-{
     ULONG Cpu;
     PKTHREAD InitialThread;
     ULONG64 InitialStack;
     PKIPCR Pcr;
+
+    /* HACK, because freeldr maps page 0 */
+    MiAddressToPte((PVOID)0)->u.Hard.Valid = 0;
 
     /* Save the loader block */
     KeLoaderBlock = LoaderBlock;
@@ -779,6 +974,9 @@ KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         /* Setup the TSS descriptors and entries */
         Ki386InitializeTss(Pcr->TssBase, Pcr->GdtBase, InitialStack);
 
+        /* Initialize the CPU features */
+        KiInitializeCpu(Pcr);
+
         /* Setup the IDT */
         KeInitExceptions();
 
@@ -816,16 +1014,28 @@ KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         while (*(volatile PKSPIN_LOCK*)&KiFreezeExecutionLock == (PVOID)1);
     } while(InterlockedBitTestAndSet64((PLONG64)&KiFreezeExecutionLock, 0));
 
+    /* HACK: misuse this function to pass a function pointer to kdcom */
+    KdDebuggerInitialize1((PVOID)FrLdrDbgPrint);
+
+    /* Hack! Wait for the debugger! */
+    while (!KdPollBreakIn());
+
+    DbgBreakPointWithStatus(0);
+
+    /* Display separator + ReactOS version at start of the debug log */
+    DPRINT1("-----------------------------------------------------\n");
+    DPRINT1("ReactOS "KERNEL_VERSION_STR" (Build "KERNEL_VERSION_BUILD_STR")\n");
+    DPRINT1("Command Line: %s\n", LoaderBlock->LoadOptions);
+    DPRINT1("ARC Paths: %s %s %s %s\n", LoaderBlock->ArcBootDeviceName,
+                                        LoaderBlock->NtHalPathName,
+                                        LoaderBlock->ArcHalDeviceName,
+                                        LoaderBlock->NtBootPathName);
+
     /* Raise to HIGH_LEVEL */
     KfRaiseIrql(HIGH_LEVEL);
 
     /* Switch to new kernel stack and start kernel bootstrapping */
-    KiSetupStackAndInitializeKernel(&KiInitialProcess.Pcb,
-                                    InitialThread,
-                                    (PVOID)InitialStack,
-                                    &Pcr->Prcb,
-                                    (CCHAR)Cpu,
-                                    KeLoaderBlock);
+    KiSwitchToBootStack(InitialStack);
 }
 
 
@@ -838,8 +1048,6 @@ KiInitializeKernelAndGotoIdleLoop(IN PKPROCESS InitProcess,
                                   IN CCHAR Number,
                                   IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
-//    DbgBreakPointWithStatus(0);
-
     /* Initialize kernel */
     KiInitializeKernel(InitProcess,
                        InitThread,

@@ -74,11 +74,35 @@ KiInitializeContextThread(IN PKTHREAD Thread,
         StartFrame = &InitFrame->StartFrame;
         CtxSwitchFrame = &InitFrame->CtxSwitchFrame;
 
-        /* Save back the new value of the kernel stack. */
-        Thread->KernelStack = (PVOID)InitFrame;
+        /* Zero out the trap frame and save area */
+        RtlZeroMemory(&InitFrame->TrapFrame,
+                      KTRAP_FRAME_LENGTH + sizeof(FX_SAVE_AREA));
 
-        /* Tell the thread it will run in User Mode */
-        Thread->PreviousMode = UserMode;
+        /* Setup the Fx Area */
+        FxSaveArea = &InitFrame->FxSaveArea;
+
+            /* Get the FX Save Format Area */
+            FxSaveFormat = (PFXSAVE_FORMAT)Context->ExtendedRegisters;
+
+            /* Set an initial state */
+            FxSaveFormat->ControlWord = 0x27F;
+            FxSaveFormat->StatusWord = 0;
+            FxSaveFormat->TagWord = 0;
+            FxSaveFormat->ErrorOffset = 0;
+            FxSaveFormat->ErrorSelector = 0;
+            FxSaveFormat->DataOffset = 0;
+            FxSaveFormat->DataSelector = 0;
+            FxSaveFormat->MXCsr = 0x1F80;
+
+
+        /* Set an intial NPX State */
+        Context->FloatSave.Cr0NpxState = 0;
+        FxSaveArea->Cr0NpxState = 0;
+        FxSaveArea->NpxSavedCpu = 0;
+
+        /* Now set the context flags depending on XMM support */
+        ContextFlags |= (KeI386FxsrPresent) ? CONTEXT_EXTENDED_REGISTERS :
+                                              CONTEXT_FLOATING_POINT;
 
         /* Set the Thread's NPX State */
         Thread->NpxState = NPX_STATE_NOT_LOADED;
@@ -123,13 +147,13 @@ KiInitializeContextThread(IN PKTHREAD Thread,
     {
         PKKINIT_FRAME InitFrame;
 
-        /* Set up the Initial Frame for the system thread */
-        InitFrame = ((PKKINIT_FRAME)Thread->InitialStack) - 1;
-        StartFrame = &InitFrame->StartFrame;
-        CtxSwitchFrame = &InitFrame->CtxSwitchFrame;
+        /* Setup the Fx Area */
+        FxSaveArea = &InitFrame->FxSaveArea;
+        RtlZeroMemory(FxSaveArea, sizeof(FX_SAVE_AREA));
 
-        /* Save back the new value of the kernel stack. */
-        Thread->KernelStack = (PVOID)InitFrame;
+        /* Set the stub FX area */
+        FxSaveArea->U.FxArea.ControlWord = 0x27F;
+        FxSaveArea->U.FxArea.MXCsr = 0x1F80;
 
         /* Tell the thread it will run in Kernel Mode */
         Thread->PreviousMode = KernelMode;
