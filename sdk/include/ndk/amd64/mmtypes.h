@@ -208,6 +208,19 @@ typedef struct _MMPTE_HARDWARE_LARGEPAGE
 #endif
 } MMPTE_HARDWARE_LARGEPAGE, *PMMPTE_HARDWARE_LARGEPAGE;
 
+#if (NTDDI_VERSION >= NTDDI_VISTA)
+typedef struct _MMPTE_TIMESTAMP
+{
+    ULONG64 MustBeZero : 1;
+    ULONG64 PageFileLow : 4;
+    ULONG64 Protection : 5;
+    ULONG64 Prototype : 1;
+    ULONG64 Transition : 1;
+    ULONG64 Reserved : 20;
+    ULONG64 GlobalTimeStamp : 32;
+} MMPTE_TIMESTAMP, *PMMPTE_TIMESTAMP;
+#endif // (NTDDI_VERSION >= NTDDI_VISTA)
+
 typedef struct _MMPTE
 {
     union
@@ -215,11 +228,16 @@ typedef struct _MMPTE
         ULONG_PTR Long;
         HARDWARE_PTE Flush;
         MMPTE_HARDWARE Hard;
+        MMPTE_HARDWARE_LARGEPAGE HardLarge;
         MMPTE_PROTOTYPE Proto;
         MMPTE_SOFTWARE Soft;
         MMPTE_TRANSITION Trans;
         MMPTE_SUBSECTION Subsect;
         MMPTE_LIST List;
+#if (NTDDI_VERSION >= NTDDI_VISTA)
+        volatile ULONG_PTR VolatileLong;
+        MMPTE_TIMESTAMP TimeStamp;
+#endif
     } u;
 } MMPTE, *PMMPTE,
   MMPDE, *PMMPDE,
