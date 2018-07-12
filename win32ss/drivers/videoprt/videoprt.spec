@@ -1,3 +1,4 @@
+;ScsiPortNotification // vista64
 @ stdcall VideoPortAcquireDeviceLock(ptr)
 @ stdcall VideoPortAcquireSpinLock(ptr ptr ptr)
 @ stdcall VideoPortAcquireSpinLockAtDpcLevel(ptr ptr)
@@ -19,6 +20,9 @@
 @ stdcall VideoPortCreateSecondaryDisplay(ptr ptr long)
 @ stdcall VideoPortCreateSpinLock(ptr ptr)
 @ stdcall VideoPortDDCMonitorHelper(ptr ptr ptr long)
+;VideoPortDbgReportComplete // vista64
+;VideoPortDbgReportCreate // vista64
+;VideoPortDbgReportSecondaryData // vista64
 @ varargs VideoPortDebugPrint(long str)
 @ stdcall VideoPortDeleteEvent(ptr ptr)
 @ stdcall VideoPortDeleteSpinLock(ptr ptr)
@@ -60,12 +64,14 @@
 @ fastcall VideoPortInterlockedIncrement(ptr)
 @ stdcall VideoPortIsNoVesa()
 @ stdcall VideoPortLockBuffer(ptr ptr long long)
+;VideoPortIsNoVesa // 2003 and later
 @ stdcall VideoPortLockPages(ptr ptr ptr ptr long)
 @ stdcall VideoPortLogError(ptr ptr long long)
 @ stdcall VideoPortMapBankedMemory(ptr long long ptr ptr ptr long long ptr ptr)
 @ stdcall VideoPortMapDmaMemory(ptr ptr double ptr ptr ptr ptr ptr)
 @ stdcall VideoPortMapMemory(ptr long long ptr ptr ptr)
 @ stdcall VideoPortMoveMemory(ptr ptr long) NTOSKRNL.RtlMoveMemory
+;VideoPortNotification
 @ stdcall VideoPortPutDmaAdapter(ptr ptr)
 @ stdcall VideoPortQueryPerformanceCounter(ptr ptr)
 @ stdcall VideoPortQueryServices(ptr long ptr)
