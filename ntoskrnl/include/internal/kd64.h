@@ -353,6 +353,15 @@ KdpCopyMemoryChunks(
     OUT PULONG ActualSize OPTIONAL
 );
 
+BOOLEAN
+NTAPI
+KdpReport(IN PKTRAP_FRAME TrapFrame,
+          IN PKEXCEPTION_FRAME ExceptionFrame,
+          IN PEXCEPTION_RECORD ExceptionRecord,
+          IN PCONTEXT ContextRecord,
+          IN KPROCESSOR_MODE PreviousMode,
+          IN BOOLEAN SecondChanceException);
+
 //
 // Internal memory handling routines for KD isolation
 //

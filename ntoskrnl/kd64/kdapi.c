@@ -361,7 +361,7 @@ KdpWriteCustomBreakpoint(IN PDBGKD_MANIPULATE_STATE64 State,
 
 VOID
 NTAPI
-DumpTraceData(IN PSTRING TraceData)
+DumpTraceData(_Out_ PSTRING TraceData)
 {
     /* Update the buffer */
     TraceDataBuffer[0] = TraceDataBufferPosition;
@@ -378,7 +378,7 @@ VOID
 NTAPI
 KdpSetCommonState(IN ULONG NewState,
                   IN PCONTEXT Context,
-                  IN PDBGKD_ANY_WAIT_STATE_CHANGE WaitStateChange)
+                  OUT PDBGKD_WAIT_STATE_CHANGE64 WaitStateChange)
 {
     ULONG InstructionCount;
     BOOLEAN HadBreakpoints;
@@ -464,6 +464,7 @@ KdpReadVirtualMemory(IN PDBGKD_MANIPULATE_STATE64 State,
     PDBGKD_READ_MEMORY64 ReadMemory = &State->u.ReadMemory;
     STRING Header;
     ULONG Length = ReadMemory->TransferCount;
+    ULONG64 TargetBaseAddress = State->u.ReadMemory.TargetBaseAddress;
 
     /* Setup the header */
     Header.Length = sizeof(DBGKD_MANIPULATE_STATE64);
@@ -484,6 +485,26 @@ KdpReadVirtualMemory(IN PDBGKD_MANIPULATE_STATE64 State,
                                               0,
                                               MMDBG_COPY_UNSAFE,
                                               &Length);
+
+    // HACK for x64, until KD stops sending bogus addresses to WinDbg
+    if (TargetBaseAddress < (ULONG_PTR)MM_LOWEST_SYSTEM_ADDRESS)
+    {
+        FrLdrDbgPrint("Trying to read memory at 0x%p\n", TargetBaseAddress);
+//        DPRINT1("Trying to read memory at 0x%p\n", TargetBaseAddress);
+        TargetBaseAddress = 0;
+    }
+
+    if (!TargetBaseAddress)
+    {
+        Length = 0;
+        Status = STATUS_UNSUCCESSFUL;
+    }
+    else
+    {
+        RtlCopyMemory(Data->Buffer,
+                      (PVOID)(ULONG_PTR)State->u.ReadMemory.TargetBaseAddress,
+                      Length);
+    }
 
     /* Return the actual length read */
     ReadMemory->ActualBytesRead = Length;
@@ -958,7 +979,6 @@ KdpReadMachineSpecificRegister(IN PDBGKD_MANIPULATE_STATE64 State,
     /* Setup the header */
     Header.Length = sizeof(DBGKD_MANIPULATE_STATE64);
     Header.Buffer = (PCHAR)State;
-    ASSERT(Data->Length == 0);
 
     /* Call the internal routine */
     State->ReturnStatus = KdpSysReadMsr(ReadMsr->Msr,
@@ -971,7 +991,7 @@ KdpReadMachineSpecificRegister(IN PDBGKD_MANIPULATE_STATE64 State,
     /* Send the reply */
     KdSendPacket(PACKET_TYPE_KD_STATE_MANIPULATE,
                  &Header,
-                 NULL,
+                 Data,
                  &KdpContext);
 }
 
@@ -988,7 +1008,6 @@ KdpWriteMachineSpecificRegister(IN PDBGKD_MANIPULATE_STATE64 State,
     /* Setup the header */
     Header.Length = sizeof(DBGKD_MANIPULATE_STATE64);
     Header.Buffer = (PCHAR)State;
-    ASSERT(Data->Length == 0);
 
     /* Call the internal routine */
     MsrValue.LowPart = WriteMsr->DataValueLow;
@@ -999,7 +1018,7 @@ KdpWriteMachineSpecificRegister(IN PDBGKD_MANIPULATE_STATE64 State,
     /* Send the reply */
     KdSendPacket(PACKET_TYPE_KD_STATE_MANIPULATE,
                  &Header,
-                 NULL,
+                 Data,
                  &KdpContext);
 }
 
@@ -1739,20 +1758,9 @@ KdpReportExceptionStateChange(IN PEXCEPTION_RECORD ExceptionRecord,
         /* Build the architecture common parts of the message */
         KdpSetCommonState(DbgKdExceptionStateChange, Context, &WaitStateChange);
 
-#if !defined(_WIN64)
-
-        /* Convert it and copy it over */
-        ExceptionRecord32To64((PEXCEPTION_RECORD32)ExceptionRecord,
-                              &WaitStateChange.u.Exception.ExceptionRecord);
-
-#else
-
-        /* Just copy it directly, no need to convert */
-        KdpMoveMemory(&WaitStateChange.u.Exception.ExceptionRecord,
-                      ExceptionRecord,
-                      sizeof(EXCEPTION_RECORD));
-
-#endif
+        /* Convert the exception record to 64-bits and set First Chance flag */
+        ExceptionRecordTo64(ExceptionRecord,
+                            &WaitStateChange.u.Exception.ExceptionRecord);
 
         /* Set the First Chance flag */
         WaitStateChange.u.Exception.FirstChance = !SecondChanceException;
@@ -1761,7 +1769,7 @@ KdpReportExceptionStateChange(IN PEXCEPTION_RECORD ExceptionRecord,
         KdpSetContextState(&WaitStateChange, Context);
 
         /* Setup the actual header to send to KD */
-        Header.Length = sizeof(DBGKD_ANY_WAIT_STATE_CHANGE);
+        Header.Length = sizeof(DBGKD_WAIT_STATE_CHANGE64) - sizeof(CONTEXT);
         Header.Buffer = (PCHAR)&WaitStateChange;
 
         /* Setup the trace data */

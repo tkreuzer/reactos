@@ -19,6 +19,14 @@
 
 VOID
 NTAPI
+KdpSysGetVersion(IN PDBGKD_GET_VERSION64 Version)
+{
+    /* Copy the version block */
+    RtlCopyMemory(Version, &KdVersionBlock, sizeof(DBGKD_GET_VERSION64));
+}
+
+VOID
+NTAPI
 KdpGetStateChange(IN PDBGKD_MANIPULATE_STATE64 State,
                   IN PCONTEXT Context)
 {
@@ -163,53 +171,64 @@ KdpSysReadControlSpace(IN ULONG Processor,
                        IN ULONG64 BaseAddress,
                        IN PVOID Buffer,
                        IN ULONG Length,
-                       OUT PULONG BytesWritten)
+                       OUT PULONG ActualLength)
 {
     PVOID ControlStart;
-    ULONG DataLength;
+    ULONG RealLength;
 
-    PKPRCB Prcb = KiProcessorBlock[Processor];
-    PKIPCR Pcr = CONTAINING_RECORD(Prcb, KIPCR, Prcb);
-
-    switch (BaseAddress)
+    if ((ULONG)BaseAddress <= 2)
     {
-        case AMD64_DEBUG_CONTROL_SPACE_KPCR:
-            /* Copy a pointer to the Pcr */
-            ControlStart = &Pcr;
-            DataLength = sizeof(Pcr);
-            break;
+        PKPRCB Prcb = KiProcessorBlock[Processor];
+        PKIPCR Pcr = CONTAINING_RECORD(Prcb, KIPCR, Prcb);
 
-        case AMD64_DEBUG_CONTROL_SPACE_KPRCB:
-            /* Copy a pointer to the Prcb */
-            ControlStart = &Prcb;
-            DataLength = sizeof(Prcb);
-            break;
+        switch ((ULONG_PTR)BaseAddress)
+        {
+            case AMD64_DEBUG_CONTROL_SPACE_KPCR:
+                /* Copy a pointer to the Pcr */
+                ControlStart = &Pcr;
+                RealLength = sizeof(PVOID);
+                break;
 
-        case AMD64_DEBUG_CONTROL_SPACE_KSPECIAL:
-            /* Copy SpecialRegisters */
-            ControlStart = &Prcb->ProcessorState.SpecialRegisters;
-            DataLength = sizeof(Prcb->ProcessorState.SpecialRegisters);
-            break;
+            case AMD64_DEBUG_CONTROL_SPACE_KPRCB:
+                /* Copy a pointer to the Prcb */
+                ControlStart = &Prcb;
+                RealLength = sizeof(PVOID);
+                break;
 
-        case AMD64_DEBUG_CONTROL_SPACE_KTHREAD:
-            /* Copy a pointer to the current Thread */
-            ControlStart = &Prcb->CurrentThread;
-            DataLength = sizeof(Prcb->CurrentThread);
-            break;
+            case AMD64_DEBUG_CONTROL_SPACE_KSPECIAL:
+                /* Copy SpecialRegisters */
+                ControlStart = &Prcb->ProcessorState.SpecialRegisters;
+                RealLength = sizeof(KSPECIAL_REGISTERS);
+                break;
 
-        default:
-            *BytesWritten = 0;
-            ASSERT(FALSE);
-            return STATUS_UNSUCCESSFUL;
+            case AMD64_DEBUG_CONTROL_SPACE_KTHREAD:
+                /* Copy a pointer to the current Thread */
+                ControlStart = &Prcb->CurrentThread;
+                RealLength = sizeof(PVOID);
+                break;
+
+            default:
+                RealLength = 0;
+                ControlStart = NULL;
+                ASSERT(FALSE);
+                return STATUS_UNSUCCESSFUL;
+        }
+
+        if (RealLength < Length) Length = RealLength;
+
+        /* Copy the memory */
+        RtlCopyMemory(Buffer, ControlStart, Length);
+        *ActualLength = Length;
+
+        /* Finish up */
+        return STATUS_SUCCESS;
     }
-
-    *BytesWritten = min(Length, DataLength)
-
-    /* Copy the memory */
-    RtlCopyMemory(Buffer, ControlStart, *BytesWritten);
-
-    /* Finish up */
-    return STATUS_SUCCESS;
+    else
+    {
+        /* Invalid request */
+        *ActualLength = 0;
+        return STATUS_UNSUCCESSFUL;
+    }
 }
 
 NTSTATUS
