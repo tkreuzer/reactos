@@ -29,6 +29,10 @@
 
 #ifdef __REACTOS__
 
+#define SetupFindNextLine InfFindNextLine
+#define SetupGetBinaryField InfGetBinaryField
+#define SetupGetMultiSzFieldW InfpGetMultiSzFieldW
+#define SetupGetStringFieldW InfpGetStringFieldW
 // HACK around the fact INFLIB unconditionally defines MAX_INF_STRING_LENGTH.
 #undef MAX_INF_STRING_LENGTH
 
@@ -42,6 +46,30 @@
 extern VOID InfSetHeap(PVOID Heap);
 
 #endif /* __REACTOS__ */
+BOOL WINAPI
+InfpGetMultiSzFieldW(
+	IN PINFCONTEXT Context,
+	IN ULONG FieldIndex,
+	IN OUT PWSTR ReturnBuffer,
+	IN ULONG ReturnBufferSize,
+	OUT PULONG RequiredSize);
+
+BOOL WINAPI
+InfpGetStringFieldW(
+	IN PINFCONTEXT Context,
+	IN ULONG FieldIndex,
+	IN OUT PWSTR ReturnBuffer,
+	IN ULONG ReturnBufferSize,
+	OUT PULONG RequiredSize);
+
+HINF
+WINAPI
+InfpOpenInfFileW(
+    IN PCWSTR FileName,
+    IN PCWSTR InfClass,
+    IN DWORD InfStyle,
+    IN LCID LocaleId,
+    OUT PUINT ErrorLine);
 
 // #include "../lib/utils/infsupp.h"
 

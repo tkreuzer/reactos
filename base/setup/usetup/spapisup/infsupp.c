@@ -72,6 +72,28 @@ SetupFindFirstLineW(
     return TRUE;
 }
 
+BOOL WINAPI
+InfpGetMultiSzFieldW(
+	IN PINFCONTEXT Context,
+	IN ULONG FieldIndex,
+	IN OUT PWSTR ReturnBuffer,
+	IN ULONG ReturnBufferSize,
+	OUT PULONG RequiredSize)
+{
+	return InfGetMultiSzField(Context, FieldIndex, ReturnBuffer, ReturnBufferSize, RequiredSize);
+}
+
+BOOL WINAPI
+InfpGetStringFieldW(
+	IN PINFCONTEXT Context,
+	IN ULONG FieldIndex,
+	IN OUT PWSTR ReturnBuffer,
+	IN ULONG ReturnBufferSize,
+	OUT PULONG RequiredSize)
+{
+	return InfGetStringField(Context, FieldIndex, ReturnBuffer, ReturnBufferSize, RequiredSize);
+}
+
 extern BOOLEAN InfFindNextLine(PINFCONTEXT ContextIn,
                                PINFCONTEXT ContextOut);
 // #define SetupFindNextLine InfFindNextLine
