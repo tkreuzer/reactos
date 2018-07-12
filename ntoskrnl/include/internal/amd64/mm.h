@@ -6,6 +6,13 @@
 #define _MI_PAGING_LEVELS 4
 #define _MI_HAS_NO_EXECUTE 1
 
+PULONG64
+FORCEINLINE
+MmGetPageDirectory(VOID)
+{
+    return (PULONG64)__readcr3();
+}
+
 /* Memory layout base addresses (This is based on Vista!) */
 #define MI_USER_PROBE_ADDRESS           (PVOID)0x000007FFFFFF0000ULL
 #define MI_DEFAULT_SYSTEM_RANGE_START   (PVOID)0xFFFF080000000000ULL
@@ -78,8 +85,12 @@
 #define MI_MAX_SECONDARY_COLORS                 1024
 #define MI_NUMBER_SYSTEM_PTES                   22000
 #define MI_MAX_FREE_PAGE_LISTS                  4
+#define NR_SECTION_PAGE_TABLES              1024
+#define NR_SECTION_PAGE_ENTRIES             1024
 #define MI_HYPERSPACE_PTES                     (256 - 1)
 #define MI_ZERO_PTES                           (32)
+/* FIXME - different architectures have different cache line sizes... */
+#define MM_CACHE_LINE_SIZE                      64
 #define MI_MAX_ZERO_BITS                        53
 #define SESSION_POOL_LOOKASIDES                 21
 
@@ -87,6 +98,9 @@
 #define MM_EMPTY_PTE_LIST  ((ULONG64)0xFFFFFFFF)
 #define MM_EMPTY_LIST  ((ULONG_PTR)-1)
 
+#define ADDR_TO_PAGE_TABLE(v) (((ULONG_PTR)(v)) / (512 * PAGE_SIZE))
+#define ADDR_TO_PDE_OFFSET(v) ((((ULONG_PTR)(v)) / (512 * PAGE_SIZE)))
+#define ADDR_TO_PTE_OFFSET(v)  ((((ULONG_PTR)(v)) % (512 * PAGE_SIZE)) / PAGE_SIZE)
 
 /* Easy accessing PFN in PTE */
 #define PFN_FROM_PTE(v) ((v)->u.Hard.PageFrameNumber)
@@ -370,3 +384,10 @@ MiIsPdeForAddressValid(PVOID Address)
             (MiAddressToPde(Address)->u.Hard.Valid));
 }
 
+/* We don't use these hacks */
+VOID
+FORCEINLINE
+MmUpdatePageDir(PEPROCESS Process, PVOID Address, ULONG Size)
+{
+    /* Nothing to do */
+}
