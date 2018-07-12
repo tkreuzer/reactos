@@ -33,4 +33,6 @@
 #error "Unknown processor"
 #endif
 
+VOID KiArchInitSystem(VOID);
+
 /* EOF */
