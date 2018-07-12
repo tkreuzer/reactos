@@ -618,7 +618,7 @@ KiRetireDpcList(IN PKPRCB Prcb)
                 /* Decrease the queue depth */
                 DpcData->DpcQueueDepth--;
 
-#if DBG
+#if DBG && !defined(_M_AMD64)
                 /* Clear DPC Time */
                 Prcb->DebugDpcTime = 0;
 #endif
