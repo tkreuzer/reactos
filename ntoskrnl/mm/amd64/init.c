@@ -52,6 +52,7 @@ ULONG64 MxPfnSizeInBytes;
 BOOLEAN MiIncludeType[LoaderMaximum];
 PFN_NUMBER MxFreePageBase;
 ULONG64 MxFreePageCount = 0;
+ULONG MxPfnAllocation;
 
 BOOLEAN MiPfnsInitialized = FALSE;
 
