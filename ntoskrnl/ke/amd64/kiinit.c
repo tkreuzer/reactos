@@ -14,7 +14,8 @@
 #include <debug.h>
 
 #define REQUIRED_FEATURE_BITS (KF_RDTSC|KF_CR4|KF_CMPXCHG8B|KF_XMMI|KF_XMMI64| \
-                               KF_NX_BIT)
+                               KF_LARGE_PAGE|KF_FAST_SYSCALL|KF_GLOBAL_PAGE| \
+                               KF_CMOV|KF_PAT|KF_MMX|KF_FXSR|KF_NX_BIT|KF_MTRR)
 
 /* GLOBALS *******************************************************************/
 
@@ -29,6 +30,10 @@ extern ULONG KeMemoryMapRangeCount;
 extern ADDRESS_RANGE KeMemoryMap[64];
 
 KIPCR KiInitialPcr;
+
+void KiInitializeSegments();
+void KiSystemCallEntry64();
+void KiSystemCallEntry32();
 
 /* FUNCTIONS *****************************************************************/
 
@@ -54,7 +59,7 @@ KiInitMachineDependent(VOID)
     if (KeFeatureBits & KF_LARGE_PAGE)
     {
         /* FIXME: Support this */
-        DPRINT1("Large Page support detected but not yet taken advantage of!\n");
+        DPRINT("Large Page support detected but not yet taken advantage of!\n");
     }
 
     /* Check for global page support */
@@ -410,9 +415,79 @@ KiInitializePcr(IN PKIPCR Pcr,
 //    Pcr->Irql = PASSIVE_LEVEL;
     KeSetCurrentIrql(PASSIVE_LEVEL);
 
+}
+
+VOID
+NTAPI
+KiInitializeCpuFeatures(ULONG Cpu)
+{
+    ULONG64 Pat;
+    ULONG FeatureBits;
+
+    /* Initialize gs */
+    KiInitializeSegments();
+
     /* Set GS base */
-    __writemsr(X86_MSR_GSBASE, (ULONG64)Pcr);
-    __writemsr(X86_MSR_KERNEL_GSBASE, (ULONG64)Pcr);
+    __writemsr(MSR_GS_BASE, (ULONG64)Pcr);
+    __writemsr(MSR_GS_SWAP, (ULONG64)Pcr);
+
+    /* Detect and set the CPU Type */
+    KiSetProcessorType();
+
+    /* Get the processor features for this CPU */
+    FeatureBits = KiGetFeatureBits();
+
+    /* Check if we support all needed features */
+    if ((FeatureBits & REQUIRED_FEATURE_BITS) != REQUIRED_FEATURE_BITS)
+    {
+        /* If not, bugcheck system */
+        FrLdrDbgPrint("CPU doesn't have needed features! Has: 0x%x, required: 0x%x\n",
+                FeatureBits, REQUIRED_FEATURE_BITS);
+        KeBugCheck(0);
+    }
+
+    /* Set DEP to always on */
+    SharedUserData->NXSupportPolicy = NX_SUPPORT_POLICY_ALWAYSON;
+    FeatureBits |= KF_NX_ENABLED;
+
+    /* Save feature bits */
+    KeGetCurrentPrcb()->FeatureBits = FeatureBits;
+
+    /* Enable fx save restore support */
+    __writecr4(__readcr4() | CR4_FXSR);
+
+    /* Enable XMMI exceptions */
+    __writecr4(__readcr4() | CR4_XMMEXCPT);
+
+    /* Enable Write-Protection */
+    __writecr0(__readcr0() | CR0_WP);
+
+    /* Disable fpu monitoring */
+    __writecr0(__readcr0() & ~CR0_MP);
+
+    /* Disable x87 fpu exceptions */
+    __writecr0(__readcr0() & ~CR0_NE);
+    
+    /* LDT is unused */
+    __lldt(0);
+
+    /* Set the systemcall entry points */
+    __writemsr(MSR_LSTAR, (ULONG64)KiSystemCallEntry64);
+    __writemsr(MSR_CSTAR, (ULONG64)KiSystemCallEntry32);
+
+    __writemsr(MSR_STAR, ((ULONG64)KGDT64_R0_CODE << 32) |
+                         ((ULONG64)(KGDT64_R3_CMCODE|RPL_MASK) << 48));
+
+    /* Set the flags to be cleared when doing a syscall */
+    __writemsr(MSR_SYSCALL_MASK, EFLAGS_IF_MASK | EFLAGS_TF | EFLAGS_DF);
+
+    /* Enable syscall instruction and no-execute support */
+    __writemsr(MSR_EFER, __readmsr(MSR_EFER) | MSR_SCE | MSR_NXE);
+
+    /* Initialize the PAT */
+    Pat = (PAT_WB << 0)  | (PAT_WC << 8) | (PAT_UCM << 16) | (PAT_UC << 24) |
+          (PAT_WB << 32) | (PAT_WC << 40) | (PAT_UCM << 48) | (PAT_UC << 56);
+    __writemsr(MSR_PAT, Pat);
 }
 
 VOID
@@ -502,7 +577,7 @@ KiInitializeKernel(IN PKPROCESS InitProcess,
         KeI386NpxPresent = TRUE;
         KeI386CpuType = Prcb->CpuType;
         KeI386CpuStep = Prcb->CpuStep;
-        KeProcessorArchitecture = PROCESSOR_ARCHITECTURE_INTEL;
+        KeProcessorArchitecture = PROCESSOR_ARCHITECTURE_AMD64;
         KeProcessorLevel = (USHORT)Prcb->CpuType;
         if (Prcb->CpuID) KeProcessorRevision = Prcb->CpuStep;
         KeFeatureBits = FeatureBits;

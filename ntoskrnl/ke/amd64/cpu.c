@@ -21,14 +21,20 @@ KTSS64 KiBootTss;
 /* CPU Features and Flags */
 ULONG KeI386CpuType;
 ULONG KeI386CpuStep;
+ULONG KeProcessorArchitecture;
+ULONG KeProcessorLevel;
+ULONG KeProcessorRevision;
+ULONG KeFeatureBits;
 ULONG KeI386MachineType;
 ULONG KeI386NpxPresent = 1;
+ULONG KeI386XMMIPresent = 0;
+ULONG KeI386FxsrPresent = 0;
 ULONG KeLargestCacheLine = 0x40;
 ULONG KiDmaIoCoherency = 0;
+CHAR KeNumberProcessors = 0;
+KAFFINITY KeActiveProcessors = 1;
+BOOLEAN KiI386PentiumLockErrataPresent;
 BOOLEAN KiSMTProcessorsPresent;
-
-/* Flush data */
-volatile LONG KiTbFlushTimeStamp;
 
 /* CPU Signatures */
 static const CHAR CmpIntelID[]       = "GenuineIntel";
@@ -411,6 +417,14 @@ Ki386InitializeTss(IN PKTSS64 Tss,
 
 VOID
 NTAPI
+KiInitializeMachineType(VOID)
+{
+    /* Set the Machine Type we got from NTLDR */
+    KeI386MachineType = KeLoaderBlock->u.I386.MachineType & 0x000FF;
+}
+
+VOID
+NTAPI
 KeFlushCurrentTb(VOID)
 {
     /* Flush the TLB by resetting CR3 */
@@ -583,6 +597,9 @@ BOOLEAN
 NTAPI
 KeInvalidateAllCaches(VOID)
 {
+    /* Only supported on Pentium Pro and higher */
+    if (KeI386CpuType < 6) return FALSE;
+
     /* Invalidate all caches */
     __wbinvd();
     return TRUE;
