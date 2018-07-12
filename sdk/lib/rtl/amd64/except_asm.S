@@ -50,7 +50,7 @@ PUBLIC RtlCaptureContext
     mov [rcx + CxR10], r10
 
     /* Store the return address */
-    mov [rcx + CxRip], rax
+    mov [rcx + CxRip], rax // could use rdx
 
     mov [rcx + CxR11], r11
     mov [rcx + CxR12], r12
@@ -82,9 +82,6 @@ PUBLIC RtlCaptureContext
     movaps [rcx + CxXmm6], xmm6
     movaps [rcx + CxXmm7], xmm7
 
-    /* Load rflags into eax */
-    mov eax, [rsp]
-
     movaps [rcx + CxXmm8], xmm8
     movaps [rcx + CxXmm9], xmm9
     movaps [rcx + CxXmm10], xmm10
@@ -98,11 +95,8 @@ PUBLIC RtlCaptureContext
     fxsave [rcx + CxFltSave]
     stmxcsr [rcx + CxMxCsr]
 
-    /* Store rflags */
-    mov [rcx + CxEFlags], eax
-
-    /* Cleanup stack and return */
-    add rsp, 8
+    /* Pop eflags from the stack */
+    pop qword ptr [rcx + CxEFlags]
     ret
 .ENDP
 

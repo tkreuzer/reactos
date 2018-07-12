@@ -76,7 +76,7 @@ DebugService:
     int HEX(2D)
     int 3
 
-   /* Return */
+    /* Return */
     ret
 
 END
