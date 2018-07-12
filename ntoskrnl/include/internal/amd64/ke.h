@@ -105,11 +105,21 @@ typedef struct _KI_INTERRUPT_DISPATCH_ENTRY
 } KI_INTERRUPT_DISPATCH_ENTRY, *PKI_INTERRUPT_DISPATCH_ENTRY;
 #include <poppack.h>
 
+//#define KeArchFnInit() Ke386FnInit()
+#define KeArchFnInit() DbgPrint("KeArchFnInit is unimplemented!\n");
+#define KeArchHaltProcessor() Ke386HaltProcessor()
+#define KfLowerIrql KeLowerIrql
+#define KfAcquireSpinLock KeAcquireSpinLock
+#define KfReleaseSpinLock KeReleaseSpinLock
+
+extern ULONG Ke386CacheAlignment;
 extern ULONG KeI386NpxPresent;
 extern ULONG KeI386XMMIPresent;
 extern ULONG KeI386FxsrPresent;
 extern ULONG KeI386CpuType;
 extern ULONG KeI386CpuStep;
+
+#define IMAGE_FILE_MACHINE_ARCHITECTURE IMAGE_FILE_MACHINE_I386
 
 //
 // INT3 is 1 byte long
@@ -312,7 +322,16 @@ KiUserTrap(IN PKTRAP_FRAME TrapFrame)
 
 struct _KPCR;
 
-//VOID KiInitializeTss(IN PKTSS Tss, IN UINT64 Stack);
+// Hack
+VOID KiRosPrepareForSystemStartup(ULONG, PROS_LOADER_PARAMETER_BLOCK);
+
+VOID
+FASTCALL
+Ki386InitializeTss(
+    IN PKTSS Tss,
+    IN PVOID GdtBase,
+    IN UINT64 Stack
+);
 
 VOID KiSwitchToBootStack(IN ULONG_PTR InitialStack);
 VOID KiDivideErrorFault(VOID);
@@ -372,7 +391,8 @@ KiThreadStartup(PKSYSTEM_ROUTINE SystemRoutine,
                 KTRAP_FRAME TrapFrame);
 #endif
 
-#endif /* __ASM__ */
+#endif
+#endif /* __NTOSKRNL_INCLUDE_INTERNAL_AMD64_KE_H */
 
 // HACK
 extern NTKERNELAPI volatile KSYSTEM_TIME KeTickCount;
