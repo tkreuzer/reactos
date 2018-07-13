@@ -92,6 +92,9 @@ endif()
 
 if(MSVC)
     list(APPEND MSVCRTEX_SOURCE startup/mscmain.c)
+    list(APPEND MSVCRTEX_ASM_SOURCE
+        except/msvc.s
+    )
 else()
     list(APPEND MSVCRTEX_SOURCE startup/gccmain.c)
 endif()
