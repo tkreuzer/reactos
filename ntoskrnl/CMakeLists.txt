@@ -2,7 +2,7 @@
 PROJECT(NTOS)
 
 if(MSVC)
-    replace_compile_flags("/Od /Ob0" "/Ox /Ob2 /Ot /Oy /GT /GF")
+    #replace_compile_flags("/Ob0 /Od" "/Ox /Ob2 /Ot /Oy /GT /GF")
 endif()
 
 include(ntos.cmake)
