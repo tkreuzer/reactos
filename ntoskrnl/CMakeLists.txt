@@ -1,6 +1,10 @@
 
 PROJECT(NTOS)
 
+if(MSVC)
+    replace_compile_flags("/Od /Ob0" "/Ox /Ob2 /Ot /Oy /GT /GF")
+endif()
+
 include(ntos.cmake)
 
 set(NTOSKRNL_SOURCE ${SOURCE})
