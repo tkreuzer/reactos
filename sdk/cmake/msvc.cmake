@@ -1,10 +1,13 @@
 
+# Fix up some flags from default CMake setup
+replace_compile_flags("/MDd" " ")
+replace_compile_flags("/MD" " ")
+
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # no optimization
-    add_compile_flags("/Ob0 /Od")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_flags("/Ox /Ob2 /Ot /Oy /GT")
+    add_compile_flags("/Ox /Ob2 /Ot /Oy /GT /GF")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /OPT:REF /OPT:ICF")
 elseif(OPTIMIZE STREQUAL "1")
     add_compile_flags("/O1")
@@ -42,6 +45,8 @@ endif()
 
 # Disable RTTI, exception handling and buffer security checks by default.
 # These require run-time support that may not always be available.
+string(REPLACE "/GR " "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+string(REPLACE "/EHsc " "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
 add_compile_flags("/GR- /EHs-c- /GS-")
 
 if(USE_CLANG_CL)
@@ -118,8 +123,8 @@ endif()
 # Debugging
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if(NOT (_PREFAST_ OR _VS_ANALYZE_))
-        add_compile_flags("/Zi")
+    if(_PREFAST_ OR _VS_ANALYZE_)
+        replace_compile_flags("/Zi" " ")
     endif()
 #elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")

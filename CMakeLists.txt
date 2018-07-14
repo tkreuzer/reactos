@@ -57,6 +57,20 @@ endif()
 # Compiler flags handling
 include(sdk/cmake/compilerflags.cmake)
 
+if(MSVC)
+
+    string(REPLACE "/implib:" " " CMAKE_C_CREATE_SHARED_LIBRARY ${CMAKE_C_CREATE_SHARED_LIBRARY})
+    string(REPLACE "/implib:" " " CMAKE_CXX_CREATE_SHARED_LIBRARY ${CMAKE_CXX_CREATE_SHARED_LIBRARY})
+    string(REPLACE "/implib:" " " CMAKE_C_LINK_EXECUTABLE ${CMAKE_C_LINK_EXECUTABLE})
+    string(REPLACE "/implib:" " " CMAKE_CXX_LINK_EXECUTABLE ${CMAKE_CXX_LINK_EXECUTABLE})
+    string(REPLACE "/implib:" " " CMAKE_C_CREATE_SHARED_MODULE ${CMAKE_C_CREATE_SHARED_MODULE})
+
+    replace_compile_flags("/RTC1" " ")
+    #replace_compile_flags("/Zi" " ")
+    replace_link_flags("/INCREMENTAL:YES" " ")
+    replace_link_flags("/INCREMENTAL" " ")
+endif()
+
 add_definitions(-D__REACTOS__)
 
 # Double escape, since CMake unescapes before putting it on the command-line, where it's unescaped again by GCC/CL.
@@ -65,7 +79,7 @@ add_definitions(-DREACTOS_BINARY_DIR="${REACTOS_BINARY_DIR}")
 
 # There doesn't seem to be a standard for __FILE__ being relative or absolute, so detect it at runtime.
 file(RELATIVE_PATH _PATH_PREFIX ${REACTOS_BINARY_DIR} ${REACTOS_SOURCE_DIR})
-add_compile_flags(-D__RELFILE__="&__FILE__[__FILE__[0] == '.' ? sizeof \\\"${_PATH_PREFIX}\\\" - 1 : sizeof REACTOS_SOURCE_DIR]")
+add_definitions(-D__RELFILE__="&__FILE__[__FILE__[0] == '.' ? sizeof \\\"${_PATH_PREFIX}\\\" - 1 : sizeof REACTOS_SOURCE_DIR]")
 
 if(MSVC_IDE)
     add_compile_flags("/MP")
