@@ -41,7 +41,7 @@
 
 #if defined(__LP64__) || (!defined(_M_AMD64) && defined(__WINESRC__))
 #if !defined(__ROS_LONG64__)
-#define __ROS_LONG64__
+//#define __ROS_LONG64__
 #endif
 #endif
 
