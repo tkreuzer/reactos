@@ -1,5 +1,12 @@
 
-if(CMAKE_BUILD_TYPE STREQUAL "Release")
+# Fix up some flags from default CMake setup
+replace_compile_flags("/MDd" " ")
+replace_compile_flags("/MD" " ")
+
+#if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    # no optimization
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
     add_compile_options(/Ox /Ob2 /Ot /Oy)
     # Avoid spam in clang-cl as it doesn't support /GT
     if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
@@ -36,6 +43,12 @@ add_definitions(/D__STDC__=1)
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(/X /Zl)
 endif()
+
+# Disable RTTI, exception handling and buffer security checks by default.
+# These require run-time support that may not always be available.
+string(REPLACE "/GR " "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+string(REPLACE "/EHsc " "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+add_compile_flags("/GR- /EHs-c- /GS-")
 
 # Disable buffer security checks by default.
 add_compile_options(/GS-)

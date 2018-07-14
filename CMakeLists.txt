@@ -68,6 +68,20 @@ include(sdk/cmake/config.cmake)
 # Compiler flags handling
 include(sdk/cmake/compilerflags.cmake)
 
+if(MSVC)
+
+    string(REPLACE "/implib:" " " CMAKE_C_CREATE_SHARED_LIBRARY ${CMAKE_C_CREATE_SHARED_LIBRARY})
+    string(REPLACE "/implib:" " " CMAKE_CXX_CREATE_SHARED_LIBRARY ${CMAKE_CXX_CREATE_SHARED_LIBRARY})
+    string(REPLACE "/implib:" " " CMAKE_C_LINK_EXECUTABLE ${CMAKE_C_LINK_EXECUTABLE})
+    string(REPLACE "/implib:" " " CMAKE_CXX_LINK_EXECUTABLE ${CMAKE_CXX_LINK_EXECUTABLE})
+    string(REPLACE "/implib:" " " CMAKE_C_CREATE_SHARED_MODULE ${CMAKE_C_CREATE_SHARED_MODULE})
+
+    replace_compile_flags("/RTC1" " ")
+    #replace_compile_flags("/Zi" " ")
+    replace_link_flags("/INCREMENTAL:YES" " ")
+    replace_link_flags("/INCREMENTAL" " ")
+endif()
+
 add_definitions(
     -D__REACTOS__
     # swprintf without count argument is used in most of the codebase
