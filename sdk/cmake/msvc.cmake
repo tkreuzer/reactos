@@ -1,4 +1,10 @@
 
+# Remove /INCREMENTAL linker flag
+foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
+    string(REPLACE "/INCREMENTAL:YES" "" CMAKE_EXE_LINKER_FLAGS_${type} ${CMAKE_EXE_LINKER_FLAGS_${type}})
+    string(REPLACE "/INCREMENTAL" "" CMAKE_EXE_LINKER_FLAGS_${type} ${CMAKE_EXE_LINKER_FLAGS_${type}})
+endforeach()
+
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # no optimization
