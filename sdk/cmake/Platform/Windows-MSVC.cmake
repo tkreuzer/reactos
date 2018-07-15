@@ -36,8 +36,6 @@ else()
   set(CMAKE_CL_NOLOGO "/nologo")
 endif()
 
-set(WIN32 1)
-
 if(CMAKE_SYSTEM_NAME STREQUAL "WindowsCE")
   set(CMAKE_CREATE_WIN32_EXE "/entry:WinMainCRTStartup")
   set(CMAKE_CREATE_CONSOLE_EXE "/entry:mainACRTStartup")
@@ -53,18 +51,11 @@ if(CMAKE_GENERATOR MATCHES "Visual Studio 6")
 endif()
 if(NOT CMAKE_NO_BUILD_TYPE AND CMAKE_GENERATOR MATCHES "Visual Studio")
   set (CMAKE_NO_BUILD_TYPE 1)
-  set (CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING
-     "Semicolon separated list of supported configuration types, only supports Debug, Release, MinSizeRel, and RelWithDebInfo, anything else will be ignored.")
-  mark_as_advanced(CMAKE_CONFIGURATION_TYPES)
 endif()
 
 # make sure to enable languages after setting configuration types
 enable_language(RC)
-if(CMAKE_VERSION VERSION_LESS 3.4.0)
-  set(CMAKE_COMPILE_RESOURCE "rc <FLAGS> /fo<OBJECT> <SOURCE>")
-else()
-  set(CMAKE_COMPILE_RESOURCE "rc <INCLUDES> <FLAGS> /fo<OBJECT> <SOURCE>")
-endif()
+set(CMAKE_COMPILE_RESOURCE "rc <FLAGS> /fo<OBJECT> <SOURCE>")
 
 if("${CMAKE_GENERATOR}" MATCHES "Visual Studio")
   set(MSVC_IDE 1)
@@ -196,6 +187,11 @@ else()
     set(_FLAGS_CXX " /GR /GX")
     set(CMAKE_C_STANDARD_LIBRARIES_INIT "")
   endif()
+
+  if(MSVC_VERSION LESS 1310)
+    set(_FLAGS_C   " /Zm1000${_FLAGS_C}")
+    set(_FLAGS_CXX " /Zm1000${_FLAGS_CXX}")
+  endif()
 endif()
 
 set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "${CMAKE_C_STANDARD_LIBRARIES_INIT}")
@@ -225,10 +221,10 @@ if(NOT WINDOWS_PHONE AND NOT WINDOWS_STORE)
 endif()
 
 if (CMAKE_COMPILER_SUPPORTS_PDBTYPE)
-  set (CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT "/debug /pdbtype:sept")
+  set (CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT "/debug /pdbtype:sept ${MSVC_INCREMENTAL_YES_FLAG}")
   set (CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO_INIT "/debug /pdbtype:sept ${MSVC_INCREMENTAL_YES_FLAG}")
 else ()
-  set (CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT "/debug")
+  set (CMAKE_EXE_LINKER_FLAGS_DEBUG_INIT "/debug ${MSVC_INCREMENTAL_YES_FLAG}")
   set (CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO_INIT "/debug ${MSVC_INCREMENTAL_YES_FLAG}")
 endif ()
 # for release and minsize release default to no incremental linking
@@ -250,7 +246,7 @@ set (CMAKE_MODULE_LINKER_FLAGS_RELEASE_INIT ${CMAKE_EXE_LINKER_FLAGS_RELEASE_INI
 set (CMAKE_MODULE_LINKER_FLAGS_MINSIZEREL_INIT ${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL_INIT})
 
 macro(__windows_compiler_msvc lang)
-  if(NOT "${CMAKE_${lang}_COMPILER_VERSION}" VERSION_LESS 14)
+  if(NOT MSVC_VERSION LESS 1400)
     # for 2005 make sure the manifest is put in the dll with mt
     set(_CMAKE_VS_LINK_DLL "<CMAKE_COMMAND> -E vs_link_dll ")
     set(_CMAKE_VS_LINK_EXE "<CMAKE_COMMAND> -E vs_link_exe ")
