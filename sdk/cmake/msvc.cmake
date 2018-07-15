@@ -1,16 +1,29 @@
 
-# Remove /INCREMENTAL linker flag
+# Fix up some flags from default CMake setup
 foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
+    # Remove /INCREMENTAL linker flag
     string(REPLACE "/INCREMENTAL:YES" "" CMAKE_EXE_LINKER_FLAGS_${type} ${CMAKE_EXE_LINKER_FLAGS_${type}})
     string(REPLACE "/INCREMENTAL" "" CMAKE_EXE_LINKER_FLAGS_${type} ${CMAKE_EXE_LINKER_FLAGS_${type}})
+
+    # Remove /MDx
+    string(REPLACE "/MDd" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/MDd" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
+    string(REPLACE "/MD" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
+
+    # Remove /RTC1
+    string(REPLACE "/RTC1" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
 endforeach()
+
+message(WARNING "CMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG}")
+#set(CMAKE_C_STANDARD_LIBRARIES "")
 
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # no optimization
-    add_compile_flags("/Ob0 /Od")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_flags("/Ox /Ob2 /Ot /Oy /GT /GF")
+    add_compile_flags("/Ox /Ot /Oy /GT /GF")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /OPT:REF /OPT:ICF")
 elseif(OPTIMIZE STREQUAL "1")
     add_definitions(/O1)
@@ -110,8 +123,8 @@ endif()
 # Debugging
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if(NOT (_PREFAST_ OR _VS_ANALYZE_))
-        add_compile_flags("/Zi")
+    if(_PREFAST_ OR _VS_ANALYZE_)
+        #remove_compile_flags("/Zi")
     endif()
 #elseif(${CMAKE_BUILD_TYPE} STREQUAL "Release")
 elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
