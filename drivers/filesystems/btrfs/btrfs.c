@@ -115,7 +115,7 @@ typedef struct {
 
 #ifdef _DEBUG
 _Function_class_(IO_COMPLETION_ROUTINE)
-static NTSTATUS dbg_completion(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp, _In_ PVOID conptr) {
+static NTSTATUS NTAPI dbg_completion(_In_ PDEVICE_OBJECT DeviceObject, _In_ PIRP Irp, _In_ PVOID conptr) {
     read_context* context = conptr;
 
     UNUSED(DeviceObject);
@@ -5107,7 +5107,7 @@ void log_device_error(_In_ device_extension* Vcb, _Inout_ device* dev, _In_ int 
 
 #ifdef _DEBUG
 _Function_class_(KSTART_ROUTINE)
-static void serial_thread(void* context) {
+static void NTAPI serial_thread(void* context) {
     LARGE_INTEGER due_time;
     KTIMER timer;
 
