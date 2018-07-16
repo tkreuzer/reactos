@@ -115,6 +115,12 @@ macro(replace_compile_flags _oldflags _newflags)
     replace_compiler_option(CMAKE_C_FLAGS ${_oldflags} ${_newflags})
     replace_compiler_option(CMAKE_CXX_FLAGS ${_oldflags} ${_newflags})
     replace_compiler_option(CMAKE_ASM_FLAGS ${_oldflags} ${_newflags})
+    foreach(_buildtype DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
+        replace_compiler_option(CMAKE_C_FLAGS_${_buildtype} ${_oldflags} ${_newflags})
+        replace_compiler_option(CMAKE_CXX_FLAGS_${_buildtype} ${_oldflags} ${_newflags})
+        replace_compiler_option(CMAKE_ASM_FLAGS_${_buildtype} ${_oldflags} ${_newflags})
+    endforeach()
+
 endmacro()
 
 macro(replace_compile_flags_language _oldflags _newflags _lang)
