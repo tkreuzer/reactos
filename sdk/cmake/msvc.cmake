@@ -18,9 +18,6 @@ foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
     string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
 endforeach()
 
-message(WARNING "CMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG}")
-#set(CMAKE_C_STANDARD_LIBRARIES "")
-
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     # no optimization
@@ -54,7 +51,10 @@ if(NOT USE_CLANG_CL)
     add_compile_flags("/X /Zl")
 endif()
 
-add_compile_flags("/GR- /EHs-c- /GS- /W3")
+# Disable RTTI and C++ exceptions
+string(REPLACE "/GR " "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+string(REPLACE "/EHsc " "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
+add_compile_flags("/GR- /EHs-c- /GS-")
 
 if(USE_CLANG_CL)
     set(CMAKE_CL_SHOWINCLUDES_PREFIX "Note: including file: ")
