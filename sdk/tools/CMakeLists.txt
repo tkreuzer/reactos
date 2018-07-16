@@ -1,4 +1,5 @@
 
+message(WARNING "CMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG}")
 
 # Fix up some flags from default CMake setup
 foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
@@ -9,13 +10,15 @@ foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
     string(REPLACE "/INCREMENTAL" "" CMAKE_SHARED_LINKER_FLAGS_${type} ${CMAKE_SHARED_LINKER_FLAGS_${type}})
 
     # Remove /Zi
-    string(REPLACE "/Zi " "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/Zi " "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
+    string(REPLACE "/Zi" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/Zi" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
 
     # Remove /RTC1
-    string(REPLACE "/RTC1 " "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/RTC1 " "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
+    string(REPLACE "/RTC1" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
 endforeach()
+
+message(WARNING "CMAKE_C_FLAGS_DEBUG=${CMAKE_C_FLAGS_DEBUG}")
 
 #set(CMAKE_C_LINK_EXECUTABLE
 #    "${_CMAKE_VS_LINK_EXE}<CMAKE_LINKER> ${CMAKE_CL_NOLOGO} <OBJECTS> ${CMAKE_START_TEMP_FILE} /out:<TARGET> /pdb:<TARGET_PDB> /version:<TARGET_VERSION_MAJOR>.<TARGET_VERSION_MINOR>${_PLATFORM_LINK_FLAGS} <CMAKE_C_LINK_FLAGS> <LINK_FLAGS> <LINK_LIBRARIES>${CMAKE_END_TEMP_FILE}")

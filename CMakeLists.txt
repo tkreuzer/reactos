@@ -60,6 +60,12 @@ add_definitions(-DREACTOS_SOURCE_DIR="\\"${REACTOS_SOURCE_DIR}\\"")
 add_definitions(-DREACTOS_BINARY_DIR="\\"${REACTOS_BINARY_DIR}\\"")
 add_compile_flags(-D__RELFILE__="&__FILE__[sizeof REACTOS_SOURCE_DIR]")
 
+if(MSVC)
+#    replace_compile_flags("/RTC1" "")
+    replace_compiler_option(CMAKE_C_FLAGS_DEBUG "/RTC1" "")
+    replace_compile_flags("/Zi" " ")
+endif()
+
 if(MSVC_IDE)
     add_compile_flags("/MP")
 endif()
