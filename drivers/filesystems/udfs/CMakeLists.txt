@@ -1,6 +1,8 @@
 
 include_directories(Include)
 
+add_definitions(-DUSE_REACTOS_DDK)
+
 list(APPEND SOURCE
     udf_info/alloc.cpp
     udf_info/dirtree.cpp

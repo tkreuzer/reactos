@@ -121,6 +121,8 @@ extern PCHAR  g_KeNumberProcessors;
 // NT3.51 doesn't export strlen() and strcmp()
 // The same time, Release build doesn't depend no these functions since they are inlined
 
+#ifndef USE_REACTOS_DDK
+
 size_t __cdecl CrNtstrlen (
         const char * str
         );
@@ -132,6 +134,8 @@ int __cdecl CrNtstrcmp (
 
 #define strlen CrNtstrlen
 #define strcmp CrNtstrcmp
+
+#endif // !USE_REACTOS_DDK
 
 #endif //_DEBUG
 
