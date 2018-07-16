@@ -8,15 +8,13 @@ foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
     string(REPLACE "/INCREMENTAL:YES" "" CMAKE_SHARED_LINKER_FLAGS_${type} ${CMAKE_SHARED_LINKER_FLAGS_${type}})
     string(REPLACE "/INCREMENTAL" "" CMAKE_SHARED_LINKER_FLAGS_${type} ${CMAKE_SHARED_LINKER_FLAGS_${type}})
 
-    # Remove /MDx
-    string(REPLACE "/MDd" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/MDd" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
-    string(REPLACE "/MD" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
+    # Remove /Zi
+    string(REPLACE "/Zi " "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/Zi " "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
 
     # Remove /RTC1
-    string(REPLACE "/RTC1" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
+    string(REPLACE "/RTC1 " "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
+    string(REPLACE "/RTC1 " "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
 endforeach()
 
 #set(CMAKE_C_LINK_EXECUTABLE
