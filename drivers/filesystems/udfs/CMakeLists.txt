@@ -1,6 +1,8 @@
 
 include_directories(Include)
 
+add_definitions(-DUSE_REACTOS_DDK)
+
 set_cpp(WITH_RUNTIME)
 
 list(APPEND SOURCE
