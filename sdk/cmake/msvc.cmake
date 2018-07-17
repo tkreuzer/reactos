@@ -1,22 +1,9 @@
 
 # Fix up some flags from default CMake setup
-foreach(type DEBUG RELWITHDEBINFO RELEASE MINSIZEREL)
-    # Remove /INCREMENTAL linker flag
-    string(REPLACE "/INCREMENTAL:YES" "" CMAKE_EXE_LINKER_FLAGS_${type} ${CMAKE_EXE_LINKER_FLAGS_${type}})
-    string(REPLACE "/INCREMENTAL" "" CMAKE_EXE_LINKER_FLAGS_${type} ${CMAKE_EXE_LINKER_FLAGS_${type}})
-    string(REPLACE "/INCREMENTAL:YES" "" CMAKE_SHARED_LINKER_FLAGS_${type} ${CMAKE_SHARED_LINKER_FLAGS_${type}})
-    string(REPLACE "/INCREMENTAL" "" CMAKE_SHARED_LINKER_FLAGS_${type} ${CMAKE_SHARED_LINKER_FLAGS_${type}})
-
-    # Remove /MDx
-    string(REPLACE "/MDd" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/MDd" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
-    string(REPLACE "/MD" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/MD" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
-
-    # Remove /RTC1
-    string(REPLACE "/RTC1" "" CMAKE_C_FLAGS_${type} ${CMAKE_C_FLAGS_${type}})
-    string(REPLACE "/RTC1" "" CMAKE_CXX_FLAGS_${type} ${CMAKE_CXX_FLAGS_${type}})
-endforeach()
+replace_compile_flags("/INCREMENTAL:YES" " ")
+replace_compile_flags("/INCREMENTAL" " ")
+replace_compile_flags("/MDd" " ")
+replace_compile_flags("/MD" " ")
 
 #if(${CMAKE_BUILD_TYPE} STREQUAL "Debug")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
