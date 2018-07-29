@@ -131,6 +131,12 @@ else()
     # We don't need CMake importlib handling.
     unset(CMAKE_IMPORT_LIBRARY_SUFFIX)
 
+    # We don't need CMake importlib handling.
+    # FIXME: Remove the MSVC_IDE condition when the upcoming RosBE lands.
+    if(NOT MSVC_IDE)
+        unset(CMAKE_IMPORT_LIBRARY_SUFFIX)
+    endif()
+
     if(NEW_STYLE_BUILD)
         include(sdk/cmake/host-tools.cmake)
     endif()
