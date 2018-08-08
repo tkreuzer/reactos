@@ -1134,8 +1134,10 @@ IopInitializeBootDrivers(VOID)
      */
     PnPBootDriversLoaded = TRUE;
 
+#ifdef _M_IX86
     /* In old ROS, the loader list became empty after this point. Simulate. */
     InitializeListHead(&KeLoaderBlock->LoadOrderListHead);
+#endif
 }
 
 INIT_FUNCTION
