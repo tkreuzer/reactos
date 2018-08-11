@@ -1,11 +1,10 @@
 /*
  * PROJECT:         ReactOS Kernel
  * LICENSE:         GPL - See COPYING in the top level directory
- * FILE:            ntoskrnl/ke/i386/exp.c
- * PURPOSE:         Exception Dispatching and Context<->Trap Frame Conversion
- * PROGRAMMERS:     Alex Ionescu (alex.ionescu@reactos.org)
- *                  Gregor Anich
- *                  Skywing (skywing@valhallalegends.com)
+ * FILE:            ntoskrnl/ke/amd64/except.c
+ * PURPOSE:         Exception Dispatching for amd64
+ * PROGRAMMER:      Timo Kreuzer (timo.kreuzer@reactos.org)
+ *                  Alex Ionescu (alex.ionescu@reactos.org)
  */
 
 /* INCLUDES ******************************************************************/
@@ -20,6 +19,7 @@ extern ULONG64 InterruptDispatchTable[256];
 
 KIDT_INIT KiInterruptInitTable[] =
 {
+  /* Id,   Dpl,  IST,  ServiceRoutine */
     {0x00, 0x00, 0x00, KiDivideErrorFault},
     {0x01, 0x00, 0x00, KiDebugTrapOrFault},
     {0x02, 0x00, 0x03, KiNmiInterrupt},
@@ -44,7 +44,7 @@ KIDT_INIT KiInterruptInitTable[] =
     {0x2D, 0x03, 0x00, KiDebugServiceTrap},
     {0x2F, 0x00, 0x00, KiDpcInterrupt},
     {0xE1, 0x00, 0x00, KiIpiInterrupt},
-    {0, 0}
+    {0, 0, 0, 0}
 };
 
 KIDTENTRY64 KiIdt[256];
@@ -70,17 +70,18 @@ KeInitExceptions(VOID)
         {
             Offset = (ULONG64)KiInterruptInitTable[j].ServiceRoutine;
             KiIdt[i].Dpl = KiInterruptInitTable[j].Dpl;
+            KiIdt[i].IstIndex = KiInterruptInitTable[j].IstIndex;
             j++;
         }
         else
         {
             Offset = (ULONG64)&InterruptDispatchTable[i];
             KiIdt[i].Dpl = 0;
+            KiIdt[i].IstIndex = 0;
         }
         KiIdt[i].OffsetLow = Offset & 0xffff;
         KiIdt[i].Selector = KGDT_64_R0_CODE;
         KiIdt[i].Type = 0x0e;
-        KiIdt[i].IstIndex = 0;
         KiIdt[i].Reserved0 = 0;
         KiIdt[i].Present = 1;
         KiIdt[i].OffsetMiddle = (Offset >> 16) & 0xffff;
@@ -88,6 +89,8 @@ KeInitExceptions(VOID)
         KiIdt[i].Reserved1 = 0;
     }
 
+    KeGetPcr()->IdtBase = KiIdt;
+    __lidt(&KiIdtDescriptor.Limit);
 }
 
 VOID
@@ -119,8 +122,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
         case STATUS_BREAKPOINT:
 
             /* Decrement RIP by one */
-            // FIXME: that doesn't work, why?
-//            Context.Rip--;
+            Context.Rip--;
             break;
 
         /* Internal exception */

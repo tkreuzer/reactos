@@ -159,3 +159,21 @@ NtVdmControl(IN ULONG ControlCode,
     UNIMPLEMENTED;
     return STATUS_UNSUCCESSFUL;
 }
+
+NTSTATUS
+NTAPI
+KiCallUserMode(
+    IN PVOID *OutputBuffer,
+    IN PULONG OutputLength)
+{
+    UNIMPLEMENTED;
+    return STATUS_UNSUCCESSFUL;
+}
+
+#undef ExQueryDepthSList
+NTKERNELAPI
+USHORT
+ExQueryDepthSList(IN PSLIST_HEADER ListHead)
+{
+    return (USHORT)(ListHead->Alignment & 0xffff);
+}

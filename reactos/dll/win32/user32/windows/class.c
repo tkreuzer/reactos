@@ -538,6 +538,32 @@ GetClassLongW ( HWND hWnd, int nIndex )
     return Ret;
 }
 
+#ifdef _WIN64
+/*
+ * @unimplemented
+ */
+ULONG_PTR
+WINAPI
+GetClassLongPtrA(HWND hWnd,
+                 INT nIndex)
+{
+    UNIMPLEMENTED;
+    return 0;
+}
+
+/*
+ * @unimplemented
+ */
+ULONG_PTR
+WINAPI
+GetClassLongPtrW(HWND hWnd,
+                 INT nIndex)
+{
+    UNIMPLEMENTED;
+    return 0;
+}
+#endif
+
 
 /*
  * @implemented
@@ -705,6 +731,31 @@ GetWindowLongW(HWND hWnd, int nIndex)
 {
     return IntGetWindowLong( hWnd, nIndex, sizeof(LONG), TRUE );
 }
+
+#ifdef _WIN64
+/*
+ * @implemented
+ */
+LONG_PTR
+WINAPI
+GetWindowLongPtrA(HWND hWnd,
+                  INT nIndex)
+{
+    return IntGetWindowLong( hWnd, nIndex, sizeof(LONG_PTR), FALSE );
+}
+
+/*
+ * @implemented
+ */
+LONG_PTR
+WINAPI
+GetWindowLongPtrW(HWND hWnd,
+                  INT nIndex)
+{
+    return IntGetWindowLong( hWnd, nIndex, sizeof(LONG_PTR), TRUE );
+
+}
+#endif // _WIN64
 
 /*
  * @implemented
@@ -1239,6 +1290,33 @@ SetClassLongW(HWND hWnd,
                                      FALSE);
 }
 
+#ifdef _WIN64
+/*
+ * @unimplemented
+ */
+ULONG_PTR
+WINAPI
+SetClassLongPtrA(HWND hWnd,
+                 INT nIndex,
+                 LONG_PTR dwNewLong)
+{
+    UNIMPLEMENTED;
+    return 0;
+}
+
+/*
+ * @unimplemented
+ */
+ULONG_PTR
+WINAPI
+SetClassLongPtrW(HWND hWnd,
+                 INT nIndex,
+                 LONG_PTR dwNewLong)
+{
+    UNIMPLEMENTED;
+    return 0;
+}
+#endif // _WIN64
 
 /*
  * @implemented
@@ -1310,6 +1388,31 @@ SetWindowLongW(
   return NtUserSetWindowLong(hWnd, nIndex, dwNewLong, FALSE);
 }
 
+#ifdef _WIN64
+/*
+ * @implemented
+ */
+LONG_PTR
+WINAPI
+SetWindowLongPtrA(HWND hWnd,
+                  INT nIndex,
+                  LONG_PTR dwNewLong)
+{
+  return NtUserSetWindowLong(hWnd, nIndex, dwNewLong, FALSE);
+}
+
+/*
+ * @implemented
+ */
+LONG_PTR
+WINAPI
+SetWindowLongPtrW(HWND hWnd,
+                  INT nIndex,
+                  LONG_PTR dwNewLong)
+{
+  return NtUserSetWindowLong(hWnd, nIndex, dwNewLong, FALSE);
+}
+#endif
 
 /*
  * @implemented

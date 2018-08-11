@@ -358,6 +358,7 @@ KiSystemStartup(IN ULONG_PTR Dummy,
 //    KiRosPrepareForSystemStartup(Dummy, LoaderBlock);
 }
 
+
 VOID
 NTAPI
 KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
@@ -445,7 +446,8 @@ KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 #endif
     }
 
-//    DPRINT1("Gdt = %p, Idt = %p, Pcr = %p, Tss = %p\n", Gdt, Idt, Pcr, Tss);
+    DPRINT("Pcr = %p, Gdt = %p, Idt = %p, Tss = %p\n",
+           Pcr, Pcr->GdtBase, Pcr->IdtBase, Pcr->TssBase);
 
     /* Acquire lock */
     while (InterlockedBitTestAndSet64((PLONG64)&KiFreezeExecutionLock, 0))
@@ -465,8 +467,6 @@ KiSystemStartupReal(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     /* Raise to HIGH_LEVEL */
     KfRaiseIrql(HIGH_LEVEL);
-
-FrLdrDbgPrint("before KiSetupStackAndInitializeKernel\n");
 
     /* Switch to new kernel stack and start kernel bootstrapping */
     KiSetupStackAndInitializeKernel(&KiInitialProcess.Pcb,

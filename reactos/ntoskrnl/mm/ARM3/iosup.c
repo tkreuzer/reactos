@@ -186,7 +186,7 @@ MmMapIoSpace(IN PHYSICAL_ADDRESS PhysicalAddress,
 VOID
 NTAPI
 MmUnmapIoSpace(IN PVOID BaseAddress,
-               IN ULONG NumberOfBytes)
+               IN SIZE_T NumberOfBytes)
 {    
     PFN_NUMBER PageCount, Pfn;
     PMMPTE PointerPte;
@@ -235,7 +235,7 @@ MmUnmapIoSpace(IN PVOID BaseAddress,
 PVOID
 NTAPI
 MmMapVideoDisplay(IN PHYSICAL_ADDRESS PhysicalAddress,
-                  IN ULONG NumberOfBytes,
+                  IN SIZE_T NumberOfBytes,
                   IN MEMORY_CACHING_TYPE CacheType)
 {
     PAGED_CODE();
@@ -252,7 +252,7 @@ MmMapVideoDisplay(IN PHYSICAL_ADDRESS PhysicalAddress,
 VOID
 NTAPI
 MmUnmapVideoDisplay(IN PVOID BaseAddress,
-                    IN ULONG NumberOfBytes)
+                    IN SIZE_T NumberOfBytes)
 {
     //
     // Call the real function

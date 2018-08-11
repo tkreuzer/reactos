@@ -1282,15 +1282,15 @@ DWORD WINAPI mciSendStringW(LPCWSTR lpstrCommand, LPWSTR lpstrRet,
 	    tmp = devType; devType = dev; dev = tmp;
 
 	    dwFlags |= MCI_OPEN_TYPE;
-	    data[2] = (DWORD)devType;
+	    data[2] = (DWORD_PTR)devType;
 	    devType = str_dup_upper(devType);
 	    dwFlags |= MCI_OPEN_ELEMENT;
-	    data[3] = (DWORD)dev;
+	    data[3] = (DWORD_PTR)dev;
 	} else if (DRIVER_GetLibName(dev, wszMci, buf, sizeof(buf))) {
             /* this is the name of a mci driver's type */
 	    tmp = strchrW(dev, ' ');
 	    if (tmp) *tmp = '\0';
-	    data[2] = (DWORD)dev;
+	    data[2] = (DWORD_PTR)dev;
 	    devType = str_dup_upper(dev);
 	    if (tmp) *tmp = ' ';
 	    dwFlags |= MCI_OPEN_TYPE;
@@ -1309,7 +1309,7 @@ DWORD WINAPI mciSendStringW(LPCWSTR lpstrCommand, LPWSTR lpstrRet,
 		devType = str_dup_upper(buf);
 	    }
 	    dwFlags |= MCI_OPEN_ELEMENT;
-	    data[3] = (DWORD)dev;
+	    data[3] = (DWORD_PTR)dev;
 	}
 	if ((devAlias = strstrW(args, wszSAliasS))) {
             WCHAR*      tmp2;
@@ -1319,7 +1319,7 @@ DWORD WINAPI mciSendStringW(LPCWSTR lpstrCommand, LPWSTR lpstrRet,
             tmp2 = HeapAlloc(GetProcessHeap(), 0, (tmp - devAlias + 1) * sizeof(WCHAR) );
             memcpy( tmp2, devAlias, (tmp - devAlias) * sizeof(WCHAR) );
             tmp2[tmp - devAlias] = 0;
-            data[4] = (DWORD)tmp2;
+            data[4] = (DWORD_PTR)tmp2;
 	    /* should be done in regular options parsing */
 	    /* dwFlags |= MCI_OPEN_ALIAS; */
 	} else if (dev == 0) {
@@ -1378,7 +1378,7 @@ DWORD WINAPI mciSendStringW(LPCWSTR lpstrCommand, LPWSTR lpstrRet,
     switch (retType = MCI_GetReturnType(lpCmd)) {
     case 0:		offset = 1;	break;
     case MCI_INTEGER:	offset = 2;	break;
-    case MCI_STRING:	data[1] = (DWORD)lpstrRet; data[2] = uRetLen; offset = 3; break;
+    case MCI_STRING:	data[1] = (DWORD_PTR)lpstrRet; data[2] = uRetLen; offset = 3; break;
     case MCI_RECT:	offset = 5;	break;
     default:	ERR("oops\n");
     }
