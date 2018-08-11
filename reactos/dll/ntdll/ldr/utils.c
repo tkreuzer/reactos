@@ -562,7 +562,7 @@ LdrAddModuleEntry(PVOID ImageBase,
   ASSERT(Module);
   memset(Module, 0, sizeof(LDR_DATA_TABLE_ENTRY));
   Module->DllBase = (PVOID)ImageBase;
-  Module->EntryPoint = (PVOID)NTHeaders->OptionalHeader.AddressOfEntryPoint;
+  Module->EntryPoint = (PVOID)(ULONG_PTR)NTHeaders->OptionalHeader.AddressOfEntryPoint;
   if (Module->EntryPoint != 0)
     Module->EntryPoint = (PVOID)((ULONG_PTR)Module->EntryPoint + (ULONG_PTR)Module->DllBase);
   Module->SizeOfImage = LdrpGetResidentSize(NTHeaders);
@@ -1210,8 +1210,8 @@ LdrGetExportByOrdinal (
                     ? RVA(BaseAddress, ExFunctions[Ordinal - ExportDir->Base] )
                     : NULL);
 
-        if (((ULONG)Function >= (ULONG)ExportDir) &&
-            ((ULONG)Function < (ULONG)ExportDir + (ULONG)ExportDirSize))
+        if (((ULONG_PTR)Function >= (ULONG_PTR)ExportDir) &&
+            ((ULONG_PTR)Function < (ULONG_PTR)ExportDir + (ULONG_PTR)ExportDirSize))
           {
              DPRINT("Forward: %s\n", (PCHAR)Function);
              Function = LdrFixupForward((PCHAR)Function);
@@ -1295,8 +1295,8 @@ LdrGetExportByName(PVOID BaseAddress,
           {
              Ordinal = ExOrdinals[Hint];
              Function = RVA(BaseAddress, ExFunctions[Ordinal]);
-             if (((ULONG)Function >= (ULONG)ExportDir) &&
-                 ((ULONG)Function < (ULONG)ExportDir + (ULONG)ExportDirSize))
+             if (((ULONG_PTR)Function >= (ULONG_PTR)ExportDir) &&
+                 ((ULONG_PTR)Function < (ULONG_PTR)ExportDir + (ULONG_PTR)ExportDirSize))
                {
                   DPRINT("Forward: %s\n", (PCHAR)Function);
                   Function = LdrFixupForward((PCHAR)Function);
@@ -1329,8 +1329,8 @@ LdrGetExportByName(PVOID BaseAddress,
           {
              Ordinal = ExOrdinals[mid];
              Function = RVA(BaseAddress, ExFunctions[Ordinal]);
-             if (((ULONG)Function >= (ULONG)ExportDir) &&
-                 ((ULONG)Function < (ULONG)ExportDir + (ULONG)ExportDirSize))
+             if (((ULONG_PTR)Function >= (ULONG_PTR)ExportDir) &&
+                 ((ULONG_PTR)Function < (ULONG_PTR)ExportDir + (ULONG_PTR)ExportDirSize))
                {
                   DPRINT("Forward: %s\n", (PCHAR)Function);
                   Function = LdrFixupForward((PCHAR)Function);
@@ -1385,7 +1385,8 @@ LdrPerformRelocations(PIMAGE_NT_HEADERS NTHeaders,
 {
   PIMAGE_DATA_DIRECTORY RelocationDDir;
   PIMAGE_BASE_RELOCATION RelocationDir, RelocationEnd;
-  ULONG Count, ProtectSize, OldProtect, OldProtect2;
+  ULONG Count, OldProtect, OldProtect2;
+  SIZE_T ProtectSize;
   PVOID Page, ProtectPage, ProtectPage2;
   PUSHORT TypeOffset;
   ULONG_PTR Delta;
@@ -1573,7 +1574,7 @@ LdrpProcessImportDirectoryEntry(PLDR_DATA_TABLE_ENTRY Module,
    PVOID IATBase;
    ULONG OldProtect;
    ULONG Ordinal;
-   ULONG IATSize;
+   SIZE_T IATSize;
 
    if (ImportModuleDirectory == NULL || ImportModuleDirectory->Name == 0)
      {
@@ -1722,7 +1723,7 @@ LdrpAdjustImportDirectory(PLDR_DATA_TABLE_ENTRY Module,
    PVOID IATBase;
    ULONG OldProtect;
    ULONG Offset;
-   ULONG IATSize;
+   SIZE_T IATSize;
    PIMAGE_NT_HEADERS NTHeaders;
    PCHAR Name;
    ULONG Size;
@@ -2795,7 +2796,7 @@ LdrpDetachProcess(BOOLEAN UnloadAll)
              {
                TRACE_LDR("Unload %wZ - Calling entry point at %x\n",
                          &Module->BaseDllName, Module->EntryPoint);
-               LdrpCallDllEntry(Module, DLL_PROCESS_DETACH, (PVOID)(Module->LoadCount == LDRP_PROCESS_CREATION_TIME ? 1 : 0));
+               LdrpCallDllEntry(Module, DLL_PROCESS_DETACH, (PVOID)(INT_PTR)(Module->LoadCount == LDRP_PROCESS_CREATION_TIME ? 1 : 0));
              }
            else
              {
@@ -2880,7 +2881,7 @@ LdrpAttachProcess(VOID)
            Module->Flags |= LDRP_LOAD_IN_PROGRESS;
            TRACE_LDR("%wZ loaded - Calling init routine at %x for process attaching\n",
                      &Module->BaseDllName, Module->EntryPoint);
-           Result = LdrpCallDllEntry(Module, DLL_PROCESS_ATTACH, (PVOID)(Module->LoadCount == LDRP_PROCESS_CREATION_TIME ? 1 : 0));
+           Result = LdrpCallDllEntry(Module, DLL_PROCESS_ATTACH, (PVOID)(INT_PTR)(Module->LoadCount == LDRP_PROCESS_CREATION_TIME ? 1 : 0));
            if (!Result)
              {
                Status = STATUS_DLL_INIT_FAILED;
@@ -3500,6 +3501,12 @@ LdrProcessRelocationBlock(IN ULONG_PTR Address,
             LongPtr = (PULONG)((ULONG_PTR)Address + Offset);
             *LongPtr += Delta;
             break;
+#ifdef _WIN64
+          case IMAGE_REL_BASED_DIR64:
+            LongPtr = (PULONG)((ULONG_PTR)Address + Offset);
+            *LongPtr += Delta;
+            break;
+#endif
 
           case IMAGE_REL_BASED_HIGHADJ:
           case IMAGE_REL_BASED_MIPS_JMPADDR:
@@ -3567,7 +3574,7 @@ LdrLockLoaderLock(IN ULONG Flags,
     }
 
     /* FIXME: Cookie is based on part of the thread id */
-    *Cookie = (ULONG)NtCurrentTeb()->RealClientId.UniqueThread;
+    *Cookie = (ULONG_PTR)NtCurrentTeb()->RealClientId.UniqueThread;
     return Status;
 }
 
@@ -3579,7 +3586,7 @@ LdrUnlockLoaderLock(IN ULONG Flags,
     if (Flags != 0x01)
         return STATUS_INVALID_PARAMETER_1;
 
-    if (Cookie != (ULONG)NtCurrentTeb()->RealClientId.UniqueThread)
+    if (Cookie != (ULONG_PTR)NtCurrentTeb()->RealClientId.UniqueThread)
         return STATUS_INVALID_PARAMETER_2;
 
     RtlLeaveCriticalSection(NtCurrentPeb()->LoaderLock);

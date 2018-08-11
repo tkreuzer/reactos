@@ -20,6 +20,8 @@ PTEB LdrpTopLevelDllBeingLoadedTeb = NULL;
 
 /* FUNCTIONS ***************************************************************/
 
+#ifndef _M_AMD64
+// FIXME: Why "Not implemented"???
 /*
  * @implemented
  */
@@ -32,6 +34,7 @@ RtlWalkFrameChain(OUT PVOID *Callers,
     /* Not implemented for user-mode */
     return 0;
 }
+#endif
 
 BOOLEAN
 NTAPI
