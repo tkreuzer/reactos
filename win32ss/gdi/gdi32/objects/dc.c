@@ -379,8 +379,15 @@ SetArcDirection(
     _In_ HDC hdc,
     _In_ INT nDirection)
 {
+    DWORD dwResult;
+
     HANDLE_METADC(INT, SetArcDirection, 0, hdc, nDirection);
-    return GetAndSetDCDWord(hdc, GdiGetSetArcDirection, nDirection, 0, 0, 0);
+    if (!NtGdiGetAndSetDCDword(hdc, GdiGetSetArcDirection, nDirection, &dwResult))
+    {
+        return 0;
+    }
+
+    return dwResult;
 }
 
 /*
@@ -724,30 +731,13 @@ SetRelAbs(
     HDC hdc,
     INT Mode)
 {
-    HANDLE_METADC(INT, SetRelAbs, 0, hdc, Mode);
-    return GetAndSetDCDWord(hdc, GdiGetSetRelAbs, Mode, 0, 0, 0);
-}
-
-
-/*
- * @implemented
- */
-DWORD
-WINAPI
-GetAndSetDCDWord(
-    _In_ HDC hdc,
-    _In_ UINT u,
-    _In_ DWORD dwIn,
-    _In_ ULONG ulMFId,
-    _In_ USHORT usMF16Id,
-    _In_ DWORD dwError)
-{
     DWORD dwResult;
 
-    /* Call win32k to do the real work */
-    if (!NtGdiGetAndSetDCDword(hdc, u, dwIn, &dwResult))
+    HANDLE_METADC(INT, SetRelAbs, 0, hdc, Mode);
+
+    if (!NtGdiGetAndSetDCDword(hdc, GdiGetSetRelAbs, Mode, &dwResult))
     {
-        return dwError;
+        return 0;
     }
 
     return dwResult;
