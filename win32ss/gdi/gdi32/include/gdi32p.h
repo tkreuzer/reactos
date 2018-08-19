@@ -290,16 +290,6 @@ ConvertBitmapInfo(
 
 DWORD
 WINAPI
-GetAndSetDCDWord(
-    _In_ HDC hdc,
-    _In_ UINT u,
-    _In_ DWORD dwIn,
-    _In_ ULONG ulMFId,
-    _In_ USHORT usMF16Id,
-    _In_ DWORD dwError);
-
-DWORD
-WINAPI
 GetDCDWord(
     _In_ HDC hdc,
     _In_ UINT u,

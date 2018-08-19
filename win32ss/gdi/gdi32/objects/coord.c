@@ -138,6 +138,7 @@ SetMapMode(
     _In_ INT iMode)
 {
     PDC_ATTR pdcattr;
+    DWORD dwResult;
 
     HANDLE_METADC(INT, SetMapMode, 0, hdc, iMode);
 
@@ -153,7 +154,12 @@ SetMapMode(
     if ((iMode != pdcattr->iMapMode) || (iMode == MM_ISOTROPIC))
     {
         pdcattr->ulDirty_ &= ~SLOW_WIDTHS;
-        return GetAndSetDCDWord(hdc, GdiGetSetMapMode, iMode, 0, 0, 0 );
+        if (!NtGdiGetAndSetDCDword(hdc, GdiGetSetMapMode, iMode, &dwResult))
+        {
+            return 0;
+        }
+
+        return dwResult;
     }
 
     return pdcattr->iMapMode;
