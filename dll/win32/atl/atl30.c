@@ -313,7 +313,7 @@ ATOM WINAPI AtlModuleRegisterWndClassInfoA(_ATL_MODULEA *pm, _ATL_WNDCLASSINFOA 
 
         if (!wci->m_wc.lpszClassName)
         {
-            sprintf(wci->m_szAutoName, "ATL%08lx", (UINT_PTR)wci);
+            sprintf(wci->m_szAutoName, "ATL%08Ix", (UINT_PTR)wci);
             TRACE("auto-generated class name %s\n", wci->m_szAutoName);
             wci->m_wc.lpszClassName = wci->m_szAutoName;
         }

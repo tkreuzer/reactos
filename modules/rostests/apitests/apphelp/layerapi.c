@@ -569,6 +569,7 @@ static BOOL create_file(LPCSTR dir, LPCSTR name, int filler, DWORD size)
 {
     char target[MAX_PATH], *tmp;
     HANDLE file;
+    ULONG size2;
     PathCombineA(target, dir, name);
 
     tmp = malloc(size);
@@ -578,7 +579,7 @@ static BOOL create_file(LPCSTR dir, LPCSTR name, int filler, DWORD size)
     if(file == INVALID_HANDLE_VALUE)
         return FALSE;
 
-    WriteFile(file, tmp, size, &size, NULL);
+    WriteFile(file, tmp, size, NULL, NULL);
     CloseHandle(file);
     free(tmp);
     return TRUE;
