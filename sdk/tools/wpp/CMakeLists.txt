@@ -17,6 +17,7 @@ if(MSVC)
         /wd4146  # "unary minus operator applied to unsigned type, result still unsigned"
         /wd4244) # "'=': conversion from 'a' to 'b', possible loss of data"
 
+    #add_compile_flags("/wd4267")
 endif()
 
 if(CMAKE_CROSSCOMPILING)
