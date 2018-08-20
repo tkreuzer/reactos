@@ -85,7 +85,7 @@ __stdcall
 ConWrite(
     IN PCON_STREAM Stream,
     IN PCTCH szStr,
-    IN DWORD len)
+    IN DWORD  len)
 {
 #ifndef USE_CRT
     DWORD TotalLen = len, dwNumBytes = 0;
@@ -398,7 +398,7 @@ INT
 ConStreamWrite(
     IN PCON_STREAM Stream,
     IN PCTCH szStr,
-    IN DWORD len)
+    IN DWORD  len)
 {
     INT Len;
     CON_STREAM_WRITE2(Stream, szStr, len, Len);
@@ -430,7 +430,7 @@ ConPuts(
 {
     INT Len;
 
-    Len = wcslen(szStr);
+    Len = (INT)wcslen(szStr);
     CON_STREAM_WRITE2(Stream, szStr, Len, Len);
 
     /* Fixup returned length in case of errors */

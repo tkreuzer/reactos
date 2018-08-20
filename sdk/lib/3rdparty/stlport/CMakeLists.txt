@@ -2,6 +2,11 @@
 #uncomment this if you want to test c++ compilation
 #add_subdirectory(test)
 
+if(MSVC)
+    # C4146: unary minus operator applied to unsigned type, result still unsigned
+    add_compile_options("/wd4146")
+endif()
+
 list(APPEND SOURCE
     src/allocators.cpp
     src/bitset.cpp

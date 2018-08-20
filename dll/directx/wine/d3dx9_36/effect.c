@@ -6375,17 +6375,17 @@ static const char **parse_skip_constants_string(char *skip_constants_string, uns
         if (*names_count == size)
         {
             size *= 2;
-            new_alloc = HeapReAlloc(GetProcessHeap(), 0, names, sizeof(*names) * size);
+            new_alloc = HeapReAlloc(GetProcessHeap(), 0, (PVOID)names, sizeof(*names) * size);
             if (!new_alloc)
             {
-                HeapFree(GetProcessHeap(), 0, names);
+                HeapFree(GetProcessHeap(), 0, (PVOID)names);
                 return NULL;
             }
             names = new_alloc;
         }
         names[(*names_count)++] = name;
     }
-    new_alloc = HeapReAlloc(GetProcessHeap(), 0, names, *names_count * sizeof(*names));
+    new_alloc = HeapReAlloc(GetProcessHeap(), 0, (PVOID)names, *names_count * sizeof(*names));
     if (!new_alloc)
         return names;
     return new_alloc;
@@ -6511,7 +6511,7 @@ static HRESULT d3dx9_effect_init(struct d3dx_effect *effect, struct IDirect3DDev
     {
         FIXME("Failed to parse effect.\n");
         HeapFree(GetProcessHeap(), 0, skip_constants_buffer);
-        HeapFree(GetProcessHeap(), 0, skip_constants);
+        HeapFree(GetProcessHeap(), 0, (PVOID)skip_constants);
         return hr;
     }
 
@@ -6528,7 +6528,7 @@ static HRESULT d3dx9_effect_init(struct d3dx_effect *effect, struct IDirect3DDev
                     WARN("skip_constants parameter %s is used in technique %u.\n",
                             debugstr_a(skip_constants[i]), j);
                     HeapFree(GetProcessHeap(), 0, skip_constants_buffer);
-                    HeapFree(GetProcessHeap(), 0, skip_constants);
+                    HeapFree(GetProcessHeap(), 0, (PVOID)skip_constants);
                     return D3DERR_INVALIDCALL;
                 }
             }
@@ -6541,7 +6541,7 @@ static HRESULT d3dx9_effect_init(struct d3dx_effect *effect, struct IDirect3DDev
     }
 
     HeapFree(GetProcessHeap(), 0, skip_constants_buffer);
-    HeapFree(GetProcessHeap(), 0, skip_constants);
+    HeapFree(GetProcessHeap(), 0, (PVOID)skip_constants);
 
     /* initialize defaults - check because of unsupported ascii effects */
     if (effect->techniques)

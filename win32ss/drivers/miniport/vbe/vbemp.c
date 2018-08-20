@@ -1048,7 +1048,7 @@ VBESetColorRegisters(
          DeviceExtension->TrampolineMemorySegment,
          DeviceExtension->TrampolineMemoryOffset,
          OutputBuffer,
-         (OutputEntry - OutputBuffer) * sizeof(ULONG));
+         (ULONG)((OutputEntry - OutputBuffer) * sizeof(ULONG)));
 
       VideoPortZeroMemory(&BiosRegisters, sizeof(BiosRegisters));
       BiosRegisters.Eax = VBE_SET_GET_PALETTE_DATA;

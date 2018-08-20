@@ -1548,6 +1548,13 @@ XIPInit(
 #define ExfInterlockedCompareExchange64UL(Destination, Exchange, Comperand) \
    (ULONGLONG)ExfInterlockedCompareExchange64((PLONGLONG)(Destination), (PLONGLONG)(Exchange), (PLONGLONG)(Comperand))
 
+__forceinline
+SIZE_T
+InterlockedCompareExchangeLongPtr(PLONG_PTR Destination, LONG_PTR Exchange, LONG_PTR Comperand)
+{
+    return (LONG_PTR)InterlockedCompareExchangePointer((PVOID*)Destination, (PVOID)Exchange, (PVOID)Comperand);
+}
+
 #ifdef __cplusplus
 } // extern "C"
 #endif

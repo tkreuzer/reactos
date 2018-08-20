@@ -42,8 +42,8 @@ size_t CDECL _mbstowcs_l(wchar_t *wcstr, const char *mbstr,
     }
 
     if(size) {
-        size = MultiByteToWideChar(locinfo->lc_codepage, 0,
-                                   mbstr, size, wcstr, count);
+    size = MultiByteToWideChar(locinfo->lc_codepage, 0,
+            mbstr, (ULONG)size, wcstr, (int)count);
         if(!size) {
             if(count) wcstr[0] = '\0';
             _set_errno(EILSEQ);

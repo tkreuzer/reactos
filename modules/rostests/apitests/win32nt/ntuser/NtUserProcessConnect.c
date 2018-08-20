@@ -26,7 +26,7 @@ START_TEST(NtUserProcessConnect)
     Status = NtUserProcessConnect(hProcess, &UserConnect, sizeof(UserConnect));
     TEST(NT_SUCCESS(Status));
 
-    printf("UserConnect.ulVersion = 0x%lx\n", UserConnect.ulVersion);
+    printf("UserConnect.ulVersion = 0x%x\n", UserConnect.ulVersion);
     printf("UserConnect.ulCurrentVersion = 0x%lx\n", UserConnect.ulCurrentVersion);
     printf("UserConnect.dwDispatchCount = 0x%lx\n", UserConnect.dwDispatchCount);
     printf("UserConnect.siClient.psi = 0x%p\n", UserConnect.siClient.psi);

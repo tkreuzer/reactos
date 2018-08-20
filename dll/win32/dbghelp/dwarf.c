@@ -359,9 +359,9 @@ static ULONG_PTR dwarf2_parse_addr(dwarf2_traverse_context_t* ctx)
     return ret;
 }
 
-static const char* dwarf2_debug_traverse_ctx(const dwarf2_traverse_context_t* ctx)
+static const char* dwarf2_debug_traverse_ctx(const dwarf2_traverse_context_t* ctx) 
 {
-    return wine_dbg_sprintf("ctx(%p)", ctx->data);
+    return wine_dbg_sprintf("ctx(%p)", ctx->data); 
 }
 
 static const char* dwarf2_debug_ctx(const dwarf2_parse_context_t* ctx)
@@ -384,7 +384,7 @@ dwarf2_abbrev_table_find_entry(const struct sparse_array* abbrev_table,
     return sparse_array_find(abbrev_table, entry_code);
 }
 
-static void dwarf2_parse_abbrev_set(dwarf2_traverse_context_t* abbrev_ctx,
+static void dwarf2_parse_abbrev_set(dwarf2_traverse_context_t* abbrev_ctx, 
                                     struct sparse_array* abbrev_table,
                                     struct pool* pool)
 {
@@ -398,17 +398,17 @@ static void dwarf2_parse_abbrev_set(dwarf2_traverse_context_t* abbrev_ctx,
     assert( NULL != abbrev_ctx );
 
     TRACE("%s, end at %p\n",
-          dwarf2_debug_traverse_ctx(abbrev_ctx), abbrev_ctx->end_data);
+          dwarf2_debug_traverse_ctx(abbrev_ctx), abbrev_ctx->end_data); 
 
     sparse_array_init(abbrev_table, sizeof(dwarf2_abbrev_entry_t), 32);
     while (abbrev_ctx->data < abbrev_ctx->end_data)
     {
-        TRACE("now at %s\n", dwarf2_debug_traverse_ctx(abbrev_ctx));
+        TRACE("now at %s\n", dwarf2_debug_traverse_ctx(abbrev_ctx)); 
         entry_code = dwarf2_leb128_as_unsigned(abbrev_ctx);
         TRACE("found entry_code %lu\n", entry_code);
         if (!entry_code)
         {
-            TRACE("NULL entry code at %s\n", dwarf2_debug_traverse_ctx(abbrev_ctx));
+            TRACE("NULL entry code at %s\n", dwarf2_debug_traverse_ctx(abbrev_ctx)); 
             break;
         }
         abbrev_entry = sparse_array_add(abbrev_table, entry_code, pool);
@@ -542,7 +542,7 @@ static void dwarf2_fill_attr(const dwarf2_parse_context_t* ctx,
         attr->u.uvalue = ctx->ref_offset + dwarf2_get_u4(data);
         TRACE("ref4<0x%lx>\n", attr->u.uvalue);
         break;
-
+    
     case DW_FORM_ref8:
         FIXME("Unhandled 64-bit support\n");
         break;
@@ -571,7 +571,7 @@ static void dwarf2_fill_attr(const dwarf2_parse_context_t* ctx,
     }
     TRACE("strp<%s>\n", debugstr_a(attr->u.string));
     break;
-
+        
     case DW_FORM_block:
         attr->u.block.size = dwarf2_get_leb128_as_unsigned(data, &attr->u.block.ptr);
         break;
@@ -727,7 +727,7 @@ compute_location(const struct module *module, dwarf2_traverse_context_t* ctx, st
         case DW_OP_swap:        tmp = stack[stk]; stack[stk] = stack[stk-1]; stack[stk-1] = tmp; break;
         case DW_OP_rot:         tmp = stack[stk]; stack[stk] = stack[stk-1]; stack[stk-1] = stack[stk-2]; stack[stk-2] = tmp; break;
         case DW_OP_abs:         stack[stk] = sizeof(stack[stk]) == 8 ? llabs((INT64)stack[stk]) : abs((INT32)stack[stk]); break;
-        case DW_OP_neg:         stack[stk] = -stack[stk]; break;
+        case DW_OP_neg:         stack[stk] = -(LONG_PTR)stack[stk]; break;
         case DW_OP_not:         stack[stk] = ~stack[stk]; break;
         case DW_OP_and:         stack[stk-1] &= stack[stk]; stk--; break;
         case DW_OP_or:          stack[stk-1] |= stack[stk]; stk--; break;
@@ -738,7 +738,7 @@ compute_location(const struct module *module, dwarf2_traverse_context_t* ctx, st
         case DW_OP_shl:         stack[stk-1] <<= stack[stk]; stk--; break;
         case DW_OP_shr:         stack[stk-1] >>= stack[stk]; stk--; break;
         case DW_OP_plus_uconst: stack[stk] += dwarf2_leb128_as_unsigned(ctx); break;
-        case DW_OP_shra:        stack[stk-1] = stack[stk-1] / (1 << stack[stk]); stk--; break;
+        case DW_OP_shra:        stack[stk-1] = stack[stk-1] / ((DWORD_PTR)1 << stack[stk]); stk--; break;
         case DW_OP_div:         stack[stk-1] = stack[stk-1] / stack[stk]; stk--; break;
         case DW_OP_mod:         stack[stk-1] = stack[stk-1] % stack[stk]; stk--; break;
         case DW_OP_ge:          stack[stk-1] = (stack[stk-1] >= stack[stk]); stk--; break;
@@ -1168,7 +1168,7 @@ static struct symt* dwarf2_parse_base_type(dwarf2_parse_context_t* ctx,
     int cache_idx = -1;
     if (di->symt) return di->symt;
 
-    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di));
+    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di)); 
 
     if (!dwarf2_find_attribute(ctx, di, DW_AT_name, &name))
         name.u.string = NULL;
@@ -1220,7 +1220,7 @@ static struct symt* dwarf2_parse_typedef(dwarf2_parse_context_t* ctx,
 
     if (di->symt) return di->symt;
 
-    TRACE("%s, for %lu\n", dwarf2_debug_ctx(ctx), di->abbrev->entry_code);
+    TRACE("%s, for %lu\n", dwarf2_debug_ctx(ctx), di->abbrev->entry_code); 
 
     if (!dwarf2_find_attribute(ctx, di, DW_AT_name, &name)) name.u.string = NULL;
     ref_type = dwarf2_lookup_type(ctx, di);
@@ -1239,7 +1239,7 @@ static struct symt* dwarf2_parse_pointer_type(dwarf2_parse_context_t* ctx,
 
     if (di->symt) return di->symt;
 
-    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di));
+    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di)); 
 
     if (!dwarf2_find_attribute(ctx, di, DW_AT_byte_size, &size)) size.u.uvalue = sizeof(void *);
     if (!(ref_type = dwarf2_lookup_type(ctx, di)))
@@ -1429,7 +1429,7 @@ static void dwarf2_parse_udt_member(dwarf2_parse_context_t* ctx,
         bit_offset.u.uvalue = nbytes.u.uvalue * 8 - bit_offset.u.uvalue - bit_size.u.uvalue;
     }
     else bit_offset.u.uvalue = 0;
-    symt_add_udt_element(ctx->module, parent, name.u.string, elt_type,
+    symt_add_udt_element(ctx->module, parent, name.u.string, elt_type,    
                          (loc.offset << 3) + bit_offset.u.uvalue,
                          bit_size.u.uvalue);
 
@@ -1451,7 +1451,7 @@ static struct symt* dwarf2_parse_udt_type(dwarf2_parse_context_t* ctx,
 
     if (di->symt) return di->symt;
 
-    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di));
+    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di)); 
 
     /* quirk... FIXME provide real support for anonymous UDTs */
     if (!dwarf2_find_attribute(ctx, di, DW_AT_name, &name))
@@ -1516,7 +1516,7 @@ static void dwarf2_parse_enumerator(dwarf2_parse_context_t* ctx,
     struct attribute    name;
     struct attribute    value;
 
-    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di));
+    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di)); 
 
     if (!dwarf2_find_attribute(ctx, di, DW_AT_name, &name)) return;
     if (!dwarf2_find_attribute(ctx, di, DW_AT_const_value, &value)) value.u.svalue = 0;
@@ -1537,7 +1537,7 @@ static struct symt* dwarf2_parse_enumeration_type(dwarf2_parse_context_t* ctx,
 
     if (di->symt) return di->symt;
 
-    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di));
+    TRACE("%s, for %s\n", dwarf2_debug_ctx(ctx), dwarf2_debug_di(di)); 
 
     if (!dwarf2_find_attribute(ctx, di, DW_AT_name, &name)) name.u.string = NULL;
     if (!dwarf2_find_attribute(ctx, di, DW_AT_byte_size, &size)) size.u.uvalue = 4;
@@ -1598,7 +1598,7 @@ static void dwarf2_parse_variable(dwarf2_subprogram_t* subpgm,
 
     is_pmt = !block && di->abbrev->tag == DW_TAG_formal_parameter;
     param_type = dwarf2_lookup_type(subpgm->ctx, di);
-
+        
     if (!dwarf2_find_attribute(subpgm->ctx, di, DW_AT_name, &name)) {
 	/* cannot do much without the name, the functions below won't like it. */
         return;
@@ -1635,7 +1635,7 @@ static void dwarf2_parse_variable(dwarf2_subprogram_t* subpgm,
              * pmt/variable in a register
              */
             assert(subpgm->func);
-            symt_add_func_local(subpgm->ctx->module, subpgm->func,
+            symt_add_func_local(subpgm->ctx->module, subpgm->func, 
                                 is_pmt ? DataIsParam : DataIsLocal,
                                 &loc, block, param_type, name.u.string);
             break;
@@ -2157,7 +2157,7 @@ static void dwarf2_load_one_entry(dwarf2_parse_context_t* ctx,
         break;
     default:
         FIXME("Unhandled Tag type 0x%lx at %s, for %lu\n",
-              di->abbrev->tag, dwarf2_debug_ctx(ctx), di->abbrev->entry_code);
+              di->abbrev->tag, dwarf2_debug_ctx(ctx), di->abbrev->entry_code); 
     }
 }
 
@@ -3028,8 +3028,8 @@ static DWORD64 get_context_reg(const struct module* module, struct cpu_stack_wal
         return *(DWORD *)ptr;
 
     FIXME("unhandled size %d\n", sz);
-    return 0;
-}
+        return 0;
+    }
 
 /* set a context register from its dwarf number */
 static void set_context_reg(const struct module* module, struct cpu_stack_walk* csw, union ctx *context,
@@ -3140,7 +3140,7 @@ static ULONG_PTR eval_expression(const struct module* module, struct cpu_stack_w
         case DW_OP_swap:        tmp = stack[sp]; stack[sp] = stack[sp-1]; stack[sp-1] = tmp; break;
         case DW_OP_rot:         tmp = stack[sp]; stack[sp] = stack[sp-1]; stack[sp-1] = stack[sp-2]; stack[sp-2] = tmp; break;
         case DW_OP_abs:         stack[sp] = sizeof(stack[sp]) == 8 ? llabs((INT64)stack[sp]) : abs((INT32)stack[sp]); break;
-        case DW_OP_neg:         stack[sp] = -stack[sp]; break;
+        case DW_OP_neg:         stack[sp] = -(LONG_PTR)stack[sp]; break;
         case DW_OP_not:         stack[sp] = ~stack[sp]; break;
         case DW_OP_and:         stack[sp-1] &= stack[sp]; sp--; break;
         case DW_OP_or:          stack[sp-1] |= stack[sp]; sp--; break;
@@ -3151,7 +3151,7 @@ static ULONG_PTR eval_expression(const struct module* module, struct cpu_stack_w
         case DW_OP_shl:         stack[sp-1] <<= stack[sp]; sp--; break;
         case DW_OP_shr:         stack[sp-1] >>= stack[sp]; sp--; break;
         case DW_OP_plus_uconst: stack[sp] += dwarf2_leb128_as_unsigned(&ctx); break;
-        case DW_OP_shra:        stack[sp-1] = (LONG_PTR)stack[sp-1] / (1 << stack[sp]); sp--; break;
+        case DW_OP_shra:        stack[sp-1] = (LONG_PTR)stack[sp-1] / ((LONG_PTR)1 << stack[sp]); sp--; break;
         case DW_OP_div:         stack[sp-1] = (LONG_PTR)stack[sp-1] / (LONG_PTR)stack[sp]; sp--; break;
         case DW_OP_mod:         stack[sp-1] = (LONG_PTR)stack[sp-1] % (LONG_PTR)stack[sp]; sp--; break;
         case DW_OP_ge:          stack[sp-1] = ((LONG_PTR)stack[sp-1] >= (LONG_PTR)stack[sp]); sp--; break;
