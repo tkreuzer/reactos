@@ -52,6 +52,7 @@ RelocateSection(
                 break;
 
             case IMAGE_REL_I386_DIR32:
+            case 20: // IMAGE_REL_I386_REL32:
                 p32 = (void*)(pSection + nOffset);
                 *p32 += (DWORD)(pSymbols[pReloc->SymbolTableIndex].Value + iOffset);
                 break;
