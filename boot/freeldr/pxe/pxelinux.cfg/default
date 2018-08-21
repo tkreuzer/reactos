@@ -1,0 +1,2 @@
+DEFAULT chain.c32
+APPEND file=freeldr.sys seg=0x0F80 keeppxe
