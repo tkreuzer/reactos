@@ -1,4 +1,15 @@
 
+if(NOT ARCH)
+    if ($ENV{Platform})
+        set(ARCH $ENV{Platform})
+    elseif($ENV{PROCESSOR_ARCHITECTURE})
+        set(ARCH $ENV{PROCESSOR_ARCHITECTURE})
+    else()
+        set(ARCH "i386")
+    endif()
+
+    # needs fixup x86/x64 -> ...
+endif()
 # pass variables necessary for the toolchain (needed for try_compile)
 set(CMAKE_TRY_COMPILE_PLATFORM_VARIABLES ARCH USE_CLANG_CL)
 

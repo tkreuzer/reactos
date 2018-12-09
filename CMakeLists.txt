@@ -31,6 +31,23 @@ set(CMAKE_CXX_STANDARD 11)
 # check that the ARCH (target architecture) variable is defined
 if(NOT ARCH)
     message(FATAL_ERROR "Target architecture (ARCH) is not defined. Please, choose one of: i386, amd64, arm, arm64")
+    message("CMAKE_SYSTEM_NAME = ${CMAKE_SYSTEM_NAME}")
+    message("CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
+    message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
+    message("CMAKE_C_COMPILER = ${CMAKE_C_COMPILER}")
+    message("CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
+    message("CMAKE_ASM_COMPILER_ID = ${CMAKE_ASM_COMPILER_ID}")
+    message("CMAKE_ASM_COMPILER = ${CMAKE_ASM_COMPILER}")
+    message("CMAKE_MC_COMPILER = ${CMAKE_MC_COMPILER}")
+    message("CMAKE_RC_COMPILER = ${CMAKE_RC_COMPILER}")
+    message("CMAKE_C_STANDARD_LIBRARIES = ${CMAKE_C_STANDARD_LIBRARIES}")
+    message("CMAKE_CXX_STANDARD_LIBRARIES = ${CMAKE_CXX_STANDARD_LIBRARIES}")
+
+    set(ARCH ${CMAKE_SYSTEM_PROCESSOR})
+    if(ARCH STREQUAL "x86")
+        set (ARCH "i386")
+    endif()
+
 endif()
 # Now the ARCH variable will be in lowercase.
 # It is needed because STREQUAL comparison
