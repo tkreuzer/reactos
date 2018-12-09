@@ -1,6 +1,14 @@
 
 if(NOT ARCH)
-    set(ARCH i386)
+    if ($ENV{Platform})
+        set(ARCH $ENV{Platform})
+    elseif($ENV{PROCESSOR_ARCHITECTURE})
+        set(ARCH $ENV{PROCESSOR_ARCHITECTURE})
+    else()
+        set(ARCH "i386")
+    endif()
+
+    # needs fixup x86/x64 -> ...
 endif()
 
 # Default to Debug for the build type
