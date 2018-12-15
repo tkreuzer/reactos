@@ -2,6 +2,7 @@
 #define _ARC_
 
 #include "profiles.h"
+#include "arc_x.h"
 
 typedef ULONG ARC_STATUS;
 
