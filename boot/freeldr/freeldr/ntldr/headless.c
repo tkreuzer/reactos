@@ -10,6 +10,7 @@
 
 #include <freeldr.h>
 #include <cportlib/cportlib.h>
+#include <arc/hdlsblk.h>
 
 /* Note: Move these to some smbios.h header */
 #define SYSID_TYPE_UUID "_UUID_"

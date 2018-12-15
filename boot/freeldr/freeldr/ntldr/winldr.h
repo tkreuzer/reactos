@@ -21,6 +21,7 @@
 #pragma once
 
 #include <arc/setupblk.h>
+#include <arc/hdlsblk.h>
 
 #if 0
 // See freeldr/include/winldr.h

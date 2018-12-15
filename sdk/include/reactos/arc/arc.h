@@ -284,25 +284,7 @@ typedef struct _NLS_DATA_BLOCK
 //
 // Subsystem Specific Loader Blocks
 //
-typedef struct _HEADLESS_LOADER_BLOCK
-{
-    UCHAR UsedBiosSettings;
-    UCHAR DataBits;
-    UCHAR StopBits;
-    UCHAR Parity;
-    ULONG BaudRate;
-    ULONG PortNumber;
-    PUCHAR PortAddress;
-    USHORT PciDeviceId;
-    USHORT PciVendorId;
-    UCHAR PciBusNumber;
-    UCHAR PciSlotNumber;
-    UCHAR PciFunctionNumber;
-    ULONG PciFlags;
-    GUID SystemGUID;
-    UCHAR IsMMIODevice;
-    UCHAR TerminalType;
-} HEADLESS_LOADER_BLOCK, *PHEADLESS_LOADER_BLOCK;
+struct _HEADLESS_LOADER_BLOCK;
 
 typedef struct _NETWORK_LOADER_BLOCK
 {
@@ -337,7 +319,7 @@ typedef struct _LOADER_PARAMETER_EXTENSION
     // NT 5.1
     //
     ULONG_PTR LoaderPagesSpanned;   /* Not anymore present starting NT 6.2 */
-    PHEADLESS_LOADER_BLOCK HeadlessLoaderBlock;
+    struct _HEADLESS_LOADER_BLOCK *HeadlessLoaderBlock;
     PSMBIOS_TABLE_HEADER SMBiosEPSHeader;
     PVOID DrvDBImage;
     ULONG DrvDBSize;
