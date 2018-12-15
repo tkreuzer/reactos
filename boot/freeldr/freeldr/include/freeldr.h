@@ -36,6 +36,7 @@
 #include <ntifs.h>
 #include <ioaccess.h>
 #include <arc/arc.h>
+#include <arc/arccodes.h>
 #include <ketypes.h>
 #include <mmtypes.h>
 #include <ndk/asm.h>

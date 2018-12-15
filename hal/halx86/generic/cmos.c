@@ -9,6 +9,7 @@
 /* INCLUDES ******************************************************************/
 
 #include <hal.h>
+#include <arc/arccodes.h>
 
 #define NDEBUG
 #include <debug.h>
