@@ -13,6 +13,7 @@
 #include <ntoskrnl.h>
 #include <wmidata.h>
 #include <wmistr.h>
+#include <arc/arccodes.h>
 #define NDEBUG
 #include <debug.h>
 
