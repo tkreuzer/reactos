@@ -8,6 +8,7 @@
 #include <ntdef.h>
 #include <ntifs.h>
 #include <arc/arc.h>
+#include <arc/hdlsblk.h>
 #include <ntndk.h>
 #include <bugcodes.h>
 

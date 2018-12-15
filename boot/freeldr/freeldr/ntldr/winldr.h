@@ -8,6 +8,7 @@
 #pragma once
 
 #include <arc/setupblk.h>
+#include <arc/hdlsblk.h>
 
 /* Entry-point to kernel */
 typedef VOID (NTAPI *KERNEL_ENTRY_POINT) (PLOADER_PARAMETER_BLOCK LoaderBlock);
