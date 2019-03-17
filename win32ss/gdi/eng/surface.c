@@ -207,6 +207,7 @@ SURFACE_AllocSurface(
     psurf = (PSURFACE)GDIOBJ_AllocObjWithHandle(GDI_OBJECT_TYPE_BITMAP, cjObject);
     if (!psurf)
     {
+        ERR("Failed to allocate SURFACE!\n");
         return NULL;
     }
 
