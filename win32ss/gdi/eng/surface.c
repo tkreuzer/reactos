@@ -190,19 +190,17 @@ SURFACE_AllocSurface(
     {
         /* Allocate an object large enough to hold the bits */
         cjObject = sizeof(SURFACE) + cjBits;
+        if (cjObject < sizeof(SURFACE))
+        {
+            /* Fail! */
+            ERR("Overflow calculating cjObject: cjBits %lu\n", cjBits);
+            return NULL;
+        }
     }
     else
     {
         /* Otherwise just allocate the SURFACE structure */
         cjObject = sizeof(SURFACE);
-    }
-
-    /* Check for arithmetic overflow */
-    if (cjObject < sizeof(SURFACE))
-    {
-        /* Fail! */
-        DPRINT1("Overflow calculating cjObject: cjBits %lu\n", cjBits);
-        return NULL;
     }
 
     /* Allocate a SURFACE object */
