@@ -393,6 +393,8 @@ KdInitSystem(IN ULONG BootPhase,
 
         /* Display separator + ReactOS version at start of the debug log */
         MemSizeMBs = KdpGetMemorySizeInMBs(KeLoaderBlock);
+        KdpDprintf("Hello from KD!");
+        __debugbreak();
         KdpPrintBanner(MemSizeMBs);
 
         /* Check if the debugger should be disabled initially */

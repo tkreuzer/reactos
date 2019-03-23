@@ -430,6 +430,7 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         KeInitExceptions();
 
          /* Initialize debugging system */
+        KeLoaderBlock->LoadOptions = "/DEBUG /DEBUGPORT=COM1 /BAUDRATE=19200";
         KdInitSystem(0, KeLoaderBlock);
 
         /* Check for break-in */
