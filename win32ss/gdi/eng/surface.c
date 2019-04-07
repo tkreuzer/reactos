@@ -14,6 +14,7 @@
 
 #define NDEBUG
 #include <debug.h>
+DBG_DEFAULT_CHANNEL(EngSurface);
 
 LONG giUniqueSurface = 0;
 
@@ -135,7 +136,7 @@ SURFACE_AllocSurface(
     /* Verify format */
     if ((iFormat < BMF_1BPP) || (iFormat > BMF_PNG))
     {
-        DPRINT1("Invalid bitmap format: %lu\n", iFormat);
+        ERR("Invalid bitmap format: %lu\n", iFormat);
         return NULL;
     }
 
@@ -160,8 +161,7 @@ SURFACE_AllocSurface(
         /* Calculate the correct bitmap size in bytes */
         if (!NT_SUCCESS(RtlULongMult(cjWidth, cy, &cjBits)))
         {
-            DPRINT1("Overflow calculating size: cjWidth %lu, cy %lu\n",
-                    cjWidth, cy);
+            ERR("Overflow calculating size: cjWidth %lu, cy %lu\n", cjWidth, cy);
             return NULL;
         }
 
@@ -207,6 +207,7 @@ SURFACE_AllocSurface(
     psurf = (PSURFACE)GDIOBJ_AllocObjWithHandle(GDI_OBJECT_TYPE_BITMAP, cjObject);
     if (!psurf)
     {
+        ERR("Failed to allocate SURFACE!\n");
         return NULL;
     }
 
