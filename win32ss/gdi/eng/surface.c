@@ -151,7 +151,7 @@ SURFACE_AllocSurface(
     }
     else
     {
-        /* Calculate width from the bitmap width in pixels */
+        /* Calculate width in bytes from the bitmap width in pixels */
         cjWidth = WIDTH_BYTES_ALIGN32(cx, cBitsPixel);
     }
 
