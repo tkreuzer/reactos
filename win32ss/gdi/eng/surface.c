@@ -143,8 +143,8 @@ SURFACE_AllocSurface(
     /* Get bits per pixel from the format */
     cBitsPixel = gajBitsPerFormat[iFormat];
 
-    /* Are bits and a width in bytes given? */
-    if (pvBits && cjWidth)
+    /* Are bits given? */
+    if (pvBits != NULL)
     {
         /* Align the provided width (Windows compatibility, drivers might expect that) */
         cjWidth = WIDTH_BYTES_ALIGN32(cjWidth * 8 / cBitsPixel, cBitsPixel);
@@ -153,35 +153,23 @@ SURFACE_AllocSurface(
     {
         /* Calculate width in bytes from the bitmap width in pixels */
         cjWidth = WIDTH_BYTES_ALIGN32(cx, cBitsPixel);
-    }
 
-    /* Is this an uncompressed format? */
-    if (iFormat <= BMF_32BPP)
-    {
-        /* Calculate the correct bitmap size in bytes */
-        if (!NT_SUCCESS(RtlULongMult(cjWidth, cy, &cjBits)))
+        /* Is this an uncompressed format? */
+        if (iFormat <= BMF_32BPP)
         {
-            ERR("Overflow calculating size: cjWidth %lu, cy %lu\n", cjWidth, cy);
-            return NULL;
-        }
-
-        /* Did we get a buffer and size? */
-        if ((pvBits != NULL) && (cjBufSize != 0))
-        {
-            /* Make sure the buffer is large enough */
-            if (cjBufSize < cjBits)
+            /* Calculate the correct bitmap size in bytes */
+            if (!NT_SUCCESS(RtlULongMult(cjWidth, cy, &cjBits)))
             {
-                DPRINT1("Buffer is too small, required: %lu, got %lu\n",
-                        cjBits, cjBufSize);
+                ERR("Overflow calculating size: cjWidth %lu, cy %lu\n", cjWidth, cy);
                 return NULL;
             }
         }
-    }
-    else
-    {
-        /* Compressed format, use the provided size */
-        NT_ASSERT(cjBufSize != 0);
-        cjBits = cjBufSize;
+        else
+        {
+            /* Compressed format, use the provided size */
+            NT_ASSERT(cjBufSize != 0);
+            cjBits = cjBufSize;
+        }
     }
 
     /* Check if we need an extra large object */
