@@ -1071,12 +1071,16 @@ RtlpCaptureNonVolatileContextPointers(
     ULONG64 ImageBase;
     PVOID HandlerData;
     ULONG64 EstablisherFrame;
+    KPROCESSOR_MODE Mode;
 
     /* Zero out the nonvolatile context pointers */
     RtlZeroMemory(NonvolatileContextPointers, sizeof(*NonvolatileContextPointers));
 
     /* Capture the current context */
     RtlCaptureContext(&Context);
+
+    /* Use the highest bit in RIP as mode flag */
+    Mode = Context.Rip >> 63;
 
     do
     {
