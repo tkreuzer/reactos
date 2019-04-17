@@ -574,7 +574,6 @@ const unsigned short* __cdecl __pwctype_func(void)
 #ifdef _LIBCNT_
 int __cdecl _isctype (int c, int ctypeFlags)
 {
-	_pctype = _ctype + 1;
   return (_pctype[(unsigned char)(c & 0xFF)] & ctypeFlags);
 }
 #else
