@@ -33,6 +33,16 @@
 #define _ARCH_RELATIVE_(_file) _STREXPAND_(amd64/_file)
 #endif
 
+/* A path separator */
+#define _C_PATHSEP_ /
+
+/* Helper for including from architecture specific paths.
+ * Architectures can be x86, amd64, arm, ppc, mips, mips64
+ * Use like this: '#include _ARCH_RELATIVE_(test.h)' */
+#define _ARCH_RELATIVE_(file) \
+    _STREXPAND_(_EXPAND_(_ARCH_)_EXPAND_(_C_PATHSEP_)file)
+
+
 /* Useful helper macros */
 #define AddToPointer(Ptr, Offset) ((PVOID)(((PUCHAR)(Ptr)) + (Offset)))
 #define PointerDiff(Address1, Address2) ((PUCHAR)Address2 - (PUCHAR)Address1)
