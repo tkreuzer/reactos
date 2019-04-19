@@ -1,0 +1,151 @@
+
+
+
+Basic design concept
+---------------------
+For maximum abstraction and improved hierachical design, the kernel will be
+seperated into multiple parts, coming from 2 layers: The NT layer, sitting
+on top of the NUKE layer. The NT layer consists of ntoskrnl.exe, hal.dll
+and possibly boot drivers. The NUKE layer consists of the NUKE core
+NukeCore.sys, the hardware abstraction layer NukeHal.dll, the kernel debugger
+KrnlDebug.dll, the plug-in scheduler NukeSched.dll and the boot display driver
+NukeVid.dll
+
+The NUKE core provides the most lowlevel services, like exception and interrupt
+handling, thread switching (the actual scheduler is inside NukeSched.dll
+allowing to plug in different schedulers at boot time), low level virtual
+memory management. the NUKE layer contains all architecture specific code.
+Higher level parts, like the object manager and high level memory manager
+functions are implemented in the NT layer. Making use of either lower level NT
+layer functions (Ke*) or the functions provided by the NUKE layer.
+For performance reasons some of the NT layer exports are directy forwarded to
+binary compatible implementations in the NUKE layer.
+
+
+The kernel entry point is KiSystemStartup in ntoskrnl.exe. Its a small C-stub
+calling into the NukeCore.sys exported KxSystemStartup, passing the loader
+block and 2 additional structures, containing callbacks in the kernel.
+The NUKE core calls these callback funtion whenever it needs the NT layer's
+service, for example to initialize different parts of the NT kernel.
+
+
+Design contraints
+-------------------
+The design of the NT kernel puts a number of contraints on the internal deign
+details of the NUKE core. Generally there are 2 kinds of contraints: hard
+and soft. Hard contraints are those that are impossible to circumvent without
+massive negative impact on performance or complexity. Soft contraints are
+those that could be circumvented, but might need sophisticated mechanisms
+to provide both the abstraction and compatibility desired without any major
+impact on performance.
+
+Hard contraints
+---------------
+A) The PCR/PRCB
+Due to the mechanism of access to the PCR and PRCB fields (through fs/gs
+segment addressing on x86/x64 architecture) and the common use of this
+mechanisms by device drivers, the same mechanism has to be provided by the
+NUKE core. Even though only the fields of the PCR are documented and made
+available by DDK headers, also some PRCB fields are neccessary to be in
+hardcoded locations. These fields are accessed through inline functions making
+use of segment addressing intrinsics. These functions are KeGetCurrentThread
+and KeGetCurrentProcessorIndex. at the current time the PRCB for x64 has a
+version constant layout up to a certain point and all members below can be
+considered both version specific and opaque to the driver. Their use from
+drivers should be extremely rare and only by badly designed drivers.
+    A possibility to handle this is to align the PCR on a page boundary in such
+a way, that the opaque members are in memory that is not mapped. The page fault
+handler would then need to handle these cases, temporarily map a page for the
+faulting CPU and have the offending code single step one step, reexecuting
+the faulting instruction. This would be a huge overhead, but since it can be
+considered to happen almost never, there is no real problem with that.
+    While the PCR is NT specific and thus should be implemented fully by the
+NT layer, this is unreasonable, due to the benefit that the segment addressing
+feature provides. While switching fs and gs segments for the NUKE core could
+be a solution that would allow taking advantage of segment addressing while not
+interfering with NT, sadly MS decided to not implement the neccessary intrinsics
+in their compiler. On x86 this can be circumvented by using inline assembly,
+on x64 there is only the solution of using an external assembler function, which
+might or might not get inlined. It would also add additional complexity to the
+code.
+    The last possiblility in this case would be a shared layout of the public
+and semi-public fields of the PCR/PRCB between the NUKE core and the NT core.
+Due to the fact that gs relative addressing can be negative as well, it is
+reasonable to use the space before the start of the actual PCR for the NUKE
+core and use negative offsets.
+
+Soft contraints
+---------------
+A) The KTHREAD and KPROCESS structures
+These structures are NT specific and although they are opaque, not publicly
+documented and differ between different windows versions, they might be
+accessed by drivers theoretically.
+    Pointers to these structures are used to identify theads and processes
+within drivers and they are passed to a large number of NT kernel functions.
+For full binary compatibility these pointers might be pointed to inaccessible
+memory, by modifying the pointer value. The trick used for the PCR, adding
+a number of unaccessible pages after the NUKE core's thread or process
+structure does not work, since these structures are allocated from pool memory.
+Therefore another possibility is modifying the actual pointer, possibly making
+it a non-canonical address, which would cause a general protecton fault.
+The fault hander would then need to identify the field that was going to be
+accessed and emulate the access based on the drivers OS version again using a
+single step.
+    The object manager now needs to handle this and provide a pointer to the
+caller that respects this behaviour. Therefore the object manager needs to know
+whether an object is supposed to be opaque and if it is, fiddle with the pointer
+in an appropriate manner
+
+
+
+
+
+
+UP/SMP
+------
+- Main development will be SMP, but UP will be provided
+
+
+Ke initialization
+-----------------
+    - Initialize the PCR/PRCB
+    - Setup Feature bits
+    - Create the initial process and thread
+
+
+Dbg Initialization
+------------------
+    - Initialize Module List with kernel, hal kdcom, maybe bootdrivers
+    - call kdcoms init function
+    -
+
+Mm initialization
+-----------------
+    - gather some information from the loader block, setup some variables
+    - setup early page allocations MiEarlyAllocPage();
+    - setup the page tables
+    - initialize the PFN database
+    - initialize the process address space for the inital process
+
+VADs
+----
+- Use VADs for the kernel address space
+- Setup VADs for:
+    - boot loaded images
+    - pfn database
+    - non paged Pool
+    - paged pool
+
+
+- PFN database
+    - use page colors
+    - use a simple interface
+        MiAllocatePages(Number, Process, flags, buffer)
+
+Interrupts
+-----------
+    - Instead of acquiring an interrupt spinlock, increase a variable in
+      the interrupt object and end the interrupt, the cpu currently "owning
+      the lock" will notice it when releasing and rerun the ISR.
+
+

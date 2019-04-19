@@ -1,0 +1,3 @@
+
+Generic information about the receive/send process:
+http://articles.sysprogs.org/kdvmware/kdcom.shtml

@@ -1,0 +1,664 @@
+
+Microsoft (R) Windows Debugger Version 6.2.8400.4218 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+Loading Dump File [C:\Windows\livekd.dmp]
+Kernel Complete Dump File: Full address space is available
+
+Comment: 'LiveKD live system view'
+Symbol search path is: srv*c:\Symbols*http://msdl.microsoft.com/download/symbols
+Executable search path is:
+Windows 7 Kernel Version 7601 (Service Pack 1) MP (2 procs) Free x64
+Product: WinNt, suite: TerminalServer SingleUserTS
+Built by: 7601.18044.amd64fre.win7sp1_gdr.130104-1431
+Machine Name:
+Kernel base = 0xfffff800`02e12000 PsLoadedModuleList = 0xfffff800`03056670
+Debug session time: Wed Apr 10 18:56:13.619 2013 (UTC + 2:00)
+System Uptime: 0 days 9:54:17.077
+Loading Kernel Symbols
+...............................................................
+................................................................
+..........................
+Loading User Symbols
+.............................
+Loading unloaded module list
+.....Unable to enumerate user-mode unloaded modules, NTSTATUS 0xC0000147
+*** ERROR: Module load completed but symbols could not be loaded for LiveKdD.SYS
+0: kd> !process 0 1 ntdll_apitest.exe
+PROCESS fffffa800955a060
+    SessionId: 1  Cid: 0e1c    Peb: 7fffffda000  ParentCid: 0f94
+    DirBase: aba9d000  ObjectTable: fffff8a010a22540  HandleCount:  17.
+    Image: ntdll_apitest.exe
+    VadRoot fffffa800b8fe160 Vads 25 Clone 0 Private 160. Modified 129. Locked 0.
+    DeviceMap fffff8a0012835f0
+    Token                             fffff8a019b356c0
+    ElapsedTime                       00:00:07.803
+    UserTime                          00:00:00.000
+    KernelTime                        00:00:00.000
+    QuotaPoolUsage[PagedPool]         21400
+    QuotaPoolUsage[NonPagedPool]      2880
+    Working Set Sizes (now,min,max)  (577, 50, 345) (2308KB, 200KB, 1380KB)
+    PeakWorkingSetSize                577
+    VirtualSize                       19 Mb
+    PeakVirtualSize                   19 Mb
+    PageFaultCount                    574
+    MemoryPriority                    BACKGROUND
+    BasePriority                      8
+    CommitCharge                      227
+
+0: kd> .process fffffa800955a060
+Implicit process is now fffffa80`0955a060
+0: kd> !handle 30 7 fffffa800955a060
+
+PROCESS fffffa800955a060
+    SessionId: 1  Cid: 0e1c    Peb: 7fffffda000  ParentCid: 0f94
+    DirBase: aba9d000  ObjectTable: fffff8a010a22540  HandleCount:  17.
+    Image: ntdll_apitest.exe
+
+Handle table at fffff8a010a22540 with 17 entries in use
+
+0030: Object: fffff8a0238b4bd0  GrantedAccess: 000f001f Entry: fffff8a01075d0c0
+Object: fffff8a0238b4bd0  Type: (fffffa8005825640) Section
+    ObjectHeader: fffff8a0238b4ba0 (new version)
+        HandleCount: 1  PointerCount: 1
+
+
+0: kd> dt _SECTION_OBJECT fffff8a0238b4bd0
+nt!_SECTION_OBJECT
+   +0x000 StartingVa       : 0x00000000`00000001 Void
+   +0x008 EndingVa         : (null)
+   +0x010 Parent           : 0xfffff880`07794a10 Void
+   +0x018 LeftChild        : (null)
+   +0x020 RightChild       : (null)
+   +0x028 Segment          : 0xfffff8a0`04543b60 _SEGMENT_OBJECT
+0: kd> dt _SEGMENT 0xfffff8a0`04543b60
+nt!_SEGMENT
+   +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+   +0x008 TotalNumberOfPtes : 0x81
+   +0x00c SegmentFlags     : _SEGMENT_FLAGS
+   +0x010 NumberOfCommittedPages : 3
+   +0x018 SizeOfSegment    : 0x81000
+   +0x020 ExtendInfo       : 0x00000000`10000000 _MMEXTEND_INFO
+   +0x020 BasedAddress     : 0x00000000`10000000 Void
+   +0x028 SegmentLock      : _EX_PUSH_LOCK
+   +0x030 u1               : <unnamed-tag>
+   +0x038 u2               : <unnamed-tag>
+   +0x040 PrototypePte     : 0xfffff8a0`04543ba8 _MMPTE
+   +0x048 ThePtes          : [1] _MMPTE
+0: kd> dt _CONTROL_AREA 0xfffffa80`0971d560
+nt!_CONTROL_AREA
+   +0x000 Segment          : 0xfffff8a0`04543b60 _SEGMENT
+   +0x008 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+   +0x018 NumberOfSectionReferences : 1
+   +0x020 NumberOfPfnReferences : 0
+   +0x028 NumberOfMappedViews : 0
+   +0x030 NumberOfUserReferences : 1
+   +0x038 u                : <unnamed-tag>
+   +0x03c FlushInProgressCount : 0
+   +0x040 FilePointer      : _EX_FAST_REF
+   +0x048 ControlAreaLock  : 0n0
+   +0x04c ModifiedWriteCount : 0
+   +0x04c StartingFrame    : 0
+   +0x050 WaitingForDeletion : (null)
+   +0x058 u2               : <unnamed-tag>
+   +0x068 LockedPages      : 0n1
+   +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`0971d5d0 - 0xfffffa80`0971d5d0 ]
+0: kd> dq 0xfffffa80`0971d5a0
+fffffa80`0971d5a0  fffffa80`05b9e75f 00000000`00000000
+fffffa80`0971d5b0  00000000`00000000 00000000`00000000
+fffffa80`0971d5c0  00000000`00000000 00000000`00000001
+fffffa80`0971d5d0  fffffa80`0971d5d0 fffffa80`0971d5d0
+fffffa80`0971d5e0  fffffa80`0971d560 fffff8a0`04543ba8
+fffffa80`0971d5f0  fffffa80`0971d618 00000000`00000001
+fffffa80`0971d600  00000000`00000000 00000000`00000002
+fffffa80`0971d610  00000000`00000002 fffffa80`0971d560
+0: kd> dt _FILE_OBJECT fffffa80`05b9e750
+ntdll!_FILE_OBJECT
+   +0x000 Type             : 0n5
+   +0x002 Size             : 0n216
+   +0x008 DeviceObject     : 0xfffffa80`0634e330 _DEVICE_OBJECT
+   +0x010 Vpb              : 0xfffffa80`0634b720 _VPB
+   +0x018 FsContext        : 0xfffff8a0`1bc0fc70 Void
+   +0x020 FsContext2       : 0xfffff8a0`24e806a0 Void
+   +0x028 SectionObjectPointer : 0xfffffa80`098e0e68 _SECTION_OBJECT_POINTERS
+   +0x030 PrivateCacheMap  : (null)
+   +0x038 FinalStatus      : 0n0
+   +0x040 RelatedFileObject : (null)
+   +0x048 LockOperation    : 0 ''
+   +0x049 DeletePending    : 0 ''
+   +0x04a ReadAccess       : 0x1 ''
+   +0x04b WriteAccess      : 0x1 ''
+   +0x04c DeleteAccess     : 0 ''
+   +0x04d SharedRead       : 0x1 ''
+   +0x04e SharedWrite      : 0 ''
+   +0x04f SharedDelete     : 0 ''
+   +0x050 Flags            : 0x40042
+   +0x058 FileName         : _UNICODE_STRING "\Dev\ReactOS\trunk\ninja-VS2012-x64\reactos\modules\rostests\apitests\ntdll\testdata\test.dll"
+   +0x068 CurrentByteOffset : _LARGE_INTEGER 0x0
+   +0x070 Waiters          : 0
+   +0x074 Busy             : 0
+   +0x078 LastLock         : (null)
+   +0x080 Lock             : _KEVENT
+   +0x098 Event            : _KEVENT
+   +0x0b0 CompletionContext : (null)
+   +0x0b8 IrpListLock      : 0
+   +0x0c0 IrpList          : _LIST_ENTRY [ 0xfffffa80`05b9e810 - 0xfffffa80`05b9e810 ]
+   +0x0d0 FileObjectExtension : (null)
+0: kd> dt _SECTION_OBJECT_POINTERS 0xfffffa80`098e0e68
+ntdll!_SECTION_OBJECT_POINTERS
+   +0x000 DataSectionObject : 0xfffffa80`0a552730 Void
+   +0x008 SharedCacheMap   : (null)
+   +0x010 ImageSectionObject : 0xfffffa80`0971d560 Void
+0: kd> dq 0xfffffa80`0971d5c0 // CONTROL_AREA::SubsectionRoot
+fffffa80`0971d5c0  00000000`00000000 00000000`00000001
+fffffa80`0971d5d0  fffffa80`0971d5d0 fffffa80`0971d5d0 // empty ViewList
+fffffa80`0971d5e0  fffffa80`0971d560 fffff8a0`04543ba8
+fffffa80`0971d5f0  fffffa80`0971d618 00000000`00000001
+fffffa80`0971d600  00000000`00000000 00000000`00000002
+fffffa80`0971d610  00000000`00000002 fffffa80`0971d560
+fffffa80`0971d620  fffff8a0`04543bb0 fffffa80`0971d650
+fffffa80`0971d630  00000000`0000007f 00000000`00000000
+
+//////////////////////////////
+
+nach dem mappen @ 00000000`10000000
+
+
+Microsoft (R) Windows Debugger Version 6.2.8400.4218 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+
+Loading Dump File [C:\Windows\livekd.dmp]
+Kernel Complete Dump File: Full address space is available
+
+Comment: 'LiveKD live system view'
+Symbol search path is: srv*c:\Symbols*http://msdl.microsoft.com/download/symbols
+Executable search path is:
+Windows 7 Kernel Version 7601 (Service Pack 1) MP (2 procs) Free x64
+Product: WinNt, suite: TerminalServer SingleUserTS
+Built by: 7601.18044.amd64fre.win7sp1_gdr.130104-1431
+Machine Name:
+Kernel base = 0xfffff800`02e12000 PsLoadedModuleList = 0xfffff800`03056670
+Debug session time: Wed Apr 10 18:56:13.619 2013 (UTC + 2:00)
+System Uptime: 0 days 12:00:53.756
+Loading Kernel Symbols
+...............................................................
+................................................................
+..........................
+Loading User Symbols
+.............................
+Loading unloaded module list
+.....Unable to enumerate user-mode unloaded modules, NTSTATUS 0xC0000147
+*** ERROR: Module load completed but symbols could not be loaded for LiveKdD.SYS
+0: kd> .process fffffa800955a060
+Implicit process is now fffffa80`0955a060
+0: kd> !vad
+VAD             level      start      end    commit
+fffffa8005f14110 ( 3)         10       1f         0 Mapped       READWRITE          Pagefile-backed section
+fffffa800c10f220 ( 4)         20       2f         0 Mapped       READWRITE          Pagefile-backed section
+fffffa800c07a860 ( 2)         30       33         0 Mapped       READONLY           Pagefile-backed section
+fffffa800a07e4f0 ( 3)         40       40         1 Private      READWRITE
+fffffa800bf3f0d0 ( 4)         50       b6         0 Mapped       READONLY           \Windows\System32\locale.nls
+fffffa8005ade110 ( 1)        180      b0f         5 Private      READWRITE
+fffffa800abb2220 ( 5)        b10      c0f        32 Private      READWRITE
+fffffa800a7e5770 ( 4)        c10      d0f        48 Private      READWRITE
+fffffa800b471d00 ( 3)        e80      e8f         6 Private      READWRITE
+fffffa800c084d30 ( 5)      10000    10080         1 Mapped  Exe  EXECUTE_WRITECOPY  \Dev\ReactOS\trunk\ninja-VS2012-x64\reactos\modules\rostests\apitests\ntdll\testdata\test.dll
+fffffa800bbab6f0 ( 4)      77880    7799e         4 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\kernel32.dll
+fffffa800bec8b80 ( 2)      779a0    77b48        12 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\ntdll.dll
+fffffa800b3a1d30 ( 4)      7efe0    7f0df         0 Mapped       READONLY           Pagefile-backed section
+fffffa800b468110 ( 3)      7f0e0    7ffdf         0 Private      READONLY
+fffffa800b8fe160 ( 0)      7ffe0    7ffef        -1 Private      READONLY
+fffffa800bb2dc00 ( 4)     13fbd0   13fc36        54 Mapped  Exe  EXECUTE_WRITECOPY  \Dev\ReactOS\trunk\ninja-VS2012-x64\reactos\modules\rostests\apitests\ntdll\ntdll_apitest.exe
+fffffa800bd78a30 ( 3)   7fefdd80 7fefddd6         5 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\apphelp.dll
+fffffa800a3d5b80 ( 4)   7fefdeb0 7fefdf1a         3 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\KernelBase.dll
+fffffa800a1ed770 ( 2)   7fefe230 7fefe30a         7 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\advapi32.dll
+fffffa800bb74b80 ( 3)   7fefe850 7fefe86e         4 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\sechost.dll
+fffffa800bb7c9f0 ( 1)   7fefe870 7fefe90e         7 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\msvcrt.dll
+fffffa800bf3d110 ( 4)   7feffa20 7feffb4c         3 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\rpcrt4.dll
+fffffa800b0f2580 ( 3)   7feffcc0 7feffcc0         0 Mapped  Exe  EXECUTE_WRITECOPY  \Windows\System32\apisetschema.dll
+fffffa800b9fdd30 ( 2)   7fffffb0 7fffffd2         0 Mapped       READONLY           Pagefile-backed section
+fffffa800b8ea870 ( 3)   7fffffda 7fffffda         1 Private      READWRITE
+fffffa800ada7110 ( 4)   7fffffde 7fffffdf         2 Private      READWRITE
+
+Total VADs: 26, average level: 4, maximum depth: 5
+0: kd> !pte 10000000
+                                           VA 0000000010000000
+PXE at FFFFF6FB7DBED000    PPE at FFFFF6FB7DA00000    PDE at FFFFF6FB40000400    PTE at FFFFF68000080000
+contains 03C0000120108867  contains 02F00001194FB867  contains 0000000000000000
+pfn 120108    ---DA--UWEV  pfn 1194fb    ---DA--UWEV  not valid
+
+0: kd> !pte 10080000
+                                           VA 0000000010080000
+PXE at FFFFF6FB7DBED000    PPE at FFFFF6FB7DA00000    PDE at FFFFF6FB40000400    PTE at FFFFF68000080400
+contains 03C0000120108867  contains 02F00001194FB867  contains 0000000000000000
+pfn 120108    ---DA--UWEV  pfn 1194fb    ---DA--UWEV  not valid
+
+0: kd> dt _MMVAD fffffa800c084d30
+nt!_MMVAD
+   +0x000 u1               : <unnamed-tag>
+   +0x008 LeftChild        : (null)
+   +0x010 RightChild       : (null)
+   +0x018 StartingVpn      : 0x10000
+   +0x020 EndingVpn        : 0x10080
+   +0x028 u                : <unnamed-tag>
+   +0x030 PushLock         : _EX_PUSH_LOCK
+   +0x038 u5               : <unnamed-tag>
+   +0x040 u2               : <unnamed-tag>
+   +0x048 Subsection       : 0xfffffa80`0971d5e0 _SUBSECTION
+   +0x048 MappedSubsection : 0xfffffa80`0971d5e0 _MSUBSECTION
+   +0x050 FirstPrototypePte : 0xfffff8a0`04543ba8 _MMPTE
+   +0x058 LastContiguousPte : 0xffffffff`fffffffc _MMPTE
+   +0x060 ViewLinks        : _LIST_ENTRY [ 0xfffffa80`0971d5d0 - 0xfffffa80`0971d5d0 ]
+   +0x070 VadsProcess      : 0xfffffa80`0955a061 _EPROCESS
+0: kd> dt _SUBSECTION 0xfffffa80`0971d5e0
+nt!_SUBSECTION
+   +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+   +0x008 SubsectionBase   : 0xfffff8a0`04543ba8 _MMPTE
+   +0x010 NextSubsection   : 0xfffffa80`0971d618 _SUBSECTION
+   +0x018 PtesInSubsection : 1
+   +0x020 UnusedPtes       : 0
+   +0x020 GlobalPerSessionHead : (null)
+   +0x028 u                : <unnamed-tag>
+   +0x02c StartingSector   : 0
+   +0x030 NumberOfFullSectors : 2
+0: kd> dt _MSUBSECTION 0xfffffa80`0971d5e0
+nt!_MSUBSECTION
+   +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+   +0x008 SubsectionBase   : 0xfffff8a0`04543ba8 _MMPTE
+   +0x010 NextSubsection   : 0xfffffa80`0971d618 _SUBSECTION
+   +0x010 NextMappedSubsection : 0xfffffa80`0971d618 _MSUBSECTION
+   +0x018 PtesInSubsection : 1
+   +0x020 UnusedPtes       : 0
+   +0x020 GlobalPerSessionHead : (null)
+   +0x028 u                : <unnamed-tag>
+   +0x02c StartingSector   : 0
+   +0x030 NumberOfFullSectors : 2
+   +0x038 u1               : <unnamed-tag>
+   +0x040 LeftChild        : 0xfffff8a0`04543bb0 _MMSUBSECTION_NODE
+   +0x048 RightChild       : 0xfffffa80`0971d650 _MMSUBSECTION_NODE
+   +0x050 DereferenceList  : _LIST_ENTRY [ 0x00000000`0000007f - 0x00000000`00000000 ]
+   +0x060 NumberOfMappedViews : 0x00000002`00000006
+0: kd> !ca 0xfffffa80`0971d560
+
+ControlArea  @ fffffa800971d560
+  Segment      fffff8a004543b60  Flink      0000000000000000  Blink        0000000000000000
+  Section Ref                 1  Pfn Ref                   0  Mapped Views                1
+  User Ref                    2  WaitForDel                0  Flush Count                 0
+  File Object  fffffa8005b9e750  ModWriteCount             0  System Views                0
+  WritableRefs                0
+  Flags (400a0) Image File DeleteOnClose
+
+      \Dev\ReactOS\trunk\ninja-VS2012-x64\reactos\modules\rostests\apitests\ntdll\testdata\test.dll
+
+Segment @ fffff8a004543b60
+  ControlArea     fffffa800971d560  BasedAddress  0000000010000000
+  Total Ptes                    81
+  Segment Size               81000  Committed                    3
+  Image Commit                   1  Image Info    fffff8a004543fb0
+  ProtoPtes       fffff8a004543ba8
+  Flags (4b0000) Floppy ProtectionMask
+
+Subsection 1 @ fffffa800971d5e0
+  ControlArea  fffffa800971d560  Starting Sector        0  Number Of Sectors    2
+  Base Pte     fffff8a004543ba8  Ptes In Subsect        1  Unused Ptes          0
+  Flags                       2  Sector Offset          0  Protection           1
+
+Subsection 2 @ fffffa800971d618
+  ControlArea  fffffa800971d560  Starting Sector        2  Number Of Sectors    2
+  Base Pte     fffff8a004543bb0  Ptes In Subsect       7f  Unused Ptes          0
+  Flags                       6  Sector Offset          0  Protection           3
+
+Subsection 3 @ fffffa800971d650
+  ControlArea  fffffa800971d560  Starting Sector        4  Number Of Sectors    2
+  Base Pte     fffff8a004543fa8  Ptes In Subsect        1  Unused Ptes          0
+  Flags                       a  Sector Offset          0  Protection           5
+0: kd> dq 0xfffffa80`0971d5c0
+fffffa80`0971d5c0  00000000`00000000 00000000`00000001
+fffffa80`0971d5d0  fffffa80`0c084d90 fffffa80`0c084d90
+fffffa80`0971d5e0  fffffa80`0971d560 fffff8a0`04543ba8
+fffffa80`0971d5f0  fffffa80`0971d618 00000000`00000001
+fffffa80`0971d600  00000000`00000000 00000000`00000002
+fffffa80`0971d610  00000000`00000002 fffffa80`0971d560
+fffffa80`0971d620  fffff8a0`04543bb0 fffffa80`0971d650
+fffffa80`0971d630  00000000`0000007f 00000000`00000000
+0: kd> dt _CONTROL_AREA 0xfffffa80`0971d560
+nt!_CONTROL_AREA
+   +0x000 Segment          : 0xfffff8a0`04543b60 _SEGMENT
+   +0x008 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+   +0x018 NumberOfSectionReferences : 1
+   +0x020 NumberOfPfnReferences : 0
+   +0x028 NumberOfMappedViews : 1
+   +0x030 NumberOfUserReferences : 2
+   +0x038 u                : <unnamed-tag>
+   +0x03c FlushInProgressCount : 0
+   +0x040 FilePointer      : _EX_FAST_REF
+   +0x048 ControlAreaLock  : 0n0
+   +0x04c ModifiedWriteCount : 0
+   +0x04c StartingFrame    : 0
+   +0x050 WaitingForDeletion : (null)
+   +0x058 u2               : <unnamed-tag>
+   +0x068 LockedPages      : 0n1
+   +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`0c084d90 - 0xfffffa80`0c084d90 ]
+0: kd> dq 0xfffffa80`0971d5a0
+fffffa80`0971d5a0  fffffa80`05b9e75f 00000000`00000000
+fffffa80`0971d5b0  00000000`00000000 00000000`00000000
+fffffa80`0971d5c0  00000000`00000000 00000000`00000001
+fffffa80`0971d5d0  fffffa80`0c084d90 fffffa80`0c084d90
+fffffa80`0971d5e0  fffffa80`0971d560 fffff8a0`04543ba8
+fffffa80`0971d5f0  fffffa80`0971d618 00000000`00000001
+fffffa80`0971d600  00000000`00000000 00000000`00000002
+fffffa80`0971d610  00000000`00000002 fffffa80`0971d560
+0: kd> dt _MSUBSECTION fffffa800971d5e0
+nt!_MSUBSECTION
+   +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+   +0x008 SubsectionBase   : 0xfffff8a0`04543ba8 _MMPTE
+   +0x010 NextSubsection   : 0xfffffa80`0971d618 _SUBSECTION
+   +0x010 NextMappedSubsection : 0xfffffa80`0971d618 _MSUBSECTION
+   +0x018 PtesInSubsection : 1
+   +0x020 UnusedPtes       : 0
+   +0x020 GlobalPerSessionHead : (null)
+   +0x028 u                : <unnamed-tag>
+   +0x02c StartingSector   : 0
+   +0x030 NumberOfFullSectors : 2
+   +0x038 u1               : <unnamed-tag>
+   +0x040 LeftChild        : 0xfffff8a0`04543bb0 _MMSUBSECTION_NODE
+   +0x048 RightChild       : 0xfffffa80`0971d650 _MMSUBSECTION_NODE
+   +0x050 DereferenceList  : _LIST_ENTRY [ 0x00000000`0000007f - 0x00000000`00000000 ]
+   +0x060 NumberOfMappedViews : 0x00000002`00000006
+0: kd> dt -r _MSUBSECTION fffffa800971d5e0
+nt!_MSUBSECTION
+   +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+      +0x000 Segment          : 0xfffff8a0`04543b60 _SEGMENT
+         +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+         +0x008 TotalNumberOfPtes : 0x81
+         +0x00c SegmentFlags     : _SEGMENT_FLAGS
+         +0x010 NumberOfCommittedPages : 3
+         +0x018 SizeOfSegment    : 0x81000
+         +0x020 ExtendInfo       : 0x00000000`10000000 _MMEXTEND_INFO
+         +0x020 BasedAddress     : 0x00000000`10000000 Void
+         +0x028 SegmentLock      : _EX_PUSH_LOCK
+         +0x030 u1               : <unnamed-tag>
+         +0x038 u2               : <unnamed-tag>
+         +0x040 PrototypePte     : 0xfffff8a0`04543ba8 _MMPTE
+         +0x048 ThePtes          : [1] _MMPTE
+      +0x008 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+         +0x000 Flink            : (null)
+         +0x008 Blink            : (null)
+      +0x018 NumberOfSectionReferences : 1
+      +0x020 NumberOfPfnReferences : 0
+      +0x028 NumberOfMappedViews : 1
+      +0x030 NumberOfUserReferences : 2
+      +0x038 u                : <unnamed-tag>
+         +0x000 LongFlags        : 0x400a0
+         +0x000 Flags            : _MMSECTION_FLAGS
+      +0x03c FlushInProgressCount : 0
+      +0x040 FilePointer      : _EX_FAST_REF
+         +0x000 Object           : 0xfffffa80`05b9e75f Void
+         +0x000 RefCnt           : 0y1111
+         +0x000 Value            : 0xfffffa80`05b9e75f
+      +0x048 ControlAreaLock  : 0n0
+      +0x04c ModifiedWriteCount : 0
+      +0x04c StartingFrame    : 0
+      +0x050 WaitingForDeletion : (null)
+      +0x058 u2               : <unnamed-tag>
+         +0x000 e2               : <unnamed-tag>
+      +0x068 LockedPages      : 0n1
+      +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`0c084d90 - 0xfffffa80`0c084d90 ]
+         +0x000 Flink            : 0xfffffa80`0c084d90 _LIST_ENTRY [ 0xfffffa80`0971d5d0 - 0xfffffa80`0971d5d0 ]
+         +0x008 Blink            : 0xfffffa80`0c084d90 _LIST_ENTRY [ 0xfffffa80`0971d5d0 - 0xfffffa80`0971d5d0 ]
+   +0x008 SubsectionBase   : 0xfffff8a0`04543ba8 _MMPTE
+      +0x000 u                : <unnamed-tag>
+         +0x000 Long             : 0x80000001`1bf6b820
+         +0x000 VolatileLong     : 0x80000001`1bf6b820
+         +0x000 Hard             : _MMPTE_HARDWARE
+         +0x000 Flush            : _HARDWARE_PTE
+         +0x000 Proto            : _MMPTE_PROTOTYPE
+         +0x000 Soft             : _MMPTE_SOFTWARE
+         +0x000 TimeStamp        : _MMPTE_TIMESTAMP
+         +0x000 Trans            : _MMPTE_TRANSITION
+         +0x000 Subsect          : _MMPTE_SUBSECTION
+         +0x000 List             : _MMPTE_LIST
+   +0x010 NextSubsection   : 0xfffffa80`0971d618 _SUBSECTION
+      +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+         +0x000 Segment          : 0xfffff8a0`04543b60 _SEGMENT
+         +0x008 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+         +0x018 NumberOfSectionReferences : 1
+         +0x020 NumberOfPfnReferences : 0
+         +0x028 NumberOfMappedViews : 1
+         +0x030 NumberOfUserReferences : 2
+         +0x038 u                : <unnamed-tag>
+         +0x03c FlushInProgressCount : 0
+         +0x040 FilePointer      : _EX_FAST_REF
+         +0x048 ControlAreaLock  : 0n0
+         +0x04c ModifiedWriteCount : 0
+         +0x04c StartingFrame    : 0
+         +0x050 WaitingForDeletion : (null)
+         +0x058 u2               : <unnamed-tag>
+         +0x068 LockedPages      : 0n1
+         +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`0c084d90 - 0xfffffa80`0c084d90 ]
+      +0x008 SubsectionBase   : 0xfffff8a0`04543bb0 _MMPTE
+         +0x000 u                : <unnamed-tag>
+      +0x010 NextSubsection   : 0xfffffa80`0971d650 _SUBSECTION
+         +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+         +0x008 SubsectionBase   : 0xfffff8a0`04543fa8 _MMPTE
+         +0x010 NextSubsection   : (null)
+         +0x018 PtesInSubsection : 1
+         +0x020 UnusedPtes       : 0
+         +0x020 GlobalPerSessionHead : (null)
+         +0x028 u                : <unnamed-tag>
+         +0x02c StartingSector   : 4
+         +0x030 NumberOfFullSectors : 2
+      +0x018 PtesInSubsection : 0x7f
+      +0x020 UnusedPtes       : 0
+      +0x020 GlobalPerSessionHead : (null)
+      +0x028 u                : <unnamed-tag>
+         +0x000 LongFlags        : 6
+         +0x000 SubsectionFlags  : _MMSUBSECTION_FLAGS
+      +0x02c StartingSector   : 2
+      +0x030 NumberOfFullSectors : 2
+   +0x010 NextMappedSubsection : 0xfffffa80`0971d618 _MSUBSECTION
+      +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+         +0x000 Segment          : 0xfffff8a0`04543b60 _SEGMENT
+         +0x008 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+         +0x018 NumberOfSectionReferences : 1
+         +0x020 NumberOfPfnReferences : 0
+         +0x028 NumberOfMappedViews : 1
+         +0x030 NumberOfUserReferences : 2
+         +0x038 u                : <unnamed-tag>
+         +0x03c FlushInProgressCount : 0
+         +0x040 FilePointer      : _EX_FAST_REF
+         +0x048 ControlAreaLock  : 0n0
+         +0x04c ModifiedWriteCount : 0
+         +0x04c StartingFrame    : 0
+         +0x050 WaitingForDeletion : (null)
+         +0x058 u2               : <unnamed-tag>
+         +0x068 LockedPages      : 0n1
+         +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`0c084d90 - 0xfffffa80`0c084d90 ]
+      +0x008 SubsectionBase   : 0xfffff8a0`04543bb0 _MMPTE
+         +0x000 u                : <unnamed-tag>
+      +0x010 NextSubsection   : 0xfffffa80`0971d650 _SUBSECTION
+         +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+         +0x008 SubsectionBase   : 0xfffff8a0`04543fa8 _MMPTE
+         +0x010 NextSubsection   : (null)
+         +0x018 PtesInSubsection : 1
+         +0x020 UnusedPtes       : 0
+         +0x020 GlobalPerSessionHead : (null)
+         +0x028 u                : <unnamed-tag>
+         +0x02c StartingSector   : 4
+         +0x030 NumberOfFullSectors : 2
+      +0x010 NextMappedSubsection : 0xfffffa80`0971d650 _MSUBSECTION
+         +0x000 ControlArea      : 0xfffffa80`0971d560 _CONTROL_AREA
+         +0x008 SubsectionBase   : 0xfffff8a0`04543fa8 _MMPTE
+         +0x010 NextSubsection   : (null)
+         +0x010 NextMappedSubsection : (null)
+         +0x018 PtesInSubsection : 1
+         +0x020 UnusedPtes       : 0
+         +0x020 GlobalPerSessionHead : (null)
+         +0x028 u                : <unnamed-tag>
+         +0x02c StartingSector   : 4
+         +0x030 NumberOfFullSectors : 2
+         +0x038 u1               : <unnamed-tag>
+         +0x040 LeftChild        : 0xe56c6946`02150014 _MMSUBSECTION_NODE
+         +0x048 RightChild       : (null)
+         +0x050 DereferenceList  : _LIST_ENTRY [ 0x00000180`000000d8 - 0xfffff800`00000000 ]
+         +0x060 NumberOfMappedViews : 0
+      +0x018 PtesInSubsection : 0x7f
+      +0x020 UnusedPtes       : 0
+      +0x020 GlobalPerSessionHead : (null)
+      +0x028 u                : <unnamed-tag>
+         +0x000 LongFlags        : 6
+         +0x000 SubsectionFlags  : _MMSUBSECTION_FLAGS
+      +0x02c StartingSector   : 2
+      +0x030 NumberOfFullSectors : 2
+      +0x038 u1               : <unnamed-tag>
+         +0x000 Balance          : 0y00
+         +0x000 Parent           : 0xfffffa80`0971d560 _MMSUBSECTION_NODE
+      +0x040 LeftChild        : 0xfffff8a0`04543fa8 _MMSUBSECTION_NODE
+         +0x000 u                : <unnamed-tag>
+         +0x004 StartingSector   : 0x80000001
+         +0x008 NumberOfFullSectors : 0x10000000
+         +0x010 u1               : <unnamed-tag>
+         +0x018 LeftChild        : 0x00000000`00100000 _MMSUBSECTION_NODE
+         +0x020 RightChild       : 0x00000000`00001000 _MMSUBSECTION_NODE
+      +0x048 RightChild       : (null)
+      +0x050 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000001 - 0x00000000`00000000 ]
+         +0x000 Flink            : 0x00000000`00000001 _LIST_ENTRY
+         +0x008 Blink            : (null)
+      +0x060 NumberOfMappedViews : 0x00000004`0000000a
+   +0x018 PtesInSubsection : 1
+   +0x020 UnusedPtes       : 0
+   +0x020 GlobalPerSessionHead : (null)
+   +0x028 u                : <unnamed-tag>
+      +0x000 LongFlags        : 2
+      +0x000 SubsectionFlags  : _MMSUBSECTION_FLAGS
+         +0x000 SubsectionAccessed : 0y0
+         +0x000 Protection       : 0y00001 (0x1)
+         +0x000 StartingSector4132 : 0y0000000000 (0)
+         +0x002 SubsectionStatic : 0y0
+         +0x002 GlobalMemory     : 0y0
+         +0x002 DirtyPages       : 0y0
+         +0x002 Spare            : 0y0
+         +0x002 SectorEndOffset  : 0y000000000000 (0)
+   +0x02c StartingSector   : 0
+   +0x030 NumberOfFullSectors : 2
+   +0x038 u1               : <unnamed-tag>
+      +0x000 Balance          : 0y00
+      +0x000 Parent           : 0xfffffa80`0971d560 _MMSUBSECTION_NODE
+         +0x000 u                : <unnamed-tag>
+         +0x004 StartingSector   : 0xfffff8a0
+         +0x008 NumberOfFullSectors : 0
+         +0x010 u1               : <unnamed-tag>
+         +0x018 LeftChild        : 0x00000000`00000001 _MMSUBSECTION_NODE
+         +0x020 RightChild       : (null)
+   +0x040 LeftChild        : 0xfffff8a0`04543bb0 _MMSUBSECTION_NODE
+      +0x000 u                : <unnamed-tag>
+         +0x000 LongFlags        : 0x9732c860
+         +0x000 SubsectionFlags  : _MMSUBSECTION_FLAGS
+      +0x004 StartingSector   : 0
+      +0x008 NumberOfFullSectors : 0x166c1860
+      +0x010 u1               : <unnamed-tag>
+         +0x000 Balance          : 0y00
+         +0x000 Parent           : 0x00000001`40e6a860 _MMSUBSECTION_NODE
+      +0x018 LeftChild        : 0x00000000`87053860 _MMSUBSECTION_NODE
+         +0x000 u                : <unnamed-tag>
+         +0x004 StartingSector   : ??
+         +0x008 NumberOfFullSectors : ??
+         +0x010 u1               : <unnamed-tag>
+         +0x018 LeftChild        : ????
+         +0x020 RightChild       : ????
+      +0x020 RightChild       : 0x00000001`185e4860 _MMSUBSECTION_NODE
+         +0x000 u                : <unnamed-tag>
+         +0x004 StartingSector   : ??
+         +0x008 NumberOfFullSectors : ??
+         +0x010 u1               : <unnamed-tag>
+         +0x018 LeftChild        : ????
+         +0x020 RightChild       : ????
+   +0x048 RightChild       : 0xfffffa80`0971d650 _MMSUBSECTION_NODE
+      +0x000 u                : <unnamed-tag>
+         +0x000 LongFlags        : 0x971d560
+         +0x000 SubsectionFlags  : _MMSUBSECTION_FLAGS
+      +0x004 StartingSector   : 0xfffffa80
+      +0x008 NumberOfFullSectors : 0x4543fa8
+      +0x010 u1               : <unnamed-tag>
+         +0x000 Balance          : 0y00
+         +0x000 Parent           : (null)
+      +0x018 LeftChild        : 0x00000000`00000001 _MMSUBSECTION_NODE
+         +0x000 u                : <unnamed-tag>
+         +0x004 StartingSector   : ??
+         +0x008 NumberOfFullSectors : ??
+         +0x010 u1               : <unnamed-tag>
+         +0x018 LeftChild        : ????
+         +0x020 RightChild       : ????
+      +0x020 RightChild       : (null)
+   +0x050 DereferenceList  : _LIST_ENTRY [ 0x00000000`0000007f - 0x00000000`00000000 ]
+      +0x000 Flink            : 0x00000000`0000007f _LIST_ENTRY
+         +0x000 Flink            : ????
+         +0x008 Blink            : ????
+      +0x008 Blink            : (null)
+   +0x060 NumberOfMappedViews : 0x00000002`00000006
+Memory read error 0000000000000087
+0: kd> dt _MMSUBSECTION_NODE 0xfffffa80`0971d560
+nt!_MMSUBSECTION_NODE
+   +0x000 u                : <unnamed-tag>
+   +0x004 StartingSector   : 0xfffff8a0
+   +0x008 NumberOfFullSectors : 0
+   +0x010 u1               : <unnamed-tag>
+   +0x018 LeftChild        : 0x00000000`00000001 _MMSUBSECTION_NODE
+   +0x020 RightChild       : (null)
+0: kd> !pool 0xfffffa80`0971d560
+Pool page fffffa800971d560 region is Nonpaged pool
+ fffffa800971d000 size:  100 previous size:    0  (Allocated)  MmCa
+ fffffa800971d100 size:   60 previous size:  100  (Free)       ....
+ fffffa800971d160 size:  150 previous size:   60  (Allocated)  File (Protected)
+ fffffa800971d2b0 size:  150 previous size:  150  (Allocated)  File (Protected)
+ fffffa800971d400 size:  150 previous size:  150  (Allocated)  File (Protected)
+*fffffa800971d550 size:  140 previous size:  150  (Allocated) *MmCi
+		Pooltag MmCi : Mm control areas for images, Binary : nt!mm
+ fffffa800971d690 size:  150 previous size:  140  (Allocated)  File (Protected)
+ fffffa800971d7e0 size:  5d0 previous size:  150  (Free)       File
+ fffffa800971ddb0 size:  100 previous size:  5d0  (Allocated)  MmCa
+ fffffa800971deb0 size:  150 previous size:  100  (Allocated)  File (Protected)
+0: kd> ? 0xfffffa80`0971d560 - 0xfffffa80`0971d560
+Evaluate expression: 0 = 00000000`00000000
+0: kd> ? fffffa800971d560 - fffffa800971d560
+Evaluate expression: 0 = 00000000`00000000
+0: kd> ? 0xfffffa80`0971d618 - fffffa800971d5e0
+Evaluate expression: 56 = 00000000`00000038
+0: kd> ? fffffa800971d5e0 - fffffa800971d560
+Evaluate expression: 128 = 00000000`00000080
+0: kd> dt _CONTROL_AREA 0xfffffa80`0a552730
+nt!_CONTROL_AREA
+   +0x000 Segment          : 0xfffff8a0`0348cc70 _SEGMENT
+   +0x008 DereferenceList  : _LIST_ENTRY [ 0xfffffa80`0a942268 - 0xfffffa80`09814018 ]
+   +0x018 NumberOfSectionReferences : 0
+   +0x020 NumberOfPfnReferences : 1
+   +0x028 NumberOfMappedViews : 0
+   +0x030 NumberOfUserReferences : 0
+   +0x038 u                : <unnamed-tag>
+   +0x03c FlushInProgressCount : 0
+   +0x040 FilePointer      : _EX_FAST_REF
+   +0x048 ControlAreaLock  : 0n0
+   +0x04c ModifiedWriteCount : 0
+   +0x04c StartingFrame    : 0
+   +0x050 WaitingForDeletion : (null)
+   +0x058 u2               : <unnamed-tag>
+   +0x068 LockedPages      : 0n1
+   +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`0a5527a0 - 0xfffffa80`0a5527a0 ]
+0: kd> !ca 0xfffffa80`0a552730
+
+ControlArea  @ fffffa800a552730
+  Segment      0000000000000000  Flink      fffffa800a942268  Blink        fffffa8009814018
+  Section Ref                 0  Pfn Ref                   0  Mapped Views                0
+  User Ref                    0  WaitForDel                0  Flush Count                 0
+  File Object  fffffa800a3234f0  ModWriteCount             0  System Views                0
+  WritableRefs                0
+  Flags (0)
+
+      Can't read file name buffer at fffff8a017bab290
+Control area fffffa800a552730 file object->sectionobjectpointers linkage invalid.
+
+Segment @ 0000000000000000
+Type nt!_MAPPED_FILE_SEGMENT not found.
+

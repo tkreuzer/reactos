@@ -1,0 +1,30 @@
+
+
+VADs
+----
+There are 2 types of VADs: user mode VADs and kernel mode VADs
+user mode VADs are allocated from the process' VAD pool, which is an area
+in hyperspace next to the ws lists. kernel mode VADs are allocated from NP
+pool.
+
+
+Page fault handling
+--------------------
+- Nested fault handling of paged out page tables, that is a fault on a virtual
+  address, where the page table was paged out, will cause the page fault handler
+  to access the PTE and cause a nested page fault, that will first bring in the
+  page table and then ...
+
+
+
+- File backed: The PTE contains a link to the subsection that backs up the page
+- page file backed: PTE contains the page file index
+- copy on write: bit is set
+
+
+
+Large Pages
+-----------
+- system of 256MB+: ntoskrnl, hal, bootdrivers, etc + inital np pool in large pages
+- MME_LARGE_PAGE flag in virtual allocation functions
+- HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management\LargePageDrivers

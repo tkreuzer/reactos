@@ -1,0 +1,16 @@
+
+
+Sections
+--------
+
+- Section objects do not have an Open routine, so the Object manager will
+  return a pointer to the original object, when a named section is opened.
+- For memory sections: the same section memory <=> the same section object
+- There can be multiple file backed sections for the same physical file,
+  each of these with different page protection, allocation attributes, ...
+- DesiredAccess is only passed to the ObjectManager, it's ignored in
+  MmCreateSection()
+
+- A view of a section can only be mapped at an address that is aligned on
+  a 64k boundary (allocation granularity)
+

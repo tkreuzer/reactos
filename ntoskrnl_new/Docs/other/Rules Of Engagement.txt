@@ -1,0 +1,81 @@
+
+Rules Of Engagement
+===================
+
+Introduction
+------------
+This document describes the rules that need to be followed to take part in the
+development of the project with codename fancykrnl. The rules are obligatory
+and violating the rules will result in a permanent ban from the project and
+if neccessary removal of all comitted code.
+
+
+Goal of the project
+-------------------
+The goal of the project is to develop a Windows NT *compatible* kernel, that is
+clean of any reverse engineered code, as it was comitted into ReactOS, mostly
+by Alex Ionescu. The current target version is Windows 8.
+
+
+Definitions
+-----------
+
+-
+
+
+
+General information
+-------------------
+- The following developers are known to have used dirty reverse engineering
+  methods: Alex Ionescu (ion), Stefan Ginsberg (sginsberg), Ros-Arm-Team
+  (ros-arm-bringup), "lassy" (sir_richard)
+
+- Alex Ionescu's first commit was on July 21st, 2004, revision 9789
+
+
+
+Rules
+-----
+- All development must be test driven. That means all code changes, that change
+  function behaviour, must be preceded by a test being comitted that clearly
+  shows, that the respective function or code path really behaves that way.
+  "Windows does that" is never an argument. If you can't write a test that
+  demonstrates the neccesity of that code, your code is not useful.
+  (This does not apply to the startup code and a few internal mechanisms, like
+  trap handling)
+- Every function that is developed must be documented, both with a header and
+  inside the code, to explain why everything is done.
+- Always document where details of behaviour have been taken from. This can
+  be done in a commit message or added to the code.
+- Depart from internal windows architecture as much as possible, while keeping
+  the basic core architecture, as required for binary compatibility.
+- Do not use internal function names, unless the function is described in detail
+  in a legitimate source.
+- Commit only that code, that is needed to get the system further. Don't
+  implement any functions that are not used. If neccessary implement stubs
+  with a breakpoint.
+
+- Do never use any of the following sources (not even for learning purposes):
+  - Windows Research Kernel (WRK)
+  - Leaked Windows source code
+  - Windows CE sources
+
+
+Possible sources for code
+-------------------------
+- ReactOS source code from before revision 9789
+- ReactOS source code from functions that have no changes whatsoever by either
+  Alex Ionescu ("ion") or "sir richard" and are not part of any larger code
+  complex developed by either one and are clealy not derived from such a
+  function.
+- All sources must be audited for possible unclean development methods before
+  they can be used.
+
+Possible sources for information
+--------------------------------
+- Interfaces, both internal and externally visible, are considered un-
+  copyrightable. Therefore all documented interfaces are free to use.
+- MSDN
+- "Windows Internals" book
+- Type information taken from public symbol files
+- Interfaces from public SDK/DDK/WDK etc. headers

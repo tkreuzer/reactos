@@ -1,0 +1,2 @@
+﻿  Stubs.c
+d:\dev\reactos\kernel-rewrite\src\ntoskrnl_new\alpc\stubs.c(1): fatal error C1083: Cannot open include file: 'ntifs.h': No such file or directory

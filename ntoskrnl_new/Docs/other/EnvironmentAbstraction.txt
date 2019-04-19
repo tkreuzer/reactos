@@ -1,0 +1,22 @@
+
+Goal: The kernel should be able to run in different environments:
+- On real hardware
+- In virtualization environments (VBox, etc)
+- On XEN
+- On top of an exo-kernel
+- In user mode (Windows/Linux)
+
+This requires a properly designed abstraction layer, which needs to cover the following areas:
+- Privileged instructions (usermode vs real hardware/virtualization)
+  - disable interrupts (cli)
+  - raise IRQL (mov cr8)
+
+
+- Enlightened operations (spinning on a spinlock in VMs, user mode, etc)
+- Direct hardware access (enlightenment for VMs, redirection for user mode / exo kernel)
+- Low level memory management (real hw, nested page tables on VMs, kernel calls on user mode / exo kernel environment)
+  - page faults
+  - switching address space
+  - system commitment accounting
+
+
