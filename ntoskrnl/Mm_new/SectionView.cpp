@@ -304,6 +304,10 @@ MapViewOfSection (
 //__debugbreak();
 
     // Check ViewSize
+    if (CommitSize > *ViewSize)
+    {
+        return STATUS_INVALID_PARAMETER_5;
+    }
 
     /* Check if the caller specified a section offset */
     if (SectionOffset != NULL)
@@ -328,21 +332,25 @@ MapViewOfSection (
     if (VaType == VaProcessSpace)
     {
         AddressSpace = GetProcessAddressSpace(PsGetCurrentProcess());
+        LowestStartingVpn = 0;
+        HighestEndingVpn = AddressToVpn(MmHighestUserAddress);
+        BoundaryPageMultiple = 16;
         Protect |= MM_USER;
     }
     else if (VaType == VaSystemSpace)
     {
         AddressSpace = &g_KernelAddressSpace;
-        Protect |= MM_GLOBAL;
+        LowestStartingVpn = AddressToVpn(MmSystemRangeStart);
+        HighestEndingVpn = AddressToVpn(SYSTEM_RANGE_END);
+        BoundaryPageMultiple = 1;
     }
     else if (VaType == VaSessionSpace)
     {
-        AddressSpace = &g_KernelAddressSpace; /// HACK
-    }
-    else
-    {
-        __debugbreak();
-        return STATUS_INVALID_PARAMETER;
+        AddressSpace = 0;
+        LowestStartingVpn = AddressToVpn(SESSION_SPACE_START);
+        HighestEndingVpn = AddressToVpn(SESSION_VIEW_END);
+        BoundaryPageMultiple = 1;
+        Protect |= MM_GLOBAL;
     }
 
 #if 0
@@ -410,27 +418,35 @@ MapViewOfSection (
         return Status;
     }
 
-    /* Check if the base address should be automatically chosen */
-    if (*BaseAddress == NULL)
+    /* Check if the caller specified a base address */
+    if (*BaseAddress != NULL)
     {
-        /* Use the section base address */
-        *BaseAddress = Section->GetBaseAddress();
+        /* Use the base address for the starting VPN */
+        StartingVpn = AddressToVpn(*BaseAddress);
 
-        /* Insert the VAD object into the address space */
-        Status = AddressSpace->InsertVadObjectEx(SectionView,
-                                                 BaseAddress,
-                                                 ViewSizeInPages,
-                                                 ZeroBits,
-                                                 AllocationType);
-        if (!NT_SUCCESS(Status))
+        /* Check if the range is OK */
+        if (((StartingVpn < LowestStartingVpn)) ||
+            ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
+            ((StartingVpn + ViewSizeInPages) < StartingVpn))
         {
-            /* Try again with automatically selected base address */
-            *BaseAddress = NULL;
+            ERR("Invalid parameters: StartingVpn = 0x%lx\n", StartingVpn);
+            Section->Release();
+            return STATUS_INVALID_PARAMETER;
         }
     }
     else
     {
-        Status = STATUS_UNSUCCESSFUL;
+        /* Get the image start address */
+        StartingVpn = AddressToVpn(Section->GetBaseAddress());
+
+        /* Check if the range is OK */
+        if (((StartingVpn < LowestStartingVpn)) ||
+            ((StartingVpn + ViewSizeInPages) > HighestEndingVpn) ||
+            ((StartingVpn + ViewSizeInPages) < StartingVpn))
+        {
+            /* Range is not ok, fall back to auto-base */
+            StartingVpn = 0;
+        }
     }
 
     /* Check if we didn't succeed yet */
@@ -895,11 +911,15 @@ NtMapViewOfSection (
     if ((SafeBaseAddress > MmHighestUserAddress) ||
         (AddToPointer(SafeBaseAddress, SafeViewSize) > MmHighestUserAddress) ||
         (AddToPointer(SafeBaseAddress, SafeViewSize) < SafeBaseAddress))
+    {
         return STATUS_INVALID_PARAMETER_3;
+    }
 
     /* Check the ZeroBits parameter */
     if (((ULONG_PTR)SafeBaseAddress + SafeViewSize) > (MAXULONG_PTR >> ZeroBits))
+    {
         return STATUS_INVALID_PARAMETER_4;
+    }
 
     /* Check if the current process is specified */
     if (ProcessHandle != NtCurrentProcess())
