@@ -157,8 +157,13 @@ NTAPI
 KeSaveFloatingPointState (
     _Out_ PKFLOATING_SAVE FloatSave)
 {
+#ifdef _M_IX86
+    __debugbreak();
+    return STATUS_UNSUCCESSFUL;
+#else
     UNREFERENCED_PARAMETER(FloatSave);
     return STATUS_SUCCESS;
+#endif
 }
 
 _Success_(1)
@@ -171,8 +176,13 @@ NTAPI
 KeRestoreFloatingPointState (
     _In_ PKFLOATING_SAVE FloatSave)
 {
+#ifdef _M_IX86
+    __debugbreak();
+    return STATUS_UNSUCCESSFUL;
+#else
     UNREFERENCED_PARAMETER(FloatSave);
     return STATUS_SUCCESS;
+#endif
 }
 
 BOOLEAN

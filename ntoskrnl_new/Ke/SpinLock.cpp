@@ -144,8 +144,12 @@ KeAcquireSpinLockRaiseToDpc (
 {
     KIRQL OldIrql;
 
+    /* Raise IRQL to dispatch level */
     OldIrql = KeRaiseIrqlToDpcLevel();
+
+    /* Use the inlined function */
     SpinLock->AcquireExclusive();
+
     return OldIrql;
 }
 
@@ -179,8 +183,12 @@ KeAcquireSpinLockRaiseToSynch (
 {
     KIRQL OldIrql;
 
+    /* Raise IRQL to synch level */
     OldIrql = KfRaiseIrql(SYNCH_LEVEL);
+
+    /* Use the inlined function */
     SpinLock->AcquireExclusive();
+
     return OldIrql;
 }
 
@@ -193,7 +201,10 @@ KeReleaseSpinLock (
     _Inout_ PKSPIN_LOCK SpinLock,
     _In_ _IRQL_restores_ KIRQL NewIrql)
 {
+    /* Use the inlined version */
     SpinLock->ReleaseSetZero();
+
+    /* Restore IRQL */
     KeLowerIrql(NewIrql);
 }
 
@@ -208,8 +219,18 @@ KeAcquireSpinLockForDpc (
 {
     KIRQL OldIrql;
 
-    OldIrql = KfRaiseIrql(DISPATCH_LEVEL);
+    /* Get the current IRQL */
+    OldIrql = KeGetCurrentIrql();
+
+    /* Check if this is a threaded DPC running at passive level */
+    if (OldIrql < DISPATCH_LEVEL)
+    {
+        /* In this case we need to raise IRQL */
+        KfRaiseIrql(DISPATCH_LEVEL);
+    }
+
     SpinLock->AcquireExclusive();
+
     return OldIrql;
 }
 
@@ -223,6 +244,8 @@ KeReleaseSpinLockForDpc (
     _In_ _IRQL_restores_ KIRQL OldIrql)
 {
     SpinLock->ReleaseSetZero();
+
+    /* Restore IRQL */
     KeLowerIrql(OldIrql);
 }
 

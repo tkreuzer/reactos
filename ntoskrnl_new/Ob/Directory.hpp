@@ -12,28 +12,19 @@ class OBJECT_DIRECTORY : public OBJECT
 {
 private:
 
-    typedef struct _DIRECTORY_ENTRY
+    class DIRECTORY_ENTRY : public PAGED_POOL_OBJECT<'iDbO'>
     {
-        struct _DIRECTORY_ENTRY* ChainLink;
-        POBJECT Object;
-        ULONG HashValue;
+        struct _DIRECTORY_ENTRY* _ChainLink;
+        POBJECT _Object;
+        ULONG _HashValue;
 
-        /// FIXME: inherit from POOL_OBJECT / PAGED_POOL_OBJECT<Tag>
-        inline
-        void*
-        operator new (
-            _In_ size_t Size)
-        {
-            return ExAllocatePoolWithTag(PagedPool, Size, 'iDbO');
-        }
+        DIRECTORY_ENTRY (
+            _In_ POBJECT Object);
 
-        inline
-        void
-        operator delete (
-            _In_ void* Object)
-        {
-            ExFreePoolWithTag(Object, 'iDbO');
-        }
+        ~DIRECTORY_ENTRY (
+            VOID);
+
+        friend class OBJECT_DIRECTORY;
     } DIRECTORY_ENTRY, *PDIRECTORY_ENTRY;
 
     static const ULONG NUMBER_HASH_BUCKETS = 37;

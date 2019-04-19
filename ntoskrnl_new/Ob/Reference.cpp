@@ -1,6 +1,23 @@
+/*
+* PROJECT:         ReactOS Kernel
+* LICENSE:         GPL - See COPYING in the top level directory
+* FILE:            ntoskrnl/ob/reference.c
+* PURPOSE:         Ob functions for referencing and dereferencing
+* PROGRAMMERS:     Timo Kreuzer (timo.kreuzer@reactos.org)
+*/
+
+/* INCLUDES ******************************************************************/
 
 #include "Obp.hpp"
 
+/*! \name ObfReferenceObject
+*
+*  \see ObfReferenceObjectWithTag
+*
+*  \ref
+*  - http://msdn.microsoft.com/en-us/library/ff558678.aspx
+*  - http://msdn.microsoft.com/en-us/library/ff558690.aspx
+*/
 extern "C"
 _IRQL_requires_max_(DISPATCH_LEVEL)
 LONG_PTR
@@ -8,8 +25,8 @@ FASTCALL
 ObfReferenceObject (
     _In_ PVOID Object)
 {
-    __debugbreak();
-    return STATUS_NOT_IMPLEMENTED;
+    /* Use the extended routine and pass the default tag */
+    return ObfReferenceObjectWithTag(Object, 'tlfD');
 }
 
 extern "C"
@@ -31,8 +48,7 @@ NTAPI
 ObDereferenceObject (
     _In_ PVOID Object)
 {
-    __debugbreak();
-    return 0;
+    return ObfDereferenceObject(Object);
 }
 
 extern "C"
@@ -57,6 +73,13 @@ ObDereferenceObjectEx (
     return 0;
 }
 
+/*! \name ObfReferenceObjectWithTag
+*
+*  \see ObfReferenceObject
+*
+*  \ref
+*  - http://msdn.microsoft.com/en-us/library/ff558690.aspx
+*/
 extern "C"
 LONG_PTR
 FASTCALL

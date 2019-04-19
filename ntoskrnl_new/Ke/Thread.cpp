@@ -24,6 +24,23 @@ KeGetCurrentThread(
 }
 #endif
 
+// From Ke_NUKE. Where is that from?
+LONG
+NTAPI
+KeCapturePersistentThreadState(
+	PCONTEXT Context,
+	PKTHREAD Thread,
+	ULONG BugCheckCode,
+	ULONG BugCheckParameter1,
+	ULONG BugCheckParameter2,
+	ULONG BugCheckParameter3,
+	ULONG BugCheckParameter4,
+	PVOID VirtualAddress)
+{
+    __debugbreak();
+    return 0;
+}
+
 // ntosp.h
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
