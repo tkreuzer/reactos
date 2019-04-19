@@ -1,0 +1,3 @@
+
+
+typedef UCHAR KIRQL;

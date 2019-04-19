@@ -1,0 +1,20 @@
+
+
+07.11.2011  Start of development
+
+Future:
+
+11/2011
+- Get a working building environment, that builds a cd with the bootloader,
+  the kernel and boot drivers
+- Have the bootloader load the kernel and call the init function
+
+01/2012
+- Rewrite the debugging system from scratch
+- Get WinDbg working
+
+02/2012
+- Document and implement a basic startup sequence
+
+- Initialize PFN database
+- rewrite the pool apis

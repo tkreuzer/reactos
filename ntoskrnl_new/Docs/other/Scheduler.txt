@@ -1,0 +1,97 @@
+
+
+Windows uses the RTC timer on every CPU (in fact on Win7, only cpu 0 gets the
+RTC interrupt, but it issues a clock interrupt for the other cpus).
+CPU 0 will call KeUpdateSystemTime, the other CPUs will call KeUpdateRuntime.
+
+New Idea:
+1. Only CPU 0 will receive the clock interrupt and call KeUpdateSystemTime
+2. The APIC timer is configured as a one-shot timer with a DISPATCH_LEVEL vector
+3. Whenever a new thread is scheduled, the current counter value is stored
+   in the old thread's Quantum field and the APIC timer is reloaded with the
+   new threads Quantum. Then the IRR for this interrupt is cleared.
+     -> clearing the IRR could be omitted for performance, instead the
+        QuantumExpiredInterrupt will need to check whether there is anything
+        to do.
+4. As soon as one thread goes beyond it's Quantum the QuantumExpiredInterrupt
+   is triggered and the next thread will be scheduled.
+5. The QuantumExpiredInterrupt handler will not go through the usual thread
+   switcher, but use the trap frame based switcher (KiServiceExitNewThread)
+
+6. To get the other times (Kernel and user time), on every system call /
+   interrupt, these values are updated:
+
+
+    // RunTime = Prcb->LastTimerValue - ApicTimerValue;
+    mov rcx, [APIC_TCCR] // 30
+    mov rax, gs:[KPCR.PrcbData.LastTimerValue] // 2
+    sub rax, rcx    // 1
+
+    // Prcb->LastTimerValue = ApicTimerValue;
+    mov gs:[KPCR.PrcbData.LastTimerValue], rcx // 2
+
+    test SegCs, 1 // already there
+    jz kernel
+      //Prb->UserTime += RunTime;
+      add gs[KPCR.PrcbData.UserTime], rax // 2
+      add [rdx + KTHREAD.UserTime], rax // 1
+      jmp done // 1
+    kernel:
+      //Prcb->KernelTime += rax
+      add gs[KPCR.PrcbData.KernelTime], rax // 2
+      add [rdx + KTHREAD.KernelTime], rax // 1
+    done:
+
+
+Questions:
+    How many cycles do we need for reading / writing the APIC timer registers
+    around 5000 context switches and 7000 systemcalls per second need to be
+    handled.
+
+latencies
+    read apic timer value: 30 cycles
+    write apic initial timer value: estimated 35 cycles
+    additional overhead per systemcall: ~ 12
+
+    // estimated overhead per systemcall/systemret/interrupt/iret: 42 cycles
+    (7000 systemcalls + 1500 interrupts) * 2 = 17000
+    17000 * 42 = 714000 cycles per second ~ 0,045 % cpu time
+
+    // estimated overhead per context switch:
+    1 read: 30 cycles + 5 cycles extra
+    -> 35 cycles * 5000 cs = 175000 cycles / sec
+
+won: (roughly estimated)
+    128 * 1000 = 128000 cycles/s (x64)
+    1000 * 1000 = 1000000 cycles/s (x86)
+
+
+------------------------------------
+
+Clock-Tick:
+    x86: 1 ms interrupt, 10ms maximum
+    x64: 7.8 ms interrupt,
+
+Time per interrupt: 300 cycles + handler
+
+=> 300.000 cycles/s minimum (x86)
+=> 38.400 cycles/s minimum (x64)
+
+
+- HalSetTimeIncrement -> sets the time in ms between 2 clock interrupts
+
+- KeSetTimeIncrement(MaxIncrement, MinIncrement)
+    - called by HalpInitializeClock
+        KeMaximumIncrement = MaxIncrement;
+        KeMinimumIncrement = max(MinIncrement, 10000);
+        KeTimeAdjustment = MaxIncrement;
+        KeTimeIncrement = MaxIncrement;
+        KiTickOffset = MaxIncrement;
+
+
+- KeUpdateSystemTime
+    - called once per clock interrupt by HalpClockInterruptHandler
+    KiTickOffset -= Increment <= current real clock interrupt incrememt
+
+        KiTickOffset += KeMaximumIncrement;
+

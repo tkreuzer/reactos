@@ -1,0 +1,31 @@
+
+
+
+- Don't try to be funny. Good programmers are seldom funny. Don't try to prove
+  that this doesn't apply to you, by writing comments that are supposed to be
+  funny or in any other way "creative".
+
+- Comment your code in an appropriate way / extent. There is no need to comment
+  on every line of code, but every chunk of code that does one thing should have
+  a comment, what it does. Do not comment the obvious (/* increment i */). The
+  less obvious something is, the more it needs to be commented. Try to summerize
+  what a certain piece of code does rather than rephrasing the code.
+
+- Comment your code before you commit it, preferably while writing it. Committing
+  now, commenting later won't work.
+
+- Comment style is C-Style (/* ... */)
+
+- General formatting style is Allman/Ansi style with the following exceptions:
+  - if statements may be on one line
+  - ...
+
+- Indentation is 4 spaces.
+
+- Please always keep code readable. If a function becomes too large, split it.
+
+- The human brain is capable of processing about 7 informations at a time.
+  Keep that in mind when writing highly nested code constructs. Flat code
+  is always prefered for readability. Do not hesitate to use a goto, when
+  it can make code easier to read and understand.
+

@@ -1,0 +1,7 @@
+
+
+
+
+Ob::OBJECT ->
+Ob::FAST_REF -> Ob::OBJECT (full new object manager)
+

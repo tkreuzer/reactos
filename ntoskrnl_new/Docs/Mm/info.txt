@@ -1,0 +1,201 @@
+
+
+coding guidelines (suggestion)
+-----------------
+- File names are CamelCase.cpp and can be longer than 8 chars (no unix style cryptic names such as cmncbkcb.c or obsdcach.c)
+- Each class is implemented in a pair of *.cpp and *.hpp, residing in the same folder
+- The header files are "autark" i.e. they include all neccessary dependencies (for whatever is defined in the header)
+- The .cpp files include the corresponding header first, optionally followed by otehr includes, when the implementation requires them.
+- Indentation is 4 spaces
+- Use /* ... */ style comments
+- Use uppercase class names, like type names
+- Use g_ prefix for global lasses (like g_MemoryManager)
+- Add a space between the function / method name and the opening parameter brace in implementation and declaration
+  (reasoning: this is easier to search, when you want to find the implementation, not all the invocations)
+- Don't make use of "fancy" stuff like STL or ATL
+- in class declarations, declare data members first (first private then protected, then public, if any), followed by methods (also first private, then proteted, then public)
+
+
+Reference tracing
+-----------------
+There are a lot of structures, that can be considered "objects" in the C++ sense, but not in the ObjectManager sense.
+It could be useful to provide these structures with a reference tracing mechanism.
+A possible solution is to make these structures / classes inherit from a REF_OBJECT class, that implements a ref counter
+and AddRef() and Release() methods. On debug builds additional mechanisms, sich as event tracing could be added.
+
+
+
+The "MemoryManager" class
+-------------------------
+The MemoryManager itself is a singleton. As such it can be implemented with static members (both data and methods) only.
+Invocation would be like "status = g_MemoryManager.DoSomething(bla, ...);"
+
+
+Object creation
+---------------
+To create an instance of an object there are multiple possibilities. One of them is "bla = new BLA;". But this method
+has it's limitations, since it can only fail, when the object allocation failed. The object constructor cannot fail.
+Therefore it makes more sense to not use "new" operator / constructor / destructor at all and instead use something like
+    Status = SECTION_OBJECT::CreateInstance(bla, ..., &Section);
+
+where SECTION_OBJECT::CreateInstance is a static method, that creates the object by calling Ob and initializes it. On failure
+it cleans up the allocations and returns a failure status code.
+
+Ob wrapper
+----------
+For easier and more object oriented handling of Ob managed objects, a base class (maybe Ob::OBJECT) can be used.
+This class doesn't have any members (it's zero sized) and just serves as a wrapper around Ob functions.
+(Once my C++ Ob rewrite is done, they could be replaced by "native" functions ;-))
+
+namespace Ob {
+
+class OBJECT
+{
+
+    static
+    NTSTATUS
+    ReferenceObjectByHandle (
+        _In_ HANDLE ...,
+        _Out_ PVOID* OutObject)
+    {
+        return ObReferenceObjectByHandle(...);
+    }
+
+    VOID
+    ReferenceObject (
+        VOID)
+    {
+        ObReferenceObjectByPointer(this);
+    }
+
+    VOID
+    DereferenceObject (
+        VOID)
+    {
+        ObDereferenceObject(this);
+    }
+
+};
+
+Might also call them AddRef() and Release().
+
+    Section->DereferenceObject();
+
+or
+
+    Section->Release();
+
+Possibly other objects:
+
+namespace Ps {
+class PROCESS : Ob::OBJECT : ::EPROCESS
+{
+}
+
+class THREAD : Ob::OBJECT : ::ETHREAD
+{
+}
+
+}; //  namespace Ps
+
+Objects
+-------
+- "MemoryManager"?
+- "MMPFN" (stupid name)
+- PTE
+- Vad
+- Section
+- MM_AVL_TABLE (should probably write an AVL template class)
+
+
+Implementation
+--------------
+- Use a Vad based mechanism for kernel allocations instead of "system PTEs"
+  - Vads don't require parsing huge bitmaps, but can be enumerated in an AVL tree
+  - Vads can easily be used to cover the entire kernel address space
+  - A Vad mechanism must be implemented for user mode anyway
+
+- Make PTEs objects as well
+  - Read PTEs: "PTE PteValue = *PtePointer;"
+  - Modify PTEs: "PteValue.SetProtection(PAGE_READ);"
+  - Get PTE properties: "if (PteValue.IsValid()) ..."
+  - Implementation does not rely on specifics of PTEs (like if there is a "NoExecute" bit or a "Executable" bit)
+  - Allows more generic implementation (could be shared between x86 and x64,
+    possibly others, should still be separated)
+
+- Reference physical pages by "PFN_NUMBER" (yet another silly name) rather than
+  by MMPFN pointer
+
+
+          typedef struct _SECTION_OBJECT       // 6 elements, 0x18 bytes (sizeof)
+          {
+/*0x000*/     VOID*        StartingVa;
+/*0x004*/     VOID*        EndingVa;
+/*0x008*/     VOID*        Parent;
+/*0x00C*/     VOID*        LeftChild;
+/*0x010*/     VOID*        RightChild;
+/*0x014*/     struct _SEGMENT_OBJECT* Segment;
+          }SECTION_OBJECT, *PSECTION_OBJECT;
+
+
+          typedef struct _SEGMENT_OBJECT                     // 9 elements, 0x28 bytes (sizeof)
+          {
+/*0x000*/     VOID*        BaseAddress;
+/*0x004*/     ULONG32      TotalNumberOfPtes;
+/*0x008*/     union _LARGE_INTEGER SizeOfSegment;            // 4 elements, 0x8 bytes (sizeof)
+/*0x010*/     ULONG32      NonExtendedPtes;
+/*0x014*/     ULONG32      ImageCommitment;
+/*0x018*/     struct _CONTROL_AREA* ControlArea;
+/*0x01C*/     struct _SUBSECTION* Subsection;
+/*0x020*/     struct _MMSECTION_FLAGS* MmSectionFlags;
+/*0x024*/     struct _MMSUBSECTION_FLAGS* MmSubSectionFlags;
+          }SEGMENT_OBJECT, *PSEGMENT_OBJECT;
+
+          typedef struct _CONTROL_AREA                                      // 14 elements, 0x48 bytes (sizeof)
+          {
+/*0x000*/     struct _SEGMENT* Segment;
+/*0x004*/     struct _LIST_ENTRY ListHead;                                  // 2 elements, 0x8 bytes (sizeof)
+/*0x00C*/     ULONG32      NumberOfSectionReferences;
+/*0x010*/     ULONG32      NumberOfPfnReferences;
+/*0x014*/     ULONG32      NumberOfMappedViews;
+/*0x018*/     ULONG32      NumberOfUserReferences;
+              union                                                         // 2 elements, 0x4 bytes (sizeof)
+              {
+/*0x01C*/         ULONG32      LongFlags;
+/*0x01C*/         struct _MMSECTION_FLAGS Flags;                            // 24 elements, 0x4 bytes (sizeof)
+              }u;
+/*0x020*/     ULONG32      FlushInProgressCount;
+/*0x024*/     struct _EX_FAST_REF FilePointer;                              // 3 elements, 0x4 bytes (sizeof)
+/*0x028*/     LONG32       ControlAreaLock;
+/*0x02C*/     ULONG32      ModifiedWriteCount;
+/*0x030*/     struct _MI_CONTROL_AREA_WAIT_BLOCK* WaitList;
+              union                                                         // 1 elements, 0xC bytes (sizeof)
+              {
+                  struct                                                    // 9 elements, 0xC bytes (sizeof)
+                  {
+                      union                                                 // 2 elements, 0x4 bytes (sizeof)
+                      {
+/*0x034*/                 ULONG32      NumberOfSystemCacheViews;
+/*0x034*/                 ULONG32      ImageRelocationStartBit;
+                      };
+                      union                                                 // 2 elements, 0x4 bytes (sizeof)
+                      {
+/*0x038*/                 LONG32       WritableUserReferences;
+                          struct                                            // 4 elements, 0x4 bytes (sizeof)
+                          {
+/*0x038*/                     ULONG32      ImageRelocationSizeIn64k : 16;   // 0 BitPosition
+/*0x038*/                     ULONG32      Unused : 13;                     // 16 BitPosition
+/*0x038*/                     ULONG32      BitMap : 2;                      // 29 BitPosition
+/*0x038*/                     ULONG32      ImageActive : 1;                 // 31 BitPosition
+                          };
+                      };
+                      union                                                 // 2 elements, 0x4 bytes (sizeof)
+                      {
+/*0x03C*/                 struct _MM_AVL_TABLE* SubsectionRoot;
+/*0x03C*/                 struct _MI_IMAGE_SECURITY_REFERENCE* SeImageStub;
+                      };
+                  }e2;
+              }u2;
+/*0x040*/     INT64        LockedPages;
+          }CONTROL_AREA, *PCONTROL_AREA;
+

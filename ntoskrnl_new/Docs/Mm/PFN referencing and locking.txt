@@ -1,0 +1,25 @@
+
+
+            RefCount    ShareCount  IsMapped    LockCount
+---------------------------------------------------------------
+Free        0           0           0           0
+Allocated   1           0           0           0
+Private     1           1           1           0
+Section     1           0/1         0           0
+Sect/Mapped 2           1/2         1           0
+Priv/Locked 2           2           1           1
+Sect/Locked 3           1/2         1           1
+
+1.) Use RefCount only. Mapping is 1 Ref, Locking 2. Unmapping and unlocking
+    is deref. When it's derefed to 0, check if a flag (Committed) is set,
+    which specifies, that the contents are still in use and the page has only
+    been swapped out. In that case (and when the page is dirty) move the page
+    to the standby list, otherwise (when the page was decommitted) the page is
+    not in use anymore and can be put on the free list.
+    The outswapper checks whether a page, that is either mapped privately or
+    part of a section and is next on the list of pages to check, has a refCount
+    of only 1. In that case, the PTE is converted into a page file PTE and the
+    PFN is removed from the working set list and put on the outswap list
+    Locking requires 2 RefCounts, so that if the page got
+    decommitted, it still has RefCount > 1 and cannot be removed
+

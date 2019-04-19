@@ -1,0 +1,127 @@
+
+Microsoft (R) Windows Debugger Version 6.2.8400.4218 AMD64
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+Opened \\.\COM8
+Waiting to reconnect...
+Connected to Windows Server 2003 3790 x86 compatible target at (Sun May 12 14:52:53.895 2013 (UTC + 2:00)), ptr64 FALSE
+Kernel Debugger connection established.
+Symbol search path is: srv*http://msdl.microsoft.com/download/symbols
+Executable search path is:
+Windows Server 2003 Kernel Version 3790 UP Checked x86 compatible
+Built by: 20130512-rUNKNOWN
+Machine Name:
+Kernel base = 0x80400000 PsLoadedModuleList = 0x80602360
+System Uptime: not available
+Received Unhandled API 315f
+Received Unhandled API 315f
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\ke\i386\cpu.c:494) Supported CPU features : KF_V86_VIS KF_RDTSC KF_CR4 KF_CMOV KF_GLOBAL_PAGE KF_LARGE_PAGE KF_MTRR KF_CMPXCHG8B KF_MMX KF_WORKING_PTE KF_PAT KF_FXSR KF_FAST_SYSCALL KF_XMMI KF_3DNOW  KF_XMMI64  KF_NX_BIT
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\ke\i386\cpu.c:801) Prefetch Cache: 64 bytes	L2 Cache: 524288 bytes	L2 Cache Line: 64 bytes	L2 Cache Associativity: 16
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\expool.c:1010) EXPOOL: Pool Tracker Table at: 0xB0311000 with 0xe01c bytes
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\expool.c:1012) EXPOOL: Big Pool Tracker Table at: 0xB0301000 with 0x10000 bytes
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\mminit.c:1433) HAL I/O Mapping at FFFE0000 is unsafe
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:262)           0x80000000 - 0x80C00000	Boot Loaded Image
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:266)           0xB0000000 - 0xB0120000	PFN Database
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:270)           0xB0120000 - 0xB0320000	ARM3 Non Paged Pool
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:274)           0xBB000000 - 0xBD000000	System View Space
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:278)           0xBD000000 - 0xC0000000	Session Space
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:281)           0xC0000000 - 0xC03FFFFF	Page Tables
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:284)           0xC0300000 - 0xC0300FFF	Page Directories
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:287)           0xC0400000 - 0xC07FFFFF	Hyperspace
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:291)           0xE1000000 - 0xEA400000	ARM3 Paged Pool
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:294)           0xF5C00000 - 0xFB4A9000	System PTE Space
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\mminit.c:297)           0xFB4A9000 - 0xFFBE0000	Non Paged Pool Expansion PTE Space
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\config\cmhvlist.c:158) CmpAddToHiveFileList: Creation or opening of the hive list failed, status = c0000034
+(C:\Dev\ReactOS\trunk\src\hal\halx86\legacy\bussupp.c:623) Found parent bus (indicating PCI Bridge). PCI devices may fail!
+
+====== PCI BUS HARDWARE DETECTION =======
+
+00:00.0 Host bridge [0600]: Intel Corporation 440FX - 82441FX PMC [Natoma] [8086:1237] (rev 02)
+	Subsystem: Unknown [0000:0000]
+	Flags: fast devsel, latency 0
+
+00:01.0 ISA bridge [0601]: Intel Corporation 82371SB PIIX3 ISA [Natoma/Triton II] [8086:7000] (rev 00)
+	Subsystem: Unknown [0000:0000]
+	Flags: bus master, medium devsel, latency 0
+
+00:01.1 IDE interface [0101]: Intel Corporation 82371AB/EB/MB PIIX4 IDE [8086:7111] (rev 01)
+	Subsystem: Unknown [0000:0000]
+	Flags: bus master, fast devsel, latency 0
+	I/O ports at d000 [size=4K]
+
+00:02.0 VGA compatible controller [0300]: InnoTek Systemberatung GmbH VirtualBox Graphics Adapter [80ee:beef] (rev 00)
+	Subsystem: Unknown [0000:0000]
+	Flags: bus master, fast devsel, latency 0, IRQ 11
+	Memory at e0000000 (32-bit, prefetchable) [size=512M]
+	Device is using IRQ 11! ISA Cards using that IRQ may fail!
+
+00:03.0 Ethernet controller [0200]: Advanced Micro Devices [AMD] 79c970 [PCnet32 LANCE] [1022:2000] (rev 40)
+	Subsystem: PCnet - Fast 79C971 [1022:2000]
+	Flags: bus master, medium devsel, latency 0, IRQ 10
+	I/O ports at d020 [size=32]
+	Memory at f0000000 (32-bit, non-prefetchable) [size=256M]
+	Memory at f0080000 (32-bit, non-prefetchable) [size=512K]
+	Device is using IRQ 10! ISA Cards using that IRQ may fail!
+
+00:04.0 System peripheral [0880]: InnoTek Systemberatung GmbH VirtualBox Guest Service [80ee:cafe] (rev 00)
+	Subsystem: Unknown [0000:0000]
+	Flags: bus master, fast devsel, latency 0, IRQ 09
+	I/O ports at d040 [size=64]
+	Memory at f0400000 (32-bit, non-prefetchable) [size=4M]
+	Memory at f0800000 (32-bit, prefetchable) [size=8M]
+	Device is using IRQ 9! ISA Cards using that IRQ may fail!
+
+00:05.0 Multimedia audio controller [0401]: Intel Corporation 82801AA AC'97 Audio Controller [8086:2415] (rev 01)
+	Subsystem: Terminator 2x/i [8086:0000]
+	Flags: bus master, medium devsel, latency 0, IRQ 05
+	I/O ports at d100 [size=256]
+	I/O ports at d200 [size=512]
+	Device is using IRQ 5! ISA Cards using that IRQ may fail!
+
+00:07.0 Secondary bus towards host CPU [0680]: Intel Corporation 82371AB/EB/MB PIIX4 ACPI [8086:7113] (rev 08)
+	Subsystem: Unknown [0000:0000]
+	Flags: bus master, medium devsel, latency 0, IRQ 09
+	Device is using IRQ 9! ISA Cards using that IRQ may fail!
+
+====== PCI BUS DETECTION COMPLETE =======
+
+PC Compatible Eisa/Isa HAL Detected
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\pnpinit.c:435) Need to build DACL
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\pnpmgr.c:3185) ZwOpenKey(\Registry\Machine\SYSTEM\CURRENTCONTROLSET\Control\Pnp) failed with status 0xc0000034
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\pnpmgr.c:3188) Firmware mapper is enabled
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\pnpreport.c:353) Reported device: DETECTEDInternal\PCI_HAL (Root\PCI_HAL\0)
+(C:\Dev\ReactOS\trunk\src\hal\halx86\legacy\bussupp.c:1159) Slot assignment for 5 on bus 0
+(C:\Dev\ReactOS\trunk\src\hal\halx86\legacy\bus\pcibus.c:715) WARNING: PCI Slot Resource Assignment is FOOBAR
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\iorsrce.c:874) IoReportResourceUsage is halfplemented!
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\iorsrce.c:874) IoReportResourceUsage is halfplemented!
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\driver.c:1582) '\Driver\buslogic' initialization failed, status (0xc00000c0)
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\driver.c:61) Deleting driver object '\Driver\buslogic'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\driver.c:1582) '\Driver\floppy' initialization failed, status (0xc000000e)
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\driver.c:61) Deleting driver object '\Driver\floppy'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\arcname.c:386) Boot device found
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\file.c:438) Using IopParseDevice() hack. Requested invalid attributes: 1
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\iomgr\file.c:438) Using IopParseDevice() hack. Requested invalid attributes: 1
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\mminit.c:1173) Loader pages freed: 43
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\ex\init.c:1959) Free non-cache pages: b572
+(C:\Dev\ReactOS\trunk\src\base\setup\usetup\interface\devinst.c:91) Using driver 'pci.sys' for device 'PCI_HAL\PNP0A03\0'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\plugplay.c:635) A new driver will be loaded for 'PCI_HAL\PNP0A03\0' (no FDO above)
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\sysldr.c:174) Loading: \SystemRoot\system32\drivers\pci.sys at FB207000 with d pages
+(C:\Dev\ReactOS\trunk\src\hal\halx86\legacy\halpnpdd.c:716) Start device received
+(C:\Dev\ReactOS\trunk\src\drivers\bus\pci\fdo.c:572) Unknown IOCTL 0x9
+(C:\Dev\ReactOS\trunk\src\drivers\bus\pci\fdo.c:572) Unknown IOCTL 0x14
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\pnpmgr.c:4030) IRP_MN_QUERY_PNP_DEVICE_STATE failed with status 0xc00000bb
+(C:\Dev\ReactOS\trunk\src\base\setup\usetup\interface\devinst.c:91) Using driver 'i8042prt.sys' for device 'Root\*PNP0303\0000'
+(C:\Dev\ReactOS\trunk\src\base\setup\usetup\interface\devinst.c:143) Installing keyboard class driver for 'Root\*PNP0303\0000'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\plugplay.c:635) A new driver will be loaded for 'Root\*PNP0303\0000' (no FDO above)
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\sysldr.c:174) Loading: \SystemRoot\system32\drivers\i8042prt.sys at FB1F4000 with 13 pages
+(C:\Dev\ReactOS\trunk\src\base\setup\usetup\interface\devinst.c:91) Using driver 'pciide.sys' for device 'PCI\VEN_8086&DEV_7111&SUBSYS_00000000&REV_01\2&b3ac4ede&21'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\plugplay.c:635) A new driver will be loaded for 'PCI\VEN_8086&DEV_7111&SUBSYS_00000000&REV_01\2&b3ac4ede&21' (no FDO above)
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\sysldr.c:174) Loading: \SystemRoot\system32\drivers\pciide.sys at FB1DC000 with 7 pages
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\mm\ARM3\sysldr.c:174) Loading: \SystemRoot\system32\drivers\pciidex.sys at FB1D1000 with b pages
+(C:\Dev\ReactOS\trunk\src\hal\halx86\legacy\bus\pcibus.c:686) HAL: No PCI Resource Adjustment done! Hardware may malfunction
+(C:\Dev\ReactOS\trunk\src\drivers\bus\pci\pdo.c:1281) Enabling command flags for PCI device 0x21 on bus 0x0: [Bus master] [I/O space enable]
+(C:\Dev\ReactOS\trunk\src\drivers\storage\ide\pciidex\fdo.c:464) IRP_MJ_PNP / Unknown minor function 0x9
+(C:\Dev\ReactOS\trunk\src\base\setup\usetup\interface\devinst.c:91) Using driver 'uniata.sys' for device 'PCIIDE\IDEChannel\3&f85e3f4e&0'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\plugplay.c:635) A new driver will be loaded for 'PCIIDE\IDEChannel\3&f85e3f4e&0' (no FDO above)
+(C:\Dev\ReactOS\trunk\src\base\setup\usetup\interface\devinst.c:91) Using driver 'uniata.sys' for device 'PCIIDE\IDEChannel\3&f85e3f4e&1'
+(C:\Dev\ReactOS\trunk\src\ntoskrnl\io\pnpmgr\plugplay.c:635) A new driver will be loaded for 'PCIIDE\IDEChannel\3&f85e3f4e&1' (no FDO above)

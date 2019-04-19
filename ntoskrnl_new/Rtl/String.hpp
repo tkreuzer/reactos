@@ -1,0 +1,46 @@
+
+
+#define RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE (0x00000001)
+#define RTL_DUPLICATE_UNICODE_STRING_ALLOCATE_NULL_STRING (0x00000002)
+
+
+
+
+typedef
+_Function_class_(RTL_ALLOCATE_STRING_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+PVOID
+NTAPI
+RTL_ALLOCATE_STRING_ROUTINE (
+    _In_ SIZE_T NumberOfBytes
+    );
+typedef RTL_ALLOCATE_STRING_ROUTINE *PRTL_ALLOCATE_STRING_ROUTINE;
+
+typedef
+_Function_class_(RTL_REALLOCATE_STRING_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__drv_allocatesMem(Mem)
+PVOID
+NTAPI
+RTL_REALLOCATE_STRING_ROUTINE(
+    _In_ SIZE_T NumberOfBytes,
+    _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Buffer
+    );
+typedef RTL_REALLOCATE_STRING_ROUTINE *PRTL_REALLOCATE_STRING_ROUTINE;
+
+typedef
+_Function_class_(RTL_FREE_STRING_ROUTINE)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+VOID
+NTAPI
+RTL_FREE_STRING_ROUTINE (
+    _In_ __drv_freesMem(Mem) _Post_invalid_ PVOID Buffer
+    );
+typedef RTL_FREE_STRING_ROUTINE *PRTL_FREE_STRING_ROUTINE;
+
+extern const PRTL_ALLOCATE_STRING_ROUTINE RtlAllocateStringRoutine;
+extern const PRTL_FREE_STRING_ROUTINE RtlFreeStringRoutine;
+
+extern const PRTL_REALLOCATE_STRING_ROUTINE RtlReallocateStringRoutine;
+

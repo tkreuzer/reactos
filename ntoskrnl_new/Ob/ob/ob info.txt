@@ -1,0 +1,570 @@
+
+
+Date 13.11.2011:
+
+Reverse engineering info
+------------------------
+All information presented herein was gathered in a clean room manner without
+any disassembling. The tools used are:
+- Symbol type viewer to extract structure and enum definitions from public pdbs
+- WinDbg and its extensions to dump objects and memory data
+
+To find object types, a breakpoint was set to ObReferenceObject and the value of
+the first parameter (rcx) was investigated using the !object command.
+Memory dumps using the memory window and the dt command were used to find
+additional information about the object headers and the value of their fields.
+
+
+The previous source code of the ReactOS object manager was not used, neither
+as a source for code, nor to study the internal workings of the object manager,
+since it is considered derived from copyrighted work (the result of directly
+converting disassembled MS code into C code) and its study could have caused
+any further developed code to be considered derived work as well.
+
+
+
+Object Headers
+--------------
+Every object managed by the object manager has a header of the type
+OBJECT_HEADER (see below), directly preceeding the actual object data. The
+object data or object body begins at the Body field of the structure.
+a pointer to the object header can thus be retrieved in the following way:
+
+    ObjectHeader = CONTAINING_RECORD(Object, OBJECT_HEADER, Body);
+
+typedef struct _OBJECT_HEADER
+{
+    LONG_PTR PointerCount;
+    union
+    {
+        LONG_PTR HandleCount;
+        PVOID NextToFree;
+    };
+    EX_PUSH_LOCK Lock;
+    UCHAR TypeIndex;
+    UCHAR TraceFlags;
+    UCHAR InfoMask;
+    UCHAR Flags;
+#ifdef _WIN64
+    ULONG Spare;
+#endif
+    union
+    {
+        struct _OBJECT_CREATE_INFORMATION* ObjectCreateInfo;
+        PVOID QuotaBlockCharged;
+    };
+    PVOID SecurityDescriptor;
+    QUAD Body;
+} OBJECT_HEADER, *POBJECT_HEADER;
+
+The object allocation can contain additional headers, all preceeding the main
+header. What additional headers are present can be determined from the headers
+InfoMask field. For each bit that is set, beginning with the least significant
+bit, an additional header is preceeding the original header. The offsets of the
+headers can be found by enumerating the bits beginning with the last significant
+bit and if present, adding the size of the respective header to the offset.
+The headers are their bit masks are:
+
+Header structure                Bit
+------------------------------------
+OBJECT_HEADER_CREATOR_INFO      0x01
+OBJECT_HEADER_NAME_INFO         0x02
+OBJECT_HEADER_PROCESS_INFO      0x04
+OBJECT_HEADER_QUOTA_INFO        0x08
+OBJECT_HEADER_HANDLE_INFO       0x10 // CECKME
+
+Object types
+------------
+Every object has a type. While formerly the object header contained a pointer
+to the object type structure, since Windows 7 there is only an UCHAR index
+into an object type table. The maximum number of object types is therefore
+limited to 256, possibly less.
+The object type is an object itself, its type is the "Type" type.
+
+
+EXPERIMENT: Dumping an object shows the object type
+---------------------------------------------------
+We attach with WinDbg to a Windows 7 machine and break in early. Then we set a
+break point to ObfReferenceObject and continue. After the break we can see the
+object pointer in the rcx register (first function parameter). Using the !object
+command on the pointer shows the basic information.
+We see a number of different objects. Now we set a breakpoint to ObCreatObject
+and disable the old break point. After the break, enable the ObfReferenceObject
+break point again and continue. We get the pointer to the root directory.
+
+kd> !object fffff8a000004ca0
+Object: fffff8a000004ca0  Type: (fffffa800062fab0) Directory
+    ObjectHeader: fffff8a000004c70 (new version)
+    HandleCount: 0  PointerCount: 4
+    Directory Object: 00000000  Name: \
+
+    Hash Address          Type          Name
+    ---- -------          ----          ----
+     01  fffff8a000006a90 Directory     ObjectTypes
+     23  fffff8a000004650 Directory     KernelObjects
+
+We see 2 children: ObjectTypes and KernelObjects. We are interested in the
+ObjectTypes directory.
+
+kd> !object fffff8a000006a90
+Object: fffff8a000006a90  Type: (fffffa800062fab0) Directory
+    ObjectHeader: fffff8a000006a60 (new version)
+    HandleCount: 0  PointerCount: 12
+    Directory Object: fffff8a000004ca0  Name: ObjectTypes
+
+    Hash Address          Type          Name
+    ---- -------          ----          ----
+     01  fffffa8000635ac0 Type          Process
+     03  fffffa8000630b40 Type          DebugObject
+     05  fffffa8000635e30 Type          Token
+     25  fffffa800062f960 Type          SymbolicLink
+     28  fffffa8000630de0 Type          UserApcReserve
+         fffffa8000635c10 Type          Job
+     29  fffffa8000630c90 Type          IoCompletionReserve
+     30  fffffa800062fab0 Type          Directory
+     31  fffffa8000630f30 Type          Thread
+     32  fffffa800062fc00 Type          Type
+
+Repeating this command in a later boot stage, will give us much more object
+types, but these are sufficient for now. We can see the last entry is a "Type"
+object type. Lets first try the !object command on the Process object type:
+
+kd> !object fffffa8000635ac0
+Object: fffffa8000635ac0  Type: (fffffa800062fc00) Type
+    ObjectHeader: fffffa8000635a90 (new version)
+    HandleCount: 0  PointerCount: 2
+    Directory Object: fffff8a000006a90  Name: Process
+
+We can see that the object has a type again, which is the "Type" object type,
+so lets look at that one:
+
+kd> !object fffffa800062fc00
+Object: fffffa800062fc00  Type: (fffffa800062fc00) Type
+    ObjectHeader: fffffa800062fbd0 (new version)
+    HandleCount: 0  PointerCount: 2
+    Directory Object: fffff8a000006a90  Name: Type
+
+This shows that the object type object is also an object and its type is itself.
+We want to know where the object is allocated:
+
+kd> !pool fffffa800062fbd0
+Pool page fffffa800062fbd0 region is Nonpaged pool
+ fffffa800062f000 size:  840 previous size:    0  (Allocated)  Mdl
+...
+*fffffa800062fb80 size:  150 previous size:  150  (Allocated) *ObjT (Protected)
+		Pooltag ObjT : object type objects, Binary : nt!ob
+
+So we can see that the object type was allocated from non paged pool and the
+pool tag is ObjT.
+
+Lets look at the header in detail:
+
+kd> dt _OBJECT_HEADER fffffa800062fbd0
+nt!_OBJECT_HEADER
+   +0x000 PointerCount     : 0n2
+   +0x008 HandleCount      : 0n0
+   +0x008 NextToFree       : (null)
+   +0x010 Lock             : _EX_PUSH_LOCK
+   +0x018 TypeIndex        : 0x2 ''
+   +0x019 TraceFlags       : 0 ''
+   +0x01a InfoMask         : 0x3 ''
+   +0x01b Flags            : 0x13 ''
+   +0x020 ObjectCreateInfo : (null)
+   +0x020 QuotaBlockCharged : (null)
+   +0x028 SecurityDescriptor : (null)
+   +0x030 Body             : _QUAD
+
+It is interesting that the TypeIndex field shows 2. So there might be 2 types
+before this one. The InfoMask field is 3. To find out the meaning of these bits
+we need to dump a lot of object headers, look at the data preceeding it and
+compare it to symbols extracted from a public symbol file.
+We can say now that in this case it will be OBJECT_HEADER_CREATOR_INFO and
+OBJECT_HEADER_NAME_INFO, both of a size of 0x20 (on x64 machines). Lets try
+to dump them:
+
+kd> dt _OBJECT_HEADER_CREATOR_INFO fffffa800062fbd0-20
+nt!_OBJECT_HEADER_CREATOR_INFO
+   +0x000 TypeList         : _LIST_ENTRY [ 0xfffffa80`0062fa60 - 0xfffffa80`0062fc00 ]
+   +0x010 CreatorUniqueProcess : (null)
+   +0x018 CreatorBackTraceIndex : 0
+   +0x01a Reserved         : 0
+
+kd> dt -r _OBJECT_HEADER_NAME_INFO fffffa800062fbd0-40
+nt!_OBJECT_HEADER_NAME_INFO
+   +0x000 Directory        : 0xfffff8a0`00006a90 _OBJECT_DIRECTORY
+      +0x000 HashBuckets      : [37] (null)
+      +0x128 Lock             : _EX_PUSH_LOCK
+         +0x000 Locked           : 0y0
+         +0x000 Waiting          : 0y0
+         +0x000 Waking           : 0y0
+         +0x000 MultipleShared   : 0y0
+         +0x000 Shared           : 0y000000000000000000000000000000000000000000000000000000000000 (0)
+         +0x000 Value            : 0
+         +0x000 Ptr              : (null)
+      +0x130 DeviceMap        : (null)
+      +0x138 SessionId        : 0xffffffff
+      +0x140 NamespaceEntry   : (null)
+      +0x148 Flags            : 0
+   +0x008 Name             : _UNICODE_STRING "Type"
+      +0x000 Length           : 8
+      +0x002 MaximumLength    : 0xa
+      +0x008 Buffer           : 0xfffff8a0`00001900  "Type"
+   +0x018 ReferenceCount   : 0n0
+
+Looks good so far. Now lets have a look at the object type structure itself:
+
+kd> dt -r _OBJECT_TYPE fffffa800062fc00
+nt!_OBJECT_TYPE
+   +0x000 TypeList         : _LIST_ENTRY [ 0xfffffa80`0062fbb0 - 0xfffffa80`00630af0 ]
+      +0x000 Flink            : 0xfffffa80`0062fbb0 _LIST_ENTRY [ 0xfffffa80`0062fa60 - 0xfffffa80`0062fc00 ]
+         +0x000 Flink            : 0xfffffa80`0062fa60 _LIST_ENTRY [ 0xfffffa80`0062f910 - 0xfffffa80`0062fbb0 ]
+         +0x008 Blink            : 0xfffffa80`0062fc00 _LIST_ENTRY [ 0xfffffa80`0062fbb0 - 0xfffffa80`00630af0 ]
+      +0x008 Blink            : 0xfffffa80`00630af0 _LIST_ENTRY [ 0xfffffa80`0062fc00 - 0xfffffa80`00630c40 ]
+         +0x000 Flink            : 0xfffffa80`0062fc00 _LIST_ENTRY [ 0xfffffa80`0062fbb0 - 0xfffffa80`00630af0 ]
+         +0x008 Blink            : 0xfffffa80`00630c40 _LIST_ENTRY [ 0xfffffa80`00630af0 - 0xfffffa80`00630d90 ]
+   +0x010 Name             : _UNICODE_STRING "Type"
+      +0x000 Length           : 8
+      +0x002 MaximumLength    : 0xa
+      +0x008 Buffer           : 0xfffff8a0`00001900  "Type"
+   +0x020 DefaultObject    : 0xfffff800`028359a0 Void
+   +0x028 Index            : 0x2 ''
+   +0x02c TotalNumberOfObjects : 0xa
+   +0x030 TotalNumberOfHandles : 0
+   +0x034 HighWaterNumberOfObjects : 0xa
+   +0x038 HighWaterNumberOfHandles : 0
+   +0x040 TypeInfo         : _OBJECT_TYPE_INITIALIZER
+      +0x000 Length           : 0x70
+      +0x002 ObjectTypeFlags  : 0x24 '$'
+      +0x002 CaseInsensitive  : 0y0
+      +0x002 UnnamedObjectsOnly : 0y0
+      +0x002 UseDefaultObject : 0y1
+      +0x002 SecurityRequired : 0y0
+      +0x002 MaintainHandleCount : 0y0
+      +0x002 MaintainTypeList : 0y1
+      +0x002 SupportsObjectCallbacks : 0y0
+      +0x004 ObjectTypeCode   : 0
+      +0x008 InvalidAttributes : 0x100
+      +0x00c GenericMapping   : _GENERIC_MAPPING
+         +0x000 GenericRead      : 0x20000
+         +0x004 GenericWrite     : 0x20000
+         +0x008 GenericExecute   : 0x20000
+         +0x00c GenericAll       : 0xf0001
+      +0x01c ValidAccessMask  : 0x1f0001
+      +0x020 RetainAccess     : 0
+      +0x024 PoolType         : 0 ( NonPagedPool )
+      +0x028 DefaultPagedPoolCharge : 0
+      +0x02c DefaultNonPagedPoolCharge : 0x128
+      +0x030 DumpProcedure    : (null)
+      +0x038 OpenProcedure    : (null)
+      +0x040 CloseProcedure   : (null)
+      +0x048 DeleteProcedure  : (null)
+      +0x050 ParseProcedure   : (null)
+      +0x058 SecurityProcedure : 0xfffff800`0294bb50        long  nt!SeDefaultObjectMethod+0
+      +0x060 QueryNameProcedure : (null)
+      +0x068 OkayToCloseProcedure : (null)
+   +0x0b0 TypeLock         : _EX_PUSH_LOCK
+      +0x000 Locked           : 0y0
+      +0x000 Waiting          : 0y0
+      +0x000 Waking           : 0y0
+      +0x000 MultipleShared   : 0y0
+      +0x000 Shared           : 0y000000000000000000000000000000000000000000000000000000000000 (0)
+      +0x000 Value            : 0
+      +0x000 Ptr              : (null)
+   +0x0b8 Key              : 0x546a624f
+   +0x0c0 CallbackList     : _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+      +0x000 Flink            : 0xfffffa80`0062fcc0 _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+         +0x000 Flink            : 0xfffffa80`0062fcc0 _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+         +0x008 Blink            : 0xfffffa80`0062fcc0 _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+      +0x008 Blink            : 0xfffffa80`0062fcc0 _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+         +0x000 Flink            : 0xfffffa80`0062fcc0 _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+         +0x008 Blink            : 0xfffffa80`0062fcc0 _LIST_ENTRY [ 0xfffffa80`0062fcc0 - 0xfffffa80`0062fcc0 ]
+
+Once again we can see the UNICODE_STRING with the "Type" name. The pointer to
+the string buffer matches the one from the OBJECT_HEADER_NAME_INFO.
+Its allocated from paged pool with the tag "ObNm"
+
+The DefaultObject points to some unknown data inside the ntoskrnl image.
+The Key is "ObjT", which is also the pool tag.
+
+Lets have a look at the TypeList by dumping the list:
+
+kd> dl fffffa800062fc00 100 2
+fffffa80`0062fc00  fffffa80`0062fbb0 fffffa80`00630af0
+fffffa80`0062fbb0  fffffa80`0062fa60 fffffa80`0062fc00
+fffffa80`0062fa60  fffffa80`0062f910 fffffa80`0062fbb0
+fffffa80`0062f910  fffffa80`00635de0 fffffa80`0062fa60
+fffffa80`00635de0  fffffa80`00635bc0 fffffa80`0062f910
+fffffa80`00635bc0  fffffa80`00635a70 fffffa80`00635de0
+fffffa80`00635a70  fffffa80`00630ee0 fffffa80`00635bc0
+fffffa80`00630ee0  fffffa80`00630d90 fffffa80`00635a70
+fffffa80`00630d90  fffffa80`00630c40 fffffa80`00630ee0
+fffffa80`00630c40  fffffa80`00630af0 fffffa80`00630d90
+fffffa80`00630af0  fffffa80`0062fc00 fffffa80`00630c40
+
+Now this is interesting. Flink is fffffa80`0062fbb0, which we happened to
+see earlier as the OBJECT_HEADER_CREATOR_INFO for this object. We also see
+that this list conains 10 entries (+ one for the list head) the same as
+the TotalNumberOfObjects member. The other list entries also match the
+OBJECT_HEADER_CREATOR_INFO structure and are followed by an OBJECT_HEADER
+and an OBJECT_TYPE structure. So this seems to be the list head of a list
+of objects, belonging to this type. Next we check if this applies to other
+object types as well. But it turns out that all the other object types' lists
+are empty.
+
+
+Date: 15.11.2011:
+
+Another thing worth mentioning is the object type's Key member. For the Type
+object type it is 'ObjT' for all other types it is the first 4 letters of the
+type name.
+
+
+
+
+....
+
+List of object types and their indices:
+
+0x00 -
+0x01 -
+0x02 Type
+0x03 Directory
+0x04 SymbolicLink
+0x05 Token
+0x06 Job
+0x07 Process
+0x08 Thread
+0x09 UserApcReserve
+0x0a IoCompletionReserve
+0x0b DebugObject
+0x0c Event
+0x0d EventPair
+0x0e Mutant
+0x0f Callback
+0x10 Semaphore
+0x11 Timer
+0x12 Profile
+0x13 KeyedEvent
+0x14 WindowStation
+0x15 Desktop
+0x16 TpWorkerFactory
+0x17 Adapter
+0x18 Controller
+0x19 Device
+0x1a Driver
+0x1b IoCompletion
+0x1c File
+0x1d TmTm
+0x1e TmTx
+0x1f TmRm
+0x20 TmEn
+0x21 Section
+0x22 Session
+0x23 Key
+0x24 ALPC Port
+0x25 PowerRequest
+0x26 WmiGuid
+0x27 EtwRegistration
+0x28 EtwConsumer
+0x29 FilterConnectionPort
+0x2a FilterCommunicationPort
+0x2b PcwObject
+
+
+
+
+Object directories
+------------------
+Now lets have a look at object directories. We earlier found the root directory
+object, but since this is a new debugging session and Windows was reinstalled
+the old pointer is not valid anymore. We take a shortcur and use a symbol:
+
+kd> dq ObpRootDirectoryObject
+fffff800`0282d790  fffff8a0`00004ca0 fffffa80`0062fa00
+
+So the root directory is at 0xfffff8a000004ca0.
+
+kd> !pool fffff8a0`00004ca0
+Pool page fffff8a000004ca0 region is Paged pool
+ fffff8a000004000 size:  3f0 previous size:    0  (Allocated)  Toke (Protected)
+ ...
+*fffff8a000004c40 size:  1b0 previous size:   30  (Allocated) *Dire (Protected)
+		Pooltag Dire : Directory objects
+ ...
+
+The root directory is allocated from paged pool, this is a sure sign that all
+directories and all directry entries are allocated from paged pool, since
+it wouldn't make much sense to allocate them from non paged pool if the whole
+directory code works with paged data.
+
+Lets dump the object:
+
+kd> !object fffff8a0`00004ca0
+Object: fffff8a000004ca0  Type: (fffffa800062fb50) Directory
+    ObjectHeader: fffff8a000004c70 (new version)
+    HandleCount: 0  PointerCount: 26
+    Directory Object: 00000000  Name: \
+
+    Hash Address          Type          Name
+    ---- -------          ----          ----
+     01  fffff8a000006a90 Directory     ObjectTypes
+     05  fffff8a000080720 SymbolicLink  SystemRoot
+     06  fffff8a0003a4df0 Directory     Sessions
+     08  fffff8a000010650 Directory     ArcName
+     09  fffff8a00007e200 Directory     NLS
+     10  fffff8a00021aac0 Directory     Windows
+         fffff8a000006270 Directory     GLOBAL??
+     11  fffff8a0003a3db0 Directory     RPC Control
+     14  fffff8a000222aa0 SymbolicLink  Dfs
+         fffffa8000664060 Device        clfs
+     15  fffffa80015edc40 ALPC Port     SeRmCommandPort
+     16  fffff8a0000068f0 SymbolicLink  DosDevices
+     18  fffff8a000019ca0 Key           \REGISTRY
+     20  fffffa8000705070 ALPC Port     PowerPort
+     21  fffff8a00006cd00 Directory     UMDFCommunicationPorts
+     22  fffffa8000705980 ALPC Port     PowerMonitorPort
+     23  fffff8a00006d900 Directory     FileSystem
+         fffff8a000004650 Directory     KernelObjects
+         fffffa8000664c50 Device        Ntfs
+     26  fffff8a000006060 Directory     Callback
+     28  fffff8a00000ab10 Directory     Security
+     30  fffff8a00000c060 Directory     Device
+     34  fffffa8001603c80 ALPC Port     SmApiPort
+     36  fffff8a00006dab0 Directory     Driver
+
+The structure looks like this:
+kd> dt _OBJECT_DIRECTORY fffff8a0`00004ca0
+nt!_OBJECT_DIRECTORY
+   +0x000 HashBuckets      : [37] (null)
+   +0x128 Lock             : _EX_PUSH_LOCK
+   +0x130 DeviceMap        : (null)
+   +0x138 SessionId        : 0xffffffff
+   +0x140 NamespaceEntry   : (null)
+   +0x148 Flags            : 0
+
+lets look at the actual entries. For this we dump the memory as quad values:
+
+kd> dq fffff8a0`00004ca0
+fffff8a0`00004ca0  00000000`00000000 fffff8a0`000069e0
+fffff8a0`00004cb0  00000000`00000000 00000000`00000000
+fffff8a0`00004cc0  00000000`00000000 fffff8a0`0007a710
+fffff8a0`00004cd0  fffff8a0`003a4d50 00000000`00000000
+fffff8a0`00004ce0  fffff8a0`000080c0 fffff8a0`0006d650
+fffff8a0`00004cf0  fffff8a0`002259d0 fffff8a0`003a28d0
+fffff8a0`00004d00  00000000`00000000 00000000`00000000
+fffff8a0`00004d10  fffff8a0`00219130 fffff8a0`0006d500
+
+The entries that are not NULL match the Hash index values listed above.
+
+We check the value stored in slot 1:
+
+kd> !pool fffff8a0`000069e0
+Pool page fffff8a0000069e0 region is Paged pool
+...
+*fffff8a0000069d0 size:   30 previous size:   30  (Allocated) *ObDi
+		Pooltag ObDi : object directory, Binary : nt!ob
+...
+
+
+kd> dt _OBJECT_DIRECTORY_ENTRY fffff8a0`000069e0
+nt!_OBJECT_DIRECTORY_ENTRY
+   +0x000 ChainLink        : (null)
+   +0x008 Object           : 0xfffff8a0`00006a90 Void
+   +0x010 HashValue        : 0x6c1c47fb
+
+it points to an object, that turns out to be the Type directory as listed
+above.
+
+kd> !object 0xfffff8a0`00006a90
+Object: fffff8a000006a90  Type: (fffffa800062fb50) Directory
+    ObjectHeader: fffff8a000006a60 (new version)
+    HandleCount: 0  PointerCount: 44
+    Directory Object: fffff8a000004ca0  Name: ObjectTypes
+
+
+Date: 17.11.2011
+
+Fast References
+---------------
+
+Although ObInitializeFastReference seems trivial, lets check what it does.
+We set a break point to ObInitializeFastReference and inspect rcx, the first
+parameter.
+
+kd> dt _EX_FAST_REF fffff80002b86828
+nt!_EX_FAST_REF
+   +0x000 Object           : (null)
+   +0x000 RefCnt           : 0y0000
+   +0x000 Value            : 0
+
+Now we step out of the function and inspect it again:
+
+kd> dt _EX_FAST_REF fffff80002b86828
+nt!_EX_FAST_REF
+   +0x000 Object           : 0xfffff8a0`001bcc9f Void
+   +0x000 RefCnt           : 0y1111
+   +0x000 Value            : 0xfffff8a0`001bcc9f
+
+Aha! We can see that the RefCnt member got initialized with 1111 binary
+(remember this is x64, on x86 we expect 111 binary).
+
+And we have an actual pointer value of 0xfffff8a0001bcc90. Lets see what that
+is:
+
+kd> !object 0xfffff8a0001bcc90
+Object: fffff8a0001bcc90  Type: (fffffa80006f6240) Section
+    ObjectHeader: fffff8a0001bcc60 (new version)
+    HandleCount: 0  PointerCount: 16
+
+Now we set a break point to ObFastReferenceObject and ObFastDereferenceObject
+after the break we get the same value in rcx. And the value is still the same.
+
+We step out of the function and inspect the values again:
+
+kd> dt _EX_FAST_REF fffff80002b86828
+nt!_EX_FAST_REF
+   +0x000 Object           : 0xfffff8a0`001bcc9e Void
+   +0x000 RefCnt           : 0y1110
+   +0x000 Value            : 0xfffff8a0`001bcc9e
+
+kd> !object 0xfffff8a0001bcc90
+Object: fffff8a0001bcc90  Type: (fffffa80006f6240) Section
+    ObjectHeader: fffff8a0001bcc60 (new version)
+    HandleCount: 0  PointerCount: 16
+
+So we see that the RefCnt has actually decreased, while the objects pointer
+count remained the same. rax shows us 0xfffff8a0`001bcc90, so the function
+returns the pointer to the object.
+
+we continue and hit ObFastDereferenceObject.
+The structures have not changed. Again we step out and check:
+
+kd> dt _EX_FAST_REF fffff80002b86828
+nt!_EX_FAST_REF
+   +0x000 Object           : 0xfffff8a0`001bcc9f Void
+   +0x000 RefCnt           : 0y1111
+   +0x000 Value            : 0xfffff8a0`001bcc9f
+
+kd> !object 0xfffff8a0001bcc90
+Object: fffff8a0001bcc90  Type: (fffffa80006f6240) Section
+    ObjectHeader: fffff8a0001bcc60 (new version)
+    HandleCount: 0  PointerCount: 16
+
+Now we try something evil. We manually set the RefCnt value to 0 before
+entry to ObFastReferenceObject. Then we step out again.
+This time the value didn't change and the RefCnt value is still 0.
+And rax is 0. So the function failed.
+
+Now what happens when we dereference when the RefCnt value
+is set to 1111? This might give us a bugcheck :D
+But in fact nothing happens :'( The value just stays the same.
+Probably this is ASSERTed and only present on checked builds.
+
+The second parameter of ObFastDereferenceObject is the object pointer, so
+it might be checked agains the value from the fast reference. We check what
+happens when we change the value of the pointer in the fast reference to a
+different value before entering the function. After stepping out we inspect the
+fast reference and notice that in this case the RefCnt member is not changed.
+But since the function doesn't return a value, the question arises, how this
+case is handled and how it can actually happen.
+

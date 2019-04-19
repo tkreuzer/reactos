@@ -1,0 +1,9 @@
+
+- PdbReader: https://github.com/kbridge/cdef/tree/master/old/PdbReader
+- http://os-design.googlecode.com/svn/trunk/
+- Undocumented Nt* functions: http://undocumented.ntinternals.net/
+- IoQueryInterface / Querying for Bus Driver Interfaces: https://msdn.microsoft.com/en-us/library/windows/hardware/ff537624%28v=vs.85%29.aspx
+- Registry: http://www.msuiche.net/2009/06/07/windows-vista-and-later-registry-secrets/
+- CRC: see Rtl/crt.txt
+- RAII: see WP
+

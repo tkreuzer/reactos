@@ -1,0 +1,44 @@
+
+
+For maximum compatibility the PCR is allocated in the following way:
+
+- A page aligned structure is allocated that contains the PCR and PRCB
+- The page margin is after KPRCB:AcpiReserved at offset 0x650.
+ -> PCR begins at 0x1000 - 0x650 - 0x180 = 0x830
+- The space before the PCR is used for fault stacks, IdleThread etc.
+
+sizeof(ETHREAD) ~ 0x500
+remaining: 0x330
+
+the whole block is max 8 pages
+512 CPUs * 8 pages = 16MB
+
+memory is only reserved, not comitted.
+When a driver actually accesses that memory, a page fault will
+tell that it is accessing memory that it shouldn't access.
+In that case a compatibility handler could step in and provide
+the requested data
+The whole block is put at a hardcoded address at the end of the
+the address space below the hal mappings at FFFFFFFFFEC00000
+
+#define PCR_ALIGN (PAGE_SIZE - (FIELD_OFFSET(KPCR, PrcbData) + FIELD_OFFSET(KPRCB, AcpiReserved)))
+
+typedef struct
+{
+    ETHREAD IdleThread;
+} XPDR_DATA;
+
+C_ASSERT(sizeof(XPCR_DATA) <= PCR_ALIGN);
+
+typedef struct
+{
+    union
+    {
+        XPDR_DATA;
+        UCHAR PcrAlign[PCR_ALIGN];
+    };
+    KPCR Pcr;   // <- gs:0 points here
+    //(KPRCB Prcb;) implicit
+} XPDR;
+
+PDR - Processor Data Region

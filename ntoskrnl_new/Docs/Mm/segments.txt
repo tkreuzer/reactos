@@ -1,0 +1,233 @@
+
+
+0: kd> !process 0 1 ntdll_apitest.exe
+GetPointerFromAddress: unable to read from fffff800030f8000
+Error in reading nt!_EPROCESS at 0000000000000000
+0: kd> !process 0 1 ntdll_apitest.exe
+PROCESS fffffa8005c66860
+    SessionId: 1  Cid: 0fc0    Peb: 7fffffdf000  ParentCid: 164c
+    DirBase: 43715000  ObjectTable: fffff8a01564e190  HandleCount:  17.
+    Image: ntdll_apitest.exe
+    VadRoot fffffa80098a1190 Vads 26 Clone 0 Private 154. Modified 261. Locked 0.
+    DeviceMap fffff8a00e17aae0
+    Token                             fffff8a00ebd9060
+    ElapsedTime                       00:00:07.480
+    UserTime                          00:00:00.000
+    KernelTime                        00:00:00.000
+    QuotaPoolUsage[PagedPool]         22416
+    QuotaPoolUsage[NonPagedPool]      3000
+    Working Set Sizes (now,min,max)  (494, 50, 345) (1976KB, 200KB, 1380KB)
+    PeakWorkingSetSize                494
+    VirtualSize                       19 Mb
+    PeakVirtualSize                   19 Mb
+    PageFaultCount                    496
+    MemoryPriority                    BACKGROUND
+    BasePriority                      8
+    CommitCharge                      229
+
+0: kd> .process fffffa8005c66860
+Implicit process is now fffffa80`05c66860
+0: kd> !handle 2c 3 fffffa8005c66860
+
+PROCESS fffffa8005c66860
+    SessionId: 1  Cid: 0fc0    Peb: 7fffffdf000  ParentCid: 164c
+    DirBase: 43715000  ObjectTable: fffff8a01564e190  HandleCount:  17.
+    Image: ntdll_apitest.exe
+
+Handle table at fffff8a01564e190 with 17 entries in use
+
+002c: Object: fffffa8006bc9f20  GrantedAccess: 0012019f Entry: fffff8a001f940b0
+Object: fffffa8006bc9f20  Type: (fffffa800581a8a0) File
+    ObjectHeader: fffffa8006bc9ef0 (new version)
+        HandleCount: 1  PointerCount: 17
+        Directory Object: 00000000  Name: \Dev\ReactOS\trunk\ninja-VS2012-x64\reactos\modules\rostests\apitests\ntdll\testdata\test.dll {HarddiskVolume3}
+
+
+0: kd> !handle 34 3 fffffa8005c66860
+
+PROCESS fffffa8005c66860
+    SessionId: 1  Cid: 0fc0    Peb: 7fffffdf000  ParentCid: 164c
+    DirBase: 43715000  ObjectTable: fffff8a01564e190  HandleCount:  17.
+    Image: ntdll_apitest.exe
+
+Handle table at fffff8a01564e190 with 17 entries in use
+
+0034: Object: fffff8a00f302130  GrantedAccess: 000f001f Entry: fffff8a001f940d0
+Object: fffff8a00f302130  Type: (fffffa8005825640) Section
+    ObjectHeader: fffff8a00f302100 (new version)
+        HandleCount: 1  PointerCount: 1
+
+
+0: kd> dt _SECTION_OBJECT fffff8a00f302130
+nt!_SECTION_OBJECT
+   +0x000 StartingVa       : 0xfffffa80`065bc010 Void
+   +0x008 EndingVa         : (null)
+   +0x010 Parent           : 0x00000000`000c0000 Void
+   +0x018 LeftChild        : (null)
+   +0x020 RightChild       : (null)
+   +0x028 Segment          : 0xfffff8a0`00e82b60 _SEGMENT_OBJECT
+
+/////////////////////////////////////////////////////////
+closing file handle
+/////////////////////////////////////////////////////////
+
+0: kd> .process fffffa8005c66860
+Implicit process is now fffffa80`05c66860
+0: kd> !handle 34 3 fffffa8005c66860
+
+PROCESS fffffa8005c66860
+    SessionId: 1  Cid: 0fc0    Peb: 7fffffdf000  ParentCid: 164c
+    DirBase: 43715000  ObjectTable: fffff8a01564e190  HandleCount:  16.
+    Image: ntdll_apitest.exe
+
+Handle table at fffff8a01564e190 with 16 entries in use
+
+0034: Object: fffff8a00f302130  GrantedAccess: 000f001f Entry: fffff8a001f940d0
+Object: fffff8a00f302130  Type: (fffffa8005825640) Section
+    ObjectHeader: fffff8a00f302100 (new version)
+        HandleCount: 1  PointerCount: 1
+
+///// this is invalid stuff!!! //////////////////////
+
+0: kd> !handle 2c 3 fffffa8005c66860
+
+PROCESS fffffa8005c66860
+    SessionId: 1  Cid: 0fc0    Peb: 7fffffdf000  ParentCid: 164c
+    DirBase: 43715000  ObjectTable: fffff8a01564e190  HandleCount:  16.
+    Image: ntdll_apitest.exe
+
+Handle table at fffff8a01564e190 with 16 entries in use
+
+002c: Object: fffffa80089b5060  GrantedAccess: 001fffff Entry: fffff8a001f940b0
+Object: fffffa80089b5060  Type: (fffffa8005787af0) Thread
+    ObjectHeader: fffffa80089b5030 (new version)
+        HandleCount: 3  PointerCount: 5
+
+////////// the real object //////////////////
+
+0: kd> dt _FILE_OBJECT fffffa8006bc9f20
+ntdll!_FILE_OBJECT
+   +0x000 Type             : 0n5
+   +0x002 Size             : 0n216
+   +0x008 DeviceObject     : 0xfffffa80`06539060 _DEVICE_OBJECT
+   +0x010 Vpb              : 0xfffffa80`06536260 _VPB
+   +0x018 FsContext        : 0xfffff8a0`11823140 Void
+   +0x020 FsContext2       : 0xfffff8a0`02ed0ef0 Void
+   +0x028 SectionObjectPointer : 0xfffffa80`0597b768 _SECTION_OBJECT_POINTERS
+   +0x030 PrivateCacheMap  : (null)
+   +0x038 FinalStatus      : 0n0
+   +0x040 RelatedFileObject : (null)
+   +0x048 LockOperation    : 0 ''
+   +0x049 DeletePending    : 0 ''
+   +0x04a ReadAccess       : 0x1 ''
+   +0x04b WriteAccess      : 0x1 ''
+   +0x04c DeleteAccess     : 0 ''
+   +0x04d SharedRead       : 0x1 ''
+   +0x04e SharedWrite      : 0 ''
+   +0x04f SharedDelete     : 0 ''
+   +0x050 Flags            : 0x44042
+   +0x058 FileName         : _UNICODE_STRING "\Dev\ReactOS\trunk\ninja-VS2012-x64\reactos\modules\rostests\apitests\ntdll\testdata\test.dll"
+   +0x068 CurrentByteOffset : _LARGE_INTEGER 0x0
+   +0x070 Waiters          : 0
+   +0x074 Busy             : 0
+   +0x078 LastLock         : (null)
+   +0x080 Lock             : _KEVENT
+   +0x098 Event            : _KEVENT
+   +0x0b0 CompletionContext : (null)
+   +0x0b8 IrpListLock      : 0
+   +0x0c0 IrpList          : _LIST_ENTRY [ 0xfffffa80`06bc9fe0 - 0xfffffa80`06bc9fe0 ]
+   +0x0d0 FileObjectExtension : (null)
+0: kd> dt _OBJECT_HEADER fffffa8006bc9ef0
+nt!_OBJECT_HEADER
+   +0x000 PointerCount     : 0n16
+   +0x008 HandleCount      : 0n0
+   +0x008 NextToFree       : (null)
+   +0x010 Lock             : _EX_PUSH_LOCK
+   +0x018 TypeIndex        : 0x1c ''
+   +0x019 TraceFlags       : 0 ''
+   +0x01a InfoMask         : 0xc ''
+   +0x01b Flags            : 0x40 '@'
+   +0x020 ObjectCreateInfo : 0xfffffa80`07642d80 _OBJECT_CREATE_INFORMATION
+   +0x020 QuotaBlockCharged : 0xfffffa80`07642d80 Void
+   +0x028 SecurityDescriptor : (null)
+   +0x030 Body             : _QUAD
+
+//////////////////////////////////////////////////////////////
+    closing section object
+//////////////////////////////////////////////////////////////
+
+0: kd> dt _OBJECT_HEADER fffffa8006bc9ef0
+nt!_OBJECT_HEADER
+   +0x000 PointerCount     : 0n16
+   +0x008 HandleCount      : 0n0
+   +0x008 NextToFree       : (null)
+   +0x010 Lock             : _EX_PUSH_LOCK
+   +0x018 TypeIndex        : 0x1c ''
+   +0x019 TraceFlags       : 0 ''
+   +0x01a InfoMask         : 0xc ''
+   +0x01b Flags            : 0x40 '@'
+   +0x020 ObjectCreateInfo : 0xfffffa80`07642d80 _OBJECT_CREATE_INFORMATION
+   +0x020 QuotaBlockCharged : 0xfffffa80`07642d80 Void
+   +0x028 SecurityDescriptor : (null)
+   +0x030 Body             : _QUAD
+
+=> Same Pointer count -> section object has no reference to the file object
+
+0: kd> dt _OBJECT_HEADER fffff8a00f302100
+nt!_OBJECT_HEADER
+   +0x000 PointerCount     : 0n5494765732863430482
+   +0x008 HandleCount      : 0n1297040174
+   +0x008 NextToFree       : 0x00000000`4d4f432e Void
+   +0x010 Lock             : _EX_PUSH_LOCK
+   +0x018 TypeIndex        : 0x1 ''
+   +0x019 TraceFlags       : 0 ''
+   +0x01a InfoMask         : 0x8 ''
+   +0x01b Flags            : 0x80 ''
+   +0x020 ObjectCreateInfo : 0xfffff8a0`0f302160 _OBJECT_CREATE_INFORMATION
+   +0x020 QuotaBlockCharged : 0xfffff8a0`0f302160 Void
+   +0x028 SecurityDescriptor : 0x00000000`002c00c4 Void
+   +0x030 Body             : _QUAD
+0: kd> dt _SECTION_OBJECT fffff8a00f302130
+nt!_SECTION_OBJECT
+   +0x000 StartingVa       : (null)
+   +0x008 EndingVa         : 0x4857444e`49460013 Void
+   +0x010 Parent           : 0x4f4e5245`56455441 Void
+   +0x018 LeftChild        : 0x0000004d`4f432e57 Void
+   +0x020 RightChild       : 0xe24e4d43`05050308 Void
+   +0x028 Segment          : 0xfffff8a0`00e82b60 _SEGMENT_OBJECT
+
+=> Doesn't exist anymore => view of a section has no references to the section object
+
+0: kd> dt _SEGMENT 0xfffff8a0`00e82b60
+nt!_SEGMENT
+   +0x000 ControlArea      : 0xfffffa80`065bc010 _CONTROL_AREA
+   +0x008 TotalNumberOfPtes : 0x81
+   +0x00c SegmentFlags     : _SEGMENT_FLAGS
+   +0x010 NumberOfCommittedPages : 3
+   +0x018 SizeOfSegment    : 0x81000
+   +0x020 ExtendInfo       : 0x00000000`10000000 _MMEXTEND_INFO
+   +0x020 BasedAddress     : 0x00000000`10000000 Void
+   +0x028 SegmentLock      : _EX_PUSH_LOCK
+   +0x030 u1               : <unnamed-tag>
+   +0x038 u2               : <unnamed-tag>
+   +0x040 PrototypePte     : 0xfffff8a0`00e82ba8 _MMPTE
+   +0x048 ThePtes          : [1] _MMPTE
+
+0: kd> dt _CONTROL_AREA 0xfffffa80`065bc010
+nt!_CONTROL_AREA
+   +0x000 Segment          : 0xfffff8a0`00e82b60 _SEGMENT
+   +0x008 DereferenceList  : _LIST_ENTRY [ 0x00000000`00000000 - 0x00000000`00000000 ]
+   +0x018 NumberOfSectionReferences : 0
+   +0x020 NumberOfPfnReferences : 3
+   +0x028 NumberOfMappedViews : 1
+   +0x030 NumberOfUserReferences : 1
+   +0x038 u                : <unnamed-tag>
+   +0x03c FlushInProgressCount : 0
+   +0x040 FilePointer      : _EX_FAST_REF
+   +0x048 ControlAreaLock  : 0n0
+   +0x04c ModifiedWriteCount : 0
+   +0x04c StartingFrame    : 0
+   +0x050 WaitingForDeletion : (null)
+   +0x058 u2               : <unnamed-tag>
+   +0x068 LockedPages      : 0n1
+   +0x070 ViewList         : _LIST_ENTRY [ 0xfffffa80`07eb25f0 - 0xfffffa80`07eb25f0 ]

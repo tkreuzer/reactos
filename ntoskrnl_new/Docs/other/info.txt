@@ -1,0 +1,62 @@
+
+
+- compile the kernel as a shared library (LLP64), using well defined interfaces that are LP64 LLP64 independent
+- compile the interface static library (LP64) to do the actual stuff, calling linux services
+
+
+- Load the application into hight memory by specifying a high load address.
+- Reserve the low memory for use as usermode address space: http://stackoverflow.com/questions/2782628/any-way-to-reserve-but-not-commit-memory-in-linux
+- load additional libraries, if any
+
+
+- Use the LDT to create the memory area
+	- set to compatibility mode
+	- set base and limit (can be 0 ~ end)
+
+- use a shared memory section for the "kernel"
+	- dl_iterate_phdr to enumerate shared libraries
+	- enumerate the memory regions for the "kernel"
+	- copy the kernel memory regions to a seperate allocation
+	- unload the library
+	- create a shared section using mmap
+
+- when a new process is launched, lauch a new instance of dirtbox, pass a parameter to allow access to the shared mapping
+  that contains the kernel. The new instance maps the kernel and its data and then starts the program.
+
+
+
+
+Threads and Processes
+---------------------
+To allow multiple processes to be run on top of the same kernel, we need to support multiple host processes and therefore multiple host threads entering the kernel. On an SMP host machine, we also would need to deal with multiple threads entering the kernel at once. There are 2 possibilities:
+
+1.) Use a global kernel lock. It is being acquired when a thread enters the kernel (syscall) and released when a thread leaves it (sysret). Yields and waiting for an object will also first release the lock, then do a host yield/wait and then acquire the lock again. This would make the kernel unpreemtable by the host scheduler and a secondary guest scheduler needs to be implemented.
+
+2.) Use multiple PCRs, one per physical host cpu. On kernel entry, the current cpu needs to be queried and fs (or gs on x64) needs to be set accordingly and the affinity needs to be set and fixed.
+
+
+PCR
+---
+We need a PCR. to synchronize access from parallel threads and processes
+
+
+
+Processor implementation dependent features
+--------------------------------------------------------
+To support features, that modern CPUs might support (i.e. TSX) in a transparent and efficient way, the kernel will support functions implemented in special processor specific sections. When the kernel is loaded, only the base section is loaded, allowing to use features available on all processors for that architecture. When the kernel detects a specific set of features to be available, the section containing the implementation specific features will be mapped (optional, could be mapped initially as well, unused features could be discarded) and the image is "relocated" again, with the same base address, but all offsets pointing to the generic section will be changed to point to the code of the feature enriched section. To achieve that a table is created for each feature, containing the entry points of the functions that the specific implementation supports.
+1. Kernel is loaded and relocated, all functions point to generic implementations
+2. Kernel detects available features and fills the table for relocations
+3. Kernel is relocated again, processor specific implementations are used
+
+Table lools like this:
+struct
+{
+    PVOID GenericFunction;
+    PVOID EnhancedFunction;
+    ULONG PerformanceIndex;
+    USHORT FeatureSet;
+} FeatureTable[NUMBER_OF_FEATURE_DEPENDENT_FUNCTIONS];
+
+- Problem on x64: rip relative addressing means no relocation at all!
+  - create a patch table somehow?
+

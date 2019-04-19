@@ -1,0 +1,6 @@
+- http://create.stephan-brumme.com/crc32/
+- https://www.quora.com/What-is-the-fastest-C-or-C++-based-crc32-implementation
+- https://sourceforge.net/projects/slicing-by-8/
+- https://code.google.com/archive/p/crcutil/source/default/source
+- https://matt.sh/redis-crcspeed
+- http://download.redis.io/redis-stable/src/crc64.c

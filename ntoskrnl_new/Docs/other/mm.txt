@@ -1,0 +1,301 @@
+
+
+
+PFNENTRY
+{
+    union
+    {
+        struct
+        {
+            ULONG64 Spare: 12;
+            ULONG64 Vpn : 36;
+            ULONG64 Spare: 16;
+        } Valid;
+        struct
+        {
+            ULONG64 Next : 36;
+        } Free;
+    } u;
+}
+
+enum
+{
+    FreeAndZeroed,
+    FreeAndDirty,
+    PrivateVirtualMemory,
+    SharedMemory,
+
+};
+
+
+Paging
+------
+* For each page in virtual memory, that is pageable, there is an MMVPNENTRY.
+  All vpn entries are organized in a huge array, spanning the entire usermode
+  address space or kernel mode address space. The array is located in hyper
+  space and only those pages that contain valid entries (aka committed pages)
+  are mapped.
+
+  Hyper space layout x86:
+
+  x86         2 MB             1 MB        4 KB          4 KB
+  amd64      16 GB             237 GB      4 MB          4 MB
+  |----user mode entries----|  free   |-pt entries-|-hyper entries-|
+
+
+
+* For every memory region (both kernel mode and user mode) there is a Vad that
+  describes the allocation. Vads for user mode address space + page tables +
+  hyper space are allocated in the process' hyperspace.
+
+* VADs are allocated from an array with a linked free list. (atomic push / pop
+  entry). The list is initialized on address space init. (dynamic pages?)
+
+* Page table and hyperspace VADs are initialized when the address space is
+  initialized.
+
+* The page table base is locked in memory, so it cannot be paged out.
+
+* To secure memory a special VAD is allocated to cover the VA space to be
+  secured. If the area overlaps with an already present secured VAD, the VADs
+  are splitted and the overlapping region has the secure count incremented.
+  Unsecuring decrements the secure count and
+
+
+A PTE of page that is paged out points to the MMVADNODE that describes the
+virtual mapping. This is true for both usermode and kernel mode. The relative
+VPN can now be easily calculated. The MMVADNODE contains one MMVPNENTRY for
+each page in the region and one entry for each page serving as a ring buffer.
+The whole structure is allocated from hyper space (for usermode vpns) or
+
+
+Each VpnEntry describes the current state of the page.
+* If the page is valid or on standby, it contains the page frame number of the
+  current page, if the page is not valid it contains the linear sector number
+  on the disk, where the page is stored or 0 for demand zero pages.
+* A Next pointer for the clock list (modified CLOCK-Pro)
+
+* a first MMVAD is allocated for the WS lists / MMVAD area, memory is only
+  reserved. When a new VAD is created, memory for it is comitted
+
+* dirty pages take an extra round in the clock. The first time the clock points
+  to a dirty page, a bit in the vpn entry is set and the clock advances. The
+  next time the clock points to the page, it will be removed, if it's still
+  not accessed.
+
+* Under normal circumstances, paging is done by a dedicated thread running at
+  low priority, which is triggered once in a while when the amount of free
+  pages gets too low. Only when a paging demand can still not be fullfilled,
+  because the thread couldn't free enough pages, the demanding thread does
+  this on its own, only taking pages that are not dirty, if possible.
+
+
+NtAllocateVirtualMemory()
+{
+    MmAllocateVirtualMemory()
+        MiAllocateVad()
+        MiInitializeVirtualMapping()
+            MiPreparePTEs() // all pte's invalid and point to the VAD
+        MiInsertVad()
+
+        MiFindVad()
+        MiModifyVad()
+
+}
+
+typedef struct
+{
+    AVLNODE Node;
+    KSPIN_LOCK Lock;
+    PVOID FileObject;
+    MMPTE TemplatePte;
+    struct
+    {
+        ULONG Protection;
+    };
+    ...
+#if DBG
+    CHAR Name[8];
+#endif
+    MMVPNENTRY VpnEntries[];
+} MMVAD;
+
+typedef struct _MMVPNENTRY
+{
+    ULONG Next;
+    union
+    {
+        ULONG PageFrameNumber;
+        ULONG SectorNumber;
+    };
+
+    ULONG Protection : 5;
+    ULONG LargePage : 1;
+    ULONG WriteWatch : 1;
+
+} MMVPNENTRY;
+
+
+typedef struct _QLINK
+{
+    struct _QLINK *Next
+    ULONG Counter;
+} QLINK, *PQLINK;
+
+typedef struct
+{
+    QLINK Head;
+    QLINK Tail;
+} QUEUE, *PQUEUE;
+
+typedef struct _QENTRY
+{
+    QLINK Next;
+} QENTRY, *PQENTRY;
+
+/*!
+ *
+ *  \return The number in the queue
+ */
+ULONG
+NTAPI
+RtlInterlockedPushEntryQueue(
+    IN OUT PQUEUE Queue,
+    IN PQENTRY Entry)
+{
+    QLINK Tail, LastLink, NewLink;
+
+    /* The new link points to our entry */
+    NewLink.Pointer = &Entry.Next;
+
+    do
+    {
+        /* Read the tail link (pointer and counter) */
+        Tail = Queue->Tail;
+
+        /* Tail always points to a valid entry, so we can dereference it. */
+        LastLink = *Tail.Next;
+
+        ReadWriteBarrier();
+
+        /* If the tail was modified, restart the operation */
+        if (Queue->Tail != Tail) continue;
+
+        /* Check if this is really the last entry */
+        if (LastLink.Next != NULL)
+        {
+            /* It is not, so try to fix Tail and retart */
+            TailLink = InterlockedCompareExchangeQLink(&Queue->Tail, LastLink, TailLink);
+            continue;
+        }
+
+        NewLink.Counter = LastLink.Counter + 1;
+
+        PrevTail = InterlockedCompareExchangeQLink(Tail.Next,
+                                                   NewLink,
+                                                   LastLink);
+
+        if (PrevTail != TailLink)
+        {
+            TailLink = PrevTail;
+            continue;
+        }
+
+    }
+
+}
+
+InsertTailQueue
+{
+
+    NewItem->Next = &Queue->Dummy;
+
+    NewTail.Pointer = NewItem;
+
+    Tail = Queue->Tail;
+
+
+    while (1)
+    {
+        NewTail.Counter = Tail.Counter + 1;
+
+        OldTail = InterlockedCompareExchangeQLink(&Queue->Tail,
+                                                  NewTail,
+                                                  Tail);
+        if (OldTail == Tail) break;
+
+        Tail = OldTail;
+    }
+
+    /* Check if there was a predecessor */
+    if (OldTail.Pointer)
+    {
+        /* Update it's forward link */
+        OldTail.Pointer->Next = NewLink;
+
+        /* Check for the case where the predecessor was popped off the queue
+           head before it was updated */
+        if (RtlFirstEntrySList(&Queue->Head) == NULL)
+        {
+            RtlpSetFirstEntryList(&Queue->Head, OldTail.Pointer);
+        }
+    }
+
+}
+
+Init()
+{
+    Queue->Dummy.Next = &Queue->Dummy;
+}
+
+RemoveHeadQueue
+{
+
+    while (1)
+    {
+        /* Read the current tail */
+        Tail = Queue->Tail;
+
+        /* Read the head entry */
+        FistEntry = RtlFirstEntrySList(&Queue->Head);
+
+        /* Bail out, if the queue is empty */
+        if (FistEntry == &Queue->Dummy) return NULL;
+
+        /* Check if there is only one item left */
+        if (FistEntry == Tail.Pointer)
+        {
+            /* Prepare a NULL tail link */
+            NewTail.Next = &Queue->Dummy;
+            NewTail.Counter = Tail.Counter + 1;
+
+            /* Try to update tail to the dummy link */
+            OldTail = InterlockedCompareExchangeQlink(&Queue->Tail,
+                                                      NewTail,
+                                                      Tail);
+            /* Check for success */
+            if (OldTail != Tail) continue;
+        }
+
+        /* Try to pop an entry from the list head */
+        FistEntry = RtlInterlockedPopEntrySList(&Queue->Head);
+
+        /* Check if we got the queue end */
+        if (FistEntry == &Queue->Dummy) return NULL;
+
+        /* Check if this entry was not updated yet */
+        if (FistEntry->Next == NULL)
+        {
+            ASSERT(RtlFirstEntrySList(&Queue->Head) == NULL);
+
+            /* We can't remove this item yet, as it's going to be accessed,
+               so put it back on the queue head */
+            RtlpSetFirstEntryList(&Queue->Head, FistEntry);
+
+            /* Pretend the queue is empty */
+            return NULL;
+        }
+
+        return FistEntry;
+    }
+}

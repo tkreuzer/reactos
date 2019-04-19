@@ -1,0 +1,19 @@
+
+Common bugs
+-----------
+
+Buffer overrun
+--------------
+- Use array<type, size> instead of C-style arrays.
+  -> throws an exception on overflow
+
+Memory leak
+-----------
+- avoid C-style allocations
+- use a set of objects that handle the allocation and freeing
+- example: 
+
+Reference leak
+--------------
+
+
