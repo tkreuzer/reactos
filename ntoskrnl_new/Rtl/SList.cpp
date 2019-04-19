@@ -8,25 +8,27 @@ typedef struct _SLIST_ENTRY *PSLIST_ENTRY;
 
 /*
 
-CallingCv Function                      x86                 x64
+CallingCv Function                      x86                         x64
 ----------------------------------------------------------------------
-cdecl     InitializeSListHead           -                   RtlInitializeSListHead
-cdecl     ExQueryDepthSList             -                   RtlQueryDepthSList
-stdcall   FirstEntrySList               RtlFirstEntrySList  RtlFirstEntrySList
+cdecl     InitializeSListHead           -                           RtlInitializeSListHead
+cdecl     ExQueryDepthSList             -                           RtlQueryDepthSList
+stdcall   FirstEntrySList               RtlFirstEntrySList          RtlFirstEntrySList
 
-fastcall  InterlockedPushEntrySList     +                   -
-cdecl     ExpInterlockedPushEntrySList  -                   RtlpInterlockedPushEntrySList
+fastcall  InterlockedPushEntrySList     InterlockedPushEntrySList   -
+fastcall  ExInterlockedPushEntrySList   ExInterlockedPushEntrySList 
+cdecl     ExpInterlockedPushEntrySList  -                           RtlpInterlockedPushEntrySList
 stdcall   RtlInterlockedPushEntrySList
 
-fastcall  InterlockedPopEntrySList      +                   -
-cdecl     ExpInterlockedPopEntrySList   -                   RtlpInterlockedPopEntrySList
+fastcall  InterlockedPopEntrySList      InterlockedPopEntrySList   -
+fastcall  ExInterlockedPopEntrySList    ExInterlockedPopEntrySList
+cdecl     ExpInterlockedPopEntrySList   -                           RtlpInterlockedPopEntrySList
 stdcall   RtlInterlockedPopEntrySList
 
-fastcall  ExInterlockedFlushSList       InterlockedFlushSList                   -
-cdecl     ExpInterlockedFlushSList      -                   InterlockedFlushSList
+fastcall  ExInterlockedFlushSList       ExInterlockedFlushSList                   -
+cdecl     ExpInterlockedFlushSList      -                           InterlockedFlushSList
 stdcall   RtlInterlockedFlushSList
 
-fastcall  InterlockedPushListSList      RtlInterlockedPushListSList
+fastcall  InterlockedPushListSList      InterlockedPushListSList
 ----------------------------------------------------------------------------
 Spinlock!
 fastcall  ExInterlockedPushEntrySList

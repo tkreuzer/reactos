@@ -3,6 +3,80 @@
 
 #include "Kep.hpp"
 
+
+VOID
+FORCEINLINE
+_KiAcquireSpinLock(
+    IN PKSPIN_LOCK SpinLock)
+{
+    ASSERT((*SpinLock & ~1) != (KSPIN_LOCK)KeGetCurrentThread());
+
+#ifdef CONFIG_SMP
+    /* Try to acquire the lock */
+    do
+    {
+        /* Spin while the lock is not free */
+        while (*(volatile KSPIN_LOCK *)SpinLock & 1) YieldProcessor();
+    } while (InterlockedBitTestAndSet((PLONG)SpinLock, 0));
+#else
+    /* Add an explicit memory barrier to prevent the compiler from reordering
+    memory accesses across the borders of UP spinlocks */
+    KeMemoryBarrierWithoutFence();
+#endif
+
+#ifdef DBG
+    /* On debug builds put the KTHREAD into the spinlock */
+    *SpinLock = (KSPIN_LOCK)KeGetCurrentThread() | 1;
+#endif
+}
+
+VOID
+FORCEINLINE
+_KiReleaseSpinLock(
+    IN PKSPIN_LOCK SpinLock)
+{
+    ASSERT((*SpinLock & ~1) == (KSPIN_LOCK)KeGetCurrentThread());
+
+#ifdef CONFIG_SMP
+#if defined(_M_IX86) || defined(_M_AMD64)
+    /* x86/amd64 SMP memory ordering guarantees the following:
+
+    a) Loads do not pass previous loads (loads are not re-ordered) and
+    stores do not pass previous stores (stores are not re-ordered).
+
+    A shared variable is initialized with 0 and the spinlock acquired by
+    CPU0, containing 1. If CPU0 first writes 1 to the shared variable,
+    and then writes 0 to the spinlock, and CPU1 first reads the spinlock
+    then read the shared variable, then CPU1 cannot read a value of 0
+    from the shared variable if it read 0 from the spinlock.
+
+    b) Stores do not pass loads
+
+    A shared variable is initialized with 0 and the spinlock acquired by
+    CPU0, containing 1. If CPU0 first reads the shared variable, then
+    writes 0 to the spinlock, CPU1 first reads the spinlock and then (if
+    it read 0) writes 1 to the shared variable, then CPU0 cannot read 1
+    from the shared variable. */
+    *SpinLock = 0;
+#else /* _M_IX86 || _M_AMD64 */
+    /* Do it the hard (and slow) way */
+    InterlockedExchangePointer((PVOID*)SpinLock, 0);
+#endif /* _M_IX86 || _M_AMD64 */
+
+#else /* CONFIG_SMP */
+    /* Add an explicit memory barrier to prevent the compiler from reordering
+    memory accesses across the borders of UP spinlocks. While the CPU is
+    allowed to do speculative reads, even preceeding a mov cr8, * (which
+    is not a serializing instruction), the results would be invalidated, if
+    an interrupt happened between reading the memory and raising irql. */
+    KeMemoryBarrierWithoutFence();
+#ifdef DBG
+    /* On debug builds we need to reset the value */
+    *SpinLock = (KSPIN_LOCK)KeGetCurrentThread() | 1;
+#endif /* DBG */
+#endif /* CONFIG_SMP */
+}
+
 namespace Ke {
 
 VOID
@@ -74,6 +148,9 @@ public:
     TryToAcquireExclusive (
         VOID)
     {
+        /* First test the spin lock */
+        if (*SpinLock & 1) return FALSE;
+
         return (InterlockedBitTestAndSetSizeTAcquire(&_Value, _BIT) == 0);
     }
 
@@ -193,7 +270,7 @@ public:
         do
         {
             /* Check if the lock is held exclusively */
-            if ((value & (1 << _BIT)) != 0)
+            while ((value & (1 << _BIT)) != 0)
             {
                 /* Lock is held exclusively, spin until it's free */
                 this->WaitForExclusive();
@@ -210,7 +287,7 @@ public:
                                                            value + _INC,
                                                            compare);
             /* Repeat until the exchange succeeded */
-        } while (value == compare);
+        } while (value != compare);
 
         NT_ASSERT((this->_Value & (1 << _BIT)) == 0);
         NT_ASSERT(this->_Value != 0);

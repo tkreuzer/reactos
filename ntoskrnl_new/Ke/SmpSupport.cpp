@@ -3,7 +3,7 @@
 
 extern "C" {
 
-UCHAR KeNumberProcessors;
+    volatile UCHAR KeNumberProcessors;
 
 //@ stub KeNotifyProcessorFreezeSupported
 

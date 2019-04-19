@@ -38,6 +38,31 @@ CalculateStringHash (
     return Hash;
 }
 
+DIRECTORY_ENTRY::DIRECTORY_ENTRY (
+    _In_ POBJECT Object)
+{
+    POBJECT_HEADER_NAME_INFO NameInfo;
+
+    /* Initialize the new entry */
+    Object->AddRef();
+    _Object = Object;
+    _ChainLink = nullptr;
+
+    /* Get the name header and make sure the object is not inserted */
+    NameInfo = Object->GetNameInfo();
+    NT_ASSERT(NameInfo != NULL);
+    NT_ASSERT(NameInfo->Directory == NULL);
+
+    /* Calculate the hash value for the name */
+    _HashValue = CalculateStringHash(&NameInfo->Name);
+}
+
+DIRECTORY_ENTRY::~DIRECTORY_ENTRY (
+    VOID)
+{
+    NT_ASSERT(_Object != nullptr);
+    _Object->Release();
+}
 
 VOID
 OBJECT_DIRECTORY::InitializeClass (
@@ -222,6 +247,47 @@ OBJECT_DIRECTORY::FindChainLink (
     return FALSE;
 }
 
+/// FIXME: Do we even need this?
+/*! \name OBJECT_DIRECTORY::LookupEntry
+ *
+ *  \brief Searches for a directory entry corresponding with the given object name.
+ *
+ *  \remarks
+ *      The MRU optimization that is described in "Undocumented Windows 2000
+ *      Secrets" is not used, since it would require an exclusive lock and is
+ *      generally assumed to be uneffective.
+ *
+ *  \ref
+ *      - http://i-web.i.u-tokyo.ac.jp/edu/training/ss/lecture/new-documents/Lectures/01-ObjectManager/ObjectManager.ppt
+ *      - http://undocumented.rawol.com/sbs-w2k-7-windows-2000-object-management.pdf
+ */
+POBJECT_DIRECTORY_ENTRY
+NTAPI
+OBJECT_DIRECTORY::LookupEntry (
+    _In_ PUNICODE_STRING Name)
+{
+    POBJECT_DIRECTORY_ENTRY Entry;
+    ULONG HashValue;
+
+    Entry = NULL;
+
+    /* Calculate the hash value for the name */
+    HashValue = CalculateStringHash(Name);
+
+    ExAcquirePushLockShared(&_Lock);
+
+    /* Find the chain link for the object name */
+    if (FindChainLink(Name, HashValue, &ChainLink) != FALSE)
+    {
+        Entry = *ChainLink;
+    }
+
+    ExReleasePushLockShared(&_Lock);
+
+    return Entry;
+}
+
+
 /*! \name OBJECT_DIRECTORY::InsertObject
  *
  *  \brief Inserts a named object into an object directory.
@@ -250,24 +316,17 @@ OBJECT_DIRECTORY::InsertObject (
     }
 
     /* Allocate a directory entry */
-    NewEntry = new DIRECTORY_ENTRY;
+    NewEntry = new DIRECTORY_ENTRY(Object);
     if (NewEntry == NULL)
     {
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    /* Calculate the hash value for the name */
-    HashValue = CalculateStringHash(&NameInfo->Name);
-
-    /* Initialize the new entry */
-    NewEntry->HashValue = HashValue;
-    NewEntry->Object = Object;
-
     /* Lock the directory */
     ExAcquirePushLockExclusive(&_Lock);
 
     /* Check for conflicting name and search for a location to insert */
-    if (FindChainLink(&NameInfo->Name, HashValue, &ChainLink) != FALSE)
+    if (FindChainLink(&NameInfo->Name, NewEntry->_HashValue, &ChainLink) != FALSE)
     {
         /* Name conflict, fail */
         ExReleasePushLockExclusive(&_Lock);

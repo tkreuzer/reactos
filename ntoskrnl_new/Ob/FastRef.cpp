@@ -163,6 +163,21 @@ FAST_REF::ReplaceObject (
 
 extern "C" {
 
+/*! \name ObInitializeFastReference
+ *
+ *  \brief Initialized a fast reference.
+ *
+ *  \param [out] FastRef
+ *      Pointer to an EX_FAST_REF union, that is to be initialized.
+ *
+ *  \param [in] Object
+ *      Pointer to an arbitrary object, that the fast reference should track.
+ *
+ *  \remarks
+ *      The function sets the Object member to point to the given objects and
+ *      initialized the RefCnt field to binary all 1's (-1). The object must be
+ *      aligned to 8 bytes on x86 and to 16 bytes on x64.
+ */
 VOID
 FASTCALL
 ObInitializeFastReference (
@@ -173,6 +188,18 @@ ObInitializeFastReference (
     *FastRef = FAST_REF(Object);
 }
 
+/*! \name ObFastReferenceObject
+ *
+ *  \brief
+ *
+ *  \param [out] FastRef
+ *      Pointer to an EX_FAST_REF that is to be used to reference the related
+ *      object.
+ *
+ *  \return
+ *      Pointer to the referenced object on success. NULL on failire (when the
+ *      number of references exceeds the possible maximum).
+ */
 PVOID
 FASTCALL
 ObFastReferenceObject (
@@ -191,6 +218,20 @@ ObFastReferenceObjectLocked (
     return FastRef->ReferenceObjectLocked();
 }
 
+/*! \name ObFastDereferenceObject
+ *
+ *  \brief
+ *
+ *  \param [out] FastRef
+ *      Pointer to an EX_FAST_REF that is to be used to dereference the related
+ *      object.
+ *
+ *  \param [in] Object
+ *
+ *  \return
+ *      Pointer to the referenced object on success. NULL on failire (when the
+ *      number of references exceeds the possible maximum).
+ */
 VOID
 FASTCALL
 ObFastDereferenceObject (

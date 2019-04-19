@@ -16,7 +16,8 @@ NTAPI
 KeInitializeTimer (
     _Out_ PKTIMER Timer)
 {
-    __debugbreak();
+    /* Pass on to extended function */
+    KeInitializeTimerEx(Timer, NotificationTimer);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -26,7 +27,11 @@ KeInitializeTimerEx (
     _Out_ PKTIMER Timer,
     _In_ TIMER_TYPE Type)
 {
-    __debugbreak();
+    ASSERT((Type == NotificationTimer) || (Type == SynchronizationTimer));
+
+    RtlZeroMemory(Timer, sizeof(KTIMER));
+    Timer->Header.Type = TimerNotificationObject + Type;
+    InitializeListHead(&Timer->Header.WaitListHead);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -35,8 +40,7 @@ NTAPI
 KeReadStateTimer (
     _In_ PKTIMER Timer)
 {
-    __debugbreak();
-    return FALSE;
+    return (Timer->Header.SignalState > 0);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -47,8 +51,8 @@ KeSetTimer (
     _In_ LARGE_INTEGER DueTime,
     _In_opt_ PKDPC Dpc)
 {
-    __debugbreak();
-    return FALSE;
+    /* Pass on to extended function */
+    return KeSetTimerEx(Timer, DueTime, 0, Dpc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -104,5 +108,14 @@ KeCancelTimer (
     __debugbreak();
     return FALSE;
 }
+
+
+// undocumented
+void
+KeGetNextTimerExpirationDueTime(void)
+{
+    __debugbreak();
+}
+
 
 }; // extern "C"

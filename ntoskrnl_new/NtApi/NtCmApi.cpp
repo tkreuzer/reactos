@@ -14,8 +14,24 @@ NtOpenKey(
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes)
 {
-    __debugbreak();
-    return STATUS_NOT_IMPLEMENTED;
+    NTSTATUS status;
+
+    try
+    {
+        if (KeGetPreviousMode() != KernelMode)
+        {
+            ProbeForWrite(KeyHandle);
+            ProbeForRead(ObjectAttributes);
+        }
+
+        status = CmOpenKey(KeyHandle, DesiredAccess, ObjectAttributes);
+    }
+    catch(EXCEPTION exception)
+    {
+        status = exception.GetStatusCode();
+    }
+
+    return status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

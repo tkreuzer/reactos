@@ -562,3 +562,18 @@ _InterlockedBitTestAndComplement64(
 #define InterlockedBitTestAndSetLongPtrAcquire InterlockedBitTestAndSetAcquire
 #define InterlockedBitTestAndResetLongPtrRelease InterlockedBitTestAndResetRelease
 #endif
+
+#if defined(__cplusplus) /* { */
+extern "C++" {
+
+    __forceinline
+    unsigned
+    InterlockedIncrement (
+        _Inout_ _Interlocked_operand_ unsigned volatile *Addend)
+    {
+        return (unsigned)_InterlockedIncrement((volatile long*)Addend);
+    }
+
+
+} /* extern "C++" */
+#endif /* } __cplusplus */

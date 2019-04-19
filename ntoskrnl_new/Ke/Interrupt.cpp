@@ -7,6 +7,25 @@ PVOID pKeGetCurrentIrql = (PVOID)KeGetCurrentIrql;
 extern "C" {
 
 //@ stdcall -stub KeInitializeInterrupt(ptr ptr ptr ptr long long long long long long long)
+// from Ke_NUKE
+VOID
+NTAPI
+KeInitializeInterrupt(
+    PKINTERRUPT Interrupt,
+    PKSERVICE_ROUTINE ServiceRoutine,
+    PVOID ServiceContext,
+    PKSPIN_LOCK SpinLock,
+    ULONG Vector,
+    KIRQL Irql,
+    KIRQL SynchronizeIrql,
+    KINTERRUPT_MODE InterruptMode,
+    BOOLEAN ShareVector,
+    CHAR ProcessorNumber,
+    BOOLEAN FloatingSave)
+{
+    __debugbreak();
+}
+
 //@ cdecl -stub -arch=i386,arm KiUnexpectedInterrupt()
 //; ??? @ fastcall -arch=??? KiEoiHelper(ptr)
 //@ stdcall -stub -arch=i386 Kei386EoiHelper()

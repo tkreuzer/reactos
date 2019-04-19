@@ -1,5 +1,5 @@
 
-add_library(ntos_ke
+add_library(ntos::ke OBJECT
     Apc.cpp
     Affinity.cpp
     BoundCallback.cpp
@@ -36,4 +36,4 @@ add_library(ntos_ke
     Timer.cpp
 )
 
-add_dependencies(ntos_ke psdk bugcodes asm)
+add_dependencies(ntos::ke psdk bugcodes asm)

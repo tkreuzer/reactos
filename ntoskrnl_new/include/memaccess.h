@@ -3,337 +3,257 @@
 
 #include <intrin.h>
 
+#ifndef CFORCEINLINE
+#define CFORCEINLINE __forceinline
+#endif // CFORCEINLINE
+
 #define KeMemoryBarrierWithoutFence() _ReadWriteBarrier()
 
 #ifdef _M_IX86
-FORCEINLINE
-VOID
+__forceinline
+void
 MemoryBarrier (
-    VOID)
+    void)
 {
-    LONG Barrier;
+    long Barrier;
     _InterlockedOr(&Barrier, 0);
 }
-#define PreFetchCacheLine(l, a)  _mm_prefetch((CHAR CONST *) a, l)
+#define _AcquireBarrier()
+#define _ReleaseBarrier()
+#define PreFetchCacheLine(l, a)               _mm_prefetch((char const *) a, l)
 #define PrefetchForWrite(p)
-#define ReadForWriteAccess(p) (*(p))
+#define ReadForWriteAccess(p)                 (*(p))
 #elif defined(_M_AMD64)
-#define MemoryBarrier __faststorefence
-#define PreFetchCacheLine(l, a)  _mm_prefetch((CHAR CONST *) a, l)
-#define PrefetchForWrite(p) _m_prefetchw(p)
-#define ReadForWriteAccess(p) (_m_prefetchw(p), *(p))
+#define MemoryBarrier                         __faststorefence
+#define _AcquireBarrier()
+#define _ReleaseBarrier()
+#define PreFetchCacheLine(l, a)               _mm_prefetch((char const *) a, l)
+#define PrefetchForWrite(p)                   _m_prefetchw(p)
+#define ReadForWriteAccess(p)                 (_m_prefetchw(p), *(p))
 #elif defined(_M_ARM)
-# define MemoryBarrier()             __dmb(_ARM_BARRIER_SY)
-# define PreFetchCacheLine(l,a)      __prefetch((const void *) (a))
-# define PrefetchForWrite(p)         __prefetch((const void *) (p))
-# define ReadForWriteAccess(p)       (*(p))
+# define MemoryBarrier()                      __dmb(_ARM_BARRIER_SY)
+# define _AcquireBarrier()                    __dmb(_ARM_BARRIER_ISH);
+# define _ReleaseBarrier()                    __dmb(_ARM_BARRIER_ISH);
 # define _DataSynchronizationBarrier()        __dsb(_ARM_BARRIER_SY)
 # define _InstructionSynchronizationBarrier() __isb(_ARM_BARRIER_SY)
+# define PreFetchCacheLine(l,a)               __prefetch((const void *) (a))
+# define PrefetchForWrite(p)                  __prefetch((const void *) (p))
+# define ReadForWriteAccess(p)                (*(p))
 #elif defined(_M_ARM64)
-# define MemoryBarrier()             __dmb(_ARM64_BARRIER_SY)
-# define PreFetchCacheLine(l,a)      __prefetch((const void *) (a))
-# define PrefetchForWrite(p)         __prefetch((const void *) (p))
-# define ReadForWriteAccess(p)       (*(p))
+# define MemoryBarrier()                      __dmb(_ARM64_BARRIER_SY)
+# define _AcquireBarrier()                    __dmb(_ARM64_BARRIER_ISH);
+# define _ReleaseBarrier()                    __dmb(_ARM64_BARRIER_ISH);
 # define _DataSynchronizationBarrier()        __dsb(_ARM64_BARRIER_SY)
 # define _InstructionSynchronizationBarrier() __isb(_ARM64_BARRIER_SY)
+# define PreFetchCacheLine(l,a)               __prefetch((const void *) (a))
+# define PrefetchForWrite(p)                  __prefetch((const void *) (p))
+# define ReadForWriteAccess(p)                (*(p))
 #endif /* _M_ARM */
+
+__forceinline
+char
+ReadRaw8 (
+    _In_ _Interlocked_operand_ char const volatile *Source)
+{
+    return *(char *)Source;
+}
+
+__forceinline
+void
+WriteRaw8 (
+    _Out_ _Interlocked_operand_ char volatile *Destination,
+    _In_ char Value)
+{
+    *(char *)Destination = Value;
+}
+
+__forceinline
+short
+ReadRaw16 (
+    _In_ _Interlocked_operand_ short const volatile *Source)
+{
+    return *(short *)Source;
+}
+
+__forceinline
+void
+WriteRaw16 (
+    _Out_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short Value)
+{
+    *(short *)Destination = Value;
+}
+
+__forceinline
+long
+ReadRaw (
+    _In_ _Interlocked_operand_ long const volatile *Source)
+{
+    return *(long *)Source;
+}
+
+__forceinline
+void
+WriteRaw (
+    _Out_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value)
+{
+    *(long *)Destination = Value;
+}
+
+__forceinline
+__int64
+ReadRaw64 (
+    _In_ _Interlocked_operand_ __int64 const volatile *Source)
+{
+    return *(__int64 *)Source;
+}
+
+__forceinline
+void
+WriteRaw64 (
+    _Out_ _Interlocked_operand_ __int64 volatile *Destination,
+    _In_ __int64 Value)
+{
+    *(__int64 *)Destination = Value;
+}
 
 #if defined(_M_IX86) || defined(_M_AMD64)
 
-FORCEINLINE
-CHAR
-ReadAcquire8 (
-    _In_ _Interlocked_operand_ CHAR const volatile *Source)
-{
-    return *Source;
-}
-
-FORCEINLINE
-CHAR
+__forceinline
+char
 ReadNoFence8 (
-    _In_ _Interlocked_operand_ CHAR const volatile *Source)
+    _In_ _Interlocked_operand_ char const volatile *Source)
 {
     return *Source;
 }
 
-FORCEINLINE
-VOID
-WriteRelease8 (
-    _Out_ _Interlocked_operand_ CHAR volatile *Destination,
-    _In_ CHAR Value)
-{
-    *Destination = Value;
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence8 (
-    _Out_ _Interlocked_operand_ CHAR volatile *Destination,
-    _In_ CHAR Value)
+    _Out_ _Interlocked_operand_ char volatile *Destination,
+    _In_ char Value)
 {
     *Destination = Value;
 }
 
-FORCEINLINE
-SHORT
-ReadAcquire16 (
-    _In_ _Interlocked_operand_ SHORT const volatile *Source)
-{
-    return *Source;
-}
-
-FORCEINLINE
-SHORT
+__forceinline
+short
 ReadNoFence16 (
-    _In_ _Interlocked_operand_ SHORT const volatile *Source)
+    _In_ _Interlocked_operand_ short const volatile *Source)
 {
     return *Source;
 }
 
-FORCEINLINE
-VOID
-WriteRelease16 (
-    _Out_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT Value)
-{
-    *Destination = Value;
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence16 (
-    _Out_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT Value)
+    _Out_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short Value)
 {
     *Destination = Value;
 }
 
-FORCEINLINE
-LONG
-ReadAcquire (
-    _In_ _Interlocked_operand_ LONG const volatile *Source)
-{
-    return *Source;
-}
-
-FORCEINLINE
-LONG
+__forceinline
+long
 ReadNoFence (
-    _In_ _Interlocked_operand_ LONG const volatile *Source)
+    _In_ _Interlocked_operand_ long const volatile *Source)
 {
     return *Source;
 }
 
-FORCEINLINE
-VOID
-WriteRelease (
-    _Out_ _Interlocked_operand_ LONG volatile *Destination,
-    _In_ LONG Value)
-{
-    *Destination = Value;
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence (
-    _Out_ _Interlocked_operand_ LONG volatile *Destination,
-    _In_ LONG Value)
+    _Out_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value)
 {
     *Destination = Value;
 }
 
-FORCEINLINE
-LONG64
-ReadAcquire64 (
-    _In_ _Interlocked_operand_ LONG64 const volatile *Source)
-{
-    return *Source;
-}
-
-FORCEINLINE
-LONG64
+__forceinline
+__int64
 ReadNoFence64 (
-    _In_ _Interlocked_operand_ LONG64 const volatile *Source)
+    _In_ _Interlocked_operand_ __int64 const volatile *Source)
 {
     return *Source;
 }
 
-FORCEINLINE
-VOID
-WriteRelease64 (
-    _Out_ _Interlocked_operand_ LONG64 volatile *Destination,
-    _In_ LONG64 Value)
-{
-    *Destination = Value;
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence64 (
-    _Out_ _Interlocked_operand_ LONG64 volatile *Destination,
-    _In_ LONG64 Value)
+    _Out_ _Interlocked_operand_ __int64 volatile *Destination,
+    _In_ __int64 Value)
 {
     *Destination = Value;
 }
 
 #elif defined(_M_ARM) || defined(_M_ARM64)
 
-typedef enum _tag_ARM3264INTR_BARRIER_TYPE
-{
-    _ARM3264_BARRIER_SY    = 0xF,
-    _ARM3264_BARRIER_ST    = 0xE,
-    _ARM3264_BARRIER_ISH   = 0xB,
-    _ARM3264_BARRIER_ISHST = 0xA,
-    _ARM3264_BARRIER_NSH   = 0x7,
-    _ARM3264_BARRIER_NSHST = 0x6,
-    _ARM3264_BARRIER_OSH   = 0x3,
-    _ARM3264_BARRIER_OSHST = 0x2
-} _ARM6432INTR_BARRIER_TYPE;
-
-FORCEINLINE
-CHAR
-ReadAcquire8 (
-    _In_ _Interlocked_operand_ CHAR const volatile *Source)
-{
-    CHAR Value = __iso_volatile_load8(Source);
-    __dmb(_ARM3264_BARRIER_ISH);
-    return Value;
-}
-
-FORCEINLINE
-CHAR
+__forceinline
+char
 ReadNoFence8 (
-    _In_ _Interlocked_operand_ CHAR const volatile *Source)
+    _In_ _Interlocked_operand_ char const volatile *Source)
 {
     return __iso_volatile_load8(Source);
 }
 
-FORCEINLINE
-VOID
-WriteRelease8 (
-    _Out_ _Interlocked_operand_ CHAR volatile *Destination,
-    _In_ CHAR Value)
-{
-    __dmb(_ARM3264_BARRIER_ISH);
-    __iso_volatile_store8(Destination, Value);
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence8 (
-    _Out_ _Interlocked_operand_ CHAR volatile *Destination,
-    _In_ CHAR Value)
+    _Out_ _Interlocked_operand_ char volatile *Destination,
+    _In_ char Value)
 {
     __iso_volatile_store8(Destination, Value);
 }
 
-FORCEINLINE
-SHORT
-ReadAcquire16 (
-    _In_ _Interlocked_operand_ SHORT const volatile *Source)
-{
-    SHORT Value = __iso_volatile_load16(Source);
-    __dmb(_ARM3264_BARRIER_ISH);
-    return Value;
-}
-
-FORCEINLINE
-SHORT
+__forceinline
+short
 ReadNoFence16 (
-    _In_ _Interlocked_operand_ SHORT const volatile *Source)
+    _In_ _Interlocked_operand_ short const volatile *Source)
 {
     return __iso_volatile_load16(Source);
 }
 
-FORCEINLINE
-VOID
-WriteRelease16 (
-    _Out_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT Value)
-{
-    __dmb(_ARM3264_BARRIER_ISH);
-    __iso_volatile_store16(Destination, Value);
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence16 (
-    _Out_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT Value)
+    _Out_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short Value)
 {
     __iso_volatile_store16(Destination, Value);
 }
 
-FORCEINLINE
-LONG
-ReadAcquire (
-    _In_ _Interlocked_operand_ LONG const volatile *Source)
-{
-    LONG Value = __iso_volatile_load32((int *)Source);
-    __dmb(_ARM3264_BARRIER_ISH);
-    return Value;
-}
-
-FORCEINLINE
-LONG
+__forceinline
+long
 ReadNoFence (
-    _In_ _Interlocked_operand_ LONG const volatile *Source)
+    _In_ _Interlocked_operand_ long const volatile *Source)
 {
     return __iso_volatile_load32((int *)Source);
 }
 
-CFORCEINLINE
-VOID
-WriteRelease (
-    _Out_ _Interlocked_operand_ LONG volatile *Destination,
-    _In_ LONG Value)
-{
-    __dmb(_ARM3264_BARRIER_ISH);
-    __iso_volatile_store32((int *)Destination, Value);
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence (
-    _Out_ _Interlocked_operand_ LONG volatile *Destination,
-    _In_ LONG Value)
+    _Out_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value)
 {
     __iso_volatile_store32((int *)Destination, Value);
 }
 
-FORCEINLINE
-LONG64
-ReadAcquire64 (
-    _In_ _Interlocked_operand_ LONG64 const volatile *Source)
-{
-    LONG64 Value = __iso_volatile_load64(Source);
-    __dmb(_ARM3264_BARRIER_ISH);
-    return Value;
-}
-
-FORCEINLINE
-LONG64
+__forceinline
+__int64
 ReadNoFence64 (
-    _In_ _Interlocked_operand_ LONG64 const volatile *Source)
+    _In_ _Interlocked_operand_ __int64 const volatile *Source)
 {
     return __iso_volatile_load64(Source);
 }
 
-CFORCEINLINE
-VOID
-WriteRelease64 (
-    _Out_ _Interlocked_operand_ LONG64 volatile *Destination,
-    _In_ LONG64 Value)
-{
-    __dmb(_ARM3264_BARRIER_ISH);
-    __iso_volatile_store64(Destination, Value);
-}
-
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteNoFence64 (
-    _Out_ _Interlocked_operand_ LONG64 volatile *Destination,
-    _In_ LONG64 Value)
+    _Out_ _Interlocked_operand_ __int64 volatile *Destination,
+    _In_ __int64 Value)
 {
     __iso_volatile_store64(Destination, Value);
 }
@@ -342,365 +262,379 @@ WriteNoFence64 (
 #error Unknown architecture
 #endif // defined
 
-FORCEINLINE
-CHAR
-ReadRaw8 (
-    _In_ _Interlocked_operand_ CHAR const volatile *Source)
+/////////////////////////////////
+
+__forceinline
+char
+ReadAcquire8 (
+    _In_ _Interlocked_operand_ char const volatile *Source)
 {
-    return *(CHAR *)Source;
+    char Value = ReadNoFence8(Source);
+    _AcquireBarrier();
+    return Value;
 }
 
-FORCEINLINE
-VOID
-WriteRaw8 (
-    _Out_ _Interlocked_operand_ CHAR volatile *Destination,
-    _In_ CHAR Value)
+__forceinline
+void
+WriteRelease8 (
+    _Out_ _Interlocked_operand_ char volatile *Destination,
+    _In_ char Value)
 {
-    *(CHAR *)Destination = Value;
+    _ReleaseBarrier();
+    WriteNoFence8(Destination, Value);
 }
 
-FORCEINLINE
-SHORT
-ReadRaw16 (
-    _In_ _Interlocked_operand_ SHORT const volatile *Source)
+__forceinline
+short
+ReadAcquire16 (
+    _In_ _Interlocked_operand_ short const volatile *Source)
 {
-    return *(SHORT *)Source;
+    short Value = ReadNoFence16(Source);
+    _AcquireBarrier();
+    return Value;
 }
 
-FORCEINLINE
-VOID
-WriteRaw16 (
-    _Out_ _Interlocked_operand_ SHORT volatile *Destination,
-    _In_ SHORT Value)
+__forceinline
+void
+WriteRelease16 (
+    _Out_ _Interlocked_operand_ short volatile *Destination,
+    _In_ short Value)
 {
-    *(SHORT *)Destination = Value;
+    _ReleaseBarrier();
+    WriteNoFence16(Destination, Value);
 }
 
-FORCEINLINE
-LONG
-ReadRaw (
-    _In_ _Interlocked_operand_ LONG const volatile *Source)
+__forceinline
+long
+ReadAcquire (
+    _In_ _Interlocked_operand_ long const volatile *Source)
 {
-    return *(LONG *)Source;
+    long Value = ReadNoFence(Source);
+    _AcquireBarrier();
+    return Value;
 }
 
-FORCEINLINE
-VOID
-WriteRaw (
-    _Out_ _Interlocked_operand_ LONG volatile *Destination,
-    _In_ LONG Value)
+CFORCEINLINE // C__forceinline
+void
+WriteRelease (
+    _Out_ _Interlocked_operand_ long volatile *Destination,
+    _In_ long Value)
 {
-    *(LONG *)Destination = Value;
+    _ReleaseBarrier();
+    WriteNoFence(Destination, Value);
 }
 
-FORCEINLINE
-LONG64
-ReadRaw64 (
-    _In_ _Interlocked_operand_ LONG64 const volatile *Source)
+__forceinline
+__int64
+ReadAcquire64 (
+    _In_ _Interlocked_operand_ __int64 const volatile *Source)
 {
-    return *(LONG64 *)Source;
+    __int64 Value = ReadNoFence64(Source);
+    _AcquireBarrier();
+    return Value;
 }
 
-FORCEINLINE
-VOID
-WriteRaw64 (
-    _Out_ _Interlocked_operand_ LONG64 volatile *Destination,
-    _In_ LONG64 Value)
+C__forceinline
+void
+WriteRelease64 (
+    _Out_ _Interlocked_operand_ __int64 volatile *Destination,
+    _In_ __int64 Value)
 {
-    *(LONG64 *)Destination = Value;
+    _ReleaseBarrier();
+    WriteNoFence64(Destination, Value);
 }
 
-///
+//////////////////////
 
-FORCEINLINE
-UCHAR
+__forceinline
+unsigned char
 ReadUCharAcquire (
-    _In_ _Interlocked_operand_ UCHAR const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned char const volatile *Source)
 {
-    return (UCHAR)ReadAcquire8((PCHAR)Source);
+    return (unsigned char)ReadAcquire8((Pchar)Source);
 }
 
-FORCEINLINE
-UCHAR
+__forceinline
+unsigned char
 ReadUCharNoFence (
-    _In_ _Interlocked_operand_ UCHAR const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned char const volatile *Source)
 {
-    return (UCHAR)ReadNoFence8((PCHAR)Source);
+    return (unsigned char)ReadNoFence8((Pchar)Source);
 }
 
-FORCEINLINE
-UCHAR
+__forceinline
+unsigned char
 ReadUCharRaw (
-    _In_ _Interlocked_operand_ UCHAR const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned char const volatile *Source)
 {
-    return (UCHAR)ReadRaw8((PCHAR)Source);
+    return (unsigned char)ReadRaw8((Pchar)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteUCharRelease (
-    _Out_ _Interlocked_operand_ UCHAR volatile *Destination,
-    _In_ UCHAR Value)
+    _Out_ _Interlocked_operand_ unsigned char volatile *Destination,
+    _In_ unsigned char Value)
 {
-    WriteRelease8((PCHAR)Destination, (CHAR)Value);
+    WriteRelease8((Pchar)Destination, (char)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteUCharNoFence (
-    _Out_ _Interlocked_operand_ UCHAR volatile *Destination,
-    _In_ UCHAR Value)
+    _Out_ _Interlocked_operand_ unsigned char volatile *Destination,
+    _In_ unsigned char Value)
 {
-    WriteNoFence8((PCHAR)Destination, (CHAR)Value);
+    WriteNoFence8((Pchar)Destination, (char)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteUCharRaw (
-    _Out_ _Interlocked_operand_ UCHAR volatile *Destination,
-    _In_ UCHAR Value)
+    _Out_ _Interlocked_operand_ unsigned char volatile *Destination,
+    _In_ unsigned char Value)
 {
-    WriteRaw8((PCHAR)Destination, (CHAR)Value);
+    WriteRaw8((Pchar)Destination, (char)Value);
 }
 
-FORCEINLINE
-UCHAR
+__forceinline
+unsigned char
 ReadBooleanAcquire (
     _In_ _Interlocked_operand_ BOOLEAN const volatile *Source)
 {
-    return (BOOLEAN)ReadAcquire8((PCHAR)Source);
+    return (BOOLEAN)ReadAcquire8((Pchar)Source);
 }
 
-FORCEINLINE
-UCHAR
+__forceinline
+unsigned char
 ReadBooleanNoFence (
     _In_ _Interlocked_operand_ BOOLEAN const volatile *Source)
 {
-    return (BOOLEAN)ReadNoFence8((PCHAR)Source);
+    return (BOOLEAN)ReadNoFence8((Pchar)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteBooleanRelease (
     _Out_ _Interlocked_operand_ BOOLEAN volatile *Destination,
     _In_ BOOLEAN Value)
 {
-    WriteRelease8((PCHAR)Destination, (CHAR)Value);
+    WriteRelease8((Pchar)Destination, (char)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteBooleanNoFence (
     _Out_ _Interlocked_operand_ BOOLEAN volatile *Destination,
     _In_ BOOLEAN Value)
 {
-    WriteNoFence8((PCHAR)Destination, (CHAR)Value);
+    WriteNoFence8((Pchar)Destination, (char)Value);
 }
 
-FORCEINLINE
-USHORT
+__forceinline
+unsigned short
 ReadUShortAcquire (
-    _In_ _Interlocked_operand_ USHORT const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned short const volatile *Source)
 {
-    return (USHORT)ReadAcquire16((PSHORT)Source);
+    return (unsigned short)ReadAcquire16((Pshort)Source);
 }
 
-FORCEINLINE
-USHORT
+__forceinline
+unsigned short
 ReadUShortNoFence (
-    _In_ _Interlocked_operand_ USHORT const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned short const volatile *Source)
 {
-    return (USHORT)ReadNoFence16((PSHORT)Source);
+    return (unsigned short)ReadNoFence16((Pshort)Source);
 }
 
-FORCEINLINE
-USHORT
+__forceinline
+unsigned short
 ReadUShortRaw (
-    _In_ _Interlocked_operand_ USHORT const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned short const volatile *Source)
 {
-    return (USHORT)ReadRaw16((PSHORT)Source);
+    return (unsigned short)ReadRaw16((Pshort)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteUShortRelease (
-    _Out_ _Interlocked_operand_ USHORT volatile *Destination,
-    _In_ USHORT Value)
+    _Out_ _Interlocked_operand_ unsigned short volatile *Destination,
+    _In_ unsigned short Value)
 {
-    WriteRelease16((PSHORT)Destination, (SHORT)Value);
+    WriteRelease16((Pshort)Destination, (short)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteUShortNoFence (
-    _Out_ _Interlocked_operand_ USHORT volatile *Destination,
-    _In_ USHORT Value)
+    _Out_ _Interlocked_operand_ unsigned short volatile *Destination,
+    _In_ unsigned short Value)
 {
-    WriteNoFence16((PSHORT)Destination, (SHORT)Value);
+    WriteNoFence16((Pshort)Destination, (short)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteUShortRaw (
-    _Out_ _Interlocked_operand_ USHORT volatile *Destination,
-    _In_ USHORT Value)
+    _Out_ _Interlocked_operand_ unsigned short volatile *Destination,
+    _In_ unsigned short Value)
 {
-    WriteRaw16((PSHORT)Destination, (SHORT)Value);
+    WriteRaw16((Pshort)Destination, (short)Value);
 }
 
-FORCEINLINE
-ULONG
+__forceinline
+unsigned long
 ReadULongAcquire (
-    _In_ _Interlocked_operand_ ULONG const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned long const volatile *Source)
 {
-    return (ULONG)ReadAcquire((PLONG)Source);
+    return (unsigned long)ReadAcquire((Plong)Source);
 }
 
-FORCEINLINE
-ULONG
+__forceinline
+unsigned long
 ReadULongNoFence (
-    _In_ _Interlocked_operand_ ULONG const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned long const volatile *Source)
 {
-    return (ULONG)ReadNoFence((PLONG)Source);
+    return (unsigned long)ReadNoFence((Plong)Source);
 }
 
-FORCEINLINE
-ULONG
+__forceinline
+unsigned long
 ReadULongRaw (
-    _In_ _Interlocked_operand_ ULONG const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned long const volatile *Source)
 {
-    return (ULONG)ReadRaw((PLONG)Source);
+    return (unsigned long)ReadRaw((Plong)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteULongRelease (
-    _Out_ _Interlocked_operand_ ULONG volatile *Destination,
-    _In_ ULONG Value)
+    _Out_ _Interlocked_operand_ unsigned long volatile *Destination,
+    _In_ unsigned long Value)
 {
-    WriteRelease((PLONG)Destination, (LONG)Value);
+    WriteRelease((Plong)Destination, (long)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteULongNoFence (
-    _Out_ _Interlocked_operand_ ULONG volatile *Destination,
-    _In_ ULONG Value)
+    _Out_ _Interlocked_operand_ unsigned long volatile *Destination,
+    _In_ unsigned long Value)
 {
-    WriteNoFence((PLONG)Destination, (LONG)Value);
+    WriteNoFence((Plong)Destination, (long)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteULongRaw (
-    _Out_ _Interlocked_operand_ ULONG volatile *Destination,
-    _In_ ULONG Value)
+    _Out_ _Interlocked_operand_ unsigned long volatile *Destination,
+    _In_ unsigned long Value)
 {
-    WriteRaw((PLONG)Destination, (LONG)Value);
+    WriteRaw((Plong)Destination, (long)Value);
 }
 
-FORCEINLINE
-ULONG64
+__forceinline
+unsigned __int64
 ReadULong64Acquire (
-    _In_ _Interlocked_operand_ ULONG64 const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned __int64 const volatile *Source)
 {
-    return (ULONG64)ReadAcquire64((PLONG64)Source);
+    return (unsigned __int64)ReadAcquire64((P__int64)Source);
 }
 
-FORCEINLINE
-ULONG64
+__forceinline
+unsigned __int64
 ReadULong64NoFence (
-    _In_ _Interlocked_operand_ ULONG64 const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned __int64 const volatile *Source)
 {
-    return (ULONG64)ReadNoFence64((PLONG64)Source);
+    return (unsigned __int64)ReadNoFence64((P__int64)Source);
 }
 
-FORCEINLINE
-ULONG64
+__forceinline
+unsigned __int64
 ReadULong64Raw (
-    _In_ _Interlocked_operand_ ULONG64 const volatile *Source)
+    _In_ _Interlocked_operand_ unsigned __int64 const volatile *Source)
 {
-    return (ULONG64)ReadRaw64((PLONG64)Source);
+    return (unsigned __int64)ReadRaw64((P__int64)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteULong64Release (
-    _Out_ _Interlocked_operand_ ULONG64 volatile *Destination,
-    _In_ ULONG64 Value)
+    _Out_ _Interlocked_operand_ unsigned __int64 volatile *Destination,
+    _In_ unsigned __int64 Value)
 {
-    WriteRelease64((PLONG64)Destination, (LONG64)Value);
+    WriteRelease64((P__int64)Destination, (__int64)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteULong64NoFence (
-    _Out_ _Interlocked_operand_ ULONG64 volatile *Destination,
-    _In_ ULONG64 Value)
+    _Out_ _Interlocked_operand_ unsigned __int64 volatile *Destination,
+    _In_ unsigned __int64 Value)
 {
-    WriteNoFence64((PLONG64)Destination, (LONG64)Value);
+    WriteNoFence64((P__int64)Destination, (__int64)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WriteULong64Raw (
-    _Out_ _Interlocked_operand_ ULONG64 volatile *Destination,
-    _In_ ULONG64 Value)
+    _Out_ _Interlocked_operand_ unsigned __int64 volatile *Destination,
+    _In_ unsigned __int64 Value)
 {
-    WriteRaw64((PLONG64)Destination, (LONG64)Value);
+    WriteRaw64((P__int64)Destination, (__int64)Value);
 }
 
 #ifdef _WIN64
 
-FORCEINLINE
-PVOID
+__forceinline
+Pvoid
 ReadPointerAcquire (
-    _In_ _Interlocked_operand_ PVOID const volatile *Source)
+    _In_ _Interlocked_operand_ Pvoid const volatile *Source)
 {
-    return (PVOID)ReadAcquire64((PLONG64)Source);
+    return (Pvoid)ReadAcquire64((P__int64)Source);
 }
 
-FORCEINLINE
-PVOID
+__forceinline
+Pvoid
 ReadPointerNoFence (
-    _In_ _Interlocked_operand_ PVOID const volatile *Source)
+    _In_ _Interlocked_operand_ Pvoid const volatile *Source)
 {
-    return (PVOID)ReadNoFence64((PLONG64)Source);
+    return (Pvoid)ReadNoFence64((P__int64)Source);
 }
 
-FORCEINLINE
-PVOID
+__forceinline
+Pvoid
 ReadPointerRaw (
-    _In_ _Interlocked_operand_ PVOID const volatile *Source)
+    _In_ _Interlocked_operand_ Pvoid const volatile *Source)
 {
-    return (PVOID)ReadRaw64((PLONG64)Source);
+    return (Pvoid)ReadRaw64((P__int64)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WritePointerRelease (
-    _Out_ _Interlocked_operand_ PVOID volatile *Destination,
-    _In_ PVOID Value)
+    _Out_ _Interlocked_operand_ Pvoid volatile *Destination,
+    _In_ Pvoid Value)
 {
-    WriteRelease64((PLONG64)Destination, (LONG64)Value);
+    WriteRelease64((P__int64)Destination, (__int64)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WritePointerNoFence (
-    _Out_ _Interlocked_operand_ PVOID volatile *Destination,
-    _In_ PVOID Value)
+    _Out_ _Interlocked_operand_ Pvoid volatile *Destination,
+    _In_ Pvoid Value)
 {
-    WriteNoFence64((PLONG64)Destination, (LONG64)Value);
+    WriteNoFence64((P__int64)Destination, (__int64)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WritePointerRaw (
-    _Out_ _Interlocked_operand_ PVOID volatile *Destination,
-    _In_ PVOID Value)
+    _Out_ _Interlocked_operand_ Pvoid volatile *Destination,
+    _In_ Pvoid Value)
 {
-    WriteRaw64((PLONG64)Destination, (LONG64)Value);
+    WriteRaw64((P__int64)Destination, (__int64)Value);
 }
 
 #define ReadLongPtrAcquire ReadAcquire64
@@ -718,55 +652,55 @@ WritePointerRaw (
 
 #else
 
-FORCEINLINE
-PVOID
+__forceinline
+void*
 ReadPointerAcquire (
-    _In_ _Interlocked_operand_ PVOID const volatile *Source)
+    _In_ _Interlocked_operand_ void* const volatile *Source)
 {
-    return (PVOID)ReadAcquire((PLONG)Source);
+    return (void*)ReadAcquire((long*)Source);
 }
 
-FORCEINLINE
-PVOID
+__forceinline
+void*
 ReadPointerNoFence (
-    _In_ _Interlocked_operand_ PVOID const volatile *Source)
+    _In_ _Interlocked_operand_ void* const volatile *Source)
 {
-    return (PVOID)ReadNoFence((PLONG)Source);
+    return (void*)ReadNoFence((long*)Source);
 }
 
-FORCEINLINE
-PVOID
+__forceinline
+void*
 ReadPointerRaw (
-    _In_ _Interlocked_operand_ PVOID const volatile *Source)
+    _In_ _Interlocked_operand_ void* const volatile *Source)
 {
-    return (PVOID)ReadRaw((PLONG)Source);
+    return (void*)ReadRaw((long*)Source);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WritePointerRelease (
-    _Out_ _Interlocked_operand_ PVOID volatile *Destination,
-    _In_ PVOID Value)
+    _Out_ _Interlocked_operand_ void* volatile *Destination,
+    _In_ Pvoid Value)
 {
-    WriteRelease((PLONG)Destination, (LONG)Value);
+    WriteRelease((long*)Destination, (long)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WritePointerNoFence (
-    _Out_ _Interlocked_operand_ PVOID volatile *Destination,
-    _In_opt_ PVOID Value)
+    _Out_ _Interlocked_operand_ void* volatile *Destination,
+    _In_opt_ Pvoid Value)
 {
-    WriteNoFence((PLONG)Destination, (LONG)Value);
+    WriteNoFence((long*)Destination, (long)Value);
 }
 
-FORCEINLINE
-VOID
+__forceinline
+void
 WritePointerRaw (
-    _Out_ _Interlocked_operand_ PVOID volatile *Destination,
-    _In_opt_ PVOID Value)
+    _Out_ _Interlocked_operand_ void* volatile *Destination,
+    _In_opt_ Pvoid Value)
 {
-    WriteRaw((PLONG)Destination, (LONG)Value);
+    WriteRaw((long*)Destination, (long)Value);
 }
 
 #define ReadLongPtrAcquire ReadAcquire
@@ -791,3 +725,59 @@ WritePointerRaw (
 #define WriteSizeTNoFence WriteULongPtrNoFence
 #define WriteSizeTRaw WriteULongPtrRaw
 
+// Overloaded functions
+#if defined(__cplusplus)
+extern "C++" {
+
+template<typename T>
+__forceinline
+T
+ReadRaw (
+    _In_ _Interlocked_operand_ T const volatile *Source)
+{
+    return *(T*)Source;
+}
+
+template<typename T>
+__forceinline
+void
+WriteRaw (
+    _Out_ _Interlocked_operand_ T volatile *Destination,
+    _In_ T Value)
+{
+    *(T*)Destination = Value;
+}
+
+template<typename T>
+__forceinline
+T
+ReadNoFence (
+    _In_ _Interlocked_operand_ T const volatile *Source)
+{
+    switch (sizeof(T))
+    {
+        case 1: return (TYPE)ReadNoFence8((char const volatile *)Source);
+        case 2: return (TYPE)ReadNoFence16((short const volatile *)Source);
+        case 4: return (TYPE)ReadNoFence((long const volatile *)Source);
+        case 8: return (TYPE)ReadNoFence64((__int64 const volatile *)Source);
+    }
+}
+
+template<typename T>
+__forceinline
+void
+WriteNoFence (
+    _Out_ _Interlocked_operand_ T volatile *Destination,
+    _In_ T Value)
+{
+    switch (sizeof(T))
+    {
+        case 1: WriteNoFence8((char const volatile *)Destination, (char)Value);
+        case 2: WriteNoFence16((short const volatile *)Destination, (short)Value);
+        case 4: WriteNoFence((long const volatile *)Destination, (long)Value);
+        case 8: WriteNoFence64((__int64 const volatile *)Destination, (__int64)Value);
+    }
+}
+
+} // extern "C++"
+#endif // __cplusplus

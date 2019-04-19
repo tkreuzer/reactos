@@ -70,9 +70,9 @@ DbgPrint (
     DbgPrint("Assertion failed at %s(%d): %S\n", __FILE__, __LINE__, msg)
 #endif
 
-#ifdef _PREFAST_
+#if defined(_PREFAST_)
 # define NT_ANALYSIS_ASSUME(_exp) _Analysis_assume_(_exp)
-#elif DBG
+#elif defined(_DEBUG)
 # define NT_ANALYSIS_ASSUME(_exp) ((void)0)
 #else
 # define NT_ANALYSIS_ASSUME(_exp) __noop(_exp)
@@ -96,7 +96,7 @@ DbgPrint (
       (__assert_annotationW(msg), \
        DbgRaiseAssertionFailure(), FALSE) : TRUE))
 
-#if DBG
+#if defined(_DEBUG)
 
 #define RTL_VERIFY(exp) \
   ((!(exp)) ? \
@@ -132,7 +132,7 @@ DbgPrint (
 #define NT_ASSERTMSG_NOASSUME  (void)NT_ASSERTMSG_ACTION
 #define NT_ASSERTMSGW_NOASSUME (void)NT_ASSERTMSGW_ACTION
 
-#else /* !DBG */
+#else /* !_DEBUG */
 
 #define ASSERT(exp)                  ((void)0)
 #define ASSERTMSG(msg, exp)          ((void)0)
@@ -158,7 +158,7 @@ DbgPrint (
 #define NT_ASSERTMSG_NOASSUME(msg, exp)  ((void)0)
 #define NT_ASSERTMSGW_NOASSUME(msg, exp) ((void)0)
 
-#endif /* DBG */
+#endif /* _DEBUG */
 
 #define NT_FRE_ASSERT     (void)NT_ASSERT_ACTION
 #define NT_FRE_ASSERTMSG  (void)NT_ASSERTMSG_ACTION
@@ -183,4 +183,10 @@ DbgPrint (
 #define ASSERTMSGW NT_ASSERTMSGW
 #undef RTL_VERIFY
 #define RTL_VERIFY NT_VERIFY
+#endif
+
+#if defined(_DEBUG)
+# define DBG(x) x
+#else
+# define DBG(x) __noop(x)
 #endif

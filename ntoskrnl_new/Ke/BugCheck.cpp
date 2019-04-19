@@ -1,6 +1,67 @@
 
 #include "BugCheck.hpp"
 
+DECLSPEC_NORETURN
+VOID
+NTAPI
+KiBugCheckInternal(
+    _In_ ULONG BugCheckCode,
+    _In_ ULONG_PTR BugCheckParameter1,
+    _In_ ULONG_PTR BugCheckParameter2,
+    _In_ ULONG_PTR BugCheckParameter3,
+    _In_ ULONG_PTR BugCheckParameter4,
+    PKPROCESSOR_STATE ProcessorState)
+{
+    /* Set screen colors and clear the screen */
+    VidSetColors(VID_COLOR_MAGENTA, VID_COLOR_BRIGHTWHITE);
+    VidClearScreen();
+
+    /* Print bugcheck information on the screen */
+    VidPrint("\n*** HALT: 0x%08lx\n"
+             "  (0x%p,0x%p,0x%p,0x%p)\n\n",
+             BugCheckCode,
+             BugCheckParameter1,
+             BugCheckParameter2,
+             BugCheckParameter3,
+             BugCheckParameter4);
+
+    /* Dump the processor state information */
+    KxDumpProcessorState(ProcessorState);
+
+    /* Enter the debugger */
+    DbgBreakPointWithStatus(DBG_STATUS_BUGCHECK_FIRST);
+
+    for (;;);
+}
+
+
+DECLSPEC_NORETURN
+VOID
+NTAPI
+KeBugCheckWithTf(
+    _In_ ULONG BugCheckCode,
+    _In_ ULONG_PTR BugCheckParameter1,
+    _In_ ULONG_PTR BugCheckParameter2,
+    _In_ ULONG_PTR BugCheckParameter3,
+    _In_ ULONG_PTR BugCheckParameter4,
+    _In_ PKTRAP_FRAME TrapFrame)
+{
+    PKPRCB Prcb = KxGetCurrentPrcb();
+
+    /* Get the context from the trap frame */
+    KxGetExceptionContext(&Prcb->ProcessorState.ContextFrame,
+                          TrapFrame,
+                          (PVOID)TrapFrame->ExceptionFrame);
+
+    /* Call the internal function */
+    KiBugCheckInternal(BugCheckCode,
+                       BugCheckParameter1,
+                       BugCheckParameter2,
+                       BugCheckParameter3,
+                       BugCheckParameter4,
+                       &Prcb->ProcessorState);
+}
+
 extern "C" {
 
 ULONG_PTR KiBugCheckData[5];
@@ -18,8 +79,8 @@ NTAPI
 KeBugCheck (
     _In_ ULONG BugCheckCode)
 {
-    __debugbreak();
-    for (;;);
+    /* Call the extended version */
+    KeBugCheckEx(BugCheckCode, 0, 0, 0, 0);
 }
 
 // wdm.h / ntosp.h
@@ -36,8 +97,19 @@ KeBugCheckEx (
     _In_ ULONG_PTR BugCheckParameter3,
     _In_ ULONG_PTR BugCheckParameter4)
 {
-    __debugbreak();
-    for (;;);
+    PKPRCB Prcb = KxGetCurrentPrcb();
+
+    /* Capture the full context in the PRCB */
+    Prcb->ProcessorState.ContextFrame.ContextFlags |= CONTEXT_FULL;
+    RtlCaptureContext(&Prcb->ProcessorState.ContextFrame);
+
+    /* Call the internal function */
+    KiBugCheckInternal(BugCheckCode,
+                       BugCheckParameter1,
+                       BugCheckParameter2,
+                       BugCheckParameter3,
+                       BugCheckParameter4,
+                       &Prcb->ProcessorState);
 }
 
 // wdm.h / ntosp.h

@@ -5,6 +5,15 @@ extern "C" {
 
 //@ stub KiEntropyQueueDpc
 //@ stdcall -stub -arch=i386 KiDispatchInterrupt()
+#if 0 // FIXME where to put? From "NUKE"
+VOID KiDpcInterruptHandler(VOID)
+{
+}
+
+VOID KiRetireDpcList(VOID)
+{
+}
+#endif
 
 // wdm.h / ntosp.h
 VOID
