@@ -336,7 +336,13 @@ FORCEINLINE
 ULONG
 KeGetCurrentProcessorNumber(VOID)
 {
+#if (NTDDI_VERSION >= NTDDI_VISTA)
+    return __readgsword(0x184);
+#elif (NTDDI_VERSION >= NTDDI_WS2003)
     return __readgsbyte(0x184);
+#else
+    return __readgsbyte(FIELD_OFFSET(KPCR, Number));
+#endif
 }
 
 $endif /* _NTDDK_ */
