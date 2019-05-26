@@ -69,7 +69,7 @@ endif()
 
 # Bison and Flex support
 # include(sdk/cmake/bison-flex.cmake)
-
+add_compile_flags("/WX")
 if(NOT CMAKE_CROSSCOMPILING)
     set(TOOLS_FOLDER ${CMAKE_CURRENT_BINARY_DIR})
     add_definitions(-DTARGET_${ARCH})
@@ -195,6 +195,7 @@ else()
     # Compiler specific definitions and macros
     if(MSVC)
         include(sdk/cmake/msvc.cmake)
+        add_compile_flags("/wd4267")
     else()
         include(sdk/cmake/gcc.cmake)
     endif()
