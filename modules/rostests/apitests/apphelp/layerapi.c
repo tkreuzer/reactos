@@ -587,7 +587,7 @@ static BOOL create_file(LPCSTR dir, LPCSTR name, int filler, DWORD size)
     }
 
     memset(tmp, filler, size);
-    WriteFile(file, tmp, size, &size, NULL);
+    WriteFile(file, tmp, size, NULL, NULL);
 
     CloseHandle(file);
     free(tmp);
