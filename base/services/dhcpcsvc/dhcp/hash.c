@@ -63,7 +63,7 @@ struct hash_table *new_hash ()
 static __inline int do_hash (name, len, size)
 	unsigned char *name;
 	size_t len;
-    size_t size;
+	size_t size;
 {
 	register int accum = 0;
 	register unsigned char *s = name;
@@ -109,7 +109,7 @@ void add_hash (table, name, len, pointer)
 
 void delete_hash_entry (table, name, len)
 	struct hash_table *table;
-    size_t len;
+	size_t len;
 	unsigned char *name;
 {
 	int hashno;

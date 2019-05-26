@@ -400,7 +400,7 @@ pretty_print_option(unsigned int code, unsigned char *data, int len,
 	int hunksize = 0, numhunk = -1, numelem = 0;
 	char fmtbuf[32], *op = optbuf;
 	int i, j, k;
-	size_t opleft = sizeof(optbuf);
+	intptr_t opleft = sizeof(optbuf);
 	unsigned char *dp = data;
 	struct in_addr foo;
 	char comma;
