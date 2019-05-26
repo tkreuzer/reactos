@@ -4318,7 +4318,7 @@ UINT WINAPI MsiBeginTransactionW( const WCHAR *name, DWORD attrs, MSIHANDLE *id,
     FIXME( "%s, %#lx, %p, %p\n", debugstr_w(name), attrs, id, event );
 
     *id = (MSIHANDLE)0xdeadbeef;
-    *event = (HANDLE)0xdeadbeef;
+    *event = (HANDLE)(ULONG_PTR)0xdeadbeefdeadbeef;
 
     return ERROR_SUCCESS;
 }
@@ -4330,7 +4330,7 @@ UINT WINAPI MsiJoinTransaction( MSIHANDLE handle, DWORD attrs, HANDLE *event )
 {
     FIXME( "%lu, %#lx, %p\n", handle, attrs, event );
 
-    *event = (HANDLE)0xdeadbeef;
+    *event = (HANDLE)(ULONG_PTR)0xdeadbeefdeadbeef;
     return ERROR_SUCCESS;
 }
 
