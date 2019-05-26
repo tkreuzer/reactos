@@ -25,7 +25,7 @@ __int64 CDECL _wtoi64_l(const wchar_t *str, _locale_t locale)
         str++;
     } /* while */
 
-    return bMinus ? -RunningTotal : RunningTotal;
+    return bMinus ? -(__int64)RunningTotal : RunningTotal;
 }
 
 /*********************************************************************

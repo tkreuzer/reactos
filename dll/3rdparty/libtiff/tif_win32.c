@@ -241,7 +241,7 @@ TIFFFdOpen(int ifd, const char* name, const char* mode)
 			break;
 		}
 	}
-	tif = TIFFClientOpen(name, mode, (thandle_t)(uintptr_t)ifd, /* FIXME: WIN64 cast to pointer warning */
+	tif = TIFFClientOpen(name, mode, IntToPtr(ifd),
 			_tiffReadProc, _tiffWriteProc,
 			_tiffSeekProc, _tiffCloseProc, _tiffSizeProc,
 			fSuppressMap ? _tiffDummyMapProc : _tiffMapProc,

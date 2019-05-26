@@ -5,6 +5,10 @@ add_definitions(
 
 include_directories(include)
 
+if(MSVC)
+    add_compile_flags("/wd4267")
+endif()
+
 list(APPEND SOURCE
     src/autofit/autofit.c
     src/base/ftadvanc.c
