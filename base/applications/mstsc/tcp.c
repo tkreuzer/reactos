@@ -110,13 +110,16 @@ RD_BOOL send_ssl_chunk(const void *msg, size_t size)
 {
 	SecBuffer bufs[4] = {
 		{g_ssl->ssl_sizes.cbHeader, SECBUFFER_STREAM_HEADER, g_ssl->ssl_buf},
-		{size,  SECBUFFER_DATA, g_ssl->ssl_buf+g_ssl->ssl_sizes.cbHeader},
+		{(ULONG)size,  SECBUFFER_DATA, g_ssl->ssl_buf+g_ssl->ssl_sizes.cbHeader},
 		{g_ssl->ssl_sizes.cbTrailer, SECBUFFER_STREAM_TRAILER, g_ssl->ssl_buf+g_ssl->ssl_sizes.cbHeader+size},
 		{0, SECBUFFER_EMPTY, NULL}
 	};
 	SecBufferDesc buf_desc = {SECBUFFER_VERSION, sizeof(bufs)/sizeof(*bufs), bufs};
 	SECURITY_STATUS res;
 	int tcp_res;
+
+	if (size > ULONG_MAX)
+		return False;
 
 	memcpy(bufs[1].pvBuffer, msg, size);
 	res = EncryptMessage(&g_ssl->ssl_ctx, 0, &buf_desc, 0);
@@ -269,8 +272,8 @@ DWORD read_ssl_chunk(void *buf, SIZE_T buf_size, BOOL blocking, SIZE_T *ret_size
 void
 tcp_send(STREAM s)
 {
-	int length = s->end - s->data;
-	int sent, total = 0;
+	intptr_t length = s->end - s->data;
+	intptr_t sent, total = 0;
 
 	if (g_network_error == True)
 		return;

@@ -120,7 +120,7 @@ RD_BOOL pstcache_init(uint8 cache_id);
 /* rdesktop.c */
 int main(int argc, char *argv[]);
 void generate_random(uint8 * random);
-void *xmalloc(int size);
+void *xmalloc(size_t size);
 void exit_if_null(void *ptr);
 char *xstrdup(const char *s);
 void *xrealloc(void *oldmem, size_t size);
@@ -149,7 +149,7 @@ RD_BOOL rd_lock_file(int fd, int start, int len);
 /* rdp5.c */
 void rdp5_process(STREAM s);
 /* rdp.c */
-void rdp_out_unistr(STREAM s, char *string, int len);
+void rdp_out_unistr(STREAM s, char *string, size_t len);
 void rdp_in_unistr(STREAM s, int in_len, char **string, uint32 * str_size);
 void rdp_send_input(uint32 time, uint16 message_type, uint16 device_flags, uint16 param1,
 		    uint16 param2);
@@ -198,7 +198,7 @@ void buf_out_uint32(uint8 * buffer, uint32 value);
 void sec_sign(uint8 * signature, int siglen, uint8 * session_key, int keylen, uint8 * data,
 	      int datalen);
 void sec_decrypt(uint8 * data, int length);
-STREAM sec_init(uint32 flags, int maxlen);
+STREAM sec_init(uint32 flags, size_t maxlen);
 void sec_send_to_channel(STREAM s, uint32 flags, uint16 channel);
 void sec_send(STREAM s, uint32 flags);
 void sec_process_mcs_data(STREAM s);
