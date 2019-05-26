@@ -1189,10 +1189,10 @@ FormatByteSize(LONGLONG cbSize, LPWSTR pwszResult, UINT cchResultMax)
     cchRemaining = cchResultMax - cchWritten;
     StringCchCopyExW(pwszEnd, cchRemaining, L" ", &pwszEnd, &cchStringRemaining, 0);
     cchRemaining = (UINT)cchStringRemaining;
-    cchWritten = LoadStringW(hInst, IDS_BYTES_FORMAT, pwszEnd, cchRemaining);
+    cchWritten = LoadStringW(hInst, IDS_BYTES_FORMAT, pwszEnd, (ULONG)cchRemaining);
     cchRemaining -= cchWritten;
 
-    return cchResultMax - cchRemaining;
+    return cchResultMax - (UINT)cchRemaining;
 }
 
 LPWSTR
@@ -1218,7 +1218,7 @@ FormatFileSizeWithBytes(const PULARGE_INTEGER lpQwSize, LPWSTR pwszResult, UINT 
     cchRemaining = (UINT)cchCopyRemaining;
 
     /* Write formated bytes count */
-    cchWritten = FormatByteSize(lpQwSize->QuadPart, pwszEnd, cchRemaining);
+    cchWritten = FormatByteSize(lpQwSize->QuadPart, pwszEnd, (UINT)cchRemaining);
     pwszEnd += cchWritten;
     cchRemaining -= cchWritten;
 
@@ -1242,7 +1242,7 @@ GetFileTimeString(LPFILETIME lpFileTime, LPWSTR pwszResult, UINT cchResult)
     if (!FileTimeToLocalFileTime(lpFileTime, &ft) || !FileTimeToSystemTime(&ft, &st))
         return FALSE;
 
-    cchWritten = GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, &st, NULL, pwszEnd, cchRemaining);
+    cchWritten = GetDateFormatW(LOCALE_USER_DEFAULT, DATE_LONGDATE, &st, NULL, pwszEnd, (ULONG)cchRemaining);
     if (cchWritten)
         --cchWritten; // GetDateFormatW returns count with terminating zero
     // else
@@ -1254,7 +1254,7 @@ GetFileTimeString(LPFILETIME lpFileTime, LPWSTR pwszResult, UINT cchResult)
     StringCchCopyExW(pwszEnd, cchRemaining, L", ", &pwszEnd, &cchCopyRemaining, 0);
     cchRemaining = (UINT)cchCopyRemaining;
 
-    cchWritten = GetTimeFormatW(LOCALE_USER_DEFAULT, 0, &st, NULL, pwszEnd, cchRemaining);
+    cchWritten = GetTimeFormatW(LOCALE_USER_DEFAULT, 0, &st, NULL, pwszEnd, (ULONG)cchRemaining);
     if (cchWritten)
         --cchWritten; // GetTimeFormatW returns count with terminating zero
     // else

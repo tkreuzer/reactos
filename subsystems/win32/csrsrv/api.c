@@ -1521,7 +1521,7 @@ CsrValidateMessageString(IN PCSR_API_MESSAGE ApiMessage,
     {
         return CsrValidateMessageBuffer(ApiMessage,
                                         (PVOID*)MessageString,
-                                        wcslen(*MessageString) + 1,
+                                        (ULONG)wcslen(*MessageString) + 1,
                                         sizeof(WCHAR));
     }
     else
