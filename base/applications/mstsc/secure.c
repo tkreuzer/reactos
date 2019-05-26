@@ -416,7 +416,7 @@ sec_rsa_encrypt(uint8 * out, uint8 * in, int len, uint32 modulus_size, uint8 * m
 
 /* Initialise secure transport packet */
 STREAM
-sec_init(uint32 flags, int maxlen)
+sec_init(uint32 flags, size_t maxlen)
 {
 	int hdrlen;
 	STREAM s;
@@ -483,7 +483,7 @@ sec_establish_key(void)
 	uint32 flags = SEC_EXCHANGE_PKT;
 	STREAM s;
 
-	s = sec_init(flags, length + 4);
+	s = sec_init(flags, (int)length + 4);
 
 	out_uint32_le(s, length);
 	out_uint8p(s, g_sec_crypted_random, g_server_public_key_len);
@@ -497,7 +497,7 @@ sec_establish_key(void)
 static void
 sec_out_mcs_data(STREAM s, uint32 selected_protocol)
 {
-	int hostlen = 2 * strlen(g_hostname);
+	intptr_t hostlen = 2 * strlen(g_hostname);
 	int length = 162 + 76 + 12 + 4;
 	unsigned int i;
 	uint32 cluster_flags = 0;
