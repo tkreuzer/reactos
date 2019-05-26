@@ -3098,7 +3098,7 @@ static RPC_STATUS rpcrt4_ncacn_http_open(RpcConnection* Connection)
         return RPC_S_OUT_OF_MEMORY;
     memcpy(url, wszRpcProxyPrefix, sizeof(wszRpcProxyPrefix));
     MultiByteToWideChar(CP_ACP, 0, Connection->NetworkAddr, -1, url+ARRAY_SIZE(wszRpcProxyPrefix)-1,
-                        strlen(Connection->NetworkAddr)+1);
+                        (DWORD)strlen(Connection->NetworkAddr)+1);
     lstrcatW(url, wszColon);
     MultiByteToWideChar(CP_ACP, 0, Connection->Endpoint, -1, url+lstrlenW(url), strlen(Connection->Endpoint)+1);
 
