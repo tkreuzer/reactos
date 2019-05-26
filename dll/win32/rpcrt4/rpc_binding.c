@@ -321,7 +321,7 @@ static LPSTR RPCRT4_strconcatA(LPSTR dst, LPCSTR src)
 
 static LPWSTR RPCRT4_strconcatW(LPWSTR dst, LPCWSTR src)
 {
-  DWORD len = lstrlenW(dst), slen = lstrlenW(src);
+  SIZE_T len = strlenW(dst), slen = strlenW(src);
   LPWSTR ndst = HeapReAlloc(GetProcessHeap(), 0, dst, (len+slen+2)*sizeof(WCHAR));
   if (!ndst) 
   {
