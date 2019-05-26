@@ -2413,7 +2413,7 @@ static BYTE *parse_value( MSIPACKAGE *package, const WCHAR *value, DWORD len, DW
                 p++;
             }
             if (deformated[0] == '-')
-                d = -d;
+                d = -(LONG)d;
             *(DWORD *)data = d;
             TRACE( "DWORD %lu\n", *(DWORD *)data);
 
