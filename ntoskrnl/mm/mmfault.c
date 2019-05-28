@@ -209,6 +209,8 @@ MmAccessFault(IN ULONG FaultCode,
 {
     PMEMORY_AREA MemoryArea = NULL;
 
+    KeInvalidateTlbEntry(Address);
+
     /* Cute little hack for ROS */
     if ((ULONG_PTR)Address >= (ULONG_PTR)MmSystemRangeStart)
     {
