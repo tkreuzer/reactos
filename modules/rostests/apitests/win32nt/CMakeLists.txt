@@ -70,12 +70,9 @@ list(APPEND SOURCE
     #osver.c
     )
 
-list(APPEND PCH_SKIP_SOURCE
-    testlist.c)
-
 add_executable(win32knt_apitest
     ${SOURCE}
-    ${PCH_SKIP_SOURCE}
+    testlist.c
     w32knapi.rc)
 
 target_link_libraries(win32knt_apitest ${PSEH_LIB} gditools)
@@ -88,7 +85,7 @@ add_importlibs(win32knt_apitest
     msvcrt
     kernel32
     ntdll)
-add_delay_importlibs(win32knt_apitest win32u imm32)
+add_delay_importlibs(win32knt_apitest win32u)
 add_dependencies(win32knt_apitest xdk)
-add_pch(win32knt_apitest win32nt.h "${PCH_SKIP_SOURCE}")
+add_pch(win32knt_apitest win32nt.h SOURCE)
 add_rostests_file(TARGET win32knt_apitest)

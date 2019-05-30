@@ -119,11 +119,19 @@ VOID TestSSEExceptions(VOID)
     {
         BOOL supportsSSE = FALSE;
 #ifdef _MSC_VER
-            __asm
-            {
-                xorps xmm0, xmm0
-                mov supportsSSE, 0x1
-            }
+#if defined(_M_AMD64)
+    {
+        __m128 xmm = { { 0 } };
+        xmm = _mm_xor_ps(xmm, xmm);
+        if (!ExceptionCaught) supportsSSE = TRUE;
+    }
+#else
+    __asm
+    {
+        xorps xmm0, xmm0
+        mov supportsSSE, 0x1
+    }
+#endif
 #else
             __asm__(
                 "xorps %%xmm0, %%xmm0\n"
@@ -156,6 +164,7 @@ VOID TestSSEExceptions(VOID)
         __m128 xmm1 = { { 1., 1. } }, xmm2 = { { 0 } };
         /* Wait, aren't exceptions masked? Yes, but actually no. */
         xmm1 = _mm_div_ps(xmm1, xmm2);
+        if (!ExceptionCaught) supportsSSE = TRUE;
     }
 #else
     __asm
