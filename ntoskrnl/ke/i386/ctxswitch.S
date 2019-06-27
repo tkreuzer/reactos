@@ -61,12 +61,12 @@ PUBLIC @KiSwapContextInternal@0
  * BOOLEAN FASTCALL
  * KiSwapContext(PKTHREAD CurrentThread, PKTHREAD TargetThread);
  *
+ * \param WaitIrql<cl>
+ *     The IRQL at which the wait happens.
+ *
  * \param CurrentThread
  *     Pointer to the KTHREAD of the current thread.
  *                    
- * \param TargetThread
- *     Pointer to the KTHREAD to which the caller wishes to switch to.
- *
  * \returns
  *     The WaitStatus of the Target Thread.
  *
