@@ -667,6 +667,9 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
         //
         // Return the allocation address to the caller
         //
+#if DBG
+        RtlFillMemoryUlong(BaseVa, ROUND_TO_PAGES(SizeInBytes), POOL_PAGE_FILLER);
+#endif
         return BaseVa;
     }
 
@@ -676,7 +679,13 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
     if ((SizeInPages == 1) && (ExQueryDepthSList(&MiNonPagedPoolSListHead)))
     {
         BaseVa = InterlockedPopEntrySList(&MiNonPagedPoolSListHead);
-        if (BaseVa) return BaseVa;
+        if (BaseVa)
+        {
+#if DBG
+            RtlFillMemoryUlong(BaseVa, ROUND_TO_PAGES(SizeInBytes), POOL_PAGE_FILLER);
+#endif
+            return BaseVa;
+        }
     }
 
     //
@@ -802,6 +811,9 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
                 // Release the nonpaged pool lock, and return the allocation
                 //
                 KeReleaseQueuedSpinLock(LockQueueMmNonPagedPoolLock, OldIrql);
+#if DBG
+                RtlFillMemoryUlong(BaseVa, ROUND_TO_PAGES(SizeInBytes), POOL_PAGE_FILLER);
+#endif
                 return BaseVa;
             }
 
@@ -910,7 +922,11 @@ MiAllocatePoolPages(IN POOL_TYPE PoolType,
     //
     // Return the address
     //
-    return MiPteToAddress(StartPte);
+    BaseVa = MiPteToAddress(StartPte);
+#if DBG
+    RtlFillMemoryUlong(BaseVa, ROUND_TO_PAGES(SizeInBytes), POOL_PAGE_FILLER);
+#endif
+    return BaseVa;
 }
 
 ULONG
