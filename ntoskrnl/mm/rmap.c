@@ -314,7 +314,13 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
             DbgPrint("\n    previous caller ");
             DbgPrint("%p", current_entry->Caller);
             DbgPrint("\n");
+#ifdef _M_AMD64
+            ExReleaseFastMutex(&RmapListLock);
+            ExFreeToNPagedLookasideList(&RmapLookasideList, new_entry);
+            return;
+#else
             KeBugCheck(MEMORY_MANAGEMENT);
+#endif
         }
         current_entry = current_entry->Next;
     }
