@@ -1328,15 +1328,6 @@ MmNotPresentFaultSectionView(
     BOOLEAN Locked
 );
 
-NTSTATUS
-NTAPI
-MmPageOutSectionView(
-    PMMSUPPORT AddressSpace,
-    PMEMORY_AREA MemoryArea,
-    PVOID Address,
-    ULONG_PTR Entry
-);
-
 INIT_FUNCTION
 NTSTATUS
 NTAPI

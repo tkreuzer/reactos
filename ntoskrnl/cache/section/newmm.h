@@ -4,27 +4,41 @@
 
 /* TYPES *********************************************************************/
 
-typedef ULONG_PTR SSE;
+typedef union _SSE
+{
+    ULONG_PTR Long;
+    struct
+    {
+        ULONG_PTR IsSwap : 1;
+        ULONG_PTR Dirty : 1;
+        ULONG_PTR ShareCount : 10;
+    };
+    struct
+    {
+        PFN_NUMBER Reserved : 12;
+        PFN_NUMBER PfnNumber : 20;
+    };
+} SSE, *PSSE;
 
 FORCEINLINE
 PFN_NUMBER
 PFN_FROM_SSE(SSE Sse)
 {
-    return ((PFN_NUMBER)(Sse >> PAGE_SHIFT));
+    return Sse.PfnNumber;
 }
 
 FORCEINLINE
 BOOLEAN
 IS_SWAP_FROM_SSE(SSE Sse)
 {
-    return Sse & 0x00000001;
+    return Sse.IsSwap;
 }
 
 FORCEINLINE
 SWAPENTRY
 SWAPENTRY_FROM_SSE(SSE Sse)
 {
-    return Sse >> 1;
+    return Sse.Long >> 1;
 }
 
 FORCEINLINE
@@ -39,56 +53,65 @@ FORCEINLINE
 SSE
 MAKE_PFN_SSE(PFN_NUMBER PfnNumber)
 {
-    return (SSE)(PfnNumber << PAGE_SHIFT);
+    SSE Sse = { 0 };
+    Sse.PfnNumber = PfnNumber;
+    return Sse;
 }
 
 FORCEINLINE
 SSE
 MAKE_SWAP_SSE(SWAPENTRY SwapEntry)
 {
-    return (SSE)(SwapEntry << 1) | 0x1;
+    SSE Sse = { 0 };
+    Sse.Long = (SwapEntry << 1) | 0x1;
+    return Sse;
 }
 
 FORCEINLINE
 SSE
 DIRTY_SSE(SSE Sse)
 {
-    return (Sse | 2);
+    Sse.Dirty = TRUE;
+    return Sse;
 }
 
 FORCEINLINE
 SSE
 CLEAN_SSE(SSE Sse)
 {
-    return (Sse & ~2);
+    Sse.Dirty = FALSE;
+    return Sse;
 }
 
 FORCEINLINE
 BOOLEAN
 IS_DIRTY_SSE(SSE Sse)
 {
-    return (Sse & 2) != 0;
+    return Sse.Dirty;
 }
 
 FORCEINLINE
 ULONG_PTR
 PAGE_FROM_SSE(SSE Sse)
 {
-    return (Sse & 0xFFFFF000);
+    return Sse.PfnNumber << PAGE_SHIFT;
 }
 
 FORCEINLINE
 ULONG
 SHARE_COUNT_FROM_SSE(SSE Sse)
 {
-    return ((Sse & 0x00000FFC) >> 2);
+    return Sse.ShareCount;
 }
 
 FORCEINLINE
 SSE
 MAKE_SSE(ULONG_PTR Page, ULONG ShareCount)
 {
-    return (SSE)(Page | (ShareCount << 2));
+    SSE Sse = { 0 };
+    Sse.ShareCount = ShareCount;
+    Sse.PfnNumber = Page >> PAGE_SHIFT;
+    return Sse;
 }
 
 #define MAX_SHARE_COUNT          0x3FF
@@ -200,11 +223,11 @@ NTSTATUS
 NTAPI
 _MmSetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                               PLARGE_INTEGER Offset,
-                              ULONG_PTR Entry,
+                              SSE Entry,
                               const char *file,
                               int line);
 
-ULONG_PTR
+SSE
 NTAPI
 _MmGetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                               PLARGE_INTEGER Offset,
@@ -218,6 +241,15 @@ _MmGetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
 typedef VOID (NTAPI *FREE_SECTION_PAGE_FUN)(
     PMM_SECTION_SEGMENT Segment,
     PLARGE_INTEGER Offset);
+
+NTSTATUS
+NTAPI
+MmPageOutSectionView(
+    PMMSUPPORT AddressSpace,
+    PMEMORY_AREA MemoryArea,
+    PVOID Address,
+    SSE Entry
+);
 
 VOID
 NTAPI

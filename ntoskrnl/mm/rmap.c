@@ -135,7 +135,7 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
     Type = MemoryArea->Type;
     if (Type == MEMORY_AREA_SECTION_VIEW)
     {
-        ULONG_PTR Entry;
+        SSE Entry;
         Offset = MemoryArea->Data.SectionData.ViewOffset.QuadPart +
                  ((ULONG_PTR)Address - MA_GetStartingAddress(MemoryArea));
 
@@ -146,7 +146,7 @@ MmPageOutPhysicalAddress(PFN_NUMBER Page)
          */
         Entry = MmGetPageEntrySectionSegment(MemoryArea->Data.SectionData.Segment,
                                              (PLARGE_INTEGER)&Offset);
-        if (Entry && MM_IS_WAIT_PTE(Entry))
+        if (Entry.Long && MM_IS_WAIT_PTE(Entry))
         {
             MmUnlockSectionSegment(MemoryArea->Data.SectionData.Segment);
             MmUnlockAddressSpace(AddressSpace);

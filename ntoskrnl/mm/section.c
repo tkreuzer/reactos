@@ -127,7 +127,7 @@ typedef struct
     BOOLEAN WasDirty;
     BOOLEAN Private;
     PEPROCESS CallingProcess;
-    ULONG_PTR SectionEntry;
+    SSE SectionEntry;
 }
 MM_SECTION_PAGEOUT_CONTEXT;
 
@@ -853,10 +853,10 @@ NTAPI
 MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                                PLARGE_INTEGER Offset)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
 
     Entry = MmGetPageEntrySectionSegment(Segment, Offset);
-    if (Entry == 0)
+    if (Entry.Long == 0)
     {
         DPRINT1("Entry == 0 for MmSharePageEntrySectionSegment\n");
         KeBugCheck(MEMORY_MANAGEMENT);
@@ -881,12 +881,12 @@ MmUnsharePageEntrySectionSegment(PROS_SECTION_OBJECT Section,
                                  PLARGE_INTEGER Offset,
                                  BOOLEAN Dirty,
                                  BOOLEAN PageOut,
-                                 ULONG_PTR *InEntry)
+                                 PSSE InEntry)
 {
-    ULONG_PTR Entry = InEntry ? *InEntry : MmGetPageEntrySectionSegment(Segment, Offset);
+    SSE Entry = InEntry ? *InEntry : MmGetPageEntrySectionSegment(Segment, Offset);
     BOOLEAN IsDirectMapped = FALSE;
 
-    if (Entry == 0)
+    if (Entry.Long == 0)
     {
         DPRINT1("Entry == 0 for MmUnsharePageEntrySectionSegment\n");
         KeBugCheck(MEMORY_MANAGEMENT);
@@ -966,8 +966,9 @@ MmUnsharePageEntrySectionSegment(PROS_SECTION_OBJECT Section,
             }
             else
             {
-                MmSetPageEntrySectionSegment(Segment, Offset, 0);
-                if (InEntry) *InEntry = 0;
+                SSE NullSSe = { 0 };
+                MmSetPageEntrySectionSegment(Segment, Offset, NullSSe);
+                if (InEntry)* InEntry = (SSE){ 0 };
                 MiSetPageEvent(NULL, NULL);
                 if (!IsDirectMapped)
                 {
@@ -1329,7 +1330,7 @@ MmAlterViewAttributes(PMMSUPPORT AddressSpace,
             if (DoCOW && MmIsPagePresent(Process, Address))
             {
                 LARGE_INTEGER Offset;
-                ULONG_PTR Entry;
+                SSE Entry;
                 PFN_NUMBER Page;
 
                 Offset.QuadPart = (ULONG_PTR)Address - MA_GetStartingAddress(MemoryArea)
@@ -1371,8 +1372,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
     NTSTATUS Status;
     PROS_SECTION_OBJECT Section;
     PMM_SECTION_SEGMENT Segment;
-    ULONG_PTR Entry;
-    ULONG_PTR Entry1;
+    SSE Entry;
+    SSE Entry1;
     ULONG Attributes;
     PMM_REGION Region;
     BOOLEAN HasSwapEntry;
@@ -1459,7 +1460,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
      * Check if someone else is already handling this fault, if so wait
      * for them
      */
-    if (Entry && MM_IS_WAIT_PTE(Entry))
+    if (Entry.Long && MM_IS_WAIT_PTE(Entry))
     {
         MmUnlockSectionSegment(Segment);
         MmUnlockAddressSpace(AddressSpace);
@@ -1599,7 +1600,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
      */
     Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
 
-    if (Entry == 0)
+    if (Entry.Long == 0)
     {
         SWAPENTRY FakeSwapEntry;
 
@@ -1729,7 +1730,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
          * that has a pending page-in.
          */
         Entry1 = MmGetPageEntrySectionSegment(Segment, &Offset);
-        if (Entry != Entry1)
+        if (Entry.Long != Entry1.Long)
         {
             DPRINT1("Someone changed ppte entry while we slept (%x vs %x)\n", Entry, Entry1);
             KeBugCheck(MEMORY_MANAGEMENT);
@@ -1806,7 +1807,7 @@ MmAccessFaultSectionView(PMMSUPPORT AddressSpace,
     PVOID PAddress;
     LARGE_INTEGER Offset;
     PMM_REGION Region;
-    ULONG_PTR Entry;
+    SSE Entry;
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
 
     DPRINT("MmAccessFaultSectionView(%p, %p, %p)\n", AddressSpace, MemoryArea, Address);
@@ -1965,7 +1966,7 @@ NTSTATUS
 NTAPI
 MmPageOutSectionView(PMMSUPPORT AddressSpace,
                      MEMORY_AREA* MemoryArea,
-                     PVOID Address, ULONG_PTR Entry)
+                     PVOID Address, SSE Entry)
 {
     PFN_NUMBER Page;
     MM_SECTION_PAGEOUT_CONTEXT Context;
@@ -2102,12 +2103,12 @@ MmPageOutSectionView(PMMSUPPORT AddressSpace,
      * If this wasn't a private page then we should have reduced the entry to
      * zero by deleting all the rmaps.
      */
-    if (!Context.Private && Entry != 0)
+    if (!Context.Private && Entry.Long != 0)
     {
         if (!(Context.Segment->Flags & MM_PAGEFILE_SEGMENT) &&
                 !(Context.Segment->Image.Characteristics & IMAGE_SCN_MEM_SHARED))
         {
-            KeBugCheckEx(MEMORY_MANAGEMENT, Entry, (ULONG_PTR)Process, (ULONG_PTR)Address, 0);
+            KeBugCheckEx(MEMORY_MANAGEMENT, Entry.Long, (ULONG_PTR)Process, (ULONG_PTR)Address, 0);
         }
     }
 
@@ -2241,7 +2242,7 @@ MmPageOutSectionView(PMMSUPPORT AddressSpace,
             }
             else
             {
-                ULONG_PTR OldEntry;
+                SSE OldEntry;
 
                 MmLockSectionSegment(Context.Segment);
 
@@ -2262,7 +2263,7 @@ MmPageOutSectionView(PMMSUPPORT AddressSpace,
                 // If we got here, the previous entry should have been a wait
                 Entry = MAKE_SSE(Page << PAGE_SHIFT, 1);
                 OldEntry = MmGetPageEntrySectionSegment(Context.Segment, &Context.Offset);
-                ASSERT(OldEntry == 0 || OldEntry == MAKE_SWAP_SSE(MM_WAIT_ENTRY));
+                ASSERT(OldEntry.Long == 0 || OldEntry.Long == MAKE_SWAP_SSE(MM_WAIT_ENTRY).Long);
                 MmSetPageEntrySectionSegment(Context.Segment, &Context.Offset, Entry);
                 MmUnlockSectionSegment(Context.Segment);
             }
@@ -2372,14 +2373,14 @@ NTAPI
 MmWritePageSectionView(PMMSUPPORT AddressSpace,
                        PMEMORY_AREA MemoryArea,
                        PVOID Address,
-                       ULONG PageEntry)
+                       SSE PageEntry)
 {
     LARGE_INTEGER Offset;
     PROS_SECTION_OBJECT Section;
     PMM_SECTION_SEGMENT Segment;
     PFN_NUMBER Page;
     SWAPENTRY SwapEntry;
-    ULONG_PTR Entry;
+    SSE Entry;
     BOOLEAN Private;
     NTSTATUS Status;
     PFILE_OBJECT FileObject;
@@ -2604,7 +2605,7 @@ MmpFreePageFileSegment(PMM_SECTION_SEGMENT Segment)
 {
     ULONG Length;
     LARGE_INTEGER Offset;
-    ULONG_PTR Entry;
+    SSE Entry;
     SWAPENTRY SavedSwapEntry;
     PFN_NUMBER Page;
 
@@ -2616,9 +2617,10 @@ MmpFreePageFileSegment(PMM_SECTION_SEGMENT Segment)
     for (Offset.QuadPart = 0; Offset.QuadPart < Length; Offset.QuadPart += PAGE_SIZE)
     {
         Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
-        if (Entry)
+        if (Entry.Long)
         {
-            MmSetPageEntrySectionSegment(Segment, &Offset, 0);
+            SSE NullSse = { 0 };
+            MmSetPageEntrySectionSegment(Segment, &Offset, NullSse);
             if (IS_SWAP_FROM_SSE(Entry))
             {
                 MmFreeSwapPage(SWAPENTRY_FROM_SSE(Entry));
@@ -3967,7 +3969,7 @@ static VOID
 MmFreeSectionPage(PVOID Context, MEMORY_AREA* MemoryArea, PVOID Address,
                   PFN_NUMBER Page, SWAPENTRY SwapEntry, BOOLEAN Dirty)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
 #ifndef NEWCC
     PFILE_OBJECT FileObject;
     PROS_SHARED_CACHE_MAP SharedCacheMap;
@@ -3991,7 +3993,7 @@ MmFreeSectionPage(PVOID Context, MEMORY_AREA* MemoryArea, PVOID Address,
     Segment = MemoryArea->Data.SectionData.Segment;
 
     Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
-    while (Entry && MM_IS_WAIT_PTE(Entry))
+    while (Entry.Long && MM_IS_WAIT_PTE(Entry))
     {
         MmUnlockSectionSegment(Segment);
         MmUnlockAddressSpace(AddressSpace);

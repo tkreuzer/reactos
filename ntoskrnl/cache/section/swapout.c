@@ -88,7 +88,7 @@ MmWithdrawSectionPage(PMM_SECTION_SEGMENT Segment,
                       PLARGE_INTEGER FileOffset,
                       BOOLEAN *Dirty)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
 
     DPRINT("MmWithdrawSectionPage(%p,%08x%08x,%p)\n",
            Segment,
@@ -106,7 +106,7 @@ MmWithdrawSectionPage(PMM_SECTION_SEGMENT Segment,
            Entry,
            Segment->FileObject ? &Segment->FileObject->FileName : NULL);
 
-    if (!Entry)
+    if (Entry.Long == 0)
     {
         DPRINT("Stoeled!\n");
         MmUnlockSectionSegment(Segment);
@@ -118,11 +118,11 @@ MmWithdrawSectionPage(PMM_SECTION_SEGMENT Segment,
         MmUnlockSectionSegment(Segment);
         return MM_WAIT_ENTRY;
     }
-    else if (Entry && !IS_SWAP_FROM_SSE(Entry))
+    else if (Entry.Long && !IS_SWAP_FROM_SSE(Entry))
     {
         DPRINT("Page %x\n", PFN_FROM_SSE(Entry));
 
-        *Dirty |= (Entry & 2);
+        *Dirty |= Entry.Dirty;
 
         MmSetPageEntrySectionSegment(Segment,
                                      FileOffset,
@@ -225,7 +225,7 @@ MmFinalizeSectionPageOut(PMM_SECTION_SEGMENT Segment,
 
         MmSetPageEntrySectionSegment(Segment,
                                      FileOffset,
-                                     Swap ? MAKE_SWAP_SSE(Swap) : 0);
+                                     Swap ? MAKE_SWAP_SSE(Swap) : (SSE){0});
     }
     else
     {
@@ -236,7 +236,7 @@ MmFinalizeSectionPageOut(PMM_SECTION_SEGMENT Segment,
 
         MmSetPageEntrySectionSegment(Segment,
                                      FileOffset,
-                                     Page ? (Dirty ? DIRTY_SSE(MAKE_PFN_SSE(Page)) : MAKE_PFN_SSE(Page)) : 0);
+                                     Page ? (Dirty ? DIRTY_SSE(MAKE_PFN_SSE(Page)) : MAKE_PFN_SSE(Page)) : (SSE) { 0 });
     }
 
     if (NT_SUCCESS(Status))
@@ -282,7 +282,7 @@ MmPageOutCacheSection(PMMSUPPORT AddressSpace,
                       PBOOLEAN Dirty,
                       PMM_REQUIRED_RESOURCES Required)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
     PFN_NUMBER OurPage;
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
     LARGE_INTEGER TotalOffset;
@@ -522,7 +522,6 @@ MmpPageOutPhysicalAddress(PFN_NUMBER Page)
         }
 
         ExAcquireFastMutex(&RmapListLock);
-        ASSERT(!MM_IS_WAIT_PTE(MmGetPfnForProcess(Process, Address)));
         entry = MmGetRmapListHeadPage(Page);
 
         DPRINTC("Entry %p\n", entry);
@@ -590,7 +589,7 @@ NTAPI
 MiCacheEvictPages(PMM_SECTION_SEGMENT Segment,
                   ULONG Target)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
     ULONG Result = 0, i, j;
     NTSTATUS Status;
     PFN_NUMBER Page;
@@ -608,7 +607,7 @@ MiCacheEvictPages(PMM_SECTION_SEGMENT Segment,
         Offset = Element->FileOffset;
         for (j = 0; j < ENTRIES_PER_ELEMENT; j++, Offset.QuadPart += PAGE_SIZE) {
             Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
-            if (Entry && !IS_SWAP_FROM_SSE(Entry)) {
+            if (Entry.Long && !IS_SWAP_FROM_SSE(Entry)) {
                 Page = PFN_FROM_SSE(Entry);
                 MmUnlockSectionSegment(Segment);
                 Status = MmpPageOutPhysicalAddress(Page);

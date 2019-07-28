@@ -177,17 +177,18 @@ NTSTATUS
 NTAPI
 _MmSetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                               PLARGE_INTEGER Offset,
-                              ULONG_PTR Entry,
+                              SSE Entry,
                               const char *file,
                               int line)
 {
-    ULONG_PTR PageIndex, OldEntry;
+    ULONG_PTR PageIndex;
+    SSE OldEntry;
     PCACHE_SECTION_PAGE_TABLE PageTable;
 
     ASSERT(Segment->Locked);
     ASSERT(!IS_SWAP_FROM_SSE(Entry) || !IS_DIRTY_SSE(Entry));
 
-    if (Entry && !IS_SWAP_FROM_SSE(Entry))
+    if (Entry.Long && !IS_SWAP_FROM_SSE(Entry))
         MmGetRmapListHeadPage(PFN_FROM_SSE(Entry));
 
     PageTable = MiSectionPageTableGetOrAllocate(&Segment->PageTable, Offset);
@@ -198,7 +199,7 @@ _MmSetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
 
     PageTable->Segment = Segment;
     PageIndex = (ULONG_PTR)((Offset->QuadPart - PageTable->FileOffset.QuadPart) / PAGE_SIZE);
-    OldEntry = PageTable->PageEntries[PageIndex];
+    OldEntry = (SSE){ PageTable->PageEntries[PageIndex] };
 
     DPRINT("MiSetPageEntrySectionSegment(%p,%08x%08x,%x=>%x)\n",
             Segment,
@@ -209,30 +210,30 @@ _MmSetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
 
     if (PFN_FROM_SSE(Entry) == PFN_FROM_SSE(OldEntry)) {
         /* Nothing */
-    } else if (Entry && !IS_SWAP_FROM_SSE(Entry)) {
-        ASSERT(!OldEntry || IS_SWAP_FROM_SSE(OldEntry));
+    } else if (Entry.Long && !IS_SWAP_FROM_SSE(Entry)) {
+        ASSERT(!OldEntry.Long || IS_SWAP_FROM_SSE(OldEntry));
         MmSetSectionAssociation(PFN_FROM_SSE(Entry), Segment, Offset);
-    } else if (OldEntry && !IS_SWAP_FROM_SSE(OldEntry)) {
-        ASSERT(!Entry || IS_SWAP_FROM_SSE(Entry));
+    } else if (OldEntry.Long && !IS_SWAP_FROM_SSE(OldEntry)) {
+        ASSERT(!Entry.Long || IS_SWAP_FROM_SSE(Entry));
         MmDeleteSectionAssociation(PFN_FROM_SSE(OldEntry));
     } else if (IS_SWAP_FROM_SSE(Entry)) {
         ASSERT(!IS_SWAP_FROM_SSE(OldEntry) ||
                SWAPENTRY_FROM_SSE(OldEntry) == MM_WAIT_ENTRY);
-        if (OldEntry && SWAPENTRY_FROM_SSE(OldEntry) != MM_WAIT_ENTRY)
+        if (OldEntry.Long && SWAPENTRY_FROM_SSE(OldEntry) != MM_WAIT_ENTRY)
             MmDeleteSectionAssociation(PFN_FROM_SSE(OldEntry));
     } else if (IS_SWAP_FROM_SSE(OldEntry)) {
         ASSERT(!IS_SWAP_FROM_SSE(Entry));
-        if (Entry)
+        if (Entry.Long)
             MmSetSectionAssociation(PFN_FROM_SSE(OldEntry), Segment, Offset);
     } else {
         /* We should not be replacing a page like this */
         ASSERT(FALSE);
     }
-    PageTable->PageEntries[PageIndex] = Entry;
+    PageTable->PageEntries[PageIndex] = Entry.Long;
     return STATUS_SUCCESS;
 }
 
-ULONG_PTR
+SSE
 NTAPI
 _MmGetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                               PLARGE_INTEGER Offset,
@@ -242,12 +243,13 @@ _MmGetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
     LARGE_INTEGER FileOffset;
     ULONG_PTR PageIndex, Result;
     PCACHE_SECTION_PAGE_TABLE PageTable;
+    SSE Sse;
 
     ASSERT(Segment->Locked);
     FileOffset.QuadPart = ROUND_DOWN(Offset->QuadPart,
                                      ENTRIES_PER_ELEMENT * PAGE_SIZE);
     PageTable = MiSectionPageTableGet(&Segment->PageTable, &FileOffset);
-    if (!PageTable) return 0;
+    if (!PageTable) return (SSE) { 0 };
     PageIndex = (ULONG_PTR)((Offset->QuadPart - PageTable->FileOffset.QuadPart) / PAGE_SIZE);
     Result = PageTable->PageEntries[PageIndex];
 #if 0
@@ -259,7 +261,8 @@ _MmGetPageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
          Result,
          file, line);
 #endif
-    return Result;
+    Sse.Long = Result;
+    return Sse;
 }
 
 /*
@@ -290,11 +293,11 @@ MmFreePageTablesSectionSegment(PMM_SECTION_SEGMENT Segment,
             ULONG i;
             for (i = 0; i < ENTRIES_PER_ELEMENT; i++)
             {
-                ULONG_PTR Entry;
+                SSE Entry;
                 LARGE_INTEGER Offset;
                 Offset.QuadPart = Element->FileOffset.QuadPart + i * PAGE_SIZE;
-                Entry = Element->PageEntries[i];
-                if (Entry && !IS_SWAP_FROM_SSE(Entry))
+                Entry.Long = Element->PageEntries[i];
+                if (Entry.Long && !IS_SWAP_FROM_SSE(Entry))
                 {
                     DPRINT("Freeing page %p:%Ix @ %I64x\n",
                            Segment,
