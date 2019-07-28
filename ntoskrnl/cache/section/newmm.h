@@ -99,6 +99,15 @@ typedef VOID (NTAPI *FREE_SECTION_PAGE_FUN)(
     PMM_SECTION_SEGMENT Segment,
     PLARGE_INTEGER Offset);
 
+NTSTATUS
+NTAPI
+MmPageOutSectionView(
+    PMMSUPPORT AddressSpace,
+    PMEMORY_AREA MemoryArea,
+    PVOID Address,
+    SSE Entry
+);
+
 VOID
 NTAPI
 MmFreePageTablesSectionSegment(PMM_SECTION_SEGMENT Segment,

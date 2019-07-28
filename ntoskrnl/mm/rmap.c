@@ -130,7 +130,7 @@ GetEntry:
 
     if (MemoryArea->Type == MEMORY_AREA_SECTION_VIEW)
     {
-        ULONG_PTR Entry;
+        SSE Entry;
         BOOLEAN Dirty;
         PFN_NUMBER MapPage;
         LARGE_INTEGER Offset;
@@ -144,7 +144,7 @@ GetEntry:
         MmLockSectionSegment(Segment);
 
         Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
-        if (Entry && MM_IS_WAIT_PTE(Entry))
+        if (Entry.Long && MM_IS_WAIT_PTE(Entry))
         {
             /* The segment is being read or something. Give up */
             MmUnlockSectionSegment(Segment);

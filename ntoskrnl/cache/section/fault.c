@@ -116,7 +116,7 @@ MmNotPresentFaultCachePage (
     ULONG Consumer;
     PMM_SECTION_SEGMENT Segment;
     LARGE_INTEGER FileOffset, TotalOffset;
-    ULONG_PTR Entry;
+    SSE Entry;
     ULONG Attributes;
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
     KIRQL OldIrql;
@@ -223,7 +223,7 @@ MmNotPresentFaultCachePage (
         MmUnlockSectionSegment(Segment);
         return STATUS_SUCCESS + 1;
     }
-    else if (Entry)
+    else if (Entry.Long)
     {
         PFN_NUMBER Page = PFN_FROM_SSE(Entry);
         DPRINT("Take reference to page %x #\n", Page);
@@ -360,7 +360,7 @@ MiCowCacheSectionPage (
             Region->Protect == PAGE_EXECUTE_READWRITE)
 #endif
         {
-            ULONG_PTR Entry;
+            SSE Entry;
             DPRINTC("setting non-cow page %p %p:%p offset %I64x (%Ix) to writable\n",
                     Segment,
                     Process,
@@ -373,7 +373,7 @@ MiCowCacheSectionPage (
             }
             Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
             DPRINT("Entry %x\n", Entry);
-            if (Entry &&
+            if (Entry.Long &&
                 !IS_SWAP_FROM_SSE(Entry) &&
                 PFN_FROM_SSE(Entry) == MmGetPfnForProcess(Process, Address)) {
 

@@ -186,7 +186,7 @@ typedef struct
     BOOLEAN WasDirty;
     BOOLEAN Private;
     PEPROCESS CallingProcess;
-    ULONG_PTR SectionEntry;
+    SSE SectionEntry;
 }
 MM_SECTION_PAGEOUT_CONTEXT;
 
@@ -1066,10 +1066,10 @@ NTAPI
 MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
                                PLARGE_INTEGER Offset)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
 
     Entry = MmGetPageEntrySectionSegment(Segment, Offset);
-    if (Entry == 0)
+    if (Entry.Long == 0)
     {
         DPRINT1("Entry == 0 for MmSharePageEntrySectionSegment\n");
         KeBugCheck(MEMORY_MANAGEMENT);
@@ -1093,14 +1093,14 @@ MmUnsharePageEntrySectionSegment(PMEMORY_AREA MemoryArea,
                                  PLARGE_INTEGER Offset,
                                  BOOLEAN Dirty,
                                  BOOLEAN PageOut,
-                                 ULONG_PTR *InEntry)
+                                 PSSE InEntry)
 {
-    ULONG_PTR Entry = InEntry ? *InEntry : MmGetPageEntrySectionSegment(Segment, Offset);
+    SSE Entry = InEntry ? *InEntry : MmGetPageEntrySectionSegment(Segment, Offset);
     PFN_NUMBER Page = PFN_FROM_SSE(Entry);
     BOOLEAN IsDataMap = BooleanFlagOn(*Segment->Flags, MM_DATAFILE_SEGMENT);
     SWAPENTRY SwapEntry;
 
-    if (Entry == 0)
+    if (Entry.Long == 0)
     {
         DPRINT1("Entry == 0 for MmUnsharePageEntrySectionSegment\n");
         KeBugCheck(MEMORY_MANAGEMENT);
@@ -1491,7 +1491,7 @@ MmAlterViewAttributes(PMMSUPPORT AddressSpace,
             if (DoCOW && (MmIsPagePresent(Process, Address) || MmIsDisabledPage(Process, Address)))
             {
                 LARGE_INTEGER Offset;
-                ULONG_PTR Entry;
+                SSE Entry;
                 PFN_NUMBER Page;
 
                 Offset.QuadPart = (ULONG_PTR)Address - MA_GetStartingAddress(MemoryArea)
@@ -1532,8 +1532,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
     PFN_NUMBER Page;
     NTSTATUS Status;
     PMM_SECTION_SEGMENT Segment;
-    ULONG_PTR Entry;
-    ULONG_PTR Entry1;
+    SSE Entry;
+    SSE Entry1;
     ULONG Attributes;
     PMM_REGION Region;
     BOOLEAN HasSwapEntry;
@@ -1726,7 +1726,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
      * Get the entry corresponding to the offset within the section
      */
     Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
-    if (Entry == 0)
+    if (Entry.Long == 0)
     {
         /*
          * If the entry is zero, then we need to load the page.
@@ -1900,7 +1900,7 @@ MmAccessFaultSectionView(PMMSUPPORT AddressSpace,
     PVOID PAddress;
     LARGE_INTEGER Offset;
     PMM_REGION Region;
-    ULONG_PTR Entry;
+    SSE Entry;
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
     BOOLEAN Cow = FALSE;
     ULONG NewProtect;
@@ -3408,7 +3408,7 @@ static VOID
 MmFreeSectionPage(PVOID Context, MEMORY_AREA* MemoryArea, PVOID Address,
                   PFN_NUMBER Page, SWAPENTRY SwapEntry, BOOLEAN Dirty)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
     LARGE_INTEGER Offset;
     SWAPENTRY SavedSwapEntry;
     PMM_SECTION_SEGMENT Segment;
@@ -3426,7 +3426,7 @@ MmFreeSectionPage(PVOID Context, MEMORY_AREA* MemoryArea, PVOID Address,
     Segment = MemoryArea->SectionData.Segment;
 
     Entry = MmGetPageEntrySectionSegment(Segment, &Offset);
-    while (Entry && MM_IS_WAIT_PTE(Entry))
+    while (Entry.Long && MM_IS_WAIT_PTE(Entry))
     {
         MmUnlockSectionSegment(Segment);
         MmUnlockAddressSpace(AddressSpace);

@@ -184,19 +184,19 @@ _MiFlushMappedSection(PVOID BaseAddress,
          PageAddress < EndingAddress;
          PageAddress += PAGE_SIZE)
     {
-        ULONG_PTR Entry;
+        SSE Entry;
         FileOffset.QuadPart = ViewOffset.QuadPart + PageAddress - BeginningAddress;
         Entry = MmGetPageEntrySectionSegment(MemoryArea->Data.SectionData.Segment,
                                              &FileOffset);
         Page = PFN_FROM_SSE(Entry);
-        if (Entry != 0 && !IS_SWAP_FROM_SSE(Entry) &&
+        if (Entry.Long != 0 && !IS_SWAP_FROM_SSE(Entry) &&
             (MmIsDirtyPageRmap(Page) || IS_DIRTY_SSE(Entry)) &&
             FileOffset.QuadPart < FileSize->QuadPart)
         {
             OldIrql = MiAcquirePfnLock();
             MmReferencePage(Page);
             MiReleasePfnLock(OldIrql);
-            Pages[(PageAddress - BeginningAddress) >> PAGE_SHIFT] = Entry;
+            Pages[(PageAddress - BeginningAddress) >> PAGE_SHIFT] = Entry.Long;
         }
         else
         {
@@ -211,9 +211,9 @@ _MiFlushMappedSection(PVOID BaseAddress,
          PageAddress < EndingAddress;
          PageAddress += PAGE_SIZE)
     {
-        ULONG_PTR Entry;
+        SSE Entry;
         FileOffset.QuadPart = ViewOffset.QuadPart + PageAddress - BeginningAddress;
-        Entry = Pages[(PageAddress - BeginningAddress) >> PAGE_SHIFT];
+        Entry = (SSE){ Pages[(PageAddress - BeginningAddress) >> PAGE_SHIFT] };
         Page = PFN_FROM_SSE(Entry);
         if (Page)
         {
@@ -234,7 +234,7 @@ _MiFlushMappedSection(PVOID BaseAddress,
                 MmLockSectionSegment(Segment);
                 Entry = MmGetPageEntrySectionSegment(Segment, &FileOffset);
 
-                if (Entry && !IS_SWAP_FROM_SSE(Entry) && PFN_FROM_SSE(Entry) == Page)
+                if (Entry.Long && !IS_SWAP_FROM_SSE(Entry) && PFN_FROM_SSE(Entry) == Page)
                     MmSetPageEntrySectionSegment(Segment, &FileOffset, CLEAN_SSE(Entry));
 
                 MmUnlockSectionSegment(Segment);
@@ -617,7 +617,7 @@ NTAPI
 MiFreeSegmentPage(PMM_SECTION_SEGMENT Segment,
                   PLARGE_INTEGER FileOffset)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
     PFILE_OBJECT FileObject = Segment->FileObject;
 
     Entry = MmGetPageEntrySectionSegment(Segment, FileOffset);
@@ -626,7 +626,7 @@ MiFreeSegmentPage(PMM_SECTION_SEGMENT Segment,
             FileOffset->QuadPart,
             Entry);
 
-    if (Entry && !IS_SWAP_FROM_SSE(Entry))
+    if (Entry.Long && !IS_SWAP_FROM_SSE(Entry))
     {
         // The segment is carrying a dirty page.
         PFN_NUMBER OldPage = PFN_FROM_SSE(Entry);
@@ -647,7 +647,7 @@ MiFreeSegmentPage(PMM_SECTION_SEGMENT Segment,
                 Entry,
                 IS_DIRTY_SSE(Entry) ? "true" : "false");
 
-        MmSetPageEntrySectionSegment(Segment, FileOffset, 0);
+        MmSetPageEntrySectionSegment(Segment, FileOffset, (SSE) { 0 });
         MmReleasePageMemoryConsumer(MC_CACHE, OldPage);
     }
     else if (IS_SWAP_FROM_SSE(Entry))
@@ -667,7 +667,7 @@ MmFreeCacheSectionPage(PVOID Context,
                        SWAPENTRY SwapEntry,
                        BOOLEAN Dirty)
 {
-    ULONG_PTR Entry;
+    SSE Entry;
     PVOID *ContextData = Context;
     PMMSUPPORT AddressSpace;
     PEPROCESS Process;
