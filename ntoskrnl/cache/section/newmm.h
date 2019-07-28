@@ -4,21 +4,94 @@
 
 /* TYPES *********************************************************************/
 
-#define PFN_FROM_SSE(E)          ((PFN_NUMBER)((E) >> PAGE_SHIFT))
-#define IS_SWAP_FROM_SSE(E)      ((E) & 0x00000001)
-#define MM_IS_WAIT_PTE(E)        \
-    (IS_SWAP_FROM_SSE(E) && SWAPENTRY_FROM_SSE(E) == MM_WAIT_ENTRY)
-#define MAKE_PFN_SSE(P)          ((ULONG_PTR)((P) << PAGE_SHIFT))
-#define SWAPENTRY_FROM_SSE(E)    ((E) >> 1)
-#define MAKE_SWAP_SSE(S)         (((ULONG_PTR)(S) << 1) | 0x1)
-#define DIRTY_SSE(E)             ((E) | 2)
-#define CLEAN_SSE(E)             ((E) & ~2)
-#define IS_DIRTY_SSE(E)          ((E) & 2)
-#define PAGE_FROM_SSE(E)         ((E) & 0xFFFFF000)
-#define SHARE_COUNT_FROM_SSE(E)  (((E) & 0x00000FFC) >> 2)
-#define MAX_SHARE_COUNT          0x3FF
-#define MAKE_SSE(P, C)           ((ULONG_PTR)((P) | ((C) << 2)))
+typedef ULONG_PTR SSE;
 
+FORCEINLINE
+PFN_NUMBER
+PFN_FROM_SSE(SSE Sse)
+{
+    return ((PFN_NUMBER)(Sse >> PAGE_SHIFT));
+}
+
+FORCEINLINE
+BOOLEAN
+IS_SWAP_FROM_SSE(SSE Sse)
+{
+    return Sse & 0x00000001;
+}
+
+FORCEINLINE
+SWAPENTRY
+SWAPENTRY_FROM_SSE(SSE Sse)
+{
+    return Sse >> 1;
+}
+
+FORCEINLINE
+BOOLEAN
+MM_IS_WAIT_PTE(SSE Sse)
+{
+    return IS_SWAP_FROM_SSE(Sse) &&
+        (SWAPENTRY_FROM_SSE(Sse) == MM_WAIT_ENTRY);
+}
+
+FORCEINLINE
+SSE
+MAKE_PFN_SSE(PFN_NUMBER PfnNumber)
+{
+    return (SSE)(PfnNumber << PAGE_SHIFT);
+}
+
+FORCEINLINE
+SSE
+MAKE_SWAP_SSE(SWAPENTRY SwapEntry)
+{
+    return (SSE)(SwapEntry << 1) | 0x1;
+}
+
+FORCEINLINE
+SSE
+DIRTY_SSE(SSE Sse)
+{
+    return (Sse | 2);
+}
+
+FORCEINLINE
+SSE
+CLEAN_SSE(SSE Sse)
+{
+    return (Sse & ~2);
+}
+
+FORCEINLINE
+BOOLEAN
+IS_DIRTY_SSE(SSE Sse)
+{
+    return (Sse & 2) != 0;
+}
+
+FORCEINLINE
+ULONG_PTR
+PAGE_FROM_SSE(SSE Sse)
+{
+    return (Sse & 0xFFFFF000);
+}
+
+FORCEINLINE
+ULONG
+SHARE_COUNT_FROM_SSE(SSE Sse)
+{
+    return ((Sse & 0x00000FFC) >> 2);
+}
+
+FORCEINLINE
+SSE
+MAKE_SSE(ULONG_PTR Page, ULONG ShareCount)
+{
+    return (SSE)(Page | (ShareCount << 2));
+}
+
+#define MAX_SHARE_COUNT          0x3FF
 #define MM_SEGMENT_FINALIZE (0x40000000)
 
 #define RMAP_SEGMENT_MASK ~((ULONG_PTR)0xff)
