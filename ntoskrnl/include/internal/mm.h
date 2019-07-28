@@ -1321,28 +1321,129 @@ MmFindRegion(
 
 /* section.c *****************************************************************/
 
-#define PFN_FROM_SSE(E)          ((PFN_NUMBER)((E) >> PAGE_SHIFT))
-#define IS_SWAP_FROM_SSE(E)      ((E) & 0x00000001)
-#define MM_IS_WAIT_PTE(E)        \
-    (IS_SWAP_FROM_SSE(E) && SWAPENTRY_FROM_SSE(E) == MM_WAIT_ENTRY)
-#define MAKE_PFN_SSE(P)          ((ULONG_PTR)((P) << PAGE_SHIFT))
-#define SWAPENTRY_FROM_SSE(E)    ((E) >> 1)
-#define MAKE_SWAP_SSE(S)         (((ULONG_PTR)(S) << 1) | 0x1)
-#define DIRTY_SSE(E)             ((E) | 2)
-#define CLEAN_SSE(E)             ((E) & ~2)
-#define IS_DIRTY_SSE(E)          ((E) & 2)
-#define WRITE_SSE(E)             ((E) | 4)
-#define IS_WRITE_SSE(E)          ((E) & 4)
-#ifdef _WIN64
-#define PAGE_FROM_SSE(E)         ((E) & 0xFFFFFFF000ULL)
-#else
-#define PAGE_FROM_SSE(E)         ((E) & 0xFFFFF000)
-#endif
-#define SHARE_COUNT_FROM_SSE(E)  (((E) & 0x00000FFC) >> 3)
+typedef ULONG_PTR SSE;
+
 #define MAX_SHARE_COUNT          0x1FF
-#define MAKE_SSE(P, C)           ((ULONG_PTR)((P) | ((C) << 3)))
-#define BUMPREF_SSE(E)           (PAGE_FROM_SSE(E) | ((SHARE_COUNT_FROM_SSE(E) + 1) << 3) | ((E) & 0x7))
-#define DECREF_SSE(E)            (PAGE_FROM_SSE(E) | ((SHARE_COUNT_FROM_SSE(E) - 1) << 3) | ((E) & 0x7))
+
+FORCEINLINE
+PFN_NUMBER
+PFN_FROM_SSE(SSE Sse)
+{
+    return ((PFN_NUMBER)(Sse >> PAGE_SHIFT));
+}
+
+FORCEINLINE
+BOOLEAN
+IS_SWAP_FROM_SSE(SSE Sse)
+{
+    return Sse & 0x00000001;
+}
+
+FORCEINLINE
+SWAPENTRY
+SWAPENTRY_FROM_SSE(SSE Sse)
+{
+    return Sse >> 1;
+}
+
+FORCEINLINE
+BOOLEAN
+MM_IS_WAIT_PTE(SSE Sse)
+{
+    return IS_SWAP_FROM_SSE(Sse) &&
+        (SWAPENTRY_FROM_SSE(Sse) == MM_WAIT_ENTRY);
+}
+
+FORCEINLINE
+SSE
+MAKE_PFN_SSE(PFN_NUMBER PfnNumber)
+{
+    return (SSE)(PfnNumber << PAGE_SHIFT);
+}
+
+FORCEINLINE
+SSE
+MAKE_SWAP_SSE(SWAPENTRY SwapEntry)
+{
+    return (SSE)(SwapEntry << 1) | 0x1;
+}
+
+FORCEINLINE
+SSE
+DIRTY_SSE(SSE Sse)
+{
+    return (Sse | 2);
+}
+
+FORCEINLINE
+SSE
+CLEAN_SSE(SSE Sse)
+{
+    return (Sse & ~2);
+}
+
+FORCEINLINE
+BOOLEAN
+IS_DIRTY_SSE(SSE Sse)
+{
+    return (Sse & 2) != 0;
+}
+
+FORCEINLINE
+SSE
+WRITE_SSE(SSE Sse)
+{
+    return (Sse | 4);
+}
+
+FORCEINLINE
+BOOLEAN
+IS_WRITE_SSE(SSE Sse)
+{
+    return (Sse & 4) != 0;
+}
+
+FORCEINLINE
+ULONG_PTR
+PAGE_FROM_SSE(SSE Sse)
+{
+#ifdef _WIN64
+    return (Sse & 0xFFFFFFF000ULL);
+#else
+    return (Sse & 0xFFFFF000);
+#endif
+}
+
+FORCEINLINE
+ULONG
+SHARE_COUNT_FROM_SSE(SSE Sse)
+{
+    return ((Sse & 0x00000FF8) >> 3);
+}
+
+FORCEINLINE
+SSE
+MAKE_SSE(ULONG_PTR Page, ULONG ShareCount)
+{
+    ASSERT(ShareCount <= MAX_SHARE_COUNT);
+    return (SSE)(Page | (ShareCount << 3));
+}
+
+FORCEINLINE
+SSE
+BUMPREF_SSE(SSE Sse)
+{
+    ASSERT(SHARE_COUNT_FROM_SSE(Sse) < MAX_SHARE_COUNT);
+    return (PAGE_FROM_SSE(Sse) | ((SHARE_COUNT_FROM_SSE(Sse) + 1) << 3) | ((Sse) & 0x7));
+}
+
+FORCEINLINE
+SSE
+DECREF_SSE(SSE Sse)
+{
+    ASSERT(SHARE_COUNT_FROM_SSE(Sse) > 0);
+    return (PAGE_FROM_SSE(Sse) | ((SHARE_COUNT_FROM_SSE(Sse) - 1) << 3) | ((Sse) & 0x7));
+}
 
 VOID
 NTAPI
