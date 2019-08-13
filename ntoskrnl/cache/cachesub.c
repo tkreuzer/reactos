@@ -27,10 +27,6 @@ typedef struct _WORK_QUEUE_WITH_READ_AHEAD
 
 /* FUNCTIONS ******************************************************************/
 
-PDEVICE_OBJECT
-NTAPI
-MmGetDeviceObjectForFile(IN PFILE_OBJECT FileObject);
-
 VOID
 NTAPI
 CcSetReadAheadGranularity(IN PFILE_OBJECT FileObject,
@@ -238,47 +234,6 @@ CcFlushCache(IN PSECTION_OBJECT_POINTERS SectionObjectPointer,
     }
 
     CcpFlushCache(Map, FileOffset, Length, IoStatus, TRUE);
-}
-
-BOOLEAN
-NTAPI
-CcFlushImageSection(PSECTION_OBJECT_POINTERS SectionObjectPointer,
-                    MMFLUSH_TYPE FlushType)
-{
-    PNOCC_CACHE_MAP Map = (PNOCC_CACHE_MAP)SectionObjectPointer->SharedCacheMap;
-    PNOCC_BCB Bcb;
-    PLIST_ENTRY Entry;
-    IO_STATUS_BLOCK IOSB;
-    BOOLEAN Result = TRUE;
-
-    if (!Map) return TRUE;
-
-    for (Entry = Map->AssociatedBcb.Flink;
-         Entry != &Map->AssociatedBcb;
-         Entry = Entry->Flink)
-    {
-        Bcb = CONTAINING_RECORD(Entry, NOCC_BCB, ThisFileList);
-
-        if (!Bcb->Dirty) continue;
-
-        switch (FlushType)
-        {
-            case MmFlushForDelete:
-                CcPurgeCacheSection(SectionObjectPointer,
-                                    &Bcb->FileOffset,
-                                    Bcb->Length,
-                                    FALSE);
-                break;
-            case MmFlushForWrite:
-                CcFlushCache(SectionObjectPointer,
-                             &Bcb->FileOffset,
-                             Bcb->Length,
-                             &IOSB);
-                break;
-        }
-    }
-
-    return Result;
 }
 
 /* Always succeeds for us */

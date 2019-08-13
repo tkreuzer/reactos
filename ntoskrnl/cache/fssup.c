@@ -157,6 +157,7 @@ itself.
  */
 
 /* Must have CcpLock() */
+static
 PFILE_OBJECT CcpFindOtherStreamFileObject(PFILE_OBJECT FileObject)
 {
     PLIST_ENTRY Entry, Private;

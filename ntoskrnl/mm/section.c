@@ -284,6 +284,7 @@ MiWritePage(PMM_SECTION_SEGMENT Segment,
   [1] Microsoft Corporation, "Microsoft Portable Executable and Common Object
       File Format Specification", revision 6.0 (February 1999)
 */
+static
 NTSTATUS NTAPI PeFmtCreateSection(IN CONST VOID * FileHeader,
                                   IN SIZE_T FileHeaderSize,
                                   IN PVOID File,
@@ -1086,6 +1087,7 @@ MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
     MmSetPageEntrySectionSegment(Segment, Offset, BUMPREF_SSE(Entry));
 }
 
+static
 BOOLEAN
 NTAPI
 MmUnsharePageEntrySectionSegment(PMEMORY_AREA MemoryArea,
