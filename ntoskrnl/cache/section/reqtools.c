@@ -58,10 +58,6 @@
 
 #define DPRINTC DPRINT
 
-VOID
-NTAPI
-MmBuildMdlFromPages(PMDL Mdl, PPFN_NUMBER Pages);
-
 /*
 
 Blocking function to acquire zeroed pages from the balancer.
@@ -198,56 +194,6 @@ MiReadFilePage(PMMSUPPORT AddressSpace,
     }
 
     return STATUS_SUCCESS;
-}
-
-/*
-
-Blocking function to read a swap page into a memory page.
-
-Upon entry:
-
-Required->Consumer: consumer to charge the page to
-Required->SwapEntry: swap entry to use
-
-Upon return:
-
-Required->Page[Required->Offset]: Populated page
-
-*/
-
-NTSTATUS
-NTAPI
-MiSwapInPage(PMMSUPPORT AddressSpace,
-             PMEMORY_AREA MemoryArea,
-             PMM_REQUIRED_RESOURCES Resources)
-{
-    NTSTATUS Status;
-
-    Status = MmRequestPageMemoryConsumer(Resources->Consumer,
-                                         TRUE,
-                                         &Resources->Page[Resources->Offset]);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("MmRequestPageMemoryConsumer failed, status = %x\n", Status);
-        return Status;
-    }
-
-    Status = MmReadFromSwapPage(Resources->SwapEntry,
-                                Resources->Page[Resources->Offset]);
-    if (!NT_SUCCESS(Status))
-    {
-        DPRINT1("MmReadFromSwapPage failed, status = %x\n", Status);
-        return Status;
-    }
-
-    MmSetSavedSwapEntryPage(Resources->Page[Resources->Offset],
-                            Resources->SwapEntry);
-
-    DPRINT1("MiSwapInPage(%x,%x)\n",
-            Resources->Page[Resources->Offset],
-            Resources->SwapEntry);
-
-    return Status;
 }
 
 /*

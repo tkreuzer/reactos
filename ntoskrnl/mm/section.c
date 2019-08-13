@@ -180,6 +180,7 @@ static GENERIC_MAPPING MmpSectionMapping =
   [1] Microsoft Corporation, "Microsoft Portable Executable and Common Object
       File Format Specification", revision 6.0 (February 1999)
 */
+static
 NTSTATUS NTAPI PeFmtCreateSection(IN CONST VOID * FileHeader,
                                   IN SIZE_T FileHeaderSize,
                                   IN PVOID File,
@@ -874,6 +875,7 @@ MmSharePageEntrySectionSegment(PMM_SECTION_SEGMENT Segment,
     MmSetPageEntrySectionSegment(Segment, Offset, Entry);
 }
 
+static
 BOOLEAN
 NTAPI
 MmUnsharePageEntrySectionSegment(PROS_SECTION_OBJECT Section,
@@ -2599,6 +2601,7 @@ MmQuerySectionView(PMEMORY_AREA MemoryArea,
     return(STATUS_SUCCESS);
 }
 
+static
 VOID
 NTAPI
 MmpFreePageFileSegment(PMM_SECTION_SEGMENT Segment)

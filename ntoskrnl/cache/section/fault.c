@@ -277,6 +277,7 @@ MmNotPresentFaultCachePage (
     return STATUS_ACCESS_VIOLATION;
 }
 
+static
 NTSTATUS
 NTAPI
 MiCopyPageToPage(PFN_NUMBER DestPage, PFN_NUMBER SrcPage)
@@ -477,6 +478,7 @@ by fault handling, making recursive fault handling possible when required.
 */
 
 _Function_class_(WORKER_THREAD_ROUTINE)
+static
 VOID
 NTAPI
 MmpFaultWorker(PVOID Parameter)
@@ -522,7 +524,7 @@ function pointer that indicates the active fault handler.  Since the mm code
 in reactos is currently fragmented, I didn't bring this change to trunk.
 
 */
-
+static
 NTSTATUS
 NTAPI
 MmpSectionAccessFaultInner(KPROCESSOR_MODE Mode,
@@ -741,7 +743,7 @@ present fault handler until a clear success or failure is received, using a
 return of STATUS_MORE_PROCESSING_REQUIRED or STATUS_SUCCESS + 1.
 
 */
-
+static
 NTSTATUS
 NTAPI
 MmNotPresentFaultCacheSectionInner(KPROCESSOR_MODE Mode,

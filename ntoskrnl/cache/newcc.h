@@ -77,12 +77,6 @@ VOID
 NTAPI
 CcInitCacheZeroPage(VOID);
 
-/* Called by section.c */
-BOOLEAN
-NTAPI
-CcFlushImageSection(PSECTION_OBJECT_POINTERS SectionObjectPointer,
-                    MMFLUSH_TYPE FlushType);
-
 VOID
 NTAPI
 _CcpFlushCache(IN PNOCC_CACHE_MAP Map,
@@ -157,11 +151,3 @@ CcpMapData(IN PFILE_OBJECT FileObject,
            IN ULONG Flags,
            OUT PVOID *BcbResult,
            OUT PVOID *Buffer);
-
-BOOLEAN
-NTAPI
-CcpPinMappedData(IN PNOCC_CACHE_MAP Map,
-                 IN PLARGE_INTEGER FileOffset,
-                 IN ULONG Length,
-                 IN ULONG Flags,
-                 IN OUT PVOID *Bcb);

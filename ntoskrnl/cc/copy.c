@@ -221,6 +221,7 @@ CcWriteVirtualAddress (
     return STATUS_SUCCESS;
 }
 
+static
 NTSTATUS
 ReadWriteOrZero(
     _Inout_ PVOID BaseAddress,

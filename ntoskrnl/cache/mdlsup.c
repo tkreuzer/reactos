@@ -17,6 +17,7 @@
 
 /* FUNCTIONS ******************************************************************/
 
+static
 PMDL
 NTAPI
 CcpBuildCacheMdl(PFILE_OBJECT FileObject,

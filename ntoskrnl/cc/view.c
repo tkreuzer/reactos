@@ -113,53 +113,6 @@ ULONG CcRosVacbGetRefCount_(PROS_VACB vacb, PCSTR file, INT line)
 
 /* FUNCTIONS *****************************************************************/
 
-VOID
-NTAPI
-CcRosTraceCacheMap (
-    PROS_SHARED_CACHE_MAP SharedCacheMap,
-    BOOLEAN Trace )
-{
-#if DBG
-    KIRQL oldirql;
-    PLIST_ENTRY current_entry;
-    PROS_VACB current;
-
-    if (!SharedCacheMap)
-        return;
-
-    SharedCacheMap->Trace = Trace;
-
-    if (Trace)
-    {
-        DPRINT1("Enabling Tracing for CacheMap 0x%p:\n", SharedCacheMap);
-
-        oldirql = KeAcquireQueuedSpinLock(LockQueueMasterLock);
-        KeAcquireSpinLockAtDpcLevel(&SharedCacheMap->CacheMapLock);
-
-        current_entry = SharedCacheMap->CacheMapVacbListHead.Flink;
-        while (current_entry != &SharedCacheMap->CacheMapVacbListHead)
-        {
-            current = CONTAINING_RECORD(current_entry, ROS_VACB, CacheMapVacbListEntry);
-            current_entry = current_entry->Flink;
-
-            DPRINT1("  VACB 0x%p enabled, RefCount %lu, Dirty %u, PageOut %lu\n",
-                    current, current->ReferenceCount, current->Dirty, current->PageOut );
-        }
-
-        KeReleaseSpinLockFromDpcLevel(&SharedCacheMap->CacheMapLock);
-        KeReleaseQueuedSpinLock(LockQueueMasterLock, oldirql);
-    }
-    else
-    {
-        DPRINT1("Disabling Tracing for CacheMap 0x%p:\n", SharedCacheMap);
-    }
-
-#else
-    UNREFERENCED_PARAMETER(SharedCacheMap);
-    UNREFERENCED_PARAMETER(Trace);
-#endif
-}
-
 NTSTATUS
 NTAPI
 CcRosFlushVacb (
@@ -286,6 +239,7 @@ CcRosFlushDirtyPages (
     return STATUS_SUCCESS;
 }
 
+static
 NTSTATUS
 CcRosTrimCache (
     ULONG Target,

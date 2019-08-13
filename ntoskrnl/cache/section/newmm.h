@@ -206,13 +206,6 @@ MmWithdrawSectionPage(PMM_SECTION_SEGMENT Segment,
                       PLARGE_INTEGER FileOffset,
                       BOOLEAN *Dirty);
 
-NTSTATUS
-NTAPI
-MmFinalizeSectionPageOut(PMM_SECTION_SEGMENT Segment,
-                         PLARGE_INTEGER FileOffset,
-                         PFN_NUMBER Page,
-                         BOOLEAN Dirty);
-
 /* sptab.c *******************************************************************/
 
 VOID
@@ -335,18 +328,6 @@ MiGetOnePage(PMMSUPPORT AddressSpace,
 
 NTSTATUS
 NTAPI
-MiSwapInPage(PMMSUPPORT AddressSpace,
-             PMEMORY_AREA MemoryArea,
-             PMM_REQUIRED_RESOURCES RequiredResources);
-
-NTSTATUS
-NTAPI
-MiWriteSwapPage(PMMSUPPORT AddressSpace,
-                PMEMORY_AREA MemoryArea,
-                PMM_REQUIRED_RESOURCES Resources);
-
-NTSTATUS
-NTAPI
 MiWriteFilePage(PMMSUPPORT AddressSpace,
                 PMEMORY_AREA MemoryArea,
                 PMM_REQUIRED_RESOURCES Resources);
@@ -417,13 +398,6 @@ MmFreeSectionSegments(PFILE_OBJECT FileObject);
 
 NTSTATUS
 NTAPI
-MmMapCacheViewInSystemSpaceAtOffset(IN PMM_SECTION_SEGMENT Segment,
-                                    OUT PVOID* MappedBase,
-                                    IN PLARGE_INTEGER ViewOffset,
-                                    IN OUT PULONG ViewSize);
-
-NTSTATUS
-NTAPI
 _MiMapViewOfSegment(PMMSUPPORT AddressSpace,
                     PMM_SECTION_SEGMENT Segment,
                     PVOID* BaseAddress,
@@ -442,10 +416,6 @@ NTAPI
 MmUnmapViewOfCacheSegment(PMMSUPPORT AddressSpace,
                           PVOID BaseAddress);
 
-NTSTATUS
-NTAPI
-MmUnmapCacheViewInSystemSpace(PVOID Address);
-
 _Success_(1)
 _When_(return==STATUS_MORE_PROCESSING_REQUIRED, _At_(Required->DoAcquisition, _Post_notnull_))
 NTSTATUS
@@ -456,13 +426,6 @@ MmNotPresentFaultCachePage (
     _In_ PVOID Address,
     _In_ BOOLEAN Locked,
     _Inout_ PMM_REQUIRED_RESOURCES Required);
-
-NTSTATUS
-NTAPI
-MmPageOutPageFileView(PMMSUPPORT AddressSpace,
-                      PMEMORY_AREA MemoryArea,
-                      PVOID Address,
-                      PMM_REQUIRED_RESOURCES Required);
 
 FORCEINLINE
 BOOLEAN
@@ -476,18 +439,6 @@ _MmTryToLockAddressSpace(IN PMMSUPPORT AddressSpace,
 }
 
 #define MmTryToLockAddressSpace(x) _MmTryToLockAddressSpace(x,__FILE__,__LINE__)
-
-NTSTATUS
-NTAPI
-MiWidenSegment(PMMSUPPORT AddressSpace,
-               PMEMORY_AREA MemoryArea,
-               PMM_REQUIRED_RESOURCES RequiredResources);
-
-NTSTATUS
-NTAPI
-MiSwapInSectionPage(PMMSUPPORT AddressSpace,
-                    PMEMORY_AREA MemoryArea,
-                    PMM_REQUIRED_RESOURCES RequiredResources);
 
 NTSTATUS
 NTAPI
@@ -516,11 +467,6 @@ NTAPI
 MmNotPresentFaultCacheSection(KPROCESSOR_MODE Mode,
                               ULONG_PTR Address,
                               BOOLEAN FromMdl);
-
-ULONG
-NTAPI
-MiCacheEvictPages(PMM_SECTION_SEGMENT Segment,
-                  ULONG Target);
 
 NTSTATUS
 MiRosTrimCache(ULONG Target,

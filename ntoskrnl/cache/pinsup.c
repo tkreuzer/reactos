@@ -124,10 +124,6 @@ _CcpUnlock(const char *file,
     //DPRINT(">>>--->>> CC Exit Mutex!\n", file, line);
 }
 
-PDEVICE_OBJECT
-NTAPI
-MmGetDeviceObjectForFile(IN PFILE_OBJECT FileObject);
-
 /*
 
 Allocate an almost ordinary section object for use by the cache system.
@@ -135,7 +131,7 @@ The special internal SEC_CACHE flag is used to indicate that the section
 should not count when determining whether the file can be resized.
 
 */
-
+static
 NTSTATUS
 CcpAllocateSection(PFILE_OBJECT FileObject,
                    ULONG Length,
@@ -182,7 +178,7 @@ last reference disappears.  We enter this code only if cache for the file
 is uninitialized in the last file object, or a cache stripe is evicted.
 
 */
-
+static
 VOID
 CcpUnmapCache(PVOID Context)
 {
@@ -306,6 +302,7 @@ on failure.
 
  */
 /* Needs mutex */
+static
 ULONG
 CcpAllocateCacheSections(PFILE_OBJECT FileObject,
                          PROS_SECTION_OBJECT SectionObject)
@@ -375,6 +372,7 @@ CcpReferenceCache(ULONG Start)
 
 }
 
+static
 VOID
 CcpMarkForExclusive(ULONG Start)
 {
@@ -392,6 +390,7 @@ Bcb.
 
 */
 /* Must not have the mutex */
+static
 VOID
 CcpReferenceCacheExclusive(ULONG Start)
 {
@@ -426,6 +425,7 @@ Returns a valid index or INVALID_CACHE.
 
 */
 /* Must have the mutex */
+static
 ULONG
 CcpFindMatchingMap(PLIST_ENTRY Head,
                    PLARGE_INTEGER FileOffset,
@@ -725,8 +725,8 @@ CcMapData(IN PFILE_OBJECT FileObject,
 
 /* Used by functions that repin data, CcpPinMappedData does not alter the map,
    but finds the appropriate stripe and update the accounting. */
+static
 BOOLEAN
-NTAPI
 CcpPinMappedData(IN PNOCC_CACHE_MAP Map,
                  IN PLARGE_INTEGER FileOffset,
                  IN ULONG Length,

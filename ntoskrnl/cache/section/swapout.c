@@ -159,10 +159,10 @@ always backs a file.  In the ultimate form of this code, it also writes back
 pages without necessarily evicting them.  In reactos' trunk, this is vestigal.
 
 */
-
+static
 NTSTATUS
 NTAPI
-MmFinalizeSectionPageOut(PMM_SECTION_SEGMENT Segment,
+MiFinalizeSectionPageOut(PMM_SECTION_SEGMENT Segment,
                          PLARGE_INTEGER FileOffset,
                          PFN_NUMBER Page,
                          BOOLEAN Dirty)
@@ -273,10 +273,10 @@ have had MmPageOutCacheSection succeed on them for the indicated page,
 then paging out of a cache page can continue.
 
 */
-
+static
 NTSTATUS
 NTAPI
-MmPageOutCacheSection(PMMSUPPORT AddressSpace,
+MiPageOutCacheSection(PMMSUPPORT AddressSpace,
                       MEMORY_AREA* MemoryArea,
                       PVOID Address,
                       PBOOLEAN Dirty,
@@ -473,7 +473,7 @@ MmpPageOutPhysicalAddress(PFN_NUMBER Page)
 
             PageDirty = FALSE;
 
-            Status = MmPageOutCacheSection(AddressSpace,
+            Status = MiPageOutCacheSection(AddressSpace,
                                            MemoryArea,
                                            Address,
                                            &PageDirty,
@@ -544,7 +544,7 @@ bail:
                 Dirty ? "dirty" : "clean");
 
         if (!NT_SUCCESS(Status) ||
-            !NT_SUCCESS(Status = MmFinalizeSectionPageOut(Segment,
+            !NT_SUCCESS(Status = MiFinalizeSectionPageOut(Segment,
                                                           &FileOffset,
                                                           Page,
                                                           Dirty)))
@@ -584,6 +584,7 @@ bail:
     return NT_SUCCESS(Status) ? STATUS_SUCCESS : STATUS_UNSUCCESSFUL;
 }
 
+static
 ULONG
 NTAPI
 MiCacheEvictPages(PMM_SECTION_SEGMENT Segment,

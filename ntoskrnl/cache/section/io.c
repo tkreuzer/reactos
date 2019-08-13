@@ -57,6 +57,7 @@
 
 KEVENT CcpLazyWriteEvent;
 
+static
 PDEVICE_OBJECT
 NTAPI
 MmGetDeviceObjectForFile(IN PFILE_OBJECT FileObject)
