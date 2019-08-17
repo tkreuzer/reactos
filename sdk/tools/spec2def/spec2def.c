@@ -494,15 +494,15 @@ OutputLine_asmstub(FILE *fileDest, EXPORT *pexp)
             (pexp->strName.buf[0] == '_'))
         {
             /* Skip leading underscore and remove trailing decoration */
-            sprintf(szNameBuffer, "_stub_%.*s",
+        sprintf(szNameBuffer, "_stub_%.*s",
                     (int)(pcAt - pexp->strName.buf - 1),
                     pexp->strName.buf + 1);
         }
         else
         {
             sprintf(szNameBuffer, "_stub_%.*s",
-                    pexp->strName.len, pexp->strName.buf);
-        }
+                pexp->strName.len, pexp->strName.buf);
+    }
     }
     else if (pexp->nCallingConvention == CC_STDCALL)
     {
