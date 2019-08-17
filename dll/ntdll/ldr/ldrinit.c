@@ -1537,6 +1537,10 @@ LdrpValidateImageForMp(IN PLDR_DATA_TABLE_ENTRY LdrDataTableEntry)
     UNIMPLEMENTED;
 }
 
+NTSTATUS
+RosApplyAppcompatExportHacks(PVOID ImageBase);
+extern char __ImageBase;
+
 VOID
 NTAPI
 LdrpInitializeProcessCompat(PVOID* pOldShimData)
@@ -1565,6 +1569,7 @@ LdrpInitializeProcessCompat(PVOID* pOldShimData)
         if (pShimData->dwRosProcessCompatVersion)
         {
             DPRINT1("LdrpInitializeProcessCompat: ProcessCompatVersion already set to 0x%x\n", pShimData->dwRosProcessCompatVersion);
+            RosApplyAppcompatExportHacks(&__ImageBase);
             return;
         }
     }
@@ -1621,6 +1626,7 @@ LdrpInitializeProcessCompat(PVOID* pOldShimData)
                 /* Store the highest found version, and bail out. */
                 pShimData->dwRosProcessCompatVersion = GuidVersions[cur];
                 DPRINT1("LdrpInitializeProcessCompat: Found guid for winver 0x%x\n", GuidVersions[cur]);
+                RosApplyAppcompatExportHacks(&__ImageBase);
                 return;
             }
         }

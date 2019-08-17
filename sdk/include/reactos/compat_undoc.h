@@ -22,22 +22,8 @@ typedef struct _ReactOS_ShimData
 #define WINVER_WIN10    0x0a00
 #endif
 
-static
-inline
-DWORD RosGetProcessCompatVersion(VOID)
-{
-    static DWORD g_CompatVersion = 0xffffffff;
-    if (g_CompatVersion == 0xffffffff)
-    {
-        ReactOS_ShimData* pShimData = (ReactOS_ShimData*)NtCurrentPeb()->pShimData;
-        if (pShimData && pShimData->dwMagic == REACTOS_SHIMDATA_MAGIC &&
-            pShimData->dwSize == sizeof(ReactOS_ShimData))
-        {
-            g_CompatVersion = pShimData->dwRosProcessCompatVersion;
-        }
-    }
-    return g_CompatVersion != 0xffffffff ? g_CompatVersion : 0;
-}
-
+DWORD
+NTAPI
+RosGetProcessCompatVersion(VOID);
 
 #endif // COMPAT_UNDOC_H
