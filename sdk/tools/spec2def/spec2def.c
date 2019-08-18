@@ -28,7 +28,28 @@ typedef struct
     int anArgs[30];
     unsigned int uFlags;
     int nNumber;
+    unsigned nStartVersion;
+    unsigned nEndVersion;
+    int bVersionIncluded;
 } EXPORT;
+
+#if 0 // Debug helper function
+void
+PrintExport(EXPORT *pexp)
+{
+    fprintf(stderr, "strName='%.*s'\n", pexp->strName.len, pexp->strName.buf);
+    fprintf(stderr, "strName='%.*s'\n", pexp->strTarget.len, pexp->strTarget.buf);
+    fprintf(stderr, "nCallingConvention=%u\n", pexp->nCallingConvention);
+    fprintf(stderr, "nOrdinal=%u\n", pexp->nOrdinal);
+    fprintf(stderr, "nStackBytes=%u\n", pexp->nStackBytes);
+    fprintf(stderr, "nArgCount=%u\n", pexp->nArgCount);
+    fprintf(stderr, "uFlags=0x%x\n", pexp->uFlags);
+    fprintf(stderr, "nNumber=%u\n", pexp->nNumber);
+    fprintf(stderr, "nStartVersion=%u\n", pexp->nStartVersion);
+    fprintf(stderr, "nEndVersion=%u\n", pexp->nEndVersion);
+    fprintf(stderr, "bVersionIncluded=%u\n", pexp->bVersionIncluded);
+}
+#endif
 
 enum _ARCH
 {
@@ -443,8 +464,8 @@ OutputLine_asmstub(FILE *fileDest, EXPORT *pexp)
     /* Handle autoname */
     if (pexp->strName.len == 1 && pexp->strName.buf[0] == '@')
     {
-        sprintf(szNameBuffer, "%sordinal%d\n%sordinal%d: nop\n",
-                gpszUnderscore, pexp->nOrdinal, gpszUnderscore, pexp->nOrdinal);
+        sprintf(szNameBuffer, "%s_stub_ordinal%d",
+                gpszUnderscore, pexp->nOrdinal);
     }
     else if (giArch != ARCH_X86)
     {
@@ -496,6 +517,14 @@ PrintName(FILE *fileDest, EXPORT *pexp, PSTRING pstr, int fDeco)
     const char *pcName = pstr->buf;
     int nNameLength = pstr->len;
     const char* pcDot, *pcAt;
+    char namebuffer[16];
+
+    if ((nNameLength == 1) && (pcName[0] == '@'))
+    {
+        sprintf(namebuffer, "ordinal%d", pexp->nOrdinal);
+        pcName = namebuffer;
+        nNameLength = strlen(namebuffer);
+    }
 
     /* Check for non-x86 first */
     if (giArch != ARCH_X86)
@@ -570,7 +599,8 @@ OutputLine_def_MS(FILE *fileDest, EXPORT *pexp)
     if (gbImportLib)
     {
         /* Redirect to a stub function, to get the right decoration in the lib */
-        fprintf(fileDest, "=_stub_%.*s", pexp->strName.len, pexp->strName.buf);
+        fprintf(fileDest, "=_stub_");
+        PrintName(fileDest, pexp, &pexp->strName, 0);
     }
     else if (pexp->strTarget.buf)
     {
@@ -661,7 +691,9 @@ OutputLine_def_GCC(FILE *fileDest, EXPORT *pexp)
         {
             /* Is the name in the spec file decorated? */
             const char* pcDeco = ScanToken(pexp->strName.buf, '@');
-            if (pcDeco && (pcDeco < pexp->strName.buf + pexp->strName.len))
+            if (pcDeco && 
+                (pexp->strName.len > 1) &&
+                (pcDeco < pexp->strName.buf + pexp->strName.len))
             {
                 /* Write the name including the leading @  */
                 fprintf(fileDest, "==%.*s", pexp->strName.len, pexp->strName.buf);
@@ -778,17 +810,33 @@ Fatal(
     va_end(argptr);
 }
 
-int
-ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
+EXPORT *
+ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
 {
+    EXPORT *pexports;
     const char *pc, *pcLine;
-    int nLine;
+    int cLines, nLine;
     EXPORT exp;
-    int included, version_included;
-    char namebuffer[16];
+    int included;
     unsigned int i;
 
+    *cExports = 0;
+
     //fprintf(stderr, "info: line %d, pcStart:'%.30s'\n", nLine, pcStart);
+
+    /* Count the lines */
+    for (cLines = 1, pcLine = pcStart; *pcLine; pcLine = NextLine(pcLine), cLines++)
+    {
+        /* Nothing */
+    }
+
+    /* Allocate an array of EXPORT structures */
+    pexports = (EXPORT*)malloc(cLines * sizeof(EXPORT));
+    if (pexports == NULL)
+    {
+        fprintf(stderr, "ERROR: %s: failed to allocate EXPORT array of %u elements\n", pszSourceFileName, cLines);
+        return 0;
+    }
 
     /* Loop all lines */
     nLine = 1;
@@ -797,16 +845,28 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
     {
         pc = pcLine;
 
+        exp.strName.buf = NULL;
+        exp.strName.len = 0;
+        exp.strTarget.buf = NULL;
+        exp.strTarget.len = 0;
         exp.nArgCount = 0;
         exp.uFlags = 0;
         exp.nNumber++;
+        exp.nStartVersion = 0;
+        exp.nEndVersion = 0xFFFFFFFF;
+        exp.bVersionIncluded = 1;
 
         /* Skip white spaces */
         while (*pc == ' ' || *pc == '\t') pc++;
 
-        /* Skip empty lines, stop at EOF */
+        /* Skip empty lines */
         if (*pc == ';' || *pc <= '#') continue;
-        if (*pc == 0) return 0;
+
+        /* On EOF we are done */
+        if (*pc == 0)
+        {
+            return pexports;
+        }
 
         /* Now we should get either an ordinal or @ */
         if (*pc == '@')
@@ -872,7 +932,6 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
 
         /* Handle options */
         included = 1;
-        version_included = 1;
         while (*pc == '-')
         {
             if (CompareToken(pc, "-arch="))
@@ -903,7 +962,7 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
             {
                 const char *pc2 = pc + 9;
                 /* Default to not included */
-                version_included = 0;
+                exp.bVersionIncluded = 0;
                 pc += 8;
 
                 /* Look if we are included */
@@ -938,11 +997,14 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
                         Fatal(pszSourceFileName, nLine, pcLine, pc2, pc - pc2, "Invalid version range");
                     }
 
+                    exp.nStartVersion = version;
+                    exp.nEndVersion = endversion;
+
                     /* Now compare the range with our version */
                     if ((guOsVersion >= version) &&
                         (guOsVersion <= endversion))
                     {
-                        version_included = 1;
+                        exp.bVersionIncluded = 1;
                     }
 
                     /* Skip to next arch or end */
@@ -999,7 +1061,7 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
         //fprintf(stderr, "info: Name:'%.10s'\n", pc);
 
         /* If arch didn't match ours, skip this entry */
-        if (!included || !version_included) continue;
+        if (!included) continue;
 
         /* Get name */
         exp.strName.buf = pc;
@@ -1009,9 +1071,6 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
         /* Check for autoname */
         if ((exp.strName.len == 1) && (exp.strName.buf[0] == '@'))
         {
-            sprintf(namebuffer, "ordinal%d", exp.nOrdinal);
-            exp.strName.len = strlen(namebuffer);
-            exp.strName.buf = namebuffer;
             exp.uFlags |= FL_ORDINAL | FL_NONAME;
         }
 
@@ -1195,11 +1254,12 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
             }
         }
 
-        OutputLine(fileDest, &exp);
+        pexports[*cExports] = exp;
+        (*cExports)++;
         gbDebug = 0;
     }
 
-    return 0;
+    return pexports;
 }
 
 void usage(void)
@@ -1225,7 +1285,8 @@ int main(int argc, char *argv[])
     const char* pszVersionOption = "--version=0x";
     char achDllName[40];
     FILE *file;
-    int result = 0, i;
+    unsigned cExports = 0, i;
+    EXPORT *pexports;
 
     if (argc < 2)
     {
@@ -1234,7 +1295,7 @@ int main(int argc, char *argv[])
     }
 
     /* Read options */
-    for (i = 1; i < argc && *argv[i] == '-'; i++)
+    for (i = 1; i < (unsigned)argc && *argv[i] == '-'; i++)
     {
         if ((strcasecmp(argv[i], "--help") == 0) ||
             (strcasecmp(argv[i], "-h") == 0))
@@ -1364,6 +1425,13 @@ int main(int argc, char *argv[])
     /* Zero terminate the source */
     pszSource[nFileSize] = '\0';
 
+    pexports = ParseFile(pszSource, file, &cExports);
+    if (pexports == NULL)
+    {
+        fprintf(stderr, "Empty spec file\n");
+        return 0;
+    }
+
     if (pszDefFileName)
     {
         /* Open output file */
@@ -1375,7 +1443,13 @@ int main(int argc, char *argv[])
         }
 
         OutputHeader_def(file, pszDllName);
-        result = ParseFile(pszSource, file, OutputLine_def);
+
+        for (i = 0; i < cExports; i++)
+        {
+            if (pexports[i].bVersionIncluded)
+                 OutputLine_def(file, &pexports[i]);
+        }
+
         fclose(file);
     }
 
@@ -1390,7 +1464,13 @@ int main(int argc, char *argv[])
         }
 
         OutputHeader_stub(file);
-        result = ParseFile(pszSource, file, OutputLine_stub);
+
+        for (i = 0; i < cExports; i++)
+        {
+            if (pexports[i].bVersionIncluded)
+                OutputLine_stub(file, &pexports[i]);
+        }
+
         fclose(file);
     }
 
@@ -1405,10 +1485,18 @@ int main(int argc, char *argv[])
         }
 
         OutputHeader_asmstub(file, pszDllName);
-        result = ParseFile(pszSource, file, OutputLine_asmstub);
+
+        for (i = 0; i < cExports; i++)
+        {
+            if (pexports[i].bVersionIncluded)
+                OutputLine_asmstub(file, &pexports[i]);
+        }
+
         fprintf(file, "\n    END\n");
         fclose(file);
     }
 
-    return result;
+    free(pexports);
+
+    return 0;
 }
