@@ -1057,7 +1057,7 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
         //fprintf(stderr, "info: Name:'%.10s'\n", pc);
 
         /* If arch didn't match ours, skip this entry */
-        if (!included || !exp.bVersionIncluded) continue;
+        if (!included) continue;
 
         /* Get name */
         exp.strName.buf = pc;
@@ -1492,7 +1492,7 @@ int main(int argc, char *argv[])
         fclose(file);
     }
 
-    if (pexports) free(pexports);
+    free(pexports);
 
     return 0;
 }
