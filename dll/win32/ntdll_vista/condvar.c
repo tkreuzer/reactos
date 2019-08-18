@@ -13,6 +13,7 @@
 
 /* INCLUDES ******************************************************************/
 
+#define _NTSYSTEM_
 #include <rtl_vista.h>
 
 #define NDEBUG

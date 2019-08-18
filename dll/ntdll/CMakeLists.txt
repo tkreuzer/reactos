@@ -3,7 +3,6 @@ spec2def(ntdll.dll def/ntdll.spec ADD_IMPORTLIB)
 
 add_definitions(
     -D__NTDLL__
-    -D_NTSYSTEM_
     -D_NTOSKRNL_
     -DCRTDLL)
 

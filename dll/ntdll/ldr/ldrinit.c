@@ -1537,10 +1537,6 @@ LdrpValidateImageForMp(IN PLDR_DATA_TABLE_ENTRY LdrDataTableEntry)
     UNIMPLEMENTED;
 }
 
-NTSTATUS
-RosApplyAppcompatExportHacks(PVOID ImageBase);
-extern char __ImageBase;
-
 VOID
 NTAPI
 LdrpInitializeProcessCompat(PVOID* pOldShimData)

@@ -111,20 +111,20 @@ TranslateAppcompatVersionToVersionBit(
     return APPCOMPAT_VERSION_BIT_WS03;
 }
 
-typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
-{
-    unsigned int *NumberOfExportNames;
-    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
-} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
+//typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
+//{
+//    unsigned int *NumberOfExportNames;
+//    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
+//} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
 
-extern unsigned int __appcompat_export_bitmap__[];
-extern unsigned int __appcompat_export_bitmap_length__;
+//extern unsigned int __appcompat_export_bitmap__[];
+//extern unsigned int __appcompat_export_bitmap_length__;
 
-LDRP_APPCOMPAT_DESCRIPTOR HackAppcompatDescriptor =
-{
-    &__appcompat_export_bitmap_length__, // NumberOfExportNames
-    __appcompat_export_bitmap__
-};
+//LDRP_APPCOMPAT_DESCRIPTOR HackAppcompatDescriptor =
+//{
+//    &__appcompat_export_bitmap_length__, // NumberOfExportNames
+//    __appcompat_export_bitmap__
+//};
 
 static
 PLDRP_APPCOMPAT_DESCRIPTOR
@@ -201,7 +201,7 @@ PatchExportTable(
         }
     }
 
-
+    ExportDirectory->NumberOfNames = j;
 
     FunctionTable = (PULONG)((ULONG_PTR)DllBase +
         (ULONG_PTR)ExportDirectory->AddressOfFunctions);
@@ -244,6 +244,7 @@ PatchExportTable(
 */
 
 NTSTATUS
+NTAPI
 RosApplyAppcompatExportHacks(PVOID DllBase)
 {
     DWORD AppcompatVersion;

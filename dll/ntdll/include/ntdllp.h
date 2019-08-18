@@ -211,4 +211,12 @@ RtlDoesFileExists_UStr(
     IN PUNICODE_STRING FileName
 );
 
+/* appcompat.c */
+NTSTATUS
+NTAPI
+RosApplyAppcompatExportHacks(PVOID ImageBase);
+
+extern char __ImageBase;
+
+
 /* EOF */
