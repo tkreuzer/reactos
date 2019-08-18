@@ -1197,7 +1197,7 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
             /* Check syntax (end of line) */
             if (NextToken(pc))
             {
-                 Fatal(pszSourceFileName, nLine, pcLine, NextToken(pc), 0, "Excess token(s) at end of definition");
+                Fatal(pszSourceFileName, nLine, pcLine, NextToken(pc), 0, "Excess token(s) at end of definition");
             }
 
             /* Don't relay-trace forwarded functions */
