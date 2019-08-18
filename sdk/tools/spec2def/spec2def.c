@@ -894,7 +894,7 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
         exp.nArgCount = 0;
         exp.uFlags = 0;
         exp.nNumber++;
-        exp.uVersionMask = 0;
+        exp.uVersionMask = 0xFFF;
         exp.bVersionIncluded = 1;
 
         /* Skip white spaces */
@@ -1004,6 +1004,7 @@ ParseFile(char* pcStart, FILE *fileDest, unsigned *cExports)
                 const char *pc2 = pc + 9;
                 /* Default to not included */
                 exp.bVersionIncluded = 0;
+                exp.uVersionMask = 0;
                 pc += 8;
 
                 /* Look if we are included */
@@ -1324,11 +1325,11 @@ OutputHeader_stub_2(FILE *fileDest)
     fprintf(fileDest,
             "#if defined(_MSC_VER)\n"
             "#pragma section(\".asmdef\")\n"
-            "__declspec(allocate(\".asmdef\"))\n"
+            "__declspec(allocate(\".appcompat_export_bitmap\"))\n"
             "#elif defined(__GNUC__)\n"
-            "__attribute__ ((section(\".asmdef\")))\n"
+            "__attribute__ ((section(\".appcompat_export_bitmap\")))\n"
             "#else\n"
-            "#error Your compiler is not supported.\n"
+            "#error Your compiler is not supported (fix in spec2def).\n"
             "#endif\n"
             "unsigned int __appcompat_export_bitmap__[] =\n{\n");
 }
@@ -1532,8 +1533,7 @@ int main(int argc, char *argv[])
             fprintf(file, "    0x%08x,\n", pexports[i].uVersionMask);
         }
         fprintf(file,
-                "};\n"
-                "unsigned int __appcompat_export_bitmap_length__ = sizeof(__appcompat_export_bitmap__) / sizeof(__appcompat_export_bitmap__[0]);\n");
+                "};\n");
 
         fclose(file);
     }
