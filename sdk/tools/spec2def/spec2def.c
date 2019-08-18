@@ -780,11 +780,11 @@ Fatal(
     exit(-1);
 }
 
-int
-ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
+unsigned
+ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
 {
     const char *pc, *pcLine;
-    int nLine;
+    int cLines, nLine, cExports;
     EXPORT exp;
     int included, version_included;
     char namebuffer[16];
@@ -792,7 +792,22 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
 
     //fprintf(stderr, "info: line %d, pcStart:'%.30s'\n", nLine, pcStart);
 
+    /* Count the lines */
+    for (cLines = 1, pcLine = pcStart; *pcLine; pcLine = NextLine(pcLine), cLines++)
+    {
+        /* Nothing */
+    }
+
+    /* Allocate an array of EXPORT structures */
+    *pexports = (EXPORT*)malloc(cLines * sizeof(EXPORT));
+    if (*pexports == NULL)
+    {
+        fprintf(stderr, "ERROR: %s: failed to allocate EXPORT array of %u elements\n", pszSourceFileName, cLines);
+        return 0;
+    }
+
     /* Loop all lines */
+    cExports = 0;
     nLine = 1;
     exp.nNumber = 0;
     for (pcLine = pcStart; *pcLine; pcLine = NextLine(pcLine), nLine++)
@@ -806,9 +821,14 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
         /* Skip white spaces */
         while (*pc == ' ' || *pc == '\t') pc++;
 
-        /* Skip empty lines, stop at EOF */
+        /* Skip empty lines */
         if (*pc == ';' || *pc <= '#') continue;
-        if (*pc == 0) return 0;
+
+        /* On EOF we are done */
+        if (*pc == 0)
+        {
+            return cExports;
+        }
 
         /* Now we should get either an ordinal or @ */
         if (*pc == '@')
@@ -1197,11 +1217,11 @@ ParseFile(char* pcStart, FILE *fileDest, PFNOUTLINE OutputLine)
             }
         }
 
-        OutputLine(fileDest, &exp);
+        (*pexports)[cExports++] = exp;
         gbDebug = 0;
     }
 
-    return 0;
+    return cExports;
 }
 
 void usage(void)
@@ -1228,6 +1248,8 @@ int main(int argc, char *argv[])
     char achDllName[40];
     FILE *file;
     int result = 0, i;
+    EXPORT *pexports;
+    int cExports;
 
     if (argc < 2)
     {
@@ -1366,6 +1388,14 @@ int main(int argc, char *argv[])
     /* Zero terminate the source */
     pszSource[nFileSize] = '\0';
 
+    cExports = ParseFile(pszSource, file, &pexports);
+    if (cExports == 0)
+    {
+        fprintf(stderr, "Failed to parse spec file!\n");
+        return -5;
+    }
+
+    fprintf(stderr, "pszDefFileName: %s cExports = %u\n", pszDefFileName, cExports);
     if (pszDefFileName)
     {
         /* Open output file */
@@ -1377,8 +1407,16 @@ int main(int argc, char *argv[])
         }
 
         OutputHeader_def(file, pszDllName);
-        result = ParseFile(pszSource, file, OutputLine_def);
+
+        for (i = 0; i < cExports; i++)
+        {
+            //fprintf(stderr, "OutputLine_def %s %u\n", pszDefFileName, i);
+            OutputLine_def(file, &pexports[i]);
+        }
+
+        fprintf(stderr, "done\n");
         fclose(file);
+        return 0;
     }
 
     if (pszStubFileName)
@@ -1392,7 +1430,12 @@ int main(int argc, char *argv[])
         }
 
         OutputHeader_stub(file);
-        result = ParseFile(pszSource, file, OutputLine_stub);
+
+        for (i = 0; i < cExports; i++)
+        {
+            OutputLine_stub(file, &pexports[i]);
+        }
+
         fclose(file);
     }
 
@@ -1407,10 +1450,17 @@ int main(int argc, char *argv[])
         }
 
         OutputHeader_asmstub(file, pszDllName);
-        result = ParseFile(pszSource, file, OutputLine_asmstub);
+
+        for (i = 0; i < cExports; i++)
+        {
+            OutputLine_asmstub(file, &pexports[i]);
+        }
+
         fprintf(file, "\n    END\n");
         fclose(file);
     }
 
-    return result;
+    free(pexports);
+
+    return 0;
 }
