@@ -28,6 +28,9 @@ typedef struct
     int anArgs[30];
     unsigned int uFlags;
     int nNumber;
+    unsigned nStartVersion;
+    unsigned nEndVersion;
+    int bVersionIncluded;
 } EXPORT;
 
 enum _ARCH
@@ -786,7 +789,7 @@ ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
     const char *pc, *pcLine;
     int cLines, nLine, cExports;
     EXPORT exp;
-    int included, version_included;
+    int included;
     char namebuffer[16];
     unsigned int i;
 
@@ -817,6 +820,9 @@ ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
         exp.nArgCount = 0;
         exp.uFlags = 0;
         exp.nNumber++;
+        exp.nStartVersion = 0;
+        exp.nEndVersion = 0xFFFFFFFF;
+        exp.bVersionIncluded = 1;
 
         /* Skip white spaces */
         while (*pc == ' ' || *pc == '\t') pc++;
@@ -894,7 +900,6 @@ ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
 
         /* Handle options */
         included = 1;
-        version_included = 1;
         while (*pc == '-')
         {
             if (CompareToken(pc, "-arch="))
@@ -925,7 +930,7 @@ ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
             {
                 const char *pc2 = pc + 9;
                 /* Default to not included */
-                version_included = 0;
+                exp.bVersionIncluded = 0;
                 pc += 8;
 
                 /* Look if we are included */
@@ -960,11 +965,14 @@ ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
                         Fatal(pszSourceFileName, nLine, pcLine, pc2, pc - pc2, "Invalid version range");
                     }
 
+                    exp.nStartVersion = version;
+                    exp.nEndVersion = endversion;
+
                     /* Now compare the range with our version */
                     if ((guOsVersion >= version) &&
                         (guOsVersion <= endversion))
                     {
-                        version_included = 1;
+                        exp.bVersionIncluded = 1;
                     }
 
                     /* Skip to next arch or end */
@@ -1021,7 +1029,7 @@ ParseFile(char* pcStart, FILE *fileDest, EXPORT **pexports)
         //fprintf(stderr, "info: Name:'%.10s'\n", pc);
 
         /* If arch didn't match ours, skip this entry */
-        if (!included || !version_included) continue;
+        if (!included) continue;
 
         /* Get name */
         exp.strName.buf = pc;
@@ -1395,7 +1403,7 @@ int main(int argc, char *argv[])
         return -5;
     }
 
-    fprintf(stderr, "pszDefFileName: %s cExports = %u\n", pszDefFileName, cExports);
+    //fprintf(stderr, "pszDefFileName: %s cExports = %u\n", pszDefFileName, cExports);
     if (pszDefFileName)
     {
         /* Open output file */
@@ -1410,13 +1418,12 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < cExports; i++)
         {
-            //fprintf(stderr, "OutputLine_def %s %u\n", pszDefFileName, i);
-            OutputLine_def(file, &pexports[i]);
+            fprintf(stderr, "export # %u: %.*s\n", i, pexports[i].strName.len, pexports[i].strName.buf);
+            if (pexports[i].bVersionIncluded)
+                OutputLine_def(file, &pexports[i]);
         }
 
-        fprintf(stderr, "done\n");
         fclose(file);
-        return 0;
     }
 
     if (pszStubFileName)
@@ -1433,7 +1440,8 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < cExports; i++)
         {
-            OutputLine_stub(file, &pexports[i]);
+            if (pexports[i].bVersionIncluded)
+                OutputLine_stub(file, &pexports[i]);
         }
 
         fclose(file);
@@ -1453,7 +1461,8 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < cExports; i++)
         {
-            OutputLine_asmstub(file, &pexports[i]);
+            if (pexports[i].bVersionIncluded)
+                OutputLine_asmstub(file, &pexports[i]);
         }
 
         fprintf(file, "\n    END\n");
