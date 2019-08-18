@@ -1424,4 +1424,14 @@
 @ stdcall -arch=arm __rt_srsh()
 
 # Vista+ exports here for now
-@ stdcall -stub -version=0x700 A_SHAFinal()
+@ stdcall -stub -version=0x700+ A_SHAFinal()
+@ stdcall -version=0x600+ RtlInitializeConditionVariable(ptr)
+@ stdcall -version=0x600+ RtlWakeConditionVariable(ptr)
+@ stdcall -version=0x600+ RtlWakeAllConditionVariable(ptr)
+@ stdcall -version=0x600+ RtlSleepConditionVariableCS(ptr ptr ptr)
+@ stdcall -version=0x600+ RtlSleepConditionVariableSRW(ptr ptr ptr long)
+@ stdcall -version=0x600+ RtlInitializeSRWLock(ptr)
+@ stdcall -version=0x600+ RtlAcquireSRWLockShared(ptr)
+@ stdcall -version=0x600+ RtlReleaseSRWLockShared(ptr)
+@ stdcall -version=0x600+ RtlAcquireSRWLockExclusive(ptr)
+@ stdcall -version=0x600+ RtlReleaseSRWLockExclusive(ptr)

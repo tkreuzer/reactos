@@ -82,6 +82,10 @@ list(APPEND SOURCE
     winnls/string/lstring.c
     winnls/string/nls.c
     winnls/string/sortkey.c
+    ../kernel32_vista/GetFileInformationByHandleEx.c
+    #../kernel32_vista/GetTickCount64.c
+    ../kernel32_vista/InitOnceExecuteOnce.c
+    #../kernel32_vista/sync.c
     k32.h)
 
 if(ARCH STREQUAL "i386")

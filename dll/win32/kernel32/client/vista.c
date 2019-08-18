@@ -7,10 +7,17 @@
 
 /* INCLUDES *******************************************************************/
 
+#undef _WIN32_WINNT
+#undef WINVER
+#define _WIN32_WINNT 0x600
+#define WINVER 0x600
+
 #include <k32.h>
 
 #define NDEBUG
 #include <debug.h>
+
+#define REPARSE_DATA_BUFFER_HEADER_SIZE   FIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
 
 #if _WIN32_WINNT >= 0x600
 

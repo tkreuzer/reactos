@@ -3,11 +3,13 @@ spec2def(ntdll.dll def/ntdll.spec ADD_IMPORTLIB)
 
 add_definitions(
     -D__NTDLL__
+    -D_NTSYSTEM_
     -D_NTOSKRNL_
     -DCRTDLL)
 
 include_directories(
     BEFORE include
+    ../win32/ntdll_vista
     ${REACTOS_SOURCE_DIR}/sdk/include/reactos/subsys)
 
 list(APPEND SOURCE
@@ -25,6 +27,8 @@ list(APPEND SOURCE
     rtl/uilist.c
     rtl/version.c
     etw/trace.c
+    ../win32/ntdll_vista/condvar.c
+    ../win32/ntdll_vista/srw.c
     include/ntdll.h)
 
 if(ARCH STREQUAL "i386")
