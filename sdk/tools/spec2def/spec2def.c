@@ -1534,7 +1534,9 @@ int main(int argc, char *argv[])
         {
             fprintf(file, "    0x%08x,\n", GetVersionMask(&pexports[i]));
         }
-        fprintf(file, "};\n");
+        fprintf(file,
+                "};\n"
+                "unsigned int __appcompat_export_bitmap_length__ = sizeof(__appcompat_export_bitmap__) / sizeof(__appcompat_export_bitmap__[0]);\n");
 
         fclose(file);
     }

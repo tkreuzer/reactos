@@ -113,15 +113,16 @@ TranslateAppcompatVersionToVersionBit(
 
 typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
 {
-    ULONG NumberOfExportNames;
-    PULONG ExportNameBitmaps; // Array with size NumberOfNames
+    unsigned int *NumberOfExportNames;
+    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
 } LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
 
 extern unsigned int __appcompat_export_bitmap__[];
+extern unsigned int __appcompat_export_bitmap_length__;
 
 LDRP_APPCOMPAT_DESCRIPTOR HackAppcompatDescriptor =
 {
-    ARRAYSIZE(__appcompat_export_bitmap__), // NumberOfExportNames
+    &__appcompat_export_bitmap_length__, // NumberOfExportNames
     __appcompat_export_bitmap__
 };
 
@@ -163,7 +164,7 @@ PatchExportTable(
         return STATUS_INVALID_IMAGE_FORMAT;
     }
 
-    ASSERT(AppCompatDescriptor->NumberOfExportNames == ExportDirectory->NumberOfNames);
+    ASSERT(*AppCompatDescriptor->NumberOfExportNames == ExportDirectory->NumberOfNames);
 
     /* Unprotect the export directory */
     ProtectSize = ExportDirectorySize;
@@ -190,7 +191,7 @@ PatchExportTable(
         (ULONG_PTR)ExportDirectory->AddressOfNameOrdinals);
 
     /* Strip unused entries from the name and ordinal table */
-    for (i = 0, j = 0; i < AppCompatDescriptor->NumberOfExportNames; i++)
+    for (i = 0, j = 0; i < *AppCompatDescriptor->NumberOfExportNames; i++)
     {
         if (AppCompatDescriptor->ExportNameBitmaps[i] & VersionMask)
         {
