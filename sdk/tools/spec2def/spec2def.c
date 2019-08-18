@@ -1274,6 +1274,68 @@ void usage(void)
            "  --with-tracing          generate wine-like \"+relay\" trace trampolines (needs -s)\n");
 }
 
+typedef enum _APPCOMPAT_VERSION_BIT
+{
+    APPCOMPAT_VERSION_BIT_NT4,
+    APPCOMPAT_VERSION_BIT_WIN2K,
+    APPCOMPAT_VERSION_BIT_WINXP,
+    APPCOMPAT_VERSION_BIT_WS03,
+    APPCOMPAT_VERSION_BIT_VISTA,
+    APPCOMPAT_VERSION_BIT_VISTASP1,
+    APPCOMPAT_VERSION_BIT_VISTASP2,
+    APPCOMPAT_VERSION_BIT_WIN7,
+    APPCOMPAT_VERSION_BIT_WIN8,
+    APPCOMPAT_VERSION_BIT_WIN81,
+    APPCOMPAT_VERSION_BIT_WIN10,
+    APPCOMPAT_VERSION_BIT_WIN10TH1,
+    APPCOMPAT_VERSION_BIT_WIN10TH2,
+    APPCOMPAT_VERSION_BIT_WIN10RS1,
+    APPCOMPAT_VERSION_BIT_WIN10RS2,
+    APPCOMPAT_VERSION_BIT_WIN10RS3,
+    APPCOMPAT_VERSION_BIT_WIN10RS4,
+    APPCOMPAT_VERSION_BIT_WIN10RS5,
+} APPCOMPAT_VERSION_BIT;
+
+unsigned
+GetVersionMask(EXPORT *pexp)
+{
+    unsigned uMask = 0;
+    if ((pexp->nStartVersion <= 0x400) && (pexp->nEndVersion >= 0x400))
+        uMask |= APPCOMPAT_VERSION_BIT_NT4;
+    if ((pexp->nStartVersion <= 0x500) && (pexp->nEndVersion >= 0x500))
+        uMask |= APPCOMPAT_VERSION_BIT_WIN2K;
+    if ((pexp->nStartVersion <= 0x501) && (pexp->nEndVersion >= 0x501))
+        uMask |= APPCOMPAT_VERSION_BIT_WINXP;
+    if ((pexp->nStartVersion <= 0x502) && (pexp->nEndVersion >= 0x502))
+        uMask |= APPCOMPAT_VERSION_BIT_WS03;
+    if ((pexp->nStartVersion <= 0x600) && (pexp->nEndVersion >= 0x600))
+        uMask |= APPCOMPAT_VERSION_BIT_VISTA;
+    if ((pexp->nStartVersion <= 0x601) && (pexp->nEndVersion >= 0x601))
+        uMask |= APPCOMPAT_VERSION_BIT_WIN7;
+    if ((pexp->nStartVersion <= 0x602) && (pexp->nEndVersion >= 0x602))
+        uMask |= APPCOMPAT_VERSION_BIT_WIN8;
+    if ((pexp->nStartVersion <= 0x603) && (pexp->nEndVersion >= 0x603))
+        uMask |= APPCOMPAT_VERSION_BIT_WIN81;
+    if ((pexp->nStartVersion <= 0xA00) && (pexp->nEndVersion >= 0xA00))
+        uMask |= APPCOMPAT_VERSION_BIT_WIN10;
+    return uMask;
+}
+
+void
+OutputHeader_stub_2(FILE *fileDest)
+{
+    fprintf(fileDest,
+            "#if defined(_MSC_VER)\n"
+            "#pragma section(\".asmdef\")\n"
+            "__declspec(allocate(\".asmdef\"))\n"
+            "#elif defined(__GNUC__)\n"
+            "__attribute__ ((section(\".asmdef\")))\n"
+            "#else\n"
+            "#error Your compiler is not supported.\n"
+            "#endif\n"
+            "unsigned int __appcompat_export_bitmap__[] =\n{\n");
+}
+
 int main(int argc, char *argv[])
 {
     size_t nFileSize;
@@ -1467,6 +1529,13 @@ int main(int argc, char *argv[])
                 OutputLine_stub(file, &pexports[i]);
         }
 
+        OutputHeader_stub_2(file);
+        for (i = 0; i < cExports; i++)
+        {
+            fprintf(file, "    0x%08x,\n", GetVersionMask(&pexports[i]));
+        }
+        fprintf(file, "};\n");
+
         fclose(file);
     }
 
@@ -1484,7 +1553,7 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < cExports; i++)
         {
-            if (pexports[i].bVersionIncluded)
+            //if (pexports[i].bVersionIncluded)
                 OutputLine_asmstub(file, &pexports[i]);
         }
 

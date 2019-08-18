@@ -1422,5 +1422,6 @@
 @ stdcall -arch=arm __rt_udiv()
 @ stdcall -arch=arm __rt_udiv64()
 @ stdcall -arch=arm __rt_srsh()
-@ stdcall -stub -version=0x700 A_SHAFinal()
 
+# Vista+ exports here for now
+@ stdcall -stub -version=0x700 A_SHAFinal()
