@@ -1324,10 +1324,10 @@ OutputHeader_stub_2(FILE *fileDest)
 {
     fprintf(fileDest,
             "#if defined(_MSC_VER)\n"
-            "#pragma section(\".asmdef\")\n"
-            "__declspec(allocate(\".appcompat_export_bitmap\"))\n"
+            "#pragma section(\".expvers\")\n"
+            "__declspec(allocate(\".expvers\"))\n"
             "#elif defined(__GNUC__)\n"
-            "__attribute__ ((section(\".appcompat_export_bitmap\")))\n"
+            "__attribute__ ((section(\".expvers\")))\n"
             "#else\n"
             "#error Your compiler is not supported (fix in spec2def).\n"
             "#endif\n"

@@ -19,6 +19,9 @@
 
 #define REPARSE_DATA_BUFFER_HEADER_SIZE   FIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
 
+extern unsigned int __appcompat_export_bitmap__[];
+unsigned int *p__appcompat_export_bitmap__ = __appcompat_export_bitmap__;
+
 #if _WIN32_WINNT >= 0x600
 
 /* FIXME: Move these RTL declarations to the NDK */
