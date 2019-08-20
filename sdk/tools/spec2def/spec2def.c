@@ -36,8 +36,8 @@ typedef struct
 void
 PrintExport(EXPORT *pexp)
 {
-    fprintf(stderr, "strName='%*.s'\n", pexp->strName.len, pexp->strName.buf);
-    fprintf(stderr, "strName='%*.s'\n", pexp->strTarget.len, pexp->strTarget.buf);
+    fprintf(stderr, "strName='%.*s'\n", pexp->strName.len, pexp->strName.buf);
+    fprintf(stderr, "strName='%.*s'\n", pexp->strTarget.len, pexp->strTarget.buf);
     fprintf(stderr, "nCallingConvention=%u\n", pexp->nCallingConvention);
     fprintf(stderr, "nOrdinal=%u\n", pexp->nOrdinal);
     fprintf(stderr, "nStackBytes=%u\n", pexp->nStackBytes);
@@ -114,19 +114,19 @@ typedef enum _APPCOMPAT_VERSION_BIT
     APPCOMPAT_VERSION_BIT_WINXP,
     APPCOMPAT_VERSION_BIT_WS03,
     APPCOMPAT_VERSION_BIT_VISTA,
-    APPCOMPAT_VERSION_BIT_VISTASP1,
-    APPCOMPAT_VERSION_BIT_VISTASP2,
+    //APPCOMPAT_VERSION_BIT_VISTASP1,
+    //APPCOMPAT_VERSION_BIT_VISTASP2,
     APPCOMPAT_VERSION_BIT_WIN7,
     APPCOMPAT_VERSION_BIT_WIN8,
     APPCOMPAT_VERSION_BIT_WIN81,
     APPCOMPAT_VERSION_BIT_WIN10,
-    APPCOMPAT_VERSION_BIT_WIN10TH1,
-    APPCOMPAT_VERSION_BIT_WIN10TH2,
-    APPCOMPAT_VERSION_BIT_WIN10RS1,
-    APPCOMPAT_VERSION_BIT_WIN10RS2,
-    APPCOMPAT_VERSION_BIT_WIN10RS3,
-    APPCOMPAT_VERSION_BIT_WIN10RS4,
-    APPCOMPAT_VERSION_BIT_WIN10RS5,
+    //APPCOMPAT_VERSION_BIT_WIN10TH1,
+    //APPCOMPAT_VERSION_BIT_WIN10TH2,
+    //APPCOMPAT_VERSION_BIT_WIN10RS1,
+    //APPCOMPAT_VERSION_BIT_WIN10RS2,
+    //APPCOMPAT_VERSION_BIT_WIN10RS3,
+    //APPCOMPAT_VERSION_BIT_WIN10RS4,
+    //APPCOMPAT_VERSION_BIT_WIN10RS5,
 } APPCOMPAT_VERSION_BIT;
 
 unsigned
@@ -134,23 +134,23 @@ GetVersionMask(unsigned uStartVersion, unsigned uEndVersion)
 {
     unsigned uMask = 0;
     if ((uStartVersion <= 0x400) && (uEndVersion >= 0x400))
-        uMask |= APPCOMPAT_VERSION_BIT_NT4;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_NT4);
     if ((uStartVersion <= 0x500) && (uEndVersion >= 0x500))
-        uMask |= APPCOMPAT_VERSION_BIT_WIN2K;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN2K);
     if ((uStartVersion <= 0x501) && (uEndVersion >= 0x501))
-        uMask |= APPCOMPAT_VERSION_BIT_WINXP;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WINXP);
     if ((uStartVersion <= 0x502) && (uEndVersion >= 0x502))
-        uMask |= APPCOMPAT_VERSION_BIT_WS03;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WS03);
     if ((uStartVersion <= 0x600) && (uEndVersion >= 0x600))
-        uMask |= APPCOMPAT_VERSION_BIT_VISTA;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_VISTA);
     if ((uStartVersion <= 0x601) && (uEndVersion >= 0x601))
-        uMask |= APPCOMPAT_VERSION_BIT_WIN7;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN7);
     if ((uStartVersion <= 0x602) && (uEndVersion >= 0x602))
-        uMask |= APPCOMPAT_VERSION_BIT_WIN8;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN8);
     if ((uStartVersion <= 0x603) && (uEndVersion >= 0x603))
-        uMask |= APPCOMPAT_VERSION_BIT_WIN81;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN81);
     if ((uStartVersion <= 0xA00) && (uEndVersion >= 0xA00))
-        uMask |= APPCOMPAT_VERSION_BIT_WIN10;
+        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN10);
     return uMask;
 }
 
@@ -1319,10 +1319,43 @@ void usage(void)
            "  --with-tracing          generate wine-like \"+relay\" trace trampolines (needs -s)\n");
 }
 
-void
-OutputHeader_stub_2(FILE *fileDest)
+int CompareExports(const void* pLeft,const void* pRight)
 {
-    fprintf(fileDest,
+    EXPORT *pexpLeft = (EXPORT*)pLeft;
+    EXPORT *pexpRight = (EXPORT*)pRight;
+    int result = strncmp(pexpLeft->strName.buf,
+                         pexpRight->strName.buf,
+                         min(pexpLeft->strName.len,
+                             pexpRight->strName.len));
+    if (result == 0)
+    {
+        return (pexpLeft->strName.len < pexpRight->strName.len) ? -1 : 1;
+    }
+
+    return result;
+}
+
+void
+Output_Appcompat(FILE *file, EXPORT *pexports, unsigned int cExports)
+{
+    unsigned int i;
+
+    /// HACK: should make a copy
+    qsort(pexports, cExports, sizeof(EXPORT), CompareExports);
+
+    fprintf(file, "unsigned int __appcompat_export_bitmap__[] =\n{\n");
+    
+    for (i = 0; i < cExports; i++)
+    {
+        fprintf(file,
+                "    0x%08x, // %.*s\n",
+                pexports[i].uVersionMask,
+                pexports[i].strName.len,
+                pexports[i].strName.buf);
+    }
+
+    fprintf(file,
+            "};\n"
             "#if defined(_MSC_VER)\n"
             "#pragma section(\".expvers\")\n"
             "__declspec(allocate(\".expvers\"))\n"
@@ -1331,7 +1364,11 @@ OutputHeader_stub_2(FILE *fileDest)
             "#else\n"
             "#error Your compiler is not supported (fix in spec2def).\n"
             "#endif\n"
-            "unsigned int __appcompat_export_bitmap__[] =\n{\n");
+            "struct { unsigned int * Bitmap; unsigned int Size; } __appcompat_descriptor__ = \n"
+            "{\n"
+            "    __appcompat_export_bitmap__,\n"
+            "    sizeof(__appcompat_export_bitmap__) / sizeof(__appcompat_export_bitmap__[0])\n"
+            "};\n");
 }
 
 int main(int argc, char *argv[])
@@ -1527,13 +1564,7 @@ int main(int argc, char *argv[])
                 OutputLine_stub(file, &pexports[i]);
         }
 
-        OutputHeader_stub_2(file);
-        for (i = 0; i < cExports; i++)
-        {
-            fprintf(file, "    0x%08x,\n", pexports[i].uVersionMask);
-        }
-        fprintf(file,
-                "};\n");
+        Output_Appcompat(file, pexports, cExports);
 
         fclose(file);
     }

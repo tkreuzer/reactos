@@ -1565,10 +1565,11 @@ LdrpInitializeProcessCompat(PVOID* pOldShimData)
         if (pShimData->dwRosProcessCompatVersion)
         {
             DPRINT1("LdrpInitializeProcessCompat: ProcessCompatVersion already set to 0x%x\n", pShimData->dwRosProcessCompatVersion);
-            RosApplyAppcompatExportHacks(&__ImageBase);
             return;
         }
     }
+
+    RosApplyAppcompatExportHacks(&__ImageBase);
 
     SizeRequired = sizeof(Buffer);
     Status = RtlQueryInformationActivationContext(RTL_QUERY_ACTIVATION_CONTEXT_FLAG_NO_ADDREF,

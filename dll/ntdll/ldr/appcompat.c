@@ -23,29 +23,32 @@ typedef enum _APPCOMPAT_VERSION_BIT
     APPCOMPAT_VERSION_BIT_WINXP,
     APPCOMPAT_VERSION_BIT_WS03,
     APPCOMPAT_VERSION_BIT_VISTA,
-    APPCOMPAT_VERSION_BIT_VISTASP1,
-    APPCOMPAT_VERSION_BIT_VISTASP2,
+    //APPCOMPAT_VERSION_BIT_VISTASP1,
+    //APPCOMPAT_VERSION_BIT_VISTASP2,
     APPCOMPAT_VERSION_BIT_WIN7,
     APPCOMPAT_VERSION_BIT_WIN8,
     APPCOMPAT_VERSION_BIT_WIN81,
     APPCOMPAT_VERSION_BIT_WIN10,
-    APPCOMPAT_VERSION_BIT_WIN10TH1,
-    APPCOMPAT_VERSION_BIT_WIN10TH2,
-    APPCOMPAT_VERSION_BIT_WIN10RS1,
-    APPCOMPAT_VERSION_BIT_WIN10RS2,
-    APPCOMPAT_VERSION_BIT_WIN10RS3,
-    APPCOMPAT_VERSION_BIT_WIN10RS4,
-    APPCOMPAT_VERSION_BIT_WIN10RS5,
+    //APPCOMPAT_VERSION_BIT_WIN10TH1,
+    //APPCOMPAT_VERSION_BIT_WIN10TH2,
+    //APPCOMPAT_VERSION_BIT_WIN10RS1,
+    //APPCOMPAT_VERSION_BIT_WIN10RS2,
+    //APPCOMPAT_VERSION_BIT_WIN10RS3,
+    //APPCOMPAT_VERSION_BIT_WIN10RS4,
+    //APPCOMPAT_VERSION_BIT_WIN10RS5,
 } APPCOMPAT_VERSION_BIT;
 
-typedef struct _APPCOMAT_EXPORT_ENTRY
+typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
 {
-    ULONG VersionMask;
-    USHORT NameOrdinal;
-} APPCOMAT_EXPORT_ENTRY, *PAPPCOMAT_EXPORT_ENTRY;
+    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
+    unsigned int NumberOfExportNames;
+} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
 
-extern unsigned int __appcompat_export_bitmap__[];
-unsigned int *p__appcompat_export_bitmap__ = __appcompat_export_bitmap__;
+//typedef struct _APPCOMAT_EXPORT_ENTRY
+//{
+//    ULONG VersionMask;
+//    USHORT NameOrdinal;
+//} APPCOMAT_EXPORT_ENTRY, *PAPPCOMAT_EXPORT_ENTRY;
 
 DWORD
 NTAPI
@@ -114,20 +117,7 @@ TranslateAppcompatVersionToVersionBit(
     return APPCOMPAT_VERSION_BIT_WS03;
 }
 
-typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
-{
-    unsigned int NumberOfExportNames;
-    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
-} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
 
-//extern unsigned int __appcompat_export_bitmap__[];
-//extern unsigned int __appcompat_export_bitmap_length__;
-
-//LDRP_APPCOMPAT_DESCRIPTOR HackAppcompatDescriptor =
-//{
-//    &__appcompat_export_bitmap_length__, // NumberOfExportNames
-//    __appcompat_export_bitmap__
-//};
 
 PIMAGE_SECTION_HEADER
 LdrpFindSectionByName(
@@ -168,6 +158,21 @@ LdrpSectionHeaderToVAAndSize(
     return (PVOID)((PUCHAR)ImageBase + SectionHeader->VirtualAddress);
 }
 
+PLDRP_APPCOMPAT_DESCRIPTOR
+FindAppCompatDescriptor(
+    _In_ PVOID ImageBase)
+{
+    PIMAGE_SECTION_HEADER SectionHeader;
+
+    SectionHeader = LdrpFindSectionByName(ImageBase, ".expvers");
+    if (SectionHeader == NULL)
+    {
+        return NULL;
+    }
+
+    return (PLDRP_APPCOMPAT_DESCRIPTOR)((PUCHAR)ImageBase + SectionHeader->VirtualAddress);
+}
+
 static
 NTSTATUS
 GetExportNameVersionTable(
@@ -175,16 +180,16 @@ GetExportNameVersionTable(
     _Out_ PULONG *Table,
     _Out_ PULONG NumberOfEntries)
 {
-    PIMAGE_SECTION_HEADER SectionHeader;
+    PLDRP_APPCOMPAT_DESCRIPTOR AppcompatDescriptor;
 
-    SectionHeader = LdrpFindSectionByName(ImageBase, ".expvers");
-    if (SectionHeader == NULL)
+    AppcompatDescriptor = FindAppCompatDescriptor(ImageBase);
+    if (AppcompatDescriptor == NULL)
     {
         return STATUS_NOT_FOUND;
     }
 
-    *NumberOfEntries = SectionHeader->SizeOfRawData / sizeof(ULONG);
-    *Table = (PULONG)((PUCHAR)ImageBase + SectionHeader->VirtualAddress);
+    *NumberOfEntries = AppcompatDescriptor->NumberOfExportNames;
+    *Table = AppcompatDescriptor->ExportNameBitmaps;
 
     return STATUS_SUCCESS;
 }
@@ -204,6 +209,7 @@ PatchExportTable(
 {
     PIMAGE_EXPORT_DIRECTORY ExportDirectory;
     ULONG ExportDirectorySize, i, j, OldProtect;
+    PVOID ProtectAddress;
     SIZE_T ProtectSize;
     PULONG NameTable, FunctionTable;
     PUSHORT OrdinalTable;
@@ -223,9 +229,10 @@ PatchExportTable(
     ASSERT(AppCompatDescriptor->NumberOfExportNames == ExportDirectory->NumberOfNames);
 
     /* Unprotect the export directory */
+    ProtectAddress = ExportDirectory;
     ProtectSize = ExportDirectorySize;
     Status = NtProtectVirtualMemory(NtCurrentProcess(),
-                                    (PVOID*)&ExportDirectory,
+                                    &ProtectAddress,
                                     &ProtectSize,
                                     PAGE_READWRITE,
                                     &OldProtect);
@@ -249,6 +256,10 @@ PatchExportTable(
     /* Strip unused entries from the name and ordinal table */
     for (i = 0, j = 0; i < AppCompatDescriptor->NumberOfExportNames; i++)
     {
+        //DbgPrint("    0x%08x, // %s\n",
+        //         AppCompatDescriptor->ExportNameBitmaps[i],
+        //         (char*)DllBase + NameTable[i]);
+            
         if (AppCompatDescriptor->ExportNameBitmaps[i] & VersionMask)
         {
             NameTable[j] = NameTable[i];
@@ -305,11 +316,9 @@ RosApplyAppcompatExportHacks(PVOID DllBase)
 {
     DWORD AppcompatVersion;
     APPCOMPAT_VERSION_BIT VersionBit;
-    LDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor;
-    PULONG ExportNameVersionTable;
-    ULONG TableEntryCount;
-    NTSTATUS Status;
-    __debugbreak();
+    PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor;
+
+    //__debugbreak();
     /* Get the AppCompat version */
     AppcompatVersion = RosGetProcessCompatVersion();
     if (AppcompatVersion == 0)
@@ -318,31 +327,17 @@ RosApplyAppcompatExportHacks(PVOID DllBase)
         AppcompatVersion = _WIN32_WINNT_WS03;
     }
 
-    // Maybe apply to PEB/TEB?
-#if 0
-    /* Locate the AppCompat section */
-    AppCompatDescriptor = LocateAppcompatDescriptor(DllBase);
+    /* Get the appcompat descriptor */
+    AppCompatDescriptor = FindAppCompatDescriptor(DllBase);
     if (AppCompatDescriptor == NULL)
     {
-        return STATUS_UNSUCCESSFUL;
-    }
-#endif
-
-    Status = GetExportNameVersionTable(DllBase,
-                                       &ExportNameVersionTable,
-                                       &TableEntryCount);
-    if (!NT_SUCCESS(Status))
-    {
-        return Status;
+        return STATUS_NOT_FOUND;
     }
 
     // translate to appcompat bit
     VersionBit = TranslateAppcompatVersionToVersionBit(AppcompatVersion);
 
-    AppCompatDescriptor.ExportNameBitmaps = ExportNameVersionTable;
-    AppCompatDescriptor.NumberOfExportNames = TableEntryCount;
-
-    PatchExportTable(DllBase, &AppCompatDescriptor, 1 << VersionBit);
+    PatchExportTable(DllBase, AppCompatDescriptor, 1 << VersionBit);
 
     return STATUS_SUCCESS;
 }
