@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
+#include <roscompat.h>
 
 #ifdef _MSC_VER
 #define strcasecmp(_String1, _String2) _stricmp(_String1, _String2)
@@ -107,50 +108,28 @@ enum
     ARG_FLOAT
 };
 
-typedef enum _APPCOMPAT_VERSION_BIT
-{
-    APPCOMPAT_VERSION_BIT_NT4,
-    APPCOMPAT_VERSION_BIT_WIN2K,
-    APPCOMPAT_VERSION_BIT_WINXP,
-    APPCOMPAT_VERSION_BIT_WS03,
-    APPCOMPAT_VERSION_BIT_VISTA,
-    //APPCOMPAT_VERSION_BIT_VISTASP1,
-    //APPCOMPAT_VERSION_BIT_VISTASP2,
-    APPCOMPAT_VERSION_BIT_WIN7,
-    APPCOMPAT_VERSION_BIT_WIN8,
-    APPCOMPAT_VERSION_BIT_WIN81,
-    APPCOMPAT_VERSION_BIT_WIN10,
-    //APPCOMPAT_VERSION_BIT_WIN10TH1,
-    //APPCOMPAT_VERSION_BIT_WIN10TH2,
-    //APPCOMPAT_VERSION_BIT_WIN10RS1,
-    //APPCOMPAT_VERSION_BIT_WIN10RS2,
-    //APPCOMPAT_VERSION_BIT_WIN10RS3,
-    //APPCOMPAT_VERSION_BIT_WIN10RS4,
-    //APPCOMPAT_VERSION_BIT_WIN10RS5,
-} APPCOMPAT_VERSION_BIT;
-
 unsigned
 GetVersionMask(unsigned uStartVersion, unsigned uEndVersion)
 {
     unsigned uMask = 0;
     if ((uStartVersion <= 0x400) && (uEndVersion >= 0x400))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_NT4);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_NT4);
     if ((uStartVersion <= 0x500) && (uEndVersion >= 0x500))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN2K);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WIN2K);
     if ((uStartVersion <= 0x501) && (uEndVersion >= 0x501))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WINXP);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WINXP);
     if ((uStartVersion <= 0x502) && (uEndVersion >= 0x502))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WS03);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WS03);
     if ((uStartVersion <= 0x600) && (uEndVersion >= 0x600))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_VISTA);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_VISTA);
     if ((uStartVersion <= 0x601) && (uEndVersion >= 0x601))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN7);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WIN7);
     if ((uStartVersion <= 0x602) && (uEndVersion >= 0x602))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN8);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WIN8);
     if ((uStartVersion <= 0x603) && (uEndVersion >= 0x603))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN81);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WIN81);
     if ((uStartVersion <= 0xA00) && (uEndVersion >= 0xA00))
-        uMask |= (1 << APPCOMPAT_VERSION_BIT_WIN10);
+        uMask |= (1 << ROSCOMPAT_VERSION_BIT_WIN10);
     return uMask;
 }
 
@@ -1336,14 +1315,14 @@ int CompareExports(const void* pLeft,const void* pRight)
 }
 
 void
-Output_Appcompat(FILE *file, EXPORT *pexports, unsigned int cExports)
+Output_RosCompatDescriptor(FILE *file, EXPORT *pexports, unsigned int cExports)
 {
     unsigned int i;
 
     /// HACK: should make a copy
     qsort(pexports, cExports, sizeof(EXPORT), CompareExports);
 
-    fprintf(file, "unsigned int __appcompat_export_bitmap__[] =\n{\n");
+    fprintf(file, "ULONG __roscompat_export_masks__[] =\n{\n");
     
     for (i = 0; i < cExports; i++)
     {
@@ -1364,10 +1343,10 @@ Output_Appcompat(FILE *file, EXPORT *pexports, unsigned int cExports)
             "#else\n"
             "#error Your compiler is not supported (fix in spec2def).\n"
             "#endif\n"
-            "struct { unsigned int * Bitmap; unsigned int Size; } __appcompat_descriptor__ = \n"
+            "ROSCOMPAT_DESCRIPTOR __roscompat_descriptor__ = \n"
             "{\n"
-            "    __appcompat_export_bitmap__,\n"
-            "    sizeof(__appcompat_export_bitmap__) / sizeof(__appcompat_export_bitmap__[0])\n"
+            "    __roscompat_export_masks__,\n"
+            "    sizeof(__roscompat_export_masks__) / sizeof(__roscompat_export_masks__[0])\n"
             "};\n");
 }
 
@@ -1564,7 +1543,7 @@ int main(int argc, char *argv[])
                 OutputLine_stub(file, &pexports[i]);
         }
 
-        Output_Appcompat(file, pexports, cExports);
+        Output_RosCompatDescriptor(file, pexports, cExports);
 
         fclose(file);
     }

@@ -161,7 +161,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
             /* Snap the thunk */
             _SEH2_TRY
             {
-                Status = LdrpSnapThunk(ExportLdrEntry->DllBase,
+                Status = LdrpSnapThunk(ExportLdrEntry,
                                        ImportLdrEntry->DllBase,
                                        OriginalThunk,
                                        FirstThunk,
@@ -220,7 +220,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
             /* Snap the Thunk */
             _SEH2_TRY
             {
-                Status = LdrpSnapThunk(ExportLdrEntry->DllBase,
+                Status = LdrpSnapThunk(ExportLdrEntry,
                                        ImportLdrEntry->DllBase,
                                        OriginalThunk,
                                        FirstThunk,
@@ -1026,14 +1026,14 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
 
             if ((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions)
             {
-                PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor;
+                PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
                 __debugbreak();
 
-                AppCompatDescriptor = ExportLdrEntry->PatchInformation;
-                if (AppCompatDescriptor != NULL)
+                RosCompatDescriptor = ExportLdrEntry->PatchInformation;
+                if (RosCompatDescriptor != NULL)
                 {
                     Ordinal = LdrpNameToOrdinal(ImportName,
-                                                AppCompatDescriptor->NumberOfExportNames - ExportDirectory->NumberOfNames,
+                                                RosCompatDescriptor->NumberOfExportNames - ExportDirectory->NumberOfNames,
                                                 ExportLdrEntry->DllBase,
                                                 NameTable + ExportDirectory->NumberOfNames,
                                                 OrdinalTable + ExportDirectory->NumberOfNames);

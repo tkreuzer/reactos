@@ -16,6 +16,8 @@ if(MSVC)
     add_compile_flags("/wd4267")
 endif()
 
+include_directories(${REACTOS_SOURCE_DIR}/sdk/include/reactos)
+
 add_host_tool(bin2c bin2c.c)
 add_host_tool(gendib gendib/gendib.c)
 add_host_tool(geninc geninc/geninc.c)

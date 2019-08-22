@@ -11,38 +11,10 @@
 #include <ntdll.h>
 #include <compat_undoc.h>
 #include <compatguid_undoc.h>
+#include <roscompat.h>
 
 #define NDEBUG
 #include <debug.h>
-
-
-typedef enum _APPCOMPAT_VERSION_BIT
-{
-    APPCOMPAT_VERSION_BIT_NT4,
-    APPCOMPAT_VERSION_BIT_WIN2K,
-    APPCOMPAT_VERSION_BIT_WINXP,
-    APPCOMPAT_VERSION_BIT_WS03,
-    APPCOMPAT_VERSION_BIT_VISTA,
-    //APPCOMPAT_VERSION_BIT_VISTASP1,
-    //APPCOMPAT_VERSION_BIT_VISTASP2,
-    APPCOMPAT_VERSION_BIT_WIN7,
-    APPCOMPAT_VERSION_BIT_WIN8,
-    APPCOMPAT_VERSION_BIT_WIN81,
-    APPCOMPAT_VERSION_BIT_WIN10,
-    //APPCOMPAT_VERSION_BIT_WIN10TH1,
-    //APPCOMPAT_VERSION_BIT_WIN10TH2,
-    //APPCOMPAT_VERSION_BIT_WIN10RS1,
-    //APPCOMPAT_VERSION_BIT_WIN10RS2,
-    //APPCOMPAT_VERSION_BIT_WIN10RS3,
-    //APPCOMPAT_VERSION_BIT_WIN10RS4,
-    //APPCOMPAT_VERSION_BIT_WIN10RS5,
-} APPCOMPAT_VERSION_BIT;
-
-//typedef struct _APPCOMAT_EXPORT_ENTRY
-//{
-//    ULONG VersionMask;
-//    USHORT NameOrdinal;
-//} APPCOMAT_EXPORT_ENTRY, *PAPPCOMAT_EXPORT_ENTRY;
 
 DWORD
 NTAPI
@@ -62,67 +34,48 @@ RosGetProcessCompatVersion(VOID)
 }
 
 static
-APPCOMPAT_VERSION_BIT
+ROSCOMPAT_VERSION_BIT
 TranslateAppcompatVersionToVersionBit(
     _In_ DWORD AppcompatVersion)
 {
     switch (AppcompatVersion)
     {
         case _WIN32_WINNT_NT4:
-            return APPCOMPAT_VERSION_BIT_NT4;
+            return ROSCOMPAT_VERSION_BIT_NT4;
         case _WIN32_WINNT_WIN2K:
-            return APPCOMPAT_VERSION_BIT_WIN2K;
+            return ROSCOMPAT_VERSION_BIT_WIN2K;
         case _WIN32_WINNT_WINXP:
-            return APPCOMPAT_VERSION_BIT_WINXP;
+            return ROSCOMPAT_VERSION_BIT_WINXP;
         case _WIN32_WINNT_WS03:
-            return APPCOMPAT_VERSION_BIT_WS03;
+            return ROSCOMPAT_VERSION_BIT_WS03;
         case _WIN32_WINNT_VISTA:
-            return APPCOMPAT_VERSION_BIT_VISTA;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_VISTASP1;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_VISTASP2;
+            return ROSCOMPAT_VERSION_BIT_VISTA;
         case _WIN32_WINNT_WIN7:
-            return APPCOMPAT_VERSION_BIT_WIN7;
+            return ROSCOMPAT_VERSION_BIT_WIN7;
         case _WIN32_WINNT_WIN8:
-            return APPCOMPAT_VERSION_BIT_WIN8;
+            return ROSCOMPAT_VERSION_BIT_WIN8;
         case _WIN32_WINNT_WINBLUE:
-            return APPCOMPAT_VERSION_BIT_WIN81;
+            return ROSCOMPAT_VERSION_BIT_WIN81;
         case _WIN32_WINNT_WIN10:
-            return APPCOMPAT_VERSION_BIT_WIN10;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10TH1;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10TH2;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10RS1;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10RS2;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10RS3;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10RS4;
-        //case 0x500:
-        //    return APPCOMPAT_VERSION_BIT_WIN10RS5;
+            return ROSCOMPAT_VERSION_BIT_WIN10;
         default:
             ASSERT(FALSE);
     }
 
-    return APPCOMPAT_VERSION_BIT_WS03;
+    return ROSCOMPAT_VERSION_BIT_WS03;
 }
-
-
 
 PIMAGE_SECTION_HEADER
 LdrpFindSectionByName(
     PVOID ImageBase,
-    PSTR SectionName
-    )
+    PSTR SectionName)
 {
     PIMAGE_NT_HEADERS NtHeaders;
     PIMAGE_SECTION_HEADER SectionHeaders;
+    SIZE_T NameLength;
     ULONG i;
 
+    /* Get the NT headers */
     NtHeaders = RtlImageNtHeader(ImageBase);
     if (NtHeaders == NULL)
     {
@@ -131,12 +84,24 @@ LdrpFindSectionByName(
 
     SectionHeaders = IMAGE_FIRST_SECTION(NtHeaders);
 
-    for (i = 0; i < NtHeaders->FileHeader.NumberOfSections; i++)
+    /* Check for long section name */
+    NameLength = strlen(SectionName);
+    if (NameLength <= IMAGE_SIZEOF_SHORT_NAME)
     {
-        if (strncmp(SectionHeaders[i].Name, SectionName, IMAGE_SIZEOF_SHORT_NAME) == 0)
+        /* Loop the sections until we found the requested one */
+        for (i = 0; i < NtHeaders->FileHeader.NumberOfSections; i++)
         {
-            return &SectionHeaders[i];
+            /* Directly compare names */
+            if (strncmp(SectionHeaders[i].Name, SectionName, IMAGE_SIZEOF_SHORT_NAME) == 0)
+            {
+                return &SectionHeaders[i];
+            }
         }
+    }
+    else
+    {
+        // FIXME: support long section names
+        ASSERT(FALSE);
     }
 
     return NULL;
@@ -152,8 +117,8 @@ LdrpSectionHeaderToVAAndSize(
     return (PVOID)((PUCHAR)ImageBase + SectionHeader->VirtualAddress);
 }
 
-PLDRP_APPCOMPAT_DESCRIPTOR
-FindAppCompatDescriptor(
+PROSCOMPAT_DESCRIPTOR
+FindRosCompatDescriptor(
     _In_ PVOID ImageBase)
 {
     PIMAGE_SECTION_HEADER SectionHeader;
@@ -164,7 +129,7 @@ FindAppCompatDescriptor(
         return NULL;
     }
 
-    return (PLDRP_APPCOMPAT_DESCRIPTOR)((PUCHAR)ImageBase + SectionHeader->VirtualAddress);
+    return (PROSCOMPAT_DESCRIPTOR)((PUCHAR)ImageBase + SectionHeader->VirtualAddress);
 }
 
 static
@@ -174,16 +139,16 @@ GetExportNameVersionTable(
     _Out_ PULONG *Table,
     _Out_ PULONG NumberOfEntries)
 {
-    PLDRP_APPCOMPAT_DESCRIPTOR AppcompatDescriptor;
+    PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
 
-    AppcompatDescriptor = FindAppCompatDescriptor(ImageBase);
-    if (AppcompatDescriptor == NULL)
+    RosCompatDescriptor = FindRosCompatDescriptor(ImageBase);
+    if (RosCompatDescriptor == NULL)
     {
         return STATUS_NOT_FOUND;
     }
 
-    *NumberOfEntries = AppcompatDescriptor->NumberOfExportNames;
-    *Table = AppcompatDescriptor->ExportNameBitmaps;
+    *NumberOfEntries = RosCompatDescriptor->NumberOfExportNames;
+    *Table = RosCompatDescriptor->ExportNameMasks;
 
     return STATUS_SUCCESS;
 }
@@ -198,14 +163,20 @@ static
 VOID
 LdrpPatchExportNameTable(
     _In_ PVOID DllBase,
-    _In_ PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor,
-    _Inout_ PVOID ExportDirectory)
+    _In_ PROSCOMPAT_DESCRIPTOR RosCompatDescriptor,
+    _Inout_ PIMAGE_EXPORT_DIRECTORY ExportDirectory,
+    _In_ DWORD AppCompatVersion)
 {
+    ULONG VersionMask;
     PULONG NameTable;
     PUSHORT OrdinalTable;
     ULONG i, j;
     ULONG OldName;
     USHORT OldOrd;
+
+    /* Translate to version mask */
+    VersionMask = 1 << TranslateAppcompatVersionToVersionBit(AppCompatVersion);
+    ASSERT(IsPowerOfTwo(VersionMask));
 
     /* Get the VA of the name table */
     NameTable = (PULONG)((ULONG_PTR)DllBase +
@@ -215,11 +186,11 @@ LdrpPatchExportNameTable(
         (ULONG_PTR)ExportDirectory->AddressOfNameOrdinals);
 
     /* Strip unused entries from the name and ordinal table */
-    for (i = 0, j = 0; i < AppCompatDescriptor->NumberOfExportNames; i++)
+    for (i = 0, j = 0; i < RosCompatDescriptor->NumberOfExportNames; i++)
     {
 
         //DbgPrint("    0x%08x, // %s\n",
-        //         AppCompatDescriptor->ExportNameBitmaps[i],
+        //         RosCompatDescriptor->ExportNameMasks[i],
         //         (char*)DllBase + NameTable[i]);
 
         /* Exchange both fields. This algorithm results in moving the
@@ -232,7 +203,7 @@ LdrpPatchExportNameTable(
         OrdinalTable[j] = OrdinalTable[i];
         OrdinalTable[i] = OldOrd;
 
-        if (AppCompatDescriptor->ExportNameBitmaps[i] & VersionMask)
+        if (RosCompatDescriptor->ExportNameMasks[i] & VersionMask)
         {
             j++;
         }
@@ -246,8 +217,8 @@ static
 NTSTATUS
 LdrpPatchExportTable(
     _In_ PVOID DllBase,
-    _In_ PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor,
-    _In_ DWORD AppcompatVersion
+    _In_ PROSCOMPAT_DESCRIPTOR RosCompatDescriptor,
+    _In_ DWORD AppCompatVersion
     )
 {
     PIMAGE_EXPORT_DIRECTORY ExportDirectory;
@@ -256,15 +227,8 @@ LdrpPatchExportTable(
     SIZE_T ProtectSize;
     PULONG FunctionTable;
     NTSTATUS Status;
-    APPCOMPAT_VERSION_BIT VersionBit;
-    ULONG VersionMask;
 
     //__debugbreak();
-
-    /* Translate to appcompat bit */
-    VersionBit = TranslateAppcompatVersionToVersionBit(AppcompatVersion);
-    VersionMask = 1 << VersionBit;
-    ASSERT(IsPowerOfTwo(VersionMask));
 
     /* Get export directory */
     ExportDirectory = RtlImageDirectoryEntryToData(DllBase,
@@ -276,7 +240,7 @@ LdrpPatchExportTable(
         return STATUS_INVALID_IMAGE_FORMAT;
     }
 
-    ASSERT(AppCompatDescriptor->NumberOfExportNames == ExportDirectory->NumberOfNames);
+    ASSERT(RosCompatDescriptor->NumberOfExportNames == ExportDirectory->NumberOfNames);
 
     /* Unprotect the export directory */
     ProtectAddress = ExportDirectory;
@@ -296,7 +260,7 @@ LdrpPatchExportTable(
     }
 
     /* Patch the export name and ordinal table */
-    LdrpPatchExportNameTable(DllBase, AppCompatDescriptor, ExportDirectory);
+    LdrpPatchExportNameTable(DllBase, RosCompatDescriptor, ExportDirectory, AppCompatVersion);
 
     FunctionTable = (PULONG)((ULONG_PTR)DllBase +
         (ULONG_PTR)ExportDirectory->AddressOfFunctions);
@@ -343,12 +307,12 @@ NTAPI
 RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry)
 {
     DWORD AppcompatVersion;
-    PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor;
+    PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
     NTSTATUS Status;
 
     /* Get the appcompat descriptor */
-    AppCompatDescriptor = FindAppCompatDescriptor(LdrEntry->DllBase);
-    if (AppCompatDescriptor == NULL)
+    RosCompatDescriptor = FindRosCompatDescriptor(LdrEntry->DllBase);
+    if (RosCompatDescriptor == NULL)
     {
         return FALSE;
     }
@@ -363,11 +327,11 @@ RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry)
 
     /* Save the descriptor in the PatchInformation field, which is otherwise
        unused in user-mode */
-    LdrEntry->PatchInformation = AppCompatDescriptor;
+    LdrEntry->PatchInformation = RosCompatDescriptor;
 
     /* Now patch the export table */
     Status = LdrpPatchExportTable(LdrEntry->DllBase,
-                                  AppCompatDescriptor,
+                                  RosCompatDescriptor,
                                   AppcompatVersion);
     if (!NT_SUCCESS(Status))
     {

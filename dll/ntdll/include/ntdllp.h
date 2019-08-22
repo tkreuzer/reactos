@@ -73,7 +73,7 @@ VOID NTAPI LdrpEnsureLoaderLockIsHeld(VOID);
 /* ldrpe.c */
 NTSTATUS
 NTAPI
-LdrpSnapThunk(IN PVOID ExportBase,
+LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
               IN PVOID ImportBase,
               IN PIMAGE_THUNK_DATA OriginalThunk,
               IN OUT PIMAGE_THUNK_DATA Thunk,
@@ -212,12 +212,6 @@ RtlDoesFileExists_UStr(
 );
 
 /* appcompat.c */
-typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
-{
-    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
-    unsigned int NumberOfExportNames;
-} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
-
 BOOLEAN
 NTAPI
 RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry);
