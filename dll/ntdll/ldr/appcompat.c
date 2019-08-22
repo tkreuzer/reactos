@@ -38,12 +38,6 @@ typedef enum _APPCOMPAT_VERSION_BIT
     //APPCOMPAT_VERSION_BIT_WIN10RS5,
 } APPCOMPAT_VERSION_BIT;
 
-typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
-{
-    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
-    unsigned int NumberOfExportNames;
-} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
-
 //typedef struct _APPCOMAT_EXPORT_ENTRY
 //{
 //    ULONG VersionMask;
@@ -200,20 +194,76 @@ BOOLEAN IsPowerOfTwo(unsigned int x)
     return ((x != 0) && !(x & (x - 1)));
 }
 
-NTSTATUS
-PatchExportTable(
+static
+VOID
+LdrpPatchExportNameTable(
     _In_ PVOID DllBase,
     _In_ PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor,
-    _In_ ULONG VersionMask
-)
+    _Inout_ PVOID ExportDirectory)
+{
+    PULONG NameTable;
+    PUSHORT OrdinalTable;
+    ULONG i, j;
+    ULONG OldName;
+    USHORT OldOrd;
+
+    /* Get the VA of the name table */
+    NameTable = (PULONG)((ULONG_PTR)DllBase +
+        (ULONG_PTR)ExportDirectory->AddressOfNames);
+
+    OrdinalTable = (PUSHORT)((ULONG_PTR)DllBase +
+        (ULONG_PTR)ExportDirectory->AddressOfNameOrdinals);
+
+    /* Strip unused entries from the name and ordinal table */
+    for (i = 0, j = 0; i < AppCompatDescriptor->NumberOfExportNames; i++)
+    {
+
+        //DbgPrint("    0x%08x, // %s\n",
+        //         AppCompatDescriptor->ExportNameBitmaps[i],
+        //         (char*)DllBase + NameTable[i]);
+
+        /* Exchange both fields. This algorithm results in moving the
+           patched functions in sorted order to the end */
+        OldName = NameTable[j];
+        NameTable[j] = NameTable[i];
+        NameTable[i] = OldName;
+
+        OldOrd = OrdinalTable[j];
+        OrdinalTable[j] = OrdinalTable[i];
+        OrdinalTable[i] = OldOrd;
+
+        if (AppCompatDescriptor->ExportNameBitmaps[i] & VersionMask)
+        {
+            j++;
+        }
+    }
+
+    /* Finally patch the number of exports */
+    ExportDirectory->NumberOfNames = j;
+}
+
+static
+NTSTATUS
+LdrpPatchExportTable(
+    _In_ PVOID DllBase,
+    _In_ PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor,
+    _In_ DWORD AppcompatVersion
+    )
 {
     PIMAGE_EXPORT_DIRECTORY ExportDirectory;
-    ULONG ExportDirectorySize, i, j, OldProtect;
+    ULONG ExportDirectorySize, OldProtect;
     PVOID ProtectAddress;
     SIZE_T ProtectSize;
-    PULONG NameTable, FunctionTable;
-    PUSHORT OrdinalTable;
+    PULONG FunctionTable;
     NTSTATUS Status;
+    APPCOMPAT_VERSION_BIT VersionBit;
+    ULONG VersionMask;
+
+    //__debugbreak();
+
+    /* Translate to appcompat bit */
+    VersionBit = TranslateAppcompatVersionToVersionBit(AppcompatVersion);
+    VersionMask = 1 << VersionBit;
     ASSERT(IsPowerOfTwo(VersionMask));
 
     /* Get export directory */
@@ -245,30 +295,8 @@ PatchExportTable(
         return Status;
     }
 
-
-    /* Get the VA of the name table */
-    NameTable = (PULONG)((ULONG_PTR)DllBase +
-        (ULONG_PTR)ExportDirectory->AddressOfNames);
-
-    OrdinalTable = (PUSHORT)((ULONG_PTR)DllBase +
-        (ULONG_PTR)ExportDirectory->AddressOfNameOrdinals);
-
-    /* Strip unused entries from the name and ordinal table */
-    for (i = 0, j = 0; i < AppCompatDescriptor->NumberOfExportNames; i++)
-    {
-        //DbgPrint("    0x%08x, // %s\n",
-        //         AppCompatDescriptor->ExportNameBitmaps[i],
-        //         (char*)DllBase + NameTable[i]);
-            
-        if (AppCompatDescriptor->ExportNameBitmaps[i] & VersionMask)
-        {
-            NameTable[j] = NameTable[i];
-            OrdinalTable[j] = OrdinalTable[i];
-            j++;
-        }
-    }
-
-    ExportDirectory->NumberOfNames = j;
+    /* Patch the export name and ordinal table */
+    LdrpPatchExportNameTable(DllBase, AppCompatDescriptor, ExportDirectory);
 
     FunctionTable = (PULONG)((ULONG_PTR)DllBase +
         (ULONG_PTR)ExportDirectory->AddressOfFunctions);
@@ -310,15 +338,21 @@ PatchExportTable(
 
 */
 
-NTSTATUS
+BOOLEAN
 NTAPI
-RosApplyAppcompatExportHacks(PVOID DllBase)
+RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry)
 {
     DWORD AppcompatVersion;
-    APPCOMPAT_VERSION_BIT VersionBit;
     PLDRP_APPCOMPAT_DESCRIPTOR AppCompatDescriptor;
+    NTSTATUS Status;
 
-    //__debugbreak();
+    /* Get the appcompat descriptor */
+    AppCompatDescriptor = FindAppCompatDescriptor(LdrEntry->DllBase);
+    if (AppCompatDescriptor == NULL)
+    {
+        return FALSE;
+    }
+
     /* Get the AppCompat version */
     AppcompatVersion = RosGetProcessCompatVersion();
     if (AppcompatVersion == 0)
@@ -327,17 +361,19 @@ RosApplyAppcompatExportHacks(PVOID DllBase)
         AppcompatVersion = _WIN32_WINNT_WS03;
     }
 
-    /* Get the appcompat descriptor */
-    AppCompatDescriptor = FindAppCompatDescriptor(DllBase);
-    if (AppCompatDescriptor == NULL)
+    /* Save the descriptor in the PatchInformation field, which is otherwise
+       unused in user-mode */
+    LdrEntry->PatchInformation = AppCompatDescriptor;
+
+    /* Now patch the export table */
+    Status = LdrpPatchExportTable(LdrEntry->DllBase,
+                                  AppCompatDescriptor,
+                                  AppcompatVersion);
+    if (!NT_SUCCESS(Status))
     {
-        return STATUS_NOT_FOUND;
+        __debugbreak();
+        return FALSE;
     }
 
-    // translate to appcompat bit
-    VersionBit = TranslateAppcompatVersionToVersionBit(AppcompatVersion);
-
-    PatchExportTable(DllBase, AppCompatDescriptor, 1 << VersionBit);
-
-    return STATUS_SUCCESS;
+    return TRUE;
 }

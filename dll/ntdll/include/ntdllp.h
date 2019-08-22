@@ -212,9 +212,15 @@ RtlDoesFileExists_UStr(
 );
 
 /* appcompat.c */
-NTSTATUS
+typedef struct _LDRP_APPCOMPAT_DESCRIPTOR
+{
+    unsigned int *ExportNameBitmaps; // Array with size NumberOfNames
+    unsigned int NumberOfExportNames;
+} LDRP_APPCOMPAT_DESCRIPTOR, *PLDRP_APPCOMPAT_DESCRIPTOR;
+
+BOOLEAN
 NTAPI
-RosApplyAppcompatExportHacks(PVOID ImageBase);
+RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry);
 
 extern char __ImageBase;
 

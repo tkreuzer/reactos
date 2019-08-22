@@ -1569,8 +1569,6 @@ LdrpInitializeProcessCompat(PVOID* pOldShimData)
         }
     }
 
-    RosApplyAppcompatExportHacks(&__ImageBase);
-
     SizeRequired = sizeof(Buffer);
     Status = RtlQueryInformationActivationContext(RTL_QUERY_ACTIVATION_CONTEXT_FLAG_NO_ADDREF,
                                                   NULL,
@@ -1623,7 +1621,7 @@ LdrpInitializeProcessCompat(PVOID* pOldShimData)
                 /* Store the highest found version, and bail out. */
                 pShimData->dwRosProcessCompatVersion = GuidVersions[cur];
                 DPRINT1("LdrpInitializeProcessCompat: Found guid for winver 0x%x\n", GuidVersions[cur]);
-                RosApplyAppcompatExportHacks(&__ImageBase);
+                //RosApplyAppcompatExportHacks(&__ImageBase);
                 return;
             }
         }
@@ -2181,6 +2179,9 @@ LdrpInitializeProcess(IN PCONTEXT Context,
 
     /* ReactOS specific */
     LdrpInitializeProcessCompat(&OldShimData);
+
+    /* Apply export versioning hacks */
+    RosApplyAppcompatExportHacks(NtLdrEntry);
 
     /* Set the current directory */
     Status = RtlSetCurrentDirectory_U(&CurrentDirectory);
