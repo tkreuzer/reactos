@@ -132,6 +132,19 @@ if(MSVC_IDE)
 endif()
 
 if(NOT CMAKE_CROSSCOMPILING)
+
+    set(ENABLE_EXPORT_VERSIONING TRUE)
+    if (ENABLE_EXPORT_VERSIONING)
+        add_definitions(-DENABLE_EXPORT_VERSIONING)
+        set(NTDLL_VISTA ntdll)
+        set(KERNEL32_VISTA kernel32)
+        set(ADVAPI32_VISTA advapi32_vista) # FIXME
+    else()
+        set(NTDLL_VISTA ntdll_vista)
+        set(KERNEL32_VISTA kernel32_vista)
+        set(ADVAPI32_VISTA advapi32_vista)
+    endif()
+
     set(TOOLS_FOLDER ${CMAKE_CURRENT_BINARY_DIR})
     add_definitions(-DTARGET_${ARCH})
 

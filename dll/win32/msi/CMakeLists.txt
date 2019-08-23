@@ -92,7 +92,7 @@ add_importlibs(msi advapi32_vista advapi32 cabinet comctl32 gdi32 ole32 oleaut32
     imagehlp
     mspatcha
     msvcrt
-    kernel32_vista
+    ${KERNEL32_VISTA}
     kernel32
     ntdll)
 
