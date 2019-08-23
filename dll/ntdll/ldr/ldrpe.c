@@ -167,7 +167,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                        FirstThunk,
                                        ExportDirectory,
                                        ExportSize,
-                                       TRUE,
+                                       ImportLdrEntry->PatchInformation ? 2 : TRUE,
                                        ImportName);
                 if (!NT_SUCCESS(Status) && ExportLdrEntry->PatchInformation != NULL)
                 {
@@ -226,7 +226,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                        FirstThunk,
                                        ExportDirectory,
                                        ExportSize,
-                                       TRUE,
+                                       ImportLdrEntry->PatchInformation ? 2 : TRUE,
                                        ImportName);
 
                 /* Next thunks */
@@ -981,6 +981,7 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
     PANSI_STRING ForwardName;
     PVOID ForwarderHandle;
     ULONG ForwardOrdinal;
+    PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
 
     /* Check if the snap is by ordinal */
     if ((IsOrdinal = IMAGE_SNAP_BY_ORDINAL(OriginalThunk->u1.Ordinal)))
@@ -1024,14 +1025,15 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                         NameTable,
                                         OrdinalTable);
 
-            if ((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions)
+            /* Check if that failed and the importer may import from private exports */
+            if (((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions) &&
+                (Static == 2))
             {
-                PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
-                __debugbreak();
-
+                /* Check if the exporter has private exports */
                 RosCompatDescriptor = ExportLdrEntry->PatchInformation;
                 if (RosCompatDescriptor != NULL)
                 {
+                    /* Try to find the export in the private export table */
                     Ordinal = LdrpNameToOrdinal(ImportName,
                                                 RosCompatDescriptor->NumberOfExportNames - ExportDirectory->NumberOfNames,
                                                 ExportLdrEntry->DllBase,

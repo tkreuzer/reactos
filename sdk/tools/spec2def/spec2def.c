@@ -3,6 +3,8 @@
 #include <ctype.h>
 #include <string.h>
 #include <stdarg.h>
+
+#define ROSCOMPAT_HOST
 #include <roscompat.h>
 
 #ifdef _MSC_VER
@@ -1326,15 +1328,21 @@ Output_RosCompatDescriptor(FILE *file, EXPORT *pexports, unsigned int cExports)
     
     for (i = 0; i < cExports; i++)
     {
-        fprintf(file,
-                "    0x%08x, // %.*s\n",
-                pexports[i].uVersionMask,
-                pexports[i].strName.len,
-                pexports[i].strName.buf);
+        if ((pexports[i].uFlags & FL_NONAME) == 0)
+        {
+            fprintf(file,
+                    "    0x%08x, // %.*s\n",
+                    pexports[i].uVersionMask,
+                    pexports[i].strName.len,
+                    pexports[i].strName.buf);
+        }
     }
 
     fprintf(file,
+            "    0x0 // dummy \n"
             "};\n"
+            "\n"
+            "IMAGE_EXPORT_DIRECTORY __roscompat_magic_export_dir__;\n"
             "#if defined(_MSC_VER)\n"
             "#pragma section(\".expvers\")\n"
             "__declspec(allocate(\".expvers\"))\n"
@@ -1346,7 +1354,8 @@ Output_RosCompatDescriptor(FILE *file, EXPORT *pexports, unsigned int cExports)
             "ROSCOMPAT_DESCRIPTOR __roscompat_descriptor__ = \n"
             "{\n"
             "    __roscompat_export_masks__,\n"
-            "    sizeof(__roscompat_export_masks__) / sizeof(__roscompat_export_masks__[0])\n"
+            "    (sizeof(__roscompat_export_masks__) / sizeof(__roscompat_export_masks__[0])) - 1,\n"
+            "   &__roscompat_magic_export_dir__\n"
             "};\n");
 }
 

@@ -17,6 +17,6 @@ list(APPEND SOURCE
 add_library(inseng MODULE ${SOURCE} guid.c inseng.rc)
 set_module_type(inseng win32dll)
 target_link_libraries(inseng uuid wine)
-add_importlibs(inseng ole32 urlmon kernel32_vista msvcrt kernel32 ntdll)
+add_importlibs(inseng ole32 urlmon ${KERNEL32_VISTA} msvcrt kernel32 ntdll)
 add_pch(inseng precomp.h SOURCE)
 add_cd_file(TARGET inseng DESTINATION reactos/system32 FOR all)

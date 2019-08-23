@@ -76,6 +76,17 @@ endif()
 
 if(NOT CMAKE_CROSSCOMPILING)
 
+    set(ENABLE_EXPORT_VERSIONING TRUE)
+    if (ENABLE_EXPORT_VERSIONING)
+        set(NTDLL_VISTA ntdll)
+        set(KERNEL32_VISTA kernel32)
+        set(ADVAPI32_VISTA advapi32_vista) # FIXME
+    else()
+        set(NTDLL_VISTA ntdll_vista)
+        set(KERNEL32_VISTA kernel32_vista)
+        set(ADVAPI32_VISTA advapi32_vista)
+    endif()
+
     if(NEW_STYLE_BUILD)
         set(TOOLS_FOLDER ${CMAKE_CURRENT_BINARY_DIR})
     endif()

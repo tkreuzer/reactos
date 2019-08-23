@@ -160,7 +160,7 @@ BOOLEAN IsPowerOfTwo(unsigned int x)
 }
 
 static
-VOID
+NTSTATUS
 LdrpPatchExportNameTable(
     _In_ PVOID DllBase,
     _In_ PROSCOMPAT_DESCRIPTOR RosCompatDescriptor,
@@ -168,11 +168,10 @@ LdrpPatchExportNameTable(
     _In_ DWORD AppCompatVersion)
 {
     ULONG VersionMask;
-    PULONG NameTable;
-    PUSHORT OrdinalTable;
-    ULONG i, j;
-    ULONG OldName;
-    USHORT OldOrd;
+    PULONG NameTable, OrgNameTable;
+    PUSHORT OrdinalTable, OrgOrdinalTable;
+    SIZE_T Size;
+    ULONG i, j, k;
 
     /* Translate to version mask */
     VersionMask = 1 << TranslateAppcompatVersionToVersionBit(AppCompatVersion);
@@ -185,32 +184,52 @@ LdrpPatchExportNameTable(
     OrdinalTable = (PUSHORT)((ULONG_PTR)DllBase +
         (ULONG_PTR)ExportDirectory->AddressOfNameOrdinals);
 
-    /* Strip unused entries from the name and ordinal table */
-    for (i = 0, j = 0; i < RosCompatDescriptor->NumberOfExportNames; i++)
+    /* Allocate a temp buffer for the exports */
+    Size = ExportDirectory->NumberOfNames * (sizeof(ULONG) + sizeof(USHORT));
+    OrgNameTable = RtlAllocateHeap(RtlGetProcessHeap(), 0, Size);
+    if (OrgNameTable == NULL)
     {
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+    OrgOrdinalTable = (PUSHORT)&OrgNameTable[ExportDirectory->NumberOfNames];
 
-        //DbgPrint("    0x%08x, // %s\n",
-        //         RosCompatDescriptor->ExportNameMasks[i],
-        //         (char*)DllBase + NameTable[i]);
+    /* Make a copy of the original exports */
+    RtlCopyMemory(OrgNameTable, NameTable, ExportDirectory->NumberOfNames * sizeof(ULONG));
+    RtlCopyMemory(OrgOrdinalTable, OrdinalTable, ExportDirectory->NumberOfNames * sizeof(USHORT));
 
-        /* Exchange both fields. This algorithm results in moving the
-           patched functions in sorted order to the end */
-        OldName = NameTable[j];
-        NameTable[j] = NameTable[i];
-        NameTable[i] = OldName;
-
-        OldOrd = OrdinalTable[j];
-        OrdinalTable[j] = OrdinalTable[i];
-        OrdinalTable[i] = OldOrd;
-
+    /* Strip unused entries from the name and ordinal table */
+    for (i = 0, j = 0, k = 0; i < ExportDirectory->NumberOfNames; i++)
+    {
         if (RosCompatDescriptor->ExportNameMasks[i] & VersionMask)
         {
+            /* Put public functions into the export table */
+            NameTable[j] = OrgNameTable[i];
+            OrdinalTable[j] = OrgOrdinalTable[i];
             j++;
+        }
+        else
+        {
+            /* Move private functions to the start of the temp buffer */
+            OrgNameTable[k] = OrgNameTable[i];
+            OrgOrdinalTable[k] = OrgOrdinalTable[i];
+            k++;
         }
     }
 
     /* Finally patch the number of exports */
     ExportDirectory->NumberOfNames = j;
+
+    /* Copy the private functions back */
+    for (i = 0; j < RosCompatDescriptor->NumberOfExportNames; i++, j++)
+    {
+        NameTable[j] = OrgNameTable[i];
+        OrdinalTable[j] = OrgOrdinalTable[i];
+    }
+
+    /* Free the copy */
+    RtlFreeHeap(RtlGetProcessHeap(), 0, OrgNameTable);
+
+    return STATUS_SUCCESS;
 }
 
 static
@@ -221,7 +240,7 @@ LdrpPatchExportTable(
     _In_ DWORD AppCompatVersion
     )
 {
-    PIMAGE_EXPORT_DIRECTORY ExportDirectory;
+    PIMAGE_EXPORT_DIRECTORY ExportDirectory, MagicExportDir;
     ULONG ExportDirectorySize, OldProtect;
     PVOID ProtectAddress;
     SIZE_T ProtectSize;
@@ -260,7 +279,14 @@ LdrpPatchExportTable(
     }
 
     /* Patch the export name and ordinal table */
-    LdrpPatchExportNameTable(DllBase, RosCompatDescriptor, ExportDirectory, AppCompatVersion);
+    Status = LdrpPatchExportNameTable(DllBase,
+                                      RosCompatDescriptor,
+                                      ExportDirectory,
+                                      AppCompatVersion);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
 
     FunctionTable = (PULONG)((ULONG_PTR)DllBase +
         (ULONG_PTR)ExportDirectory->AddressOfFunctions);
@@ -284,6 +310,23 @@ LdrpPatchExportTable(
     /* Also flush out the cache */
     NtFlushInstructionCache(NtCurrentProcess(), ExportDirectory, ProtectSize);
 
+    /* Setup an export directory for "magic" (i.e. private) exports */
+    MagicExportDir = RosCompatDescriptor->MagicExportDir;
+    MagicExportDir->Characteristics = 0;
+    MagicExportDir->TimeDateStamp = 0xFFFFFFFF;
+    MagicExportDir->MajorVersion = AppCompatVersion >> 8;
+    MagicExportDir->MinorVersion = AppCompatVersion & 0xFF;
+    MagicExportDir->Name = ExportDirectory->Name;
+    MagicExportDir->Base = ExportDirectory->Base;
+    MagicExportDir->NumberOfFunctions = ExportDirectory->NumberOfFunctions;
+    MagicExportDir->NumberOfNames = RosCompatDescriptor->NumberOfExportNames -
+        ExportDirectory->NumberOfNames;
+    MagicExportDir->AddressOfFunctions = ExportDirectory->AddressOfFunctions;
+    MagicExportDir->AddressOfNames = ExportDirectory->AddressOfNames +
+        ExportDirectory->NumberOfNames * sizeof(ULONG);
+    MagicExportDir->AddressOfNameOrdinals = ExportDirectory->AddressOfNameOrdinals +
+        ExportDirectory->NumberOfNames * sizeof(ULONG);
+
     return STATUS_SUCCESS;
 }
 
@@ -306,7 +349,7 @@ BOOLEAN
 NTAPI
 RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry)
 {
-    DWORD AppcompatVersion;
+    DWORD AppCompatVersion;
     PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
     NTSTATUS Status;
 
@@ -318,11 +361,11 @@ RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry)
     }
 
     /* Get the AppCompat version */
-    AppcompatVersion = RosGetProcessCompatVersion();
-    if (AppcompatVersion == 0)
+    AppCompatVersion = RosGetProcessCompatVersion();
+    if (AppCompatVersion == 0)
     {
         /* Default to WS 2003 */
-        AppcompatVersion = _WIN32_WINNT_WS03;
+        AppCompatVersion = _WIN32_WINNT_WS03;
     }
 
     /* Save the descriptor in the PatchInformation field, which is otherwise
@@ -332,7 +375,7 @@ RosApplyAppcompatExportHacks(PLDR_DATA_TABLE_ENTRY LdrEntry)
     /* Now patch the export table */
     Status = LdrpPatchExportTable(LdrEntry->DllBase,
                                   RosCompatDescriptor,
-                                  AppcompatVersion);
+                                  AppCompatVersion);
     if (!NT_SUCCESS(Status))
     {
         __debugbreak();

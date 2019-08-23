@@ -60,7 +60,7 @@ else()
 endif()
 
 set_module_type(nfsd win32cui)
-add_importlibs(nfsd advapi32 iphlpapi kernel32_vista libtirpc msvcrt shell32 ws2_32 wldap32 kernel32 ntdll)
+add_importlibs(nfsd advapi32 iphlpapi ${KERNEL32_VISTA} libtirpc msvcrt shell32 ws2_32 wldap32 kernel32 ntdll)
 add_pch(nfsd precomp.h SOURCE)
 add_cd_file(TARGET nfsd DESTINATION reactos/system32 FOR all)
 add_cd_file(FILE "${CMAKE_CURRENT_SOURCE_DIR}/netconfig" DESTINATION reactos/system32/drivers/etc FOR all)
