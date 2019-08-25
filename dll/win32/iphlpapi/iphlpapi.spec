@@ -156,22 +156,22 @@
 @ stdcall -arch=i386 _PfUnBindInterface@4() _PfUnBindInterface@4
 
 # x64 does not use decoration in these names
-@ stdcall -arch=x86_64 _PfAddFiltersToInterface@24()
-@ stdcall -arch=x86_64 _PfAddGlobalFilterToInterface@8()
-@ stdcall -arch=x86_64 _PfBindInterfaceToIPAddress@12()
-@ stdcall -arch=x86_64 _PfBindInterfaceToIndex@16()
-@ stdcall -arch=x86_64 _PfCreateInterface@24()
-@ stdcall -arch=x86_64 _PfDeleteInterface@4()
-@ stdcall -arch=x86_64 _PfDeleteLog@0()
-@ stdcall -arch=x86_64 _PfGetInterfaceStatistics@16()
-@ stdcall -arch=x86_64 _PfMakeLog@4()
-@ stdcall -arch=x86_64 _PfRebindFilters@8()
-@ stdcall -arch=x86_64 _PfRemoveFilterHandles@12()
-@ stdcall -arch=x86_64 _PfRemoveFiltersFromInterface@20()
-@ stdcall -arch=x86_64 _PfRemoveGlobalFilterFromInterface@8()
-@ stdcall -arch=x86_64 _PfSetLogBuffer@28()
-@ stdcall -arch=x86_64 _PfTestPacket@20()
-@ stdcall -arch=x86_64 _PfUnBindInterface@4()
+@ stdcall -arch=x86_64 PfAddFiltersToInterface()
+@ stdcall -arch=x86_64 PfAddGlobalFilterToInterface()
+@ stdcall -arch=x86_64 PfBindInterfaceToIPAddress()
+@ stdcall -arch=x86_64 PfBindInterfaceToIndex()
+@ stdcall -arch=x86_64 PfCreateInterface()
+@ stdcall -arch=x86_64 PfDeleteInterface()
+@ stdcall -arch=x86_64 PfDeleteLog()
+@ stdcall -arch=x86_64 PfGetInterfaceStatistics()
+@ stdcall -arch=x86_64 PfMakeLog()
+@ stdcall -arch=x86_64 PfRebindFilters()
+@ stdcall -arch=x86_64 PfRemoveFilterHandles()
+@ stdcall -arch=x86_64 PfRemoveFiltersFromInterface()
+@ stdcall -arch=x86_64 PfRemoveGlobalFilterFromInterface()
+@ stdcall -arch=x86_64 PfSetLogBuffer()
+@ stdcall -arch=x86_64 PfTestPacket()
+@ stdcall -arch=x86_64 PfUnBindInterface()
 
 @ stub do_echo_rep
 @ stub do_echo_req
