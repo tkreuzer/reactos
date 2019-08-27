@@ -750,7 +750,7 @@ Fatalv(
     unsigned nLine,
     const char *pcLine,
     const char *pc,
-    unsigned errorlen,
+    size_t errorlen,
     const char *format,
     va_list argptr)
 {
@@ -766,7 +766,7 @@ Fatalv(
         errorlen = 1;
     }
 
-    errorpos = pc - pcLine;
+    errorpos = (unsigned)(pc - pcLine);
 
     /* Output the error message */
     fprintf(stderr, "ERROR: (%s:%u:%u): ", filename, nLine, errorpos);
@@ -799,7 +799,7 @@ Fatal(
     unsigned nLine,
     const char *pcLine,
     const char *pc,
-    unsigned errorlen,
+    size_t errorlen,
     const char *format,
     ...)
 {
