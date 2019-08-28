@@ -457,83 +457,6 @@ OutputHeader_asmstub(FILE *file, char *libname)
 }
 
 void
-Output_stublabel(FILE *fileDest, char* pszSymbolName)
-{
-    if (giArch == ARCH_ARM || giArch == ARCH_ARM64)
-    {
-        fprintf(fileDest,
-                "\tEXPORT |%s| [FUNC]\n|%s|\n",
-                pszSymbolName,
-                pszSymbolName);
-    }
-    else
-    {
-        fprintf(fileDest,
-                "PUBLIC %s\n%s: nop\n",
-                pszSymbolName,
-                pszSymbolName);
-    }
-}
-
-int
-OutputLine_asmstub(FILE *fileDest, EXPORT *pexp)
-{
-    char szNameBuffer[128];
-
-    /* Handle autoname */
-    if (pexp->strName.len == 1 && pexp->strName.buf[0] == '@')
-    {
-        sprintf(szNameBuffer, "%s_stub_ordinal%d",
-                gpszUnderscore, pexp->nOrdinal);
-    }
-    else if (giArch != ARCH_X86)
-    {
-        /* Does the string already have stdcall decoration? */
-        const char *pcAt = ScanToken(pexp->strName.buf, '@');
-        if (pcAt && (pcAt < (pexp->strName.buf + pexp->strName.len)) &&
-            (pexp->strName.buf[0] == '_'))
-        {
-            /* Skip leading underscore and remove trailing decoration */
-            sprintf(szNameBuffer, "_stub_%.*s",
-                    (int)(pcAt - pexp->strName.buf - 1),
-                    pexp->strName.buf + 1);
-        }
-        else
-        {
-            sprintf(szNameBuffer, "_stub_%.*s",
-                    pexp->strName.len, pexp->strName.buf);
-        }
-    }
-    else if (pexp->nCallingConvention == CC_STDCALL)
-    {
-        sprintf(szNameBuffer, "__stub_%.*s@%d",
-                pexp->strName.len, pexp->strName.buf, pexp->nStackBytes);
-    }
-    else if (pexp->nCallingConvention == CC_FASTCALL)
-    {
-        sprintf(szNameBuffer, "@_stub_%.*s@%d",
-                pexp->strName.len, pexp->strName.buf, pexp->nStackBytes);
-    }
-    else if ((pexp->nCallingConvention == CC_CDECL) ||
-             (pexp->nCallingConvention == CC_THISCALL) ||
-             (pexp->nCallingConvention == CC_EXTERN) ||
-             (pexp->nCallingConvention == CC_STUB))
-    {
-        sprintf(szNameBuffer, "__stub_%.*s",
-                pexp->strName.len, pexp->strName.buf);
-    }
-    else
-    {
-        fprintf(stderr, "Invalid calling convention");
-        return 0;
-    }
-
-    Output_stublabel(fileDest, szNameBuffer);
-
-    return 1;
-}
-
-void
 OutputHeader_def(FILE *file, char *libname)
 {
     fprintf(file,
@@ -561,9 +484,10 @@ PrintName(FILE *fileDest, EXPORT *pexp, PSTRING pstr, int fDeco)
     /* Check for non-x86 first */
     if (giArch != ARCH_X86)
     {
-        /* Does the string already have stdcall decoration? */
-        pcAt = ScanToken(pcName, '@');
-        if (pcAt && (pcAt < (pcName + nNameLength)) && (pcName[0] == '_'))
+        /* Does the string already have stdcall or fastcall decoration? */
+        pcAt = ScanToken(pcName + 1, '@');
+        if (pcAt && (pcAt < (pcName + nNameLength)) && 
+            ((pcName[0] == '_') || (pcName[0] == '@')))
         {
             /* Skip leading underscore and remove trailing decoration */
             pcName++;
@@ -623,6 +547,28 @@ PrintName(FILE *fileDest, EXPORT *pexp, PSTRING pstr, int fDeco)
     {
         /* Print the undecorated function name */
         fprintf(fileDest, "%.*s", nNameLength, pcName);
+    }
+}
+
+void
+OutputLine_asmstub(FILE* fileDest, EXPORT* pexp)
+{
+    /* Special format for ARM */
+    if (giArch == ARCH_ARM)
+    {
+        fprintf(fileDest, "\tEXPORT |__stub_");
+        PrintName(fileDest, pexp, &pexp->strName, 1);
+        fprintf(fileDest, "| [FUNC]\n|__stub_");
+        PrintName(fileDest, pexp, &pexp->strName, 1);
+        fprintf(fileDest, "|\n");
+    }
+    else
+    {
+        fprintf(fileDest, "PUBLIC __stub_");
+        PrintName(fileDest, pexp, &pexp->strName, 1);
+        fprintf(fileDest, "\n__stub_");
+        PrintName(fileDest, pexp, &pexp->strName, 1);
+        fprintf(fileDest, ": nop\n");
     }
 }
 
