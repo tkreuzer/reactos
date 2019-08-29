@@ -161,13 +161,13 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
             /* Snap the thunk */
             _SEH2_TRY
             {
-                Status = LdrpSnapThunk(ExportLdrEntry->DllBase,
+                Status = LdrpSnapThunk(ExportLdrEntry,
                                        ImportLdrEntry->DllBase,
                                        OriginalThunk,
                                        FirstThunk,
                                        ExportDirectory,
                                        ExportSize,
-                                       TRUE,
+                                       ImportLdrEntry->PatchInformation ? 2 : TRUE,
                                        ImportName);
 
                 /* Move to the next thunk */
@@ -217,13 +217,13 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
             /* Snap the Thunk */
             _SEH2_TRY
             {
-                Status = LdrpSnapThunk(ExportLdrEntry->DllBase,
+                Status = LdrpSnapThunk(ExportLdrEntry,
                                        ImportLdrEntry->DllBase,
                                        OriginalThunk,
                                        FirstThunk,
                                        ExportDirectory,
                                        ExportSize,
-                                       TRUE,
+                                       ImportLdrEntry->PatchInformation ? 2 : TRUE,
                                        ImportName);
 
                 /* Next thunks */
@@ -929,6 +929,8 @@ LdrpLoadImportModule(IN PWSTR DllPath OPTIONAL,
         goto done;
     }
 
+    LdrpApplyRosCompatMagic(*DataTableEntry);
+
     /* Walk its import descriptor table */
     Status = LdrpWalkImportDescriptor(DllPath,
                                       *DataTableEntry);
@@ -947,11 +949,11 @@ done:
 
 NTSTATUS
 NTAPI
-LdrpSnapThunk(IN PVOID ExportBase,
+LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
               IN PVOID ImportBase,
               IN PIMAGE_THUNK_DATA OriginalThunk,
               IN OUT PIMAGE_THUNK_DATA Thunk,
-              IN PIMAGE_EXPORT_DIRECTORY ExportEntry,
+              IN PIMAGE_EXPORT_DIRECTORY ExportDirectory,
               IN ULONG ExportSize,
               IN BOOLEAN Static,
               IN LPSTR DllName)
@@ -976,13 +978,14 @@ LdrpSnapThunk(IN PVOID ExportBase,
     PANSI_STRING ForwardName;
     PVOID ForwarderHandle;
     ULONG ForwardOrdinal;
+    PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
 
     /* Check if the snap is by ordinal */
     if ((IsOrdinal = IMAGE_SNAP_BY_ORDINAL(OriginalThunk->u1.Ordinal)))
     {
         /* Get the ordinal number, and its normalized version */
         OriginalOrdinal = IMAGE_ORDINAL(OriginalThunk->u1.Ordinal);
-        Ordinal = (USHORT)(OriginalOrdinal - ExportEntry->Base);
+        Ordinal = (USHORT)(OriginalOrdinal - ExportDirectory->Base);
     }
     else
     {
@@ -995,17 +998,17 @@ LdrpSnapThunk(IN PVOID ExportBase,
         ImportName = (LPSTR)AddressOfData->Name;
 
         /* Now get the VA of the Name and Ordinal Tables */
-        NameTable = (PULONG)((ULONG_PTR)ExportBase +
-                             (ULONG_PTR)ExportEntry->AddressOfNames);
-        OrdinalTable = (PUSHORT)((ULONG_PTR)ExportBase +
-                                 (ULONG_PTR)ExportEntry->AddressOfNameOrdinals);
+        NameTable = (PULONG)((ULONG_PTR)ExportLdrEntry->DllBase +
+                             (ULONG_PTR)ExportDirectory->AddressOfNames);
+        OrdinalTable = (PUSHORT)((ULONG_PTR)ExportLdrEntry->DllBase +
+                                 (ULONG_PTR)ExportDirectory->AddressOfNameOrdinals);
 
         /* Get the hint */
         Hint = AddressOfData->Hint;
 
         /* Try to get a match by using the hint */
-        if (((ULONG)Hint < ExportEntry->NumberOfNames) &&
-             (!strcmp(ImportName, ((LPSTR)((ULONG_PTR)ExportBase + NameTable[Hint])))))
+        if (((ULONG)Hint < ExportDirectory->NumberOfNames) &&
+             (!strcmp(ImportName, ((LPSTR)((ULONG_PTR)ExportLdrEntry->DllBase + NameTable[Hint])))))
         {
             /* We got a match, get the Ordinal from the hint */
             Ordinal = OrdinalTable[Hint];
@@ -1014,15 +1017,32 @@ LdrpSnapThunk(IN PVOID ExportBase,
         {
             /* Well bummer, hint didn't work, do it the long way */
             Ordinal = LdrpNameToOrdinal(ImportName,
-                                        ExportEntry->NumberOfNames,
-                                        ExportBase,
+                                        ExportDirectory->NumberOfNames,
+                                        ExportLdrEntry->DllBase,
                                         NameTable,
                                         OrdinalTable);
+
+            /* Check if that failed and the importer may import from private exports */
+            if (((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions) &&
+                (Static == 2))
+            {
+                /* Check if the exporter has private exports */
+                RosCompatDescriptor = ExportLdrEntry->PatchInformation;
+                if (RosCompatDescriptor != NULL)
+                {
+                    /* Try to find the export in the private export table */
+                    Ordinal = LdrpNameToOrdinal(ImportName,
+                                                RosCompatDescriptor->NumberOfExportNames - ExportDirectory->NumberOfNames,
+                                                ExportLdrEntry->DllBase,
+                                                NameTable + ExportDirectory->NumberOfNames,
+                                                OrdinalTable + ExportDirectory->NumberOfNames);
+                }
+            }
         }
     }
 
     /* Check if the ordinal is invalid */
-    if ((ULONG)Ordinal >= ExportEntry->NumberOfFunctions)
+    if ((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions)
     {
 FailurePath:
         /* Is this a static snap? */
@@ -1105,15 +1125,15 @@ FailurePath:
     {
         /* The ordinal seems correct, get the AddressOfFunctions VA */
         AddressOfFunctions = (PULONG)
-                             ((ULONG_PTR)ExportBase +
-                              (ULONG_PTR)ExportEntry->AddressOfFunctions);
+                             ((ULONG_PTR)ExportLdrEntry->DllBase +
+                              (ULONG_PTR)ExportDirectory->AddressOfFunctions);
 
         /* Write the function pointer*/
-        Thunk->u1.Function = (ULONG_PTR)ExportBase + AddressOfFunctions[Ordinal];
+        Thunk->u1.Function = (ULONG_PTR)ExportLdrEntry->DllBase + AddressOfFunctions[Ordinal];
 
         /* Make sure it's within the exports */
-        if ((Thunk->u1.Function > (ULONG_PTR)ExportEntry) &&
-            (Thunk->u1.Function < ((ULONG_PTR)ExportEntry + ExportSize)))
+        if ((Thunk->u1.Function > (ULONG_PTR)ExportDirectory) &&
+            (Thunk->u1.Function < ((ULONG_PTR)ExportDirectory + ExportSize)))
         {
             /* Get the Import and Forwarder Names */
             ImportName = (LPSTR)Thunk->u1.Function;
