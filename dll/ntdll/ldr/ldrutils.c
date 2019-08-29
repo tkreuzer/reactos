@@ -2355,7 +2355,7 @@ LdrpGetProcedureAddress(IN PVOID BaseAddress,
         }
 
         /* Now get the thunk */
-        Status = LdrpSnapThunk(LdrEntry->DllBase,
+        Status = LdrpSnapThunk(LdrEntry,
                                ImageBase,
                                &Thunk,
                                &Thunk,
