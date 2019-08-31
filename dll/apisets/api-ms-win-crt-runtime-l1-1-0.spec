@@ -37,7 +37,7 @@
 @ stdcall _endthread() msvcrt._endthread
 @ stdcall _endthreadex() msvcrt._endthreadex
 @ stdcall _errno() msvcrt._errno
-@ stub _execute_onexit_table
+@ cdecl -stub _execute_onexit_table(ptr)
 @ stdcall _exit() msvcrt._exit
 @ stdcall _fpieee_flt() msvcrt._fpieee_flt
 @ stdcall _fpreset() msvcrt._fpreset
@@ -55,15 +55,15 @@
 @ stdcall _getdllprocaddr() msvcrt._getdllprocaddr
 @ stdcall _getpid() msvcrt._getpid
 @ stub _initialize_narrow_environment
-@ stub _initialize_onexit_table
+@ cdecl -stub _initialize_onexit_table(ptr)
 @ stub _initialize_wide_environment
 @ stdcall _initterm() msvcrt._initterm
-@ stub _initterm_e
+@ cdecl -version=0x600+ _initterm_e(ptr ptr) msvcrt._initterm_e
 @ stub _invalid_parameter_noinfo
 @ stub _invalid_parameter_noinfo_noreturn
 @ stub _invoke_watson
 @ stub _query_app_type
-@ stub _register_onexit_function
+@ cdecl -stub _register_onexit_function(ptr ptr)
 @ stub _register_thread_local_exe_atexit_callback
 @ stdcall _resetstkoflw() msvcrt._resetstkoflw
 @ cdecl -version=0x600+ _seh_filter_dll() msvcrt.__CppXcptFilter
