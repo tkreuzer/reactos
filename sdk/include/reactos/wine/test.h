@@ -74,6 +74,8 @@ extern LONG winetest_get_failures(void);
 extern LONG winetest_get_successes(void);
 extern void winetest_add_failures( LONG new_failures );
 extern void winetest_wait_child_process( HANDLE process );
+extern void winetest_disable_success_count();
+extern void winetest_enable_success_count();
 
 extern const char *wine_dbgstr_wn( const WCHAR *str, intptr_t n );
 extern const char *wine_dbgstr_an( const CHAR *str, intptr_t n );
@@ -129,6 +131,7 @@ extern void winetest_vskip( const char *msg, __winetest_va_list ap );
 #ifdef __GNUC__
 # define WINETEST_PRINTF_ATTR(fmt,args) __attribute__((format (printf,fmt,args)))
 extern void __winetest_cdecl winetest_ok( int condition, const char *msg, ... ) __attribute__((format (printf,2,3) ));
+extern void __winetest_cdecl winetest_ok_nocount(int condition, const char* msg, ...) __attribute__((format(printf, 2, 3)));
 extern void __winetest_cdecl winetest_skip( const char *msg, ... ) __attribute__((format (printf,1,2)));
 extern void __winetest_cdecl winetest_win_skip( const char *msg, ... ) __attribute__((format (printf,1,2)));
 extern void __winetest_cdecl winetest_trace( const char *msg, ... ) __attribute__((format (printf,1,2)));
@@ -139,6 +142,7 @@ extern void winetest_pop_context(void);
 #else /* __GNUC__ */
 # define WINETEST_PRINTF_ATTR(fmt,args)
 extern void __winetest_cdecl winetest_ok( int condition, const char *msg, ... );
+extern void __winetest_cdecl winetest_ok_nocount(int condition, const char* msg, ...);
 extern void __winetest_cdecl winetest_skip( const char *msg, ... );
 extern void __winetest_cdecl winetest_win_skip( const char *msg, ... );
 extern void __winetest_cdecl winetest_trace( const char *msg, ... );
@@ -150,12 +154,14 @@ extern void winetest_pop_context(void);
 
 #define subtest_(file, line)  (winetest_set_location(file, line), 0) ? (void)0 : winetest_subtest
 #define ok_(file, line)       (winetest_set_location(file, line), 0) ? (void)0 : winetest_ok
+#define ok_nocount_(file, line) (winetest_set_location(file, line), 0) ? (void)0 : winetest_ok_nocount
 #define skip_(file, line)     (winetest_set_location(file, line), 0) ? (void)0 : winetest_skip
 #define win_skip_(file, line) (winetest_set_location(file, line), 0) ? (void)0 : winetest_win_skip
 #define trace_(file, line)    (winetest_set_location(file, line), 0) ? (void)0 : winetest_trace
 
 #define subtest  subtest_(__FILE__, __LINE__)
 #define ok       ok_(__FILE__, __LINE__)
+#define ok_nocount       ok_nocount_(__FILE__, __LINE__)
 #define skip     skip_(__FILE__, __LINE__)
 #define win_skip win_skip_(__FILE__, __LINE__)
 #define trace    trace_(__FILE__, __LINE__)
@@ -467,6 +473,18 @@ void __winetest_cdecl winetest_ok( int condition, const char *msg, ... )
     __winetest_va_end(valist);
 }
 
+void __winetest_cdecl winetest_ok_nocount(int condition, const char* msg, ...)
+{
+    __winetest_va_list valist;
+
+    if (!condition)
+    {
+        __winetest_va_start(valist, msg);
+        winetest_vok(condition, msg, valist);
+        __winetest_va_end(valist);
+    }
+}
+
 void __winetest_cdecl winetest_trace( const char *msg, ... )
 {
     __winetest_va_list valist;
@@ -639,6 +657,18 @@ void winetest_wait_child_process( HANDLE process )
                 InterlockedIncrement(&failures);
         }
     }
+}
+
+void winetest_disable_success_count()
+{
+    tls_data* data = get_tls_data();
+    data->nocount_level++;
+}
+
+void winetest_enable_success_count()
+{
+    tls_data* data = get_tls_data();
+    data->nocount_level--;
 }
 
 const char *wine_dbgstr_an( const CHAR *str, intptr_t n )
