@@ -754,6 +754,8 @@ int main(int argc, char* argv[])
         PSTR pszStart = strrchr(argv[1], '\\');
         if (pszStart == 0)
             pszStart = argv[1];
+        else
+            pszStart++;
 
         strcpy_s(szSpecFile, sizeof(szSpecFile), pszStart);
         strcat_s(szSpecFile, sizeof(szSpecFile), ".spec");
