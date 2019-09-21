@@ -45,7 +45,7 @@ DWORD WINAPI RtlRunOnceBeginInitialize( RTL_RUN_ONCE *once, ULONG flags, void **
             next = val & ~3;
             if (interlocked_cmpxchg_ptr( &once->Ptr, (void *)((ULONG_PTR)&next | 1),
                                          (void *)val ) == (void *)val)
-                NtWaitForKeyedEvent( 0, &next, FALSE, NULL );
+                NtWaitForKeyedEvent( keyed_event, &next, FALSE, NULL );
             break;
 
         case 2:  /* done */
@@ -85,7 +85,7 @@ DWORD WINAPI RtlRunOnceComplete( RTL_RUN_ONCE *once, ULONG flags, void *context 
             while (val)
             {
                 ULONG_PTR next = *(ULONG_PTR *)val;
-                NtReleaseKeyedEvent( 0, (void *)val, FALSE, NULL );
+                NtReleaseKeyedEvent( keyed_event, (void *)val, FALSE, NULL );
                 val = next;
             }
             return STATUS_SUCCESS;

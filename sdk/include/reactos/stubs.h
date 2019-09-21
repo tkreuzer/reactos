@@ -9,7 +9,6 @@
 #define EXCEPTION_WINE_STUB     0x80000100
 #define EH_NONCONTINUABLE       0x01
 
-NTSYSAPI
 VOID
 NTAPI
 RtlRaiseException(
