@@ -988,6 +988,7 @@ START_TEST(ftp)
 {
     HMODULE hWininet;
     HANDLE hInternet, hFtp, hHttp;
+    winetest_debug = 1;
 
     hWininet = GetModuleHandleA("wininet.dll");
 
@@ -1028,18 +1029,31 @@ START_TEST(ftp)
      * the other sub-tests will show the other situation.
      */
     test_getfile_no_open();
+    trace("test_getfile_no_open -> successes=%u\n", winetest_get_successes());
     test_connect(hInternet);
+    trace("test_connect -> successes=%u\n", winetest_get_successes());
     test_createdir(hFtp, hHttp);
+    trace("test_createdir -> successes=%u\n", winetest_get_successes());
     test_deletefile(hFtp, hHttp);
+    trace("test_deletefile -> successes=%u\n", winetest_get_successes());
     test_getfile(hFtp, hHttp);
+    trace("test_getfile -> successes=%u\n", winetest_get_successes());
     test_openfile(hFtp, hHttp);
+    trace("test_openfile -> successes=%u\n", winetest_get_successes());
     test_putfile(hFtp, hHttp);
+    trace("test_putfile -> successes=%u\n", winetest_get_successes());
     test_removedir(hFtp, hHttp);
+    trace("test_removedir -> successes=%u\n", winetest_get_successes());
     test_renamefile(hFtp, hHttp);
+    trace("test_renamefile -> successes=%u\n", winetest_get_successes());
     test_command(hFtp);
+    trace("test_command -> successes=%u\n", winetest_get_successes());
     test_find_first_file(hFtp, hHttp);
+    trace("test_find_first_file -> successes=%u\n", winetest_get_successes());
     test_get_current_dir(hFtp, hHttp);
+    trace("test_get_current_dir -> successes=%u\n", winetest_get_successes());
     test_status_callbacks(hInternet);
+    trace("test_status_callbacks -> successes=%u\n", winetest_get_successes());
 
     InternetCloseHandle(hHttp);
     InternetCloseHandle(hFtp);

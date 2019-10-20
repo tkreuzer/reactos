@@ -39,6 +39,7 @@ START_TEST(WSAAsync)
     BOOL ConnectSent = FALSE;
     unsigned int Addr_con_locLoopCount = 0,
                  ServerSocketLoopCount = 0;
+    winetest_debug = 1;
 
     if (WSAStartup(MAKEWORD(2, 2), &WsaData) != 0)
     {
@@ -122,6 +123,7 @@ START_TEST(WSAAsync)
 
     while (dwFlags != EXIT_FLAGS)
     {
+        trace("In the loop, dwFlags = 0x%lx, successes=%lu\n", dwFlags, winetest_get_successes());
         dwWait = WaitForMultipleObjects(2, fEvents, FALSE, WAIT_TIMEOUT_);
 
         if (dwWait != WAIT_OBJECT_0 && // server socket event
@@ -181,6 +183,7 @@ START_TEST(WSAAsync)
     ent = gethostbyname("127.0.0.1");
     if (ent == NULL)
     {
+        trace("ent == NULL, successes=%lu\n", winetest_get_successes());
         ok(ent != NULL, "ERROR: gethostbyname '127.0.0.1' failed, trying 'localhost'\n");
         ent = gethostbyname("localhost");
 
@@ -213,6 +216,7 @@ START_TEST(WSAAsync)
 
     while (dwFlags != EXIT_FLAGS)
     {
+        trace("In the loop, dwFlags = 0x%lx, successes=%lu\n", dwFlags, winetest_get_successes());
         len = sizeof(addr_con_loc);
         nSockNameRes = getsockname(ClientSocket, (struct sockaddr*)&addr_con_loc, &len);
         if (dwFlags == 0 && !ConnectSent)

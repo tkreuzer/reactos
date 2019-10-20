@@ -89,8 +89,8 @@ static BOOL InitFunctionPtrs(void)
 
     /* starting with Win7 */
     pNtQuerySystemInformationEx = (void *) GetProcAddress(hntdll, "NtQuerySystemInformationEx");
-    if (!pNtQuerySystemInformationEx)
-        win_skip("NtQuerySystemInformationEx() is not supported, some tests will be skipped.\n");
+     if (!pNtQuerySystemInformationEx)
+         win_skip("NtQuerySystemInformationEx() is not supported, some tests will be skipped.\n");
 
     pGetLogicalProcessorInformationEx = (void *) GetProcAddress(hkernel32, "GetLogicalProcessorInformationEx");
 
@@ -1625,6 +1625,7 @@ static void test_query_process_debug_flags(int argc, char **argv)
     DWORD result;
     BOOL ret;
     int i, j;
+    trace("test_query_process_debug_flags 0 -> successes=%u\n", winetest_get_successes());
 
     /* test invalid arguments */
     status = pNtQueryInformationProcess(NULL, ProcessDebugFlags, NULL, 0, NULL);
@@ -1662,6 +1663,7 @@ static void test_query_process_debug_flags(int argc, char **argv)
     {
         DWORD expected_flags = !(test_flags[i] & DEBUG_ONLY_THIS_PROCESS);
         sprintf(cmdline, "%s %s %s", argv[0], argv[1], "debuggee");
+        trace("test_query_process_debug_flags 1 : i=%d -> successes=%u\n", i, winetest_get_successes());
 
         si.cb = sizeof(si);
         ret = CreateProcessA(NULL, cmdline, NULL, NULL, FALSE, test_flags[i], NULL, NULL, &si, &pi);
@@ -1686,6 +1688,7 @@ static void test_query_process_debug_flags(int argc, char **argv)
         ok(!status, "NtQueryInformationProcess failed, status %#x.\n", status);
         ok(debug_flags == expected_flags, "Expected flag %x, got %x.\n", expected_flags, debug_flags);
 
+        trace("test_query_process_debug_flags 2 : i=%d -> successes=%u\n", i, winetest_get_successes());
         if (!(test_flags[i] & CREATE_SUSPENDED))
         {
             /* Continue a couple of times to make sure the process is fully initialized,
@@ -1708,6 +1711,7 @@ static void test_query_process_debug_flags(int argc, char **argv)
             result = SuspendThread(pi.hThread);
             ok(result == 0, "Expected 0, got %u.\n", result);
         }
+        trace("test_query_process_debug_flags 3 : i=%d -> successes=%u\n", i, winetest_get_successes());
 
         ret = DebugActiveProcessStop(pi.dwProcessId);
         ok(ret, "DebugActiveProcessStop failed, last error %#x.\n", GetLastError());
@@ -1729,6 +1733,7 @@ static void test_query_process_debug_flags(int argc, char **argv)
 
         result = ResumeThread(pi.hThread);
         todo_wine ok(result == 2, "Expected 2, got %u.\n", result);
+        trace("test_query_process_debug_flags 4 : i=%d -> successes=%u\n", i, winetest_get_successes());
 
         /* Wait until the process is terminated. On Windows XP the process randomly
          * gets stuck in a non-continuable exception, so stop after 100 iterations.
@@ -1750,6 +1755,7 @@ static void test_query_process_debug_flags(int argc, char **argv)
             if (!ret) break;
         }
         ok(j < 100 || broken(j >= 100) /* Win XP */, "Expected less than 100 debug events.\n");
+        trace("test_query_process_debug_flags 5 : i=%d -> successes=%u\n", i, winetest_get_successes());
 
         /* test ProcessDebugFlags after process has terminated */
         status = pNtQueryInformationProcess(pi.hProcess, ProcessDebugFlags,
@@ -2253,6 +2259,7 @@ START_TEST(info)
 {
     char **argv;
     int argc;
+    winetest_debug = 1;
 
     argc = winetest_get_mainargs(&argv);
     if (argc >= 3) return; /* Child */
@@ -2265,131 +2272,165 @@ START_TEST(info)
     /* 0x0 SystemBasicInformation */
     trace("Starting test_query_basic()\n");
     test_query_basic();
+    trace("test_query_basic -> successes=%u\n", winetest_get_successes());
 
     /* 0x1 SystemCpuInformation */
     trace("Starting test_query_cpu()\n");
     test_query_cpu();
+    trace("test_find_first_file -> successes=%u\n", winetest_get_successes());
 
     /* 0x2 SystemPerformanceInformation */
     trace("Starting test_query_performance()\n");
     test_query_performance();
+    trace("test_query_cpu -> successes=%u\n", winetest_get_successes());
 
     /* 0x3 SystemTimeOfDayInformation */
     trace("Starting test_query_timeofday()\n");
     test_query_timeofday();
+    trace("test_query_timeofday -> successes=%u\n", winetest_get_successes());
 
     /* 0x5 SystemProcessInformation */
     trace("Starting test_query_process()\n");
     test_query_process();
+    trace("test_query_process -> successes=%u\n", winetest_get_successes());
 
     /* 0x8 SystemProcessorPerformanceInformation */
     trace("Starting test_query_procperf()\n");
     test_query_procperf();
+    trace("test_query_procperf -> successes=%u\n", winetest_get_successes());
 
     /* 0xb SystemModuleInformation */
     trace("Starting test_query_module()\n");
     test_query_module();
+    trace("test_query_module -> successes=%u\n", winetest_get_successes());
 
     /* 0x10 SystemHandleInformation */
     trace("Starting test_query_handle()\n");
     test_query_handle();
+    trace("test_query_handle -> successes=%u\n", winetest_get_successes());
 
     /* 0x40 SystemHandleInformation */
     trace("Starting test_query_handle_ex()\n");
     test_query_handle_ex();
+    trace("test_query_handle_ex -> successes=%u\n", winetest_get_successes());
 
     /* 0x15 SystemCacheInformation */
     trace("Starting test_query_cache()\n");
     test_query_cache();
+    trace("test_query_cache -> successes=%u\n", winetest_get_successes());
 
     /* 0x17 SystemInterruptInformation */
     trace("Starting test_query_interrupt()\n");
     test_query_interrupt();
+    trace("test_query_interrupt -> successes=%u\n", winetest_get_successes());
 
     /* 0x23 SystemKernelDebuggerInformation */
     trace("Starting test_query_kerndebug()\n");
     test_query_kerndebug();
+    trace("test_query_kerndebug -> successes=%u\n", winetest_get_successes());
 
     /* 0x25 SystemRegistryQuotaInformation */
     trace("Starting test_query_regquota()\n");
     test_query_regquota();
+    trace("test_query_regquota -> successes=%u\n", winetest_get_successes());
 
     /* 0x49 SystemLogicalProcessorInformation */
     trace("Starting test_query_logicalproc()\n");
     test_query_logicalproc();
+    trace("test_query_logicalproc -> successes=%u\n", winetest_get_successes());
     test_query_logicalprocex();
+    trace("test_query_logicalprocex -> successes=%u\n", winetest_get_successes());
 
     /* NtPowerInformation */
 
     /* 0xb ProcessorInformation */
     trace("Starting test_query_processor_power_info()\n");
     test_query_processor_power_info();
+    trace("test_query_processor_power_info -> successes=%u\n", winetest_get_successes());
 
     /* NtQueryInformationProcess */
 
     /* 0x0 ProcessBasicInformation */
     trace("Starting test_query_process_basic()\n");
     test_query_process_basic();
+    trace("test_query_process_basic -> successes=%u\n", winetest_get_successes());
 
     /* 0x2 ProcessIoCounters */
     trace("Starting test_query_process_io()\n");
     test_query_process_io();
+    trace("test_query_process_io -> successes=%u\n", winetest_get_successes());
 
     /* 0x3 ProcessVmCounters */
     trace("Starting test_query_process_vm()\n");
     test_query_process_vm();
+    trace("test_query_process_vm -> successes=%u\n", winetest_get_successes());
 
     /* 0x4 ProcessTimes */
     trace("Starting test_query_process_times()\n");
     test_query_process_times();
+    trace("test_query_process_times -> successes=%u\n", winetest_get_successes());
 
     /* 0x7 ProcessDebugPort */
     trace("Starting test_process_debug_port()\n");
     test_query_process_debug_port(argc, argv);
+    trace("test_query_process_debug_port -> successes=%u\n", winetest_get_successes());
 
     /* 0x12 ProcessPriorityClass */
     trace("Starting test_query_process_priority()\n");
     test_query_process_priority();
+    trace("test_query_process_priority -> successes=%u\n", winetest_get_successes());
 
     /* 0x14 ProcessHandleCount */
     trace("Starting test_query_process_handlecount()\n");
     test_query_process_handlecount();
+    trace("test_query_process_handlecount -> successes=%u\n", winetest_get_successes());
 
     /* 0x1A ProcessWow64Information */
     trace("Starting test_query_process_wow64()\n");
     test_query_process_wow64();
+    trace("test_query_process_wow64 -> successes=%u\n", winetest_get_successes());
 
     /* 0x1B ProcessImageFileName */
     trace("Starting test_query_process_image_file_name()\n");
     test_query_process_image_file_name();
+    trace("test_query_process_image_file_name -> successes=%u\n", winetest_get_successes());
 
     /* 0x1E ProcessDebugObjectHandle */
     trace("Starting test_query_process_debug_object_handle()\n");
     test_query_process_debug_object_handle(argc, argv);
+    trace("test_query_process_debug_object_handle -> successes=%u\n", winetest_get_successes());
 
     /* 0x1F ProcessDebugFlags */
     trace("Starting test_process_debug_flags()\n");
     test_query_process_debug_flags(argc, argv);
+    trace("test_query_process_debug_flags -> successes=%u\n", winetest_get_successes());
 
     /* belongs to its own file */
     trace("Starting test_readvirtualmemory()\n");
     test_readvirtualmemory();
+    trace("test_readvirtualmemory -> successes=%u\n", winetest_get_successes());
 
     trace("Starting test_queryvirtualmemory()\n");
     test_queryvirtualmemory();
+    trace("test_queryvirtualmemory -> successes=%u\n", winetest_get_successes());
 
     trace("Starting test_mapprotection()\n");
     test_mapprotection();
+    trace("test_mapprotection -> successes=%u\n", winetest_get_successes());
 
     trace("Starting test_affinity()\n");
     test_affinity();
+    trace("test_affinity -> successes=%u\n", winetest_get_successes());
 
     trace("Starting test_NtGetCurrentProcessorNumber()\n");
     test_NtGetCurrentProcessorNumber();
+    trace("test_NtGetCurrentProcessorNumber -> successes=%u\n", winetest_get_successes());
 
     trace("Starting test_thread_start_address()\n");
     test_thread_start_address();
+    trace("test_thread_start_address -> successes=%u\n", winetest_get_successes());
 
     trace("Starting test_query_data_alignment()\n");
     test_query_data_alignment();
+    trace("test_query_data_alignment -> successes=%u\n", winetest_get_successes());
 }

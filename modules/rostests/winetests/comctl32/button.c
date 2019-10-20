@@ -2288,6 +2288,7 @@ START_TEST(button)
 {
     ULONG_PTR ctx_cookie;
     HANDLE hCtx;
+    winetest_debug = 1;
 
     if (!load_v6_module(&ctx_cookie, &hCtx))
         return;
@@ -2298,14 +2299,23 @@ START_TEST(button)
     init_msg_sequences(sequences, NUM_MSG_SEQUENCES);
 
     test_button_class();
+    trace("test_button_class -> successes=%u\n", winetest_get_successes());
     test_button_messages();
+    trace("test_button_messages -> successes=%u\n", winetest_get_successes());
     test_note();
+    trace("test_note -> successes=%u\n", winetest_get_successes());
     test_button_data();
+    trace("test_button_data -> successes=%u\n", winetest_get_successes());
     test_bm_get_set_image();
+    trace("test_bm_get_set_image -> successes=%u\n", winetest_get_successes());
     test_get_set_imagelist();
+    trace("test_get_set_imagelist -> successes=%u\n", winetest_get_successes());
     test_get_set_textmargin();
+    trace("test_get_set_textmargin -> successes=%u\n", winetest_get_successes());
     test_state();
+    trace("test_state -> successes=%u\n", winetest_get_successes());
     test_bcm_get_ideal_size();
+    trace("test_bcm_get_ideal_size -> successes=%u\n", winetest_get_successes());
 
     unload_v6_module(ctx_cookie, hCtx);
 }

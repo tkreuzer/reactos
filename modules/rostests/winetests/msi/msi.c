@@ -13366,6 +13366,7 @@ static void test_MsiEnumProductsEx(void)
     {
         if (!strcmp( product1, guid ))
         {
+            trace("product1\n");
             ok( context == MSIINSTALLCONTEXT_MACHINE, "got %u\n", context );
             ok( !sid[0], "got \"%s\"\n", sid );
             ok( !len, "unexpected length %lu\n", len );
@@ -13380,6 +13381,7 @@ static void test_MsiEnumProductsEx(void)
         }
         if (!strcmp( product3, guid ))
         {
+            trace("product3\n");
             ok( context == MSIINSTALLCONTEXT_USERUNMANAGED, "got %u\n", context );
             ok( sid[0], "empty sid\n" );
             ok( len == strlen(sid), "unexpected length %lu\n", len );
@@ -14594,6 +14596,7 @@ START_TEST(msi)
         return;
     }
 #endif
+    winetest_debug = 1;
 
     init_functionpointers();
 
@@ -14613,31 +14616,56 @@ START_TEST(msi)
     ok(get_system_dirs(), "failed to retrieve system dirs\n");
 
     test_usefeature();
+    trace("test_usefeature -> successes=%u\n", winetest_get_successes());
     test_null();
+    trace("test_null -> successes=%u\n", winetest_get_successes());
     test_getcomponentpath();
+    trace("test_getcomponentpath -> successes=%u\n", winetest_get_successes());
     test_MsiGetFileHash();
+    trace("test_MsiGetFileHash -> successes=%u\n", winetest_get_successes());
     test_MsiSetInternalUI();
+    trace("test_MsiSetInternalUI -> successes=%u\n", winetest_get_successes());
     test_MsiSetExternalUI();
     test_MsiQueryProductState();
+    trace("test_MsiQueryProductState -> successes=%u\n", winetest_get_successes());
     test_MsiQueryFeatureState();
+    trace("test_MsiQueryFeatureState -> successes=%u\n", winetest_get_successes());
     test_MsiQueryComponentState();
+    trace("test_MsiQueryComponentState -> successes=%u\n", winetest_get_successes());
     test_MsiGetComponentPath();
+    trace("test_MsiGetComponentPath -> successes=%u\n", winetest_get_successes());
     test_MsiGetComponentPathEx();
+    trace("test_MsiGetComponentPathEx -> successes=%u\n", winetest_get_successes());
     test_MsiProvideComponent();
+    trace("test_MsiProvideComponent -> successes=%u\n", winetest_get_successes());
     test_MsiGetProductCode();
+    trace("test_MsiGetProductCode -> successes=%u\n", winetest_get_successes());
     test_MsiEnumClients();
+    trace("test_MsiEnumClients -> successes=%u\n", winetest_get_successes());
     test_MsiGetProductInfo();
+    trace("test_MsiGetProductInfo -> successes=%u\n", winetest_get_successes());
     test_MsiGetProductInfoEx();
+    trace("test_MsiGetProductInfoEx -> successes=%u\n", winetest_get_successes());
     test_MsiGetUserInfo();
+    trace("test_MsiGetUserInfo -> successes=%u\n", winetest_get_successes());
     test_MsiOpenProduct();
+    trace("test_MsiOpenProduct -> successes=%u\n", winetest_get_successes());
     test_MsiEnumPatchesEx();
+    trace("test_MsiEnumPatchesEx -> successes=%u\n", winetest_get_successes());
     test_MsiEnumPatches();
+    trace("test_MsiEnumPatches -> successes=%u\n", winetest_get_successes());
     test_MsiGetPatchInfoEx();
+    trace("test_MsiGetPatchInfoEx -> successes=%u\n", winetest_get_successes());
     test_MsiGetPatchInfo();
+    trace("test_MsiGetPatchInfo -> successes=%u\n", winetest_get_successes());
     test_MsiEnumProducts();
+    trace("test_MsiEnumProducts -> successes=%u\n", winetest_get_successes());
     test_MsiEnumProductsEx();
+    trace("test_MsiEnumProductsEx -> successes=%u\n", winetest_get_successes());
     test_MsiEnumComponents();
+    trace("test_MsiEnumComponents -> successes=%u\n", winetest_get_successes());
     test_MsiEnumComponentsEx();
+    trace("test_MsiEnumComponentsEx -> successes=%u\n", winetest_get_successes());
     test_MsiGetFileVersion();
     test_MsiGetFileSignatureInformation();
     test_MsiConfigureProductEx();

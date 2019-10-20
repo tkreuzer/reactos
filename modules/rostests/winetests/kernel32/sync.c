@@ -777,6 +777,7 @@ static void CALLBACK timer_queue_cb1(PVOID p, BOOLEAN timedOut)
     int *pn = p;
     disable_success_count
     ok(timedOut, "Timer callbacks should always time out\n");
+    trace("timer_queue_cb1 -> successes=%u\n", winetest_get_successes());
     ++*pn;
 }
 
@@ -886,6 +887,7 @@ static void test_timer_queue(void)
     /* Test asynchronous deletion of the queue. */
     q = CreateTimerQueue();
     ok(q != NULL, "CreateTimerQueue\n");
+    trace("test_timer_queue 1 -> successes=%u\n", winetest_get_successes());
 
     SetLastError(0xdeadbeef);
     ret = DeleteTimerQueueEx(q, NULL);
@@ -914,6 +916,7 @@ static void test_timer_queue(void)
     ret = CreateTimerQueueTimer(&t1, q, timer_queue_cb1, &n1, 0, 0, 0);
     ok(ret, "CreateTimerQueueTimer\n");
     ok(t1 != NULL, "CreateTimerQueueTimer\n");
+    trace("test_timer_queue 2 -> successes=%u\n", winetest_get_successes());
 
     /* A slow one.  */
     t2 = NULL;
@@ -942,9 +945,13 @@ static void test_timer_queue(void)
     ret = CreateTimerQueueTimer(&t5, q, timer_queue_cb1, &n5, 0, 10000, 0);
     ok(ret, "CreateTimerQueueTimer\n");
     ok(t5 != NULL, "CreateTimerQueueTimer\n");
+    report_success = 0;
+    trace("test_timer_queue 3 -> successes=%u\n", winetest_get_successes());
 
     /* Give them a chance to do some work.  */
     Sleep(500);
+    trace("test_timer_queue 4 -> successes=%u\n", winetest_get_successes());
+    report_success = 0;
 
     /* Test deleting a once-only timer.  */
     ret = DeleteTimerQueueTimer(q, t1, INVALID_HANDLE_VALUE);
@@ -972,6 +979,7 @@ static void test_timer_queue(void)
         skip("Failed to create timer queue descruction event\n");
         return;
     }
+    trace("test_timer_queue 5 -> successes=%u\n", winetest_get_successes());
 
     q = CreateTimerQueue();
     ok(q != NULL, "CreateTimerQueue\n");
@@ -999,6 +1007,7 @@ static void test_timer_queue(void)
     ret = CreateTimerQueueTimer(&t4, q, timer_queue_cb5, (PVOID) 1000, 0, 0, 0);
     ok(ret, "CreateTimerQueueTimer\n");
     ok(t4 != NULL, "CreateTimerQueueTimer\n");
+    trace("test_timer_queue 6 -> successes=%u\n", winetest_get_successes());
 
     /* Give them a chance to start.  */
     Sleep(400);
@@ -1035,6 +1044,7 @@ static void test_timer_queue(void)
        GetLastError());
     ok(WaitForSingleObject(et2, 1000) == WAIT_OBJECT_0,
        "Timer destruction event not triggered\n");
+    trace("test_timer_queue 7 -> successes=%u\n", winetest_get_successes());
 
     SetLastError(0xdeadbeef);
     ret = DeleteTimerQueueEx(q, e);
@@ -1057,6 +1067,7 @@ static void test_timer_queue(void)
     ok(t1 != NULL, "CreateTimerQueueTimer\n");
     ret = ChangeTimerQueueTimer(q, t1, 0, 0);
     ok(ret, "ChangeTimerQueueTimer\n");
+    trace("test_timer_queue 8 -> successes=%u\n", winetest_get_successes());
 
     d2.t = t2 = NULL;
     d2.num_calls = 0;
@@ -1083,6 +1094,7 @@ static void test_timer_queue(void)
     d4.t = t4;
     ok(ret, "CreateTimerQueueTimer\n");
     ok(t4 != NULL, "CreateTimerQueueTimer\n");
+    trace("test_timer_queue 9 -> successes=%u\n", winetest_get_successes());
 
     Sleep(500);
 
@@ -1105,6 +1117,7 @@ static void test_timer_queue(void)
     d1.t = t1;
     ok(ret, "CreateTimerQueueTimer\n");
     ok(t1 != NULL, "CreateTimerQueueTimer\n");
+    trace("test_timer_queue 10 -> successes=%u\n", winetest_get_successes());
 
     Sleep(750);
 
@@ -1137,6 +1150,7 @@ static void test_timer_queue(void)
     ret = CreateTimerQueueTimer(&t1, q, timer_queue_cb1, &n1, 1000, 1000, 0);
     ok(ret, "CreateTimerQueueTimer\n");
     ok(t1 != NULL, "CreateTimerQueueTimer\n");
+    trace("test_timer_queue 11 -> successes=%u\n", winetest_get_successes());
 
     t2 = NULL;
     n2 = 0;
@@ -1155,6 +1169,7 @@ static void test_timer_queue(void)
 
     ret = DeleteTimerQueueTimer(q, t2, INVALID_HANDLE_VALUE);
     ok(ret, "DeleteTimerQueueTimer\n");
+    trace("test_timer_queue 12 -> successes=%u\n", winetest_get_successes());
 
     /* Try to delete the default queue?  In any case: not allowed.  */
     SetLastError(0xdeadbeef);
@@ -1169,6 +1184,8 @@ static void test_timer_queue(void)
     ok(ret /* vista */ || GetLastError() == ERROR_IO_PENDING,
        "DeleteTimerQueueEx, GetLastError: expected ERROR_IO_PENDING, got %d\n",
        GetLastError());
+    trace("test_timer_queue 13 -> successes=%u\n", winetest_get_successes());
+
 }
 
 static HANDLE modify_handle(HANDLE handle, DWORD modify)
@@ -2571,6 +2588,7 @@ static DWORD WINAPI apc_deadlock_thread(void *param)
                                           MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         disable_success_count
         ok(!status, "expected STATUS_SUCCESS, got %08x\n", status);
+        if (base == NULL) // prevent flaky number of tests
         ok(base != NULL, "expected base != NULL, got %p\n", base);
         SetEvent(info->event);
 
@@ -2656,6 +2674,7 @@ START_TEST(sync)
 #ifdef __REACTOS__
     HMODULE hdll_vista = GetModuleHandleA("kernel32_vista.dll");
 #endif
+    winetest_debug = 1;
 
     pInitOnceInitialize = (void *)GetProcAddress(hdll, "InitOnceInitialize");
     pInitOnceExecuteOnce = (void *)GetProcAddress(hdll, "InitOnceExecuteOnce");
@@ -2714,20 +2733,37 @@ START_TEST(sync)
 
     init_fastcall_thunk();
     test_signalandwait();
+    trace("test_signalandwait -> successes=%u\n", winetest_get_successes());
     test_mutex();
+    trace("test_mutex -> successes=%u\n", winetest_get_successes());
     test_slist();
+    trace("test_slist -> successes=%u\n", winetest_get_successes());
     test_event();
+    trace("test_event -> successes=%u\n", winetest_get_successes());
     test_semaphore();
+    trace("test_semaphore -> successes=%u\n", winetest_get_successes());
     test_waitable_timer();
+    trace("tes -> successes=%u\n", winetest_get_successes());
     test_iocp_callback();
+    trace("test_iocp_callback -> successes=%u\n", winetest_get_successes());
     test_timer_queue();
+    trace("test_timer_queue -> successes=%u\n", winetest_get_successes());
     test_WaitForSingleObject();
+    trace("test_WaitForSingleObject -> successes=%u\n", winetest_get_successes());
     test_WaitForMultipleObjects();
+    trace("test_WaitForMultipleObjects -> successes=%u\n", winetest_get_successes());
     test_initonce();
+    trace("test_initonce -> successes=%u\n", winetest_get_successes());
     test_condvars_base();
+    trace("test_condvars_base -> successes=%u\n", winetest_get_successes());
     test_condvars_consumer_producer();
+    trace("test_condvars_consumer_producer -> successes=%u\n", winetest_get_successes());
     test_srwlock_base();
+    trace("test_srwlock_base -> successes=%u\n", winetest_get_successes());
     test_srwlock_example();
+    trace("test_srwlock_example -> successes=%u\n", winetest_get_successes());
     test_alertable_wait();
+    trace("test_alertable_wait -> successes=%u\n", winetest_get_successes());
     test_apc_deadlock();
+    trace("test_apc_deadlock -> successes=%u\n", winetest_get_successes());
 }

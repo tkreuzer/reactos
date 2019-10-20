@@ -1058,6 +1058,7 @@ static void test_nonclient_area(HWND hwnd)
     RECT rc_window, rc_client, rc;
     BOOL menu;
     LRESULT ret;
+    trace("test_nonclient_area 0 -> successes=%u\n", winetest_get_successes());
 
     style = GetWindowLongA(hwnd, GWL_STYLE);
     exstyle = GetWindowLongA(hwnd, GWL_EXSTYLE);
@@ -1068,7 +1069,12 @@ static void test_nonclient_area(HWND hwnd)
 
     /* avoid some cases when things go wrong */
     if (IsRectEmpty(&rc_window) || IsRectEmpty(&rc_client) ||
-	rc_window.right > 32768 || rc_window.bottom > 32768) return;
+        rc_window.right > 32768 || rc_window.bottom > 32768)
+    {
+        skip("things went wrong\n");
+        return;
+    }
+    trace("test_nonclient_area 1 -> successes=%u\n", winetest_get_successes());
 
     rc = rc_client;
     MapWindowPoints(hwnd, 0, (LPPOINT)&rc, 2);
@@ -1077,6 +1083,7 @@ static void test_nonclient_area(HWND hwnd)
     ok(EqualRect(&rc, &rc_window),
        "window rect does not match: style:exstyle=0x%08x:0x%08x, menu=%d, win=%s, calc=%s\n",
        style, exstyle, menu, wine_dbgstr_rect(&rc_window), wine_dbgstr_rect(&rc));
+    trace("test_nonclient_area 2 -> successes=%u\n", winetest_get_successes());
 
     rc = rc_client;
     MapWindowPoints(hwnd, 0, (LPPOINT)&rc, 2);
@@ -1084,6 +1091,7 @@ static void test_nonclient_area(HWND hwnd)
     ok(EqualRect(&rc, &rc_window),
        "window rect does not match: style:exstyle=0x%08x:0x%08x, menu=%d, win=%s, calc=%s\n",
        style, exstyle, menu, wine_dbgstr_rect(&rc_window), wine_dbgstr_rect(&rc));
+    trace("test_nonclient_area 3 -> successes=%u\n", winetest_get_successes());
 
 
     rc = rc_window;
@@ -1096,10 +1104,15 @@ static void test_nonclient_area(HWND hwnd)
     /* NULL rectangle shouldn't crash */
     ret = DefWindowProcA(hwnd, WM_NCCALCSIZE, 0, 0);
     ok(ret == 0, "NULL rectangle returned %ld instead of 0\n", ret);
+    trace("test_nonclient_area 4 -> successes=%u\n", winetest_get_successes());
 
     /* Win9x doesn't like WM_NCCALCSIZE with synthetic data and crashes */;
     if (is_win9x)
-	return;
+    {
+        skip("is_win9x\n");
+        return;
+    }
+    trace("test_nonclient_area 5 -> successes=%u\n", winetest_get_successes());
 
     /* and now test AdjustWindowRectEx and WM_NCCALCSIZE on synthetic data */
     SetRect(&rc_client, 0, 0, 250, 150);
@@ -1113,6 +1126,7 @@ static void test_nonclient_area(HWND hwnd)
     ok(EqualRect(&rc, &rc_client),
        "synthetic rect does not match: style:exstyle=0x%08x:0x%08x, menu=%d, client=%s, calc=%s\n",
        style, exstyle, menu, wine_dbgstr_rect(&rc_client), wine_dbgstr_rect(&rc));
+    trace("test_nonclient_area 6 -> successes=%u\n", winetest_get_successes());
 }
 
 static LRESULT CALLBACK cbt_hook_proc(int nCode, WPARAM wParam, LPARAM lParam) 
@@ -1130,6 +1144,7 @@ static LRESULT CALLBACK cbt_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 	"HCBT_SETFOCUS" };
     const char *code_name = (nCode >= 0 && nCode <= HCBT_SETFOCUS) ? CBT_code_name[nCode] : "Unknown";
     HWND hwnd = (HWND)wParam;
+//    trace("cbt_hook_proc 0 -> successes=%u\n", winetest_get_successes());
 
     switch (nCode)
     {
@@ -1140,13 +1155,16 @@ static LRESULT CALLBACK cbt_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 	    LONG style;
 	    CBT_CREATEWNDA *createwnd = (CBT_CREATEWNDA *)lParam;
 	    ok(createwnd->hwndInsertAfter == HWND_TOP, "hwndInsertAfter should be always HWND_TOP\n");
+//        trace("cbt_hook_proc 1 -> successes=%u\n", winetest_get_successes());
 
             if (pGetWindowInfo)
             {
                 WINDOWINFO info;
                 info.cbSize = sizeof(WINDOWINFO);
                 ok(pGetWindowInfo(hwnd, &info), "GetWindowInfo should not fail\n");
+//                trace("verify_window_info before -> successes=%u\n", winetest_get_successes());
                 verify_window_info(code_name, hwnd, &info);
+//                trace("verify_window_info after -> successes=%u\n", winetest_get_successes());
             }
 
 	    /* WS_VISIBLE should be turned off yet */
@@ -1207,6 +1225,8 @@ static LRESULT CALLBACK cbt_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
     case HCBT_MOVESIZE:
     case HCBT_MINMAX:
     case HCBT_ACTIVATE:
+//	trace("cbt_hook_proc 2 -> successes=%u\n", winetest_get_successes());
+    flaky_skip
 	if (pGetWindowInfo && IsWindow(hwnd))
 	{
 	    WINDOWINFO info;
@@ -1217,7 +1237,9 @@ static LRESULT CALLBACK cbt_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
 	     */
 	    info.cbSize = sizeof(WINDOWINFO);
 	    ok(pGetWindowInfo(hwnd, &info), "GetWindowInfo should not fail\n");
+//	    trace("verify_window_info before -> successes=%u\n", winetest_get_successes());
 	    verify_window_info(code_name, hwnd, &info);
+//	    trace("verify_window_info after -> successes=%u\n", winetest_get_successes());
 	}
         break;
     /* window state is undefined */
@@ -1228,6 +1250,7 @@ static LRESULT CALLBACK cbt_hook_proc(int nCode, WPARAM wParam, LPARAM lParam)
         break;
     }
 
+//    trace("cbt_hook_proc 3 -> successes=%u\n", winetest_get_successes());
     return CallNextHookEx(hhook, nCode, wParam, lParam);
 }
 
@@ -2976,28 +2999,39 @@ static void test_SetFocus(HWND hwnd)
     WNDPROC old_wnd_proc;
 
     /* check if we can set focus to non-visible windows */
+    trace("test_SetFocus 0 -> successes=%u\n", winetest_get_successes());
 
     ShowWindow(hwnd, SW_SHOW);
     SetFocus(0);
     SetFocus(hwnd);
     ok( GetFocus() == hwnd, "Failed to set focus to visible window %p\n", hwnd );
+    trace("test_SetFocus 0a -> successes=%u\n", winetest_get_successes());
     ok( GetWindowLongA(hwnd,GWL_STYLE) & WS_VISIBLE, "Window %p not visible\n", hwnd );
+    trace("test_SetFocus 0b -> successes=%u\n", winetest_get_successes());
     ShowWindow(hwnd, SW_HIDE);
     SetFocus(0);
     SetFocus(hwnd);
     ok( GetFocus() == hwnd, "Failed to set focus to invisible window %p\n", hwnd );
+    trace("test_SetFocus 0c -> successes=%u\n", winetest_get_successes());
     ok( !(GetWindowLongA(hwnd,GWL_STYLE) & WS_VISIBLE), "Window %p still visible\n", hwnd );
+    trace("test_SetFocus 0d -> successes=%u\n", winetest_get_successes());
     child = CreateWindowExA(0, "static", NULL, WS_CHILD, 0, 0, 0, 0, hwnd, 0, 0, NULL);
     assert(child);
     SetFocus(child);
     ok( GetFocus() == child, "Failed to set focus to invisible child %p\n", child );
+    trace("test_SetFocus 0e -> successes=%u\n", winetest_get_successes());
     ok( !(GetWindowLongA(child,GWL_STYLE) & WS_VISIBLE), "Child %p is visible\n", child );
+    trace("test_SetFocus 0f -> successes=%u\n", winetest_get_successes());
     ShowWindow(child, SW_SHOW);
     ok( GetWindowLongA(child,GWL_STYLE) & WS_VISIBLE, "Child %p is not visible\n", child );
+    trace("test_SetFocus 0g -> successes=%u\n", winetest_get_successes());
     ok( GetFocus() == child, "Focus no longer on child %p\n", child );
+    trace("test_SetFocus 0h -> successes=%u\n", winetest_get_successes());
     ShowWindow(child, SW_HIDE);
     ok( !(GetWindowLongA(child,GWL_STYLE) & WS_VISIBLE), "Child %p is visible\n", child );
+    trace("test_SetFocus 0i -> successes=%u\n", winetest_get_successes());
     ok( GetFocus() == hwnd, "Focus should be on parent %p, not %p\n", hwnd, GetFocus() );
+    trace("test_SetFocus 0j -> successes=%u\n", winetest_get_successes());
     ShowWindow(child, SW_SHOW);
     child2 = CreateWindowExA(0, "static", NULL, WS_CHILD, 0, 0, 0, 0, child, 0, 0, NULL);
     assert(child2);
@@ -3005,12 +3039,16 @@ static void test_SetFocus(HWND hwnd)
     SetFocus(child2);
     ShowWindow(child, SW_HIDE);
     ok( !(GetWindowLongA(child,GWL_STYLE) & WS_VISIBLE), "Child %p is visible\n", child );
+    trace("test_SetFocus 0k -> successes=%u\n", winetest_get_successes());
     ok( GetFocus() == child2, "Focus should be on %p, not %p\n", child2, GetFocus() );
+    trace("test_SetFocus 0l -> successes=%u\n", winetest_get_successes());
     ShowWindow(child, SW_SHOW);
     SetFocus(child);
     ok( GetFocus() == child, "Focus should be on child %p\n", child );
+    trace("test_SetFocus 0m -> successes=%u\n", winetest_get_successes());
     SetWindowPos(child,0,0,0,0,0,SWP_NOZORDER|SWP_NOMOVE|SWP_NOSIZE|SWP_HIDEWINDOW);
     ok( GetFocus() == child, "Focus should still be on child %p\n", child );
+    trace("test_SetFocus 1 -> successes=%u\n", winetest_get_successes());
 
     ShowWindow(child, SW_HIDE);
     SetFocus(hwnd);
@@ -3019,6 +3057,7 @@ static void test_SetFocus(HWND hwnd)
     ok( GetFocus() == hwnd, "Focus should still be on parent %p, not %p\n", hwnd, GetFocus() );
     ShowWindow(child, SW_HIDE);
     ok( GetFocus() == hwnd, "Focus should still be on parent %p, not %p\n", hwnd, GetFocus() );
+    trace("test_SetFocus 2 -> successes=%u\n", winetest_get_successes());
 
     ShowWindow(hwnd, SW_SHOW);
     ShowWindow(child, SW_SHOW);
@@ -3027,6 +3066,7 @@ static void test_SetFocus(HWND hwnd)
     EnableWindow(hwnd, FALSE);
     ok( GetFocus() == child, "Focus should still be on child %p\n", child );
     EnableWindow(hwnd, TRUE);
+    trace("test_SetFocus 3 -> successes=%u\n", winetest_get_successes());
 
     ok( GetActiveWindow() == hwnd, "parent window %p should be active\n", hwnd);
     ShowWindow(hwnd, SW_SHOWMINIMIZED);
@@ -3048,6 +3088,7 @@ todo_wine
 todo_wine
     ok( GetFocus() == child, "Focus should be on child %p, not %p\n", child, GetFocus() );
     SetWindowLongPtrA(hwnd, GWLP_WNDPROC, (LONG_PTR)old_wnd_proc);
+    trace("test_SetFocus 4 -> successes=%u\n", winetest_get_successes());
 
     SetFocus( hwnd );
     SetParent( child, GetDesktopWindow());
@@ -3072,6 +3113,7 @@ todo_wine
     SetFocus( child );
     ok( GetActiveWindow() == child, "child window %p should be active\n", child);
     ok( GetFocus() == child, "Focus should be on child %p\n", child );
+    trace("test_SetFocus 5 -> successes=%u\n", winetest_get_successes());
 
     DestroyWindow( child2 );
     DestroyWindow( child );
@@ -3080,6 +3122,7 @@ todo_wine
 static void test_SetActiveWindow(HWND hwnd)
 {
     HWND hwnd2;
+    trace("test_SetActiveWindow 0 -> successes=%u\n", winetest_get_successes());
 
     flush_events( TRUE );
     ShowWindow(hwnd, SW_HIDE);
@@ -3088,12 +3131,14 @@ static void test_SetActiveWindow(HWND hwnd)
     check_wnd_state(0, 0, 0, 0);
 
     /*trace("testing SetActiveWindow %p\n", hwnd);*/
-
+    trace("test_SetActiveWindow 1 -> successes=%u\n", winetest_get_successes());
+    report_success = 1;
     ShowWindow(hwnd, SW_SHOW);
     check_wnd_state(hwnd, hwnd, hwnd, 0);
 
     hwnd2 = SetActiveWindow(0);
     ok(hwnd2 == hwnd, "SetActiveWindow returned %p instead of %p\n", hwnd2, hwnd);
+    //flaky_skip
     if (!GetActiveWindow())  /* doesn't always work on vista */
     {
         ros_skip_flaky
@@ -3103,6 +3148,8 @@ static void test_SetActiveWindow(HWND hwnd)
         ok(hwnd2 == 0, "SetActiveWindow returned %p instead of 0\n", hwnd2);
     }
     check_wnd_state(hwnd, hwnd, hwnd, 0);
+    trace("test_SetActiveWindow 2 -> successes=%u\n", winetest_get_successes());
+    report_success = 0;
 
     SetWindowPos(hwnd,0,0,0,0,0,SWP_NOZORDER|SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE|SWP_HIDEWINDOW);
     check_wnd_state(hwnd, hwnd, hwnd, 0);
@@ -3112,6 +3159,7 @@ static void test_SetActiveWindow(HWND hwnd)
 
     ShowWindow(hwnd, SW_HIDE);
     check_wnd_state(0, 0, 0, 0);
+    trace("test_SetActiveWindow 3 -> successes=%u\n", winetest_get_successes());
 
     /*trace("testing SetActiveWindow on an invisible window %p\n", hwnd);*/
     SetActiveWindow(hwnd);
@@ -3122,6 +3170,7 @@ static void test_SetActiveWindow(HWND hwnd)
 
     hwnd2 = CreateWindowExA(0, "static", NULL, WS_POPUP|WS_VISIBLE, 0, 0, 0, 0, hwnd, 0, 0, NULL);
     check_wnd_state(hwnd2, hwnd2, hwnd2, 0);
+    trace("test_SetActiveWindow 4 -> successes=%u\n", winetest_get_successes());
 
     DestroyWindow(hwnd2);
     check_wnd_state(hwnd, hwnd, hwnd, 0);
@@ -3134,6 +3183,7 @@ static void test_SetActiveWindow(HWND hwnd)
 
     DestroyWindow(hwnd2);
     check_wnd_state(hwnd, hwnd, hwnd, 0);
+    trace("test_SetActiveWindow 5 -> successes=%u\n", winetest_get_successes());
 }
 
 struct create_window_thread_params
@@ -5361,9 +5411,13 @@ static void test_AdjustWindowRect(void)
     SHOWSYSMETRIC(SM_CXBORDER);
     SHOWSYSMETRIC(SM_CYBORDER);  
 
+    trace("test_AdjustWindowRect 0 -> successes=%u\n", winetest_get_successes());
     test_AWR_window_size(FALSE);
+    trace("test_AdjustWindowRect 1 -> successes=%u\n", winetest_get_successes());
     test_AWR_window_size(TRUE);
+    trace("test_AdjustWindowRect 2 -> successes=%u\n", winetest_get_successes());
     test_AWR_flags();
+    trace("test_AdjustWindowRect 3 -> successes=%u\n", winetest_get_successes());
 
     DestroyMenu(hmenu);
 }
@@ -9426,6 +9480,8 @@ START_TEST(win)
     pGetLayout = (void *)GetProcAddress( gdi32, "GetLayout" );
     pSetLayout = (void *)GetProcAddress( gdi32, "SetLayout" );
     pMirrorRgn = (void *)GetProcAddress( gdi32, "MirrorRgn" );
+    winetest_debug = 1;
+    report_success = 0;
 
     if (argc==4 && !strcmp(argv[2], "create_children"))
     {
@@ -9477,63 +9533,117 @@ START_TEST(win)
 
     our_pid = GetWindowThreadProcessId(hwndMain, NULL);
 
+    trace("0 -> successes=%u\n", winetest_get_successes());
     /* Add the tests below this line */
     test_child_window_from_point();
+    trace("test_child_window_from_point -> successes=%u\n", winetest_get_successes());
     test_window_from_point(argv[0]);
+    trace("test_window_from_point -> successes=%u\n", winetest_get_successes());
     test_thick_child_size(hwndMain);
+    trace("test_thick_child_size -> successes=%u\n", winetest_get_successes());
     test_fullscreen();
+    trace("test_fullscreen -> successes=%u\n", winetest_get_successes());
     test_hwnd_message();
+    trace("test_hwnd_message -> successes=%u\n", winetest_get_successes());
     test_nonclient_area(hwndMain);
+    trace("test_nonclient_area -> successes=%u\n", winetest_get_successes());
     test_params();
+    trace("test_params -> successes=%u\n", winetest_get_successes());
     test_GetWindowModuleFileName();
+    trace("test_GetWindowModuleFileName -> successes=%u\n", winetest_get_successes());
+
     test_capture_1();
+    trace("test_capture_1 -> successes=%u\n", winetest_get_successes());
     test_capture_2();
+    trace("test_capture_2 -> successes=%u\n", winetest_get_successes());
     test_capture_3(hwndMain, hwndMain2);
+    trace("test_capture_3 -> successes=%u\n", winetest_get_successes());
     test_capture_4();
+    trace("test_capture_4 -> successes=%u\n", winetest_get_successes());
     test_rtl_layout();
+    trace("test_rtl_layout -> successes=%u\n", winetest_get_successes());
     test_FlashWindow();
+    trace("test_FlashWindow -> successes=%u\n", winetest_get_successes());
     test_FlashWindowEx();
+    trace("test_FlashWindowEx -> successes=%u\n", winetest_get_successes());
 
     test_CreateWindow();
+    trace("test_CreateWindow -> successes=%u\n", winetest_get_successes());
     test_parent_owner();
+    trace("test_parent_owner -> successes=%u\n", winetest_get_successes());
     test_enum_thread_windows();
+    trace("test_enum_thread_windows -> successes=%u\n", winetest_get_successes());
 
     test_mdi();
+    trace("test_mdi -> successes=%u\n", winetest_get_successes());
     test_icons();
+    trace("test_icons -> successes=%u\n", winetest_get_successes());
     test_SetWindowPos(hwndMain, hwndMain2);
+    trace("test_SetWindowPos -> successes=%u\n", winetest_get_successes());
     test_SetMenu(hwndMain);
+    trace("test_SetMenu -> successes=%u\n", winetest_get_successes());
     test_SetFocus(hwndMain);
+    trace("test_SetFocus -> successes=%u\n", winetest_get_successes());
     test_SetActiveWindow(hwndMain);
+    trace("test_SetActiveWindow -> successes=%u\n", winetest_get_successes());
     test_NCRedraw();
+    trace("test_NCRedraw -> successes=%u\n", winetest_get_successes());
 
     test_children_zorder(hwndMain);
+    trace("test_children_zorder -> successes=%u\n", winetest_get_successes());
     test_popup_zorder(hwndMain2, hwndMain, WS_POPUP);
+    trace("test_popup_zorder -> successes=%u\n", winetest_get_successes());
     test_popup_zorder(hwndMain2, hwndMain, 0);
+    trace("test_popup_zorder -> successes=%u\n", winetest_get_successes());
     test_GetLastActivePopup();
+    trace("test_GetLastActivePopup -> successes=%u\n", winetest_get_successes());
     test_keyboard_input(hwndMain);
+    trace("test_keyboard_input -> successes=%u\n", winetest_get_successes());
     test_mouse_input(hwndMain);
+    trace("test_mouse_input -> successes=%u\n", winetest_get_successes());
     test_validatergn(hwndMain);
+    trace("test_validatergn -> successes=%u\n", winetest_get_successes());
     test_nccalcscroll( hwndMain);
+    trace("test_nccalcscroll -> successes=%u\n", winetest_get_successes());
     test_scrollwindow( hwndMain);
+    trace("test_scrollwindow -> successes=%u\n", winetest_get_successes());
     test_scrollvalidate( hwndMain);
+    trace("test_scrollvalidate -> successes=%u\n", winetest_get_successes());
     test_scrolldc( hwndMain);
+    trace("test_scrolldc -> successes=%u\n", winetest_get_successes());
     test_scroll();
+    trace("test_scroll -> successes=%u\n", winetest_get_successes());
     test_IsWindowUnicode();
+    trace("test_IsWindowUnicode -> successes=%u\n", winetest_get_successes());
     test_vis_rgn(hwndMain);
+    trace("test_vis_rgn -> successes=%u\n", winetest_get_successes());
 
     test_AdjustWindowRect();
+    trace("test_AdjustWindowRect -> successes=%u\n", winetest_get_successes());
     test_window_styles();
+    trace("test_window_styles -> successes=%u\n", winetest_get_successes());
     test_dialog_styles();
+    trace("test_dialog_styles -> successes=%u\n", winetest_get_successes());
     test_dialog_parent();
+    trace("5test_dialog_parent -> successes=%u\n", winetest_get_successes());
     test_redrawnow();
+    trace("test_redrawnow -> successes=%u\n", winetest_get_successes());
     test_csparentdc();
+    trace("test_csparentdc -> successes=%u\n", winetest_get_successes());
     test_SetWindowLong();
+    trace("test_SetWindowLong -> successes=%u\n", winetest_get_successes());
     test_set_window_style();
+    trace("test_set_window_style -> successes=%u\n", winetest_get_successes());
     test_ShowWindow();
+    trace("test_ShowWindow -> successes=%u\n", winetest_get_successes());
     test_gettext();
+    trace("test_gettext -> successes=%u\n", winetest_get_successes());
     test_GetUpdateRect();
+    trace("test_GetUpdateRect -> successes=%u\n", winetest_get_successes());
     test_Expose();
+    trace("test_Expose -> successes=%u\n", winetest_get_successes());
     test_layered_window();
+    trace("test_layered_window -> successes=%u\n", winetest_get_successes());
 
     test_SetForegroundWindow(hwndMain);
     test_shell_window();
@@ -9544,10 +9654,12 @@ START_TEST(win)
     test_window_without_child_style();
     test_smresult();
     test_GetMessagePos();
+    trace("6 -> successes=%u\n", winetest_get_successes());
 
     test_activateapp(hwndMain);
     test_winproc_handles(argv[0]);
     test_deferwindowpos();
+    trace("7 -> successes=%u\n", winetest_get_successes());
 
     /* add the tests above this line */
     if (hhook) UnhookWindowsHookEx(hhook);

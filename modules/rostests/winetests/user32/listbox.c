@@ -1431,6 +1431,7 @@ static void test_listbox_dlgdir(void)
     char * p;
     char driveletter;
     HANDLE file;
+    trace("test_listbox_dlgdir 0 -> successes=%u\n", winetest_get_successes());
 
     file = CreateFileA( "wtest1.tmp.c", GENERIC_READ|GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL );
     ok(file != INVALID_HANDLE_VALUE, "Error creating the test file: %d\n", GetLastError());
@@ -1451,6 +1452,7 @@ static void test_listbox_dlgdir(void)
     assert(hWnd);
 
     /* Test for standard usage */
+    trace("test_listbox_dlgdir 1 -> successes=%u\n", winetest_get_successes());
 
     /* The following should be overwritten by the directory path */
     SendMessageA(g_label, WM_SETTEXT, 0, (LPARAM)"default contents");
@@ -1465,6 +1467,7 @@ static void test_listbox_dlgdir(void)
     /* Path specification gets converted to uppercase */
     ok (!strcmp(pathBuffer, "W*.C"),
         "expected conversion to uppercase, got %s\n", pathBuffer);
+    trace("test_listbox_dlgdir 2 -> successes=%u\n", winetest_get_successes());
 
     /* Loaded path should have overwritten the label text */
     SendMessageA(g_label, WM_GETTEXT, MAX_PATH, (LPARAM)pathBuffer);
@@ -1475,6 +1478,7 @@ static void test_listbox_dlgdir(void)
     itemCount = SendMessageA(g_listBox, LB_GETCOUNT, 0, 0);
     ok (itemCount > 0, "DlgDirList() did NOT fill the listbox!\n");
     itemCount_justFiles = itemCount;
+    trace("test_listbox_dlgdir 3 -> successes=%u\n", winetest_get_successes());
 
     /* Every single item in the control should start with a w and end in .c */
     for (i = 0; i < itemCount; i++) {
@@ -1485,6 +1489,7 @@ static void test_listbox_dlgdir(void)
             (*(p-1) == 'c' || *(p-1) == 'C') &&
             (*(p-2) == '.')), "Element %d (%s) does not fit requested w*.c\n", i, pathBuffer);
     }
+    trace("test_listbox_dlgdir 4 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when no files match the wildcard */
     strcpy(pathBuffer, BAD_EXTENSION);
@@ -1499,6 +1504,7 @@ static void test_listbox_dlgdir(void)
     res = DlgDirListA(hWnd, pathBuffer, ID_TEST_LISTBOX, ID_TEST_LABEL,
         DDL_DIRECTORY);
     ok (res == 1, "DlgDirList(*.c, DDL_DIRECTORY) failed - 0x%08x\n", GetLastError());
+    trace("test_listbox_dlgdir 5 -> successes=%u\n", winetest_get_successes());
 
     /* There should be some content in the listbox. In particular, there should
      * be exactly more elements than before, since the directories should
@@ -1509,6 +1515,7 @@ static void test_listbox_dlgdir(void)
     ok (itemCount >= itemCount_justFiles,
         "DlgDirList(DDL_DIRECTORY) filled with %d entries, expected > %d\n",
         itemCount, itemCount_justFiles);
+    trace("test_listbox_dlgdir 6 -> successes=%u\n", winetest_get_successes());
 
     /* Every single item in the control should start with a w and end in .c,
      * except for the "[..]" string, which should appear exactly as it is.
@@ -1522,6 +1529,7 @@ static void test_listbox_dlgdir(void)
             (*(p-1) == 'c' || *(p-1) == 'C') &&
             (*(p-2) == '.')), "Element %d (%s) does not fit requested w*.c\n", i, pathBuffer);
     }
+    trace("test_listbox_dlgdir 7 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when no files match the wildcard */
     strcpy(pathBuffer, BAD_EXTENSION);
@@ -1533,12 +1541,14 @@ static void test_listbox_dlgdir(void)
     ok (itemCount == itemCount_allDirs,
         "DlgDirList() incorrectly filled the listbox! (expected %d got %d)\n",
         itemCount_allDirs, itemCount);
+    trace("test_listbox_dlgdir 8 -> successes=%u\n", winetest_get_successes());
     for (i = 0; i < itemCount; i++) {
         memset(pathBuffer, 0, MAX_PATH);
         SendMessageA(g_listBox, LB_GETTEXT, i, (LPARAM)pathBuffer);
         ok( pathBuffer[0] == '[' && pathBuffer[strlen(pathBuffer)-1] == ']',
             "Element %d (%s) does not fit requested [...]\n", i, pathBuffer);
     }
+    trace("test_listbox_dlgdir 9 -> successes=%u\n", winetest_get_successes());
 
 
     /* Test DDL_DRIVES. At least on WinXP-SP2, this implies DDL_EXCLUSIVE */
@@ -1557,6 +1567,7 @@ static void test_listbox_dlgdir(void)
         "DlgDirList(DDL_DRIVES) filled with %d entries, expected at least %d\n",
         itemCount, 1);
     itemCount_justDrives = itemCount;
+    trace("test_listbox_dlgdir 10 -> successes=%u\n", winetest_get_successes());
 
     /* Every single item in the control should fit the format [-c-] */
     for (i = 0; i < itemCount; i++) {
@@ -1572,6 +1583,7 @@ static void test_listbox_dlgdir(void)
             itemCount_justDrives--;
         }
     }
+    trace("test_listbox_dlgdir 11 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when no files match the wildcard */
     strcpy(pathBuffer, BAD_EXTENSION);
@@ -1588,6 +1600,7 @@ static void test_listbox_dlgdir(void)
     res = DlgDirListA(hWnd, pathBuffer, ID_TEST_LISTBOX, ID_TEST_LABEL,
         DDL_DIRECTORY|DDL_DRIVES);
     ok (res == 1, "DlgDirList(*.c, DDL_DIRECTORY|DDL_DRIVES) failed - 0x%08x\n", GetLastError());
+    trace("test_listbox_dlgdir 12 -> successes=%u\n", winetest_get_successes());
 
     /* There should be some content in the listbox. In particular, there should
      * be exactly the number of plain files, plus the number of mapped drives,
@@ -1597,6 +1610,7 @@ static void test_listbox_dlgdir(void)
     ok (itemCount == itemCount_justFiles + itemCount_justDrives + itemCount_allDirs,
         "DlgDirList(DDL_DIRECTORY|DDL_DRIVES) filled with %d entries, expected %d\n",
         itemCount, itemCount_justFiles + itemCount_justDrives + itemCount_allDirs);
+    trace("test_listbox_dlgdir 13 -> successes=%u\n", winetest_get_successes());
 
     /* Every single item in the control should start with a w and end in .c,
      * except for the "[..]" string, which should appear exactly as it is,
@@ -1616,6 +1630,7 @@ static void test_listbox_dlgdir(void)
                 (*(p-2) == '.')), "Element %d (%s) does not fit requested w*.c\n", i, pathBuffer);
         }
     }
+    trace("test_listbox_dlgdir 14 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when no files match the wildcard */
     strcpy(pathBuffer, BAD_EXTENSION);
@@ -1629,6 +1644,7 @@ static void test_listbox_dlgdir(void)
         itemCount_justDrives + itemCount_allDirs, itemCount);
 
 
+    trace("test_listbox_dlgdir 15 -> successes=%u\n", winetest_get_successes());
 
     /* Test DDL_DIRECTORY|DDL_EXCLUSIVE. */
     strcpy(pathBuffer, "w*.c");
@@ -1641,6 +1657,7 @@ static void test_listbox_dlgdir(void)
     ok (itemCount == itemCount_allDirs,
         "DlgDirList(DDL_DIRECTORY|DDL_EXCLUSIVE) filled with %d entries, expected %d\n",
         itemCount, itemCount_allDirs);
+    trace("test_listbox_dlgdir 16 -> successes=%u\n", winetest_get_successes());
 
     if (itemCount && GetCurrentDirectoryA( MAX_PATH, pathBuffer ) > 3)  /* there's no [..] in drive root */
     {
@@ -1648,6 +1665,7 @@ static void test_listbox_dlgdir(void)
         SendMessageA(g_listBox, LB_GETTEXT, 0, (LPARAM)pathBuffer);
         ok( !strcmp(pathBuffer, "[..]"), "First (and only) element is not [..]\n");
     }
+    trace("test_listbox_dlgdir 17 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when no files match the wildcard */
     strcpy(pathBuffer, BAD_EXTENSION);
@@ -1670,6 +1688,7 @@ static void test_listbox_dlgdir(void)
     ok (itemCount == itemCount_justDrives + itemCount_allDirs,
         "DlgDirList(DDL_DIRECTORY|DDL_EXCLUSIVE) filled with %d entries, expected %d\n",
         itemCount, itemCount_justDrives + itemCount_allDirs);
+    trace("test_listbox_dlgdir 18 -> successes=%u\n", winetest_get_successes());
 
     for (i = 0; i < itemCount; i++) {
         memset(pathBuffer, 0, MAX_PATH);
@@ -1682,6 +1701,7 @@ static void test_listbox_dlgdir(void)
                 "Element %d (%s) does not fit expected [...]\n", i, pathBuffer);
         }
     }
+    trace("test_listbox_dlgdir 19 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when no files match the wildcard */
     strcpy(pathBuffer, BAD_EXTENSION);
@@ -1699,6 +1719,7 @@ static void test_listbox_dlgdir(void)
     res = DlgDirListA(hWnd, pathBuffer, ID_TEST_LISTBOX, ID_TEST_LABEL,
         DDL_DIRECTORY|DDL_DRIVES);
     ok (res != 0, "DlgDirList(*, DDL_DIRECTORY|DDL_DRIVES) failed - 0x%08x\n", GetLastError());
+    trace("test_listbox_dlgdir 20 -> successes=%u\n", winetest_get_successes());
 
     SendMessageA(g_listBox, LB_SETCURSEL, -1, 0); /* Unselect any current selection */
     memset(pathBuffer, 0, MAX_PATH);
@@ -1712,6 +1733,7 @@ static void test_listbox_dlgdir(void)
     /*
     ok (strlen(pathBuffer) == 0, "DlgDirSelectEx() with no selection filled buffer with %s\n", pathBuffer);
     */
+    trace("test_listbox_dlgdir 21 -> successes=%u, itemCount=%u\n", winetest_get_successes(), itemCount);
     /* Test proper drive/dir/file recognition */
     itemCount = SendMessageA(g_listBox, LB_GETCOUNT, 0, 0);
     for (i = 0; i < itemCount; i++) {
@@ -1720,6 +1742,7 @@ static void test_listbox_dlgdir(void)
         memset(tempBuffer, 0, MAX_PATH);
         driveletter = '\0';
         SendMessageA(g_listBox, LB_GETTEXT, i, (LPARAM)itemBuffer);
+        trace("loop: itemBuffer='%s'\n", itemBuffer);
         if (!strstr(itemBuffer, ".exe")) continue; // skip downloaded/generated files from other tests
         res = SendMessageA(g_listBox, LB_SETCURSEL, i, 0);
         ok (res == i, "SendMessageA(LB_SETCURSEL, %d) failed\n", i);
@@ -1769,6 +1792,7 @@ static void test_listbox_dlgdir(void)
             ok (!strcmp(pathBuffer, tempBuffer), "Formatted file should be %s, got %s\n", tempBuffer, pathBuffer);
         }
     }
+    trace("test_listbox_dlgdir 22 -> successes=%u\n", winetest_get_successes());
 
     DeleteFileA( "wtest1.tmp.c" );
 
@@ -1832,6 +1856,7 @@ static void test_listbox_dlgdir(void)
             ok (!strcmp(pathBuffer, tempBuffer), "Formatted file should be %s, got %s\n", tempBuffer, pathBuffer);
         }
     }
+    trace("test_listbox_dlgdir 23 -> successes=%u\n", winetest_get_successes());
 
     /* Test behavior when loading folders from root with and without wildcard */
     strcpy(pathBuffer, "C:\\");
@@ -1853,6 +1878,7 @@ static void test_listbox_dlgdir(void)
     ok(!res, "DlgDirList should have failed with 0 but %d was returned\n", res);
     ok(GetLastError() == ERROR_NO_WILDCARD_CHARACTERS,
        "GetLastError should return 0x589, got 0x%X\n",GetLastError());
+    trace("test_listbox_dlgdir 24 -> successes=%u\n", winetest_get_successes());
 
     DestroyWindow(hWnd);
 }
@@ -2403,6 +2429,9 @@ START_TEST(listbox)
      {     2,      2,      2, LB_ERR}, {0,0,0,0},
      {LB_ERR, LB_ERR,      0, LB_ERR}, {0,0,0,0}};
 
+  winetest_debug = 1;
+  trace("listbox 0 -> successes=%u\n", winetest_get_successes());
+
   trace (" Testing single selection...\n");
   check (0, SS);
   trace (" ... with NOSEL\n");
@@ -2439,22 +2468,38 @@ START_TEST(listbox)
   trace (" ... with NOSEL\n");
   check (LBS_NODATA | LBS_OWNERDRAWFIXED | LBS_EXTENDEDSEL | LBS_MULTIPLESEL | LBS_NOSEL, EMS_NS);
 
+  trace("listbox 10 -> successes=%u\n", winetest_get_successes());
+
   check_item_height();
+  trace("check_item_height -> successes=%u\n", winetest_get_successes());
   test_ownerdraw();
+  trace("test_ownerdraw -> successes=%u\n", winetest_get_successes());
   test_LB_SELITEMRANGE();
+  trace("test_LB_SELITEMRANGE -> successes=%u\n", winetest_get_successes());
   test_LB_SETCURSEL();
+  trace("test_LB_SETCURSEL -> successes=%u\n", winetest_get_successes());
   test_listbox_height();
   test_changing_selection_styles();
+  trace("test_listbox_height -> successes=%u\n", winetest_get_successes());
   test_itemfrompoint();
+  trace("test_itemfrompoint -> successes=%u\n", winetest_get_successes());
   test_listbox_item_data();
+  trace("test_listbox_item_data -> successes=%u\n", winetest_get_successes());
   test_listbox_LB_DIR();
+  trace("test_listbox_LB_DIR -> successes=%u\n", winetest_get_successes());
   test_listbox_dlgdir();
+  trace("test_listbox_dlgdir -> successes=%u\n", winetest_get_successes());
   test_set_count();
   test_init_storage();
+  trace("test_set_count -> successes=%u\n", winetest_get_successes());
   test_GetListBoxInfo();
+  trace("test_GetListBoxInfo -> successes=%u\n", winetest_get_successes());
   test_missing_lbuttonup();
+  trace("test_missing_lbuttonup -> successes=%u\n", winetest_get_successes());
   test_extents();
+  trace("test_extents -> successes=%u\n", winetest_get_successes());
   test_WM_MEASUREITEM();
   test_LB_SETSEL();
   test_LBS_NODATA();
+  trace("test_WM_MEASUREITEM -> successes=%u\n", winetest_get_successes());
 }

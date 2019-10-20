@@ -527,6 +527,7 @@ static void test_HttpOptions(void)
 
     hr = IBackgroundCopyJob_QueryInterface(test_job, &IID_IBackgroundCopyJobHttpOptions, (void **)&options);
     ok(hr == S_OK, "got 0x%08x\n", hr);
+    ok(options != NULL, "options is NULL\n");
 
     if (options)
     {
@@ -660,6 +661,7 @@ START_TEST(job)
     };
     const test_t *test;
     int i;
+    report_success = 0;
 
     init_paths();
 

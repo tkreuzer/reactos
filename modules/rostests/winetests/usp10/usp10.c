@@ -4217,37 +4217,64 @@ START_TEST(usp10)
     ok(hfont != NULL, "SelectObject failed: %p\n", hfont);
 
     init_tests();
+    winetest_debug = 1;
 
     test_ScriptItemize();
+    trace("test_ScriptItemize -> successes=%u\n", winetest_get_successes());
     test_ScriptItemize_surrogates();
+    trace("test_ScriptItemize_surrogates -> successes=%u\n", winetest_get_successes());
     test_ScriptItemIzeShapePlace(hdc,pwOutGlyphs);
+    trace("test_ScriptItemIzeShapePlace -> successes=%u\n", winetest_get_successes());
     test_ScriptGetCMap(hdc, pwOutGlyphs);
+    trace("test_ScriptGetCMap -> successes=%u\n", winetest_get_successes());
     test_ScriptCacheGetHeight(hdc);
+    trace("test_ScriptCacheGetHeight -> successes=%u\n", winetest_get_successes());
     test_ScriptGetGlyphABCWidth(hdc);
+    trace("test_ScriptGetGlyphABCWidth -> successes=%u\n", winetest_get_successes());
     test_ScriptShape(hdc);
+    trace("test_ScriptShape -> successes=%u\n", winetest_get_successes());
     test_ScriptShapeOpenType(hdc);
+    trace("test_ScriptShapeOpenType -> successes=%u\n", winetest_get_successes());
     test_ScriptPlace(hdc);
+    trace("test_ScriptPlace -> successes=%u\n", winetest_get_successes());
 
     test_ScriptGetFontProperties(hdc);
+    trace("test_ScriptGetFontProperties -> successes=%u\n", winetest_get_successes());
     test_ScriptTextOut(hdc);
+    trace("test_ScriptTextOut -> successes=%u\n", winetest_get_successes());
     test_ScriptTextOut2(hdc);
+    trace("test_ScriptTextOut2 -> successes=%u\n", winetest_get_successes());
     test_ScriptTextOut3(hdc);
+    trace("test_ScriptTextOut3 -> successes=%u\n", winetest_get_successes());
     test_ScriptXtoX();
+    trace("test_ScriptXtoX -> successes=%u\n", winetest_get_successes());
     test_ScriptString(hdc);
+    trace("test_ScriptString -> successes=%u\n", winetest_get_successes());
     test_ScriptStringXtoCP_CPtoX(hdc);
+    trace("test_ScriptStringXtoCP_CPtoX -> successes=%u\n", winetest_get_successes());
     test_ScriptString_pSize(hdc);
+    trace("test_ScriptString_pSize -> successes=%u\n", winetest_get_successes());
 
     test_ScriptLayout();
+    trace("test_ScriptLayout -> successes=%u\n", winetest_get_successes());
     test_digit_substitution();
+    trace("test_digit_substitution -> successes=%u\n", winetest_get_successes());
     test_ScriptGetProperties();
+    trace("test_ScriptGetProperties -> successes=%u\n", winetest_get_successes());
     test_ScriptBreak();
+    trace("test_ScriptBreak -> successes=%u\n", winetest_get_successes());
     test_newlines();
+    trace("test_newlines -> successes=%u\n", winetest_get_successes());
 
     test_ScriptGetFontFunctions(hdc);
+    trace("test_ScriptGetFontFunctions -> successes=%u\n", winetest_get_successes());
     test_ScriptGetLogicalWidths();
+    trace("test_ScriptGetLogicalWidths -> successes=%u\n", winetest_get_successes());
 
     test_ScriptIsComplex();
+    trace("test_ScriptIsComplex -> successes=%u\n", winetest_get_successes());
     test_script_cache_reuse();
+    trace("test_script_cache_reuse -> successes=%u\n", winetest_get_successes());
 
     ReleaseDC(hwnd, hdc);
     DestroyWindow(hwnd);

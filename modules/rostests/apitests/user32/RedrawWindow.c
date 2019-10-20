@@ -36,6 +36,7 @@ START_TEST(RedrawWindow)
     HRGN hRgn;
     BOOL ret;
     int i;
+    report_success = 1;
 
     SetCursorPos(0,0);
 

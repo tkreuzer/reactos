@@ -1803,6 +1803,7 @@ START_TEST(query)
     IWbemLocator *locator;
     IWbemServices *services;
     HRESULT hr;
+    winetest_debug = 1;
 
     CoInitialize( NULL );
     CoInitializeSecurity( NULL, -1, NULL, NULL, RPC_C_AUTHN_LEVEL_DEFAULT,
@@ -1822,14 +1823,18 @@ START_TEST(query)
     ok( hr == S_OK, "failed to set proxy blanket %08x\n", hr );
 
     test_GetNames( services );
+    trace("test_select -> successes=%u\n", winetest_get_successes());
     test_associators( services );
+    trace("test_StdRegProv -> successes=%u\n", winetest_get_successes());
     test_notification_query_async( services );
+    trace("test_notification_query_async -> successes=%u\n", winetest_get_successes());
     test_query_async( services );
     test_query_semisync( services );
     test_select( services );
 
     /* classes */
     test_StdRegProv( services );
+    trace("test_GetNames -> successes=%u\n", winetest_get_successes());
     test_SystemSecurity( services );
     test_Win32_Baseboard( services );
     test_Win32_ComputerSystem( services );
@@ -1838,17 +1843,20 @@ START_TEST(query)
     test_Win32_DisplayControllerConfiguration( services );
     test_Win32_IP4RouteTable( services );
     test_Win32_OperatingSystem( services );
+    trace("test_Win32_ComputerSystemProduct -> successes=%u\n", winetest_get_successes());
     test_Win32_PhysicalMemory( services );
     test_Win32_PnPEntity( services );
     test_Win32_Printer( services );
     test_Win32_Process( services, FALSE );
     test_Win32_Process( services, TRUE );
+    trace("test_Win32_IP4RouteTable -> successes=%u\n", winetest_get_successes());
     test_Win32_Processor( services );
     test_Win32_QuickFixEngineering( services );
     test_Win32_Service( services );
     test_Win32_SystemEnclosure( services );
     test_Win32_VideoController( services );
     test_Win32_WinSAT( services );
+    trace("test_Win32_PnPEntity -> successes=%u\n", winetest_get_successes());
 
     SysFreeString( path );
     IWbemServices_Release( services );

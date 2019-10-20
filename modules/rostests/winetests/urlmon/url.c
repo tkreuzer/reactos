@@ -432,6 +432,7 @@ static DWORD WINAPI thread_proc(PVOID arg)
     PROTOCOLDATA protocoldata = {0};
     HRESULT hres;
 
+    winetest_disable_success_count();
     if(!no_callback) {
         if(bind_to_object)
             SET_EXPECT(Obj_OnProgress_FINDINGRESOURCE);
@@ -1656,6 +1657,7 @@ static HRESULT WINAPI statusclb_OnLowResource(IBindStatusCallbackEx *iface, DWOR
 static HRESULT WINAPI statusclb_OnProgress(IBindStatusCallbackEx *iface, ULONG ulProgress,
         ULONG ulProgressMax, ULONG ulStatusCode, LPCWSTR szStatusText)
 {
+    winetest_disable_success_count();
     ok(GetCurrentThreadId() == thread_id, "wrong thread %d\n", GetCurrentThreadId());
 
     switch(ulStatusCode) {
@@ -1707,6 +1709,7 @@ static HRESULT WINAPI statusclb_OnProgress(IBindStatusCallbackEx *iface, ULONG u
         if(abort_progress) {
             if(filedwl_api)
                 binding_hres = E_ABORT;
+            winetest_enable_success_count();
             return E_ABORT;
         }
 
@@ -1844,6 +1847,7 @@ static HRESULT WINAPI statusclb_OnProgress(IBindStatusCallbackEx *iface, ULONG u
             IWinInetHttpInfo_Release(http_info);
     }
 
+    winetest_enable_success_count();
     return S_OK;
 }
 
@@ -1991,6 +1995,7 @@ static HRESULT WINAPI statusclb_OnDataAvailable(IBindStatusCallbackEx *iface, DW
     DWORD readed;
     BYTE buf[512];
     CHAR clipfmt[512];
+    winetest_disable_success_count();
 
     if(iface == &objbsc)
         ok(0, "unexpected call\n");
@@ -2103,6 +2108,7 @@ static HRESULT WINAPI statusclb_OnDataAvailable(IBindStatusCallbackEx *iface, DW
        && emulate_protocol && prot_state < 4 && (!bind_to_object || prot_state > 1))
         SetEvent(complete_event);
 
+    winetest_enable_success_count();
     return S_OK;
 }
 
@@ -3923,6 +3929,7 @@ static BOOL can_do_https(void)
 START_TEST(url)
 {
     HMODULE hurlmon;
+    winetest_debug = 1;
 
     if (!winetest_interactive)
     {
@@ -3950,60 +3957,86 @@ START_TEST(url)
     register_protocols();
 
     test_create();
+    trace("0 -> successes=%u\n", winetest_get_successes());
 
     trace("test CreateAsyncBindCtx...\n");
     test_CreateAsyncBindCtx();
+    trace("test_CreateAsyncBindCtx -> successes=%u\n", winetest_get_successes());
 
     trace("test CreateAsyncBindCtxEx...\n");
     test_CreateAsyncBindCtxEx();
+    trace("test_CreateAsyncBindCtxEx -> successes=%u\n", winetest_get_successes());
 
     trace("test RegisterBindStatusCallback...\n");
     if(test_RegisterBindStatusCallback()) {
         trace("test BindToStorage failures...\n");
         test_BindToStorage_fail();
+        trace("test_BindToStorage_fail 1 -> successes=%u\n", winetest_get_successes());
 
         trace("synchronous http test (COM not initialised)...\n");
+        report_success = 1;
         test_BindToStorage(HTTP_TEST, 0, TYMED_ISTREAM);
+        report_success = 0;
+        trace("test_BindToStorage_fail 2 -> successes=%u\n", winetest_get_successes());
 
         CoInitialize(NULL);
 
         trace("test StdURLMoniker...\n");
         test_StdURLMoniker();
+        trace("test_StdURLMoniker -> successes=%u\n", winetest_get_successes());
 
         trace("synchronous http test...\n");
+        report_success = 1;
         test_BindToStorage(HTTP_TEST, 0, TYMED_ISTREAM);
+        report_success = 0;
+        trace("test_BindToStorage_fail 3 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated synchronous http test (to file)...\n");
+        report_success = 1;
         test_BindToStorage(HTTP_TEST, BINDTEST_EMULATE, TYMED_FILE);
+        report_success = 0;
+        trace("test_BindToStorage_fail 4 -> successes=%u\n", winetest_get_successes());
 
         trace("synchronous http test (to object)...\n");
         test_BindToObject(HTTP_TEST, 0, S_OK);
+        trace("test_BindToStorage_fail 5 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated synchronous http test (with cache)...\n");
+        report_success = 1;
         test_BindToStorage(HTTP_TEST, BINDTEST_EMULATE|BINDTEST_USE_CACHE, TYMED_ISTREAM);
+        report_success = 0;
+        trace("test_BindToStorage_fail 6 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated synchronous http test (with cache, no read)...\n");
         test_BindToStorage(HTTP_TEST, BINDTEST_EMULATE|BINDTEST_USE_CACHE|BINDTEST_NO_CALLBACK_READ, TYMED_ISTREAM);
+        trace("test_BindToStorage_fail 7 -> successes=%u\n", winetest_get_successes());
 
         trace("synchronous http test (with cache, no read)...\n");
         test_BindToStorage(HTTP_TEST, BINDTEST_USE_CACHE|BINDTEST_NO_CALLBACK_READ, TYMED_ISTREAM);
+        trace("test_BindToStorage_fail 8 -> successes=%u\n", winetest_get_successes());
 
         trace("synchronous file test...\n");
         test_BindToStorage(FILE_TEST, 0, TYMED_ISTREAM);
+        trace("test_BindToStorage_fail 9 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated synchronous file test (to file)...\n");
         test_BindToStorage(FILE_TEST, BINDTEST_EMULATE, TYMED_FILE);
+        trace("test_BindToStorage_fail 10 -> successes=%u\n", winetest_get_successes());
 
         trace("synchronous file test (to object)...\n");
         test_BindToObject(FILE_TEST, 0, S_OK);
+        trace("test_BindToObject 1 -> successes=%u\n", winetest_get_successes());
 
         trace("bind to an object of not registered MIME type...\n");
         create_file("test.winetest", "\x01\x02\x03xxxxxxxxxxxxxxxxxxxxxxxxx");
         test_BindToObject(FILE_TEST, 0, REGDB_E_CLASSNOTREG);
+        trace("test_BindToObject 2 -> successes=%u\n", winetest_get_successes());
         create_html_file();
+        trace("test_BindToObject 3 -> successes=%u\n", winetest_get_successes());
 
         trace("file test (no callback)...\n");
         test_BindToStorage(FILE_TEST, BINDTEST_NO_CALLBACK, TYMED_ISTREAM);
+        trace("test_BindToObject 4 -> successes=%u\n", winetest_get_successes());
 
         if(can_do_https()) {
             trace("synchronous https test (invalid CN, dialog)\n");
@@ -4031,6 +4064,7 @@ START_TEST(url)
         }else {
             win_skip("Skipping https testt\n");
         }
+        trace("3 -> successes=%u\n", winetest_get_successes());
 
         bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA;
 
@@ -4051,6 +4085,7 @@ START_TEST(url)
 
         trace("http test (short response)...\n");
         test_BindToStorage(HTTP_TEST, BINDTEST_HTTPRESPONSE|BINDTEST_ALLOW_FINDINGRESOURCE, TYMED_ISTREAM);
+        trace("4 -> successes=%u\n", winetest_get_successes());
 
         trace("http test (short response, to object)...\n");
         test_BindToObject(HTTP_TEST, 0, S_OK);
@@ -4077,6 +4112,7 @@ START_TEST(url)
 
         trace("emulated http test (to file)...\n");
         test_BindToStorage(HTTP_TEST, BINDTEST_EMULATE, TYMED_FILE);
+        trace("5 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated http test (redirect)...\n");
         test_BindToStorage(HTTP_TEST, BINDTEST_EMULATE|BINDTEST_REDIRECT, TYMED_ISTREAM);
@@ -4101,6 +4137,7 @@ START_TEST(url)
 
         trace("emulated about test...\n");
         test_BindToStorage(ABOUT_TEST, BINDTEST_EMULATE, TYMED_ISTREAM);
+        trace("6 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated about test (to file)...\n");
         test_BindToStorage(ABOUT_TEST, BINDTEST_EMULATE, TYMED_FILE);
@@ -4125,6 +4162,7 @@ START_TEST(url)
 
         trace("emulated file test (to file)...\n");
         test_BindToStorage(FILE_TEST, BINDTEST_EMULATE, TYMED_FILE);
+        trace("7 -> successes=%u\n", winetest_get_successes());
 
         trace("emulated file test (to object)...\n");
         test_BindToObject(FILE_TEST, BINDTEST_EMULATE, S_OK);
@@ -4143,6 +4181,7 @@ START_TEST(url)
 
         trace("test URLDownloadToFile for emulated file protocol...\n");
         test_URLDownloadToFile(FILE_TEST, TRUE);
+        trace("8 -> successes=%u\n", winetest_get_successes());
 
         trace("test URLDownloadToFile for http protocol...\n");
         test_URLDownloadToFile(HTTP_TEST, FALSE);
@@ -4163,6 +4202,7 @@ START_TEST(url)
 
         bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE;
         only_check_prot_args = TRUE; /* Fail after checking arguments to Protocol_Start */
+        trace("9 -> successes=%u\n", winetest_get_successes());
 
         trace("check emulated http protocol arguments...\n");
         test_BindToStorage(HTTP_TEST, BINDTEST_EMULATE, TYMED_ISTREAM);

@@ -1230,7 +1230,7 @@ START_TEST(volume)
     pGetVolumePathNameW = (void *) GetProcAddress(hdll, "GetVolumePathNameW");
     pGetVolumePathNamesForVolumeNameA = (void *) GetProcAddress(hdll, "GetVolumePathNamesForVolumeNameA");
     pGetVolumePathNamesForVolumeNameW = (void *) GetProcAddress(hdll, "GetVolumePathNamesForVolumeNameW");
-
+    report_success = 1;
     test_query_dos_deviceA();
     test_define_dos_deviceA();
     test_FindFirstVolume();
@@ -1246,4 +1246,5 @@ START_TEST(volume)
     test_GetVolumePathNamesForVolumeNameA();
     test_GetVolumePathNamesForVolumeNameW();
     test_cdrom_ioctl();
+    report_success = 0;
 }

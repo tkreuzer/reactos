@@ -18128,16 +18128,23 @@ START_TEST(msg_paint)
 
 START_TEST(msg_input)
 {
+    trace("msg_input 0 -> successes=%u\n", winetest_get_successes());
     init_tests();
+    trace("msg_input 1 -> successes=%u\n", winetest_get_successes());
     test_accelerators();
+    trace("msg_input 2 -> successes=%u\n", winetest_get_successes());
     if (!pTrackMouseEvent)
         win_skip("TrackMouseEvent is not available\n");
     else
         test_TrackMouseEvent();
+    trace("msg_input 3 -> successes=%u\n", winetest_get_successes());
 
     test_keyflags();
+    trace("msg_input 4 -> successes=%u\n", winetest_get_successes());
     test_hotkey();
+    trace("msg_input 5 -> successes=%u\n", winetest_get_successes());
     cleanup_tests();
+    trace("msg_input 6 -> successes=%u\n", winetest_get_successes());
 }
 
 START_TEST(msg_timer)

@@ -3351,8 +3351,11 @@ static void test_http_protocol_url(LPCWSTR url, int prot, DWORD flags, DWORD tym
     hres = CoGetClassObject(prot == HTTPS_TEST ? &CLSID_HttpSProtocol : &CLSID_HttpProtocol,
             CLSCTX_INPROC_SERVER, NULL, &IID_IUnknown, (void**)&unk);
     ok(hres == S_OK, "CoGetClassObject failed: %08x\n", hres);
-    if(FAILED(hres))
+    if (FAILED(hres))
+    {
+        skip("CoGetClassObject failed\n");
         return;
+    }
 
     hres = IUnknown_QueryInterface(unk, &IID_IInternetProtocolInfo, (void**)&protocol_info);
     ok(hres == E_NOINTERFACE,
@@ -3362,8 +3365,11 @@ static void test_http_protocol_url(LPCWSTR url, int prot, DWORD flags, DWORD tym
     hres = IUnknown_QueryInterface(unk, &IID_IClassFactory, (void**)&factory);
     ok(hres == S_OK, "Could not get IClassFactory interface\n");
     IUnknown_Release(unk);
-    if(FAILED(hres))
+    if (FAILED(hres))
+    {
+        skip("IUnknown_QueryInterface failed\n");
         return;
+    }
 
     hres = IClassFactory_CreateInstance(factory, NULL, &IID_IInternetProtocol,
                                         (void**)&async_protocol);
@@ -3446,7 +3452,7 @@ static void test_http_protocol_url(LPCWSTR url, int prot, DWORD flags, DWORD tym
             if(prot == HTTPS_TEST)
                 CLEAR_CALLED(QueryService_HttpSecurity);
 
-            while(1) {
+            while(0) {
                 if(bindf & BINDF_FROMURLMON)
                     SET_EXPECT(Switch);
                 else
@@ -3504,6 +3510,10 @@ static void test_http_protocol_url(LPCWSTR url, int prot, DWORD flags, DWORD tym
         ref = IInternetProtocol_Release(async_protocol);
         ok(!ref, "ref=%x\n", ref);
     }
+    else
+    {
+    skip("IClassFactory_CreateInstance failed");
+    }
 
     IClassFactory_Release(factory);
 
@@ -3537,37 +3547,46 @@ static void test_http_protocol(void)
     trace("Testing http protocol (not from urlmon)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA;
     test_http_protocol_url(winetest_url, HTTP_TEST, TEST_FIRST_HTTP, TYMED_NULL);
+    trace("1 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (from urlmon)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON;
     test_http_protocol_url(winetest_url, HTTP_TEST, 0, TYMED_NULL);
+    trace("2 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (to file)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON | BINDF_NEEDFILE;
     test_http_protocol_url(winetest_url, HTTP_TEST, 0, TYMED_NULL);
+    trace("3 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (post data)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON;
     test_http_protocol_url(posttest_url, HTTP_TEST, TEST_FIRST_HTTP|TEST_POST, TYMED_HGLOBAL);
+    trace("4 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (post data stream)...\n");
     test_http_protocol_url(posttest_url, HTTP_TEST, TEST_FIRST_HTTP|TEST_POST|TEST_ASYNCREQ, TYMED_ISTREAM);
+    trace("5 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (direct read)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON;
     test_http_protocol_url(winetest_url, HTTP_TEST, TEST_DIRECT_READ|TEST_USEIURI, TYMED_NULL);
+    trace("6 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (redirected)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON | BINDF_NOWRITECACHE;
     test_http_protocol_url(redirect_url, HTTP_TEST, TEST_REDIRECT, TYMED_NULL);
+    trace("7 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol (redirected, disable auto redirect)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON | BINDF_NOWRITECACHE;
     test_http_protocol_url(redirect_url, HTTP_TEST, TEST_REDIRECT | TEST_DISABLEAUTOREDIRECT, TYMED_NULL);
+    trace("8 -> successes=%u\n", winetest_get_successes());
 
     trace("Testing http protocol empty file...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON | BINDF_NOWRITECACHE;
     test_http_protocol_url(empty_url, HTTP_TEST, TEST_EMPTY, TYMED_NULL);
+    trace("9 -> successes=%u\n", winetest_get_successes());
 
     /* This is a bit ugly. We unconditionally disable this test on Wine. This won't work until we have
      * support for reading from cache via HTTP layer in wininet. Until then, Wine will fail badly, affecting
@@ -3578,14 +3597,18 @@ static void test_http_protocol(void)
     trace("Testing http protocol (from cache)...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON;
     test_http_protocol_url(cache_only_url, HTTP_TEST, TEST_FROMCACHE, TYMED_NULL);
+    trace("10 -> successes=%u\n", winetest_get_successes());
     }
 
     trace("Testing http protocol abort...\n");
     bindf = BINDF_ASYNCHRONOUS | BINDF_ASYNCSTORAGE | BINDF_PULLDATA | BINDF_FROMURLMON | BINDF_NOWRITECACHE;
     test_http_protocol_url(winetest_url, HTTP_TEST, TEST_ABORT, TYMED_NULL);
+    trace("11 -> successes=%u\n", winetest_get_successes());
 
     test_early_abort(&CLSID_HttpProtocol);
+    trace("12 -> successes=%u\n", winetest_get_successes());
     test_early_abort(&CLSID_HttpSProtocol);
+    trace("13 -> successes=%u\n", winetest_get_successes());
 }
 
 static void test_https_protocol(void)
@@ -4255,6 +4278,8 @@ START_TEST(protocol)
 {
     HMODULE hurlmon;
 
+    winetest_debug = 1;
+
     hurlmon = GetModuleHandleA("urlmon.dll");
     pCoInternetGetSession = (void*) GetProcAddress(hurlmon, "CoInternetGetSession");
     pReleaseBindInfo = (void*) GetProcAddress(hurlmon, "ReleaseBindInfo");
@@ -4277,49 +4302,69 @@ START_TEST(protocol)
     thread_id = GetCurrentThreadId();
 
     test_file_protocol();
+    trace("test_file_protocol -> successes=%u\n", winetest_get_successes());
     test_http_protocol();
+    trace("test_http_protocol -> successes=%u\n", winetest_get_successes());
     if(pCreateUri)
         test_https_protocol();
     else
         win_skip("Skipping https tests on too old platform\n");
     test_ftp_protocol();
+    trace("test_ftp_protocol -> successes=%u\n", winetest_get_successes());
     test_gopher_protocol();
+    trace("test_gopher_protocol -> successes=%u\n", winetest_get_successes());
     test_mk_protocol();
+    trace("test_mk_protocol -> successes=%u\n", winetest_get_successes());
     test_CreateBinding();
     no_aggregation = TRUE;
     test_CreateBinding();
     no_aggregation = FALSE;
+    trace("test_CreateBinding -> successes=%u\n", winetest_get_successes());
 
     bindf &= ~BINDF_FROMURLMON;
     trace("Testing file binding (mime verification, emulate prot)...\n");
     test_binding(FILE_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT);
+    trace("1 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, emulate prot)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT);
+    trace("2 -> successes=%u\n", winetest_get_successes());
     trace("Testing its binding (mime verification, emulate prot)...\n");
     test_binding(ITS_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT);
+    trace("3 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, emulate prot, short read, direct read)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_SHORT_READ|TEST_DIRECT_READ);
+    trace("4 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, redirect, emulate prot)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_REDIRECT);
+    trace("5 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, redirect, disable auto redirect, emulate prot)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_REDIRECT|TEST_DISABLEAUTOREDIRECT);
+    trace("6 -> successes=%u\n", winetest_get_successes());
     trace("Testing file binding (mime verification, emulate prot, mime filter)...\n");
     test_binding(FILE_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_FILTER);
+    trace("7 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, emulate prot, mime filter)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_FILTER);
+    trace("8 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, emulate prot, mime filter, no mime)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_FILTER|TEST_NOMIME);
+    trace("9 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, emulate prot, direct read)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_DIRECT_READ);
+    trace("10 -> successes=%u\n", winetest_get_successes());
     trace("Testing http binding (mime verification, emulate prot, abort)...\n");
     test_binding(HTTP_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_ABORT);
+    trace("11 -> successes=%u\n", winetest_get_successes());
     if(pCreateUri) {
         trace("Testing file binding (use IUri, mime verification, emulate prot)...\n");
         test_binding(FILE_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_USEIURI);
+        trace("12 -> successes=%u\n", winetest_get_successes());
         trace("Testing file binding (use IUri, impl StartEx, mime verification, emulate prot)...\n");
         test_binding(FILE_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_USEIURI|TEST_IMPLPROTEX);
+        trace("13 -> successes=%u\n", winetest_get_successes());
         trace("Testing file binding (impl StartEx, mime verification, emulate prot)...\n");
         test_binding(FILE_TEST, PI_MIMEVERIFICATION, TEST_EMULATEPROT|TEST_IMPLPROTEX);
+        trace("14 -> successes=%u\n", winetest_get_successes());
     }
 
     CloseHandle(event_complete);
@@ -4328,10 +4373,15 @@ START_TEST(protocol)
     CloseHandle(event_continue_done);
 
     test_com_aggregation(&CLSID_FileProtocol);
+    trace("CLSID_FileProtocol -> successes=%u\n", winetest_get_successes());
     test_com_aggregation(&CLSID_HttpProtocol);
+    trace("CLSID_HttpProtocol -> successes=%u\n", winetest_get_successes());
     test_com_aggregation(&CLSID_HttpSProtocol);
+    trace("CLSID_HttpSProtocol -> successes=%u\n", winetest_get_successes());
     test_com_aggregation(&CLSID_FtpProtocol);
+    trace("CLSID_FtpProtocol -> successes=%u\n", winetest_get_successes());
     test_com_aggregation(&CLSID_MkProtocol);
+    trace("CLSID_MkProtocol -> successes=%u\n", winetest_get_successes());
 
     OleUninitialize();
 }

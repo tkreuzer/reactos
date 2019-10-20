@@ -144,6 +144,7 @@ static void test_fm2_enummatchingfilters(void)
         if (SUCCEEDED(hr) && pEnum)
         {
             found = enum_find_filter(wszFilterName1, pEnum);
+            trace("1 -> successes=%u\n", winetest_get_successes());
             ok(found, "EnumMatchingFilters failed to return the test filter 1\n");
         }
 
@@ -156,6 +157,7 @@ static void test_fm2_enummatchingfilters(void)
         if (SUCCEEDED(hr) && pEnum)
         {
             found = enum_find_filter(wszFilterName2, pEnum);
+            trace("2 -> successes=%u\n", winetest_get_successes());
             ok(found, "EnumMatchingFilters failed to return the test filter 2\n");
         }
 
@@ -171,6 +173,7 @@ static void test_fm2_enummatchingfilters(void)
         if (SUCCEEDED(hr) && pEnum)
         {
             found = enum_find_filter(wszFilterName1, pEnum);
+            trace("3 -> successes=%u\n", winetest_get_successes());
             ok(found, "EnumMatchingFilters failed to return the test filter 1\n");
         }
 
@@ -200,11 +203,13 @@ static void test_fm2_enummatchingfilters(void)
     if (SUCCEEDED(hr) && pEnum)
     {
         found = enum_find_filter(wszFilterName2, pEnum);
+        trace("4 -> successes=%u\n", winetest_get_successes());
         ok(!found, "EnumMatchingFilters should not return the test filter 2\n");
     }
 
     if (registered)
     {
+        trace("5 -> successes=%u\n", winetest_get_successes());
         hr = IFilterMapper2_UnregisterFilter(pMapper, &CLSID_LegacyAmFilterCategory, NULL,
                 &clsidFilter1);
         ok(SUCCEEDED(hr), "IFilterMapper2_UnregisterFilter failed with %x\n", hr);
@@ -626,13 +631,20 @@ static void test_aggregate_filter_mapper(void)
 START_TEST(filtermapper)
 {
     CoInitialize(NULL);
+    winetest_debug = 1;
 
     test_fm2_enummatchingfilters();
+    trace("test_fm2_enummatchingfilters -> successes=%u\n", winetest_get_successes());
     test_legacy_filter_registration();
+    trace("test_legacy_filter_registration -> successes=%u\n", winetest_get_successes());
     test_ifiltermapper_from_filtergraph();
+    trace("test_ifiltermapper_from_filtergraph -> successes=%u\n", winetest_get_successes());
     test_register_filter_with_null_clsMinorType();
+    trace("test_register_filter_with_null_clsMinorType -> successes=%u\n", winetest_get_successes());
     test_parse_filter_data();
+    trace("test_parse_filter_data -> successes=%u\n", winetest_get_successes());
     test_aggregate_filter_mapper();
+    trace("test_aggregate_filter_mapper -> successes=%u\n", winetest_get_successes());
 
     CoUninitialize();
 }

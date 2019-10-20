@@ -2896,6 +2896,7 @@ START_TEST(treeview)
     test_select();
     test_getitemtext();
     test_focus();
+    trace("1 -> successes=%u\n", winetest_get_successes());
     test_get_set_bkcolor();
     test_get_set_imagelist();
     test_get_set_indent();
@@ -2908,6 +2909,8 @@ START_TEST(treeview)
     test_get_insertmarkcolor();
     test_get_set_tooltips();
     test_get_set_unicodeformat();
+    trace("2 -> successes=%u\n", winetest_get_successes());
+
     test_callback();
     test_expandinvisible();
     test_itemedit();
@@ -2916,6 +2919,7 @@ START_TEST(treeview)
     test_TVS_SINGLEEXPAND();
     test_WM_PAINT();
     test_delete_items();
+    trace("3 -> successes=%u\n", winetest_get_successes());
     test_cchildren();
     test_htreeitem_layout(FALSE);
     test_TVS_CHECKBOXES();
@@ -2927,6 +2931,7 @@ START_TEST(treeview)
     test_TVS_FULLROWSELECT();
     test_TVM_SORTCHILDREN();
     test_right_click();
+    trace("4 -> successes=%u\n", winetest_get_successes());
 
     if (!load_v6_module(&ctx_cookie, &hCtx))
     {
@@ -2945,6 +2950,8 @@ START_TEST(treeview)
     test_get_set_textcolor();
     test_get_linecolor();
     test_get_insertmarkcolor();
+    trace("5 -> successes=%u\n", winetest_get_successes());
+
     test_expandedimage();
     test_get_set_tooltips();
     test_get_set_unicodeformat();
@@ -2954,6 +2961,7 @@ START_TEST(treeview)
     test_treeview_classinfo();
     test_delete_items();
     test_cchildren();
+    trace("6 -> successes=%u\n", winetest_get_successes());
     test_htreeitem_layout(TRUE);
     test_TVM_GETNEXTITEM();
     test_TVM_HITTEST();
@@ -2962,6 +2970,7 @@ START_TEST(treeview)
     test_WM_KEYDOWN();
     test_TVS_FULLROWSELECT();
     test_TVM_SORTCHILDREN();
+    trace("7 -> successes=%u\n", winetest_get_successes());
 
     unload_v6_module(ctx_cookie, hCtx);
 }

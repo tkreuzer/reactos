@@ -4839,6 +4839,7 @@ START_TEST (winhttp)
     struct server_info si;
     HANDLE thread;
     DWORD ret;
+    report_success = 0;
 
     test_WinHttpOpenRequest();
     test_WinHttpSendRequest();
