@@ -145,3 +145,17 @@ __CxxFrameHandler(
     return 0;
 }
 
+struct EHExceptionRecord;
+struct FH4_FuncInfo4; // FH4::FuncInfo4
+
+__int64
+__CxxFrameHandler4(
+    struct EHExceptionRecord* a1,
+    unsigned __int64 a2,
+    struct FH4_FuncInfo4* a3,
+    __int64 a4)
+{
+    UNIMPLEMENTED;
+    __debugbreak();
+    return 0;
+}
