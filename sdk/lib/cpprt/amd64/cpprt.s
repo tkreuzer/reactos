@@ -22,6 +22,12 @@ DEFINE_ALIAS ??_M@YAXPEAX_KHP6AX0@Z@Z, ?MSVCRTEX_eh_vector_destructor_iterator@@
 ; These are the same
 DEFINE_ALIAS __CxxFrameHandler3, __CxxFrameHandler
 
+; HACK!
+PUBLIC __CxxFrameHandler4
+__CxxFrameHandler4:
+    int 3
+    ret
+
 ; void __cdecl operator delete(void * __ptr64,struct std::nothrow_t const & __ptr64)
 DEFINE_ALIAS ??3@YAXPEAXAEBUnothrow_t@std@@@Z, ??3@YAXPEAX@Z
 
