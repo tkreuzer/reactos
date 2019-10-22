@@ -679,6 +679,7 @@ NTAPI
 INIT_FUNCTION
 MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
+    NTSTATUS Status;
     KIRQL OldIrql;
     ULONG Flags;
 
@@ -713,7 +714,12 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     /* Initialize the bogus address space */
     Flags = 0;
-    MmInitializeProcessAddressSpace(PsGetCurrentProcess(), NULL, NULL, &Flags, NULL);
+    Status = MmInitializeProcessAddressSpace(PsGetCurrentProcess(), NULL, NULL, &Flags, NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("MmInitializeProcessAddressSpace(9 failed: 0x%lx\n", Status);
+        return Status;
+    }
 
     /* Now process the page tables */
     MiBuildPfnDatabaseFromPageTables();
