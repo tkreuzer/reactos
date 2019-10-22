@@ -706,11 +706,16 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     MiBuildSystemPteSpace();
 
-    /* Need to be at DISPATCH_LEVEL for MiInsertPageInFreeList */
+    /* Need to be at DISPATCH_LEVEL for MiBuildPfnDatabase */
     KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
 
     /* Map the PFN database pages */
     MiBuildPfnDatabase(LoaderBlock);
+
+    /* Initialize the nonpaged pool */
+    InitializePool(NonPagedPool, 0);
+
+    KeLowerIrql(OldIrql);
 
     /* Initialize the bogus address space */
     Flags = 0;
@@ -721,19 +726,14 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         return Status;
     }
 
+    /* Need to be at DISPATCH_LEVEL for MiBuildPfnDatabaseFromPageTables */
+    KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
+
     /* Now process the page tables */
     MiBuildPfnDatabaseFromPageTables();
 
     /* PFNs are initialized now! */
     MiPfnsInitialized = TRUE;
-
-    //KeLowerIrql(OldIrql);
-
-    /* Need to be at DISPATCH_LEVEL for InitializePool */
-    //KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
-
-    /* Initialize the nonpaged pool */
-    InitializePool(NonPagedPool, 0);
 
     KeLowerIrql(OldIrql);
 
