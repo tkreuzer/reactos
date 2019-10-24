@@ -437,8 +437,9 @@ MiSetupPfnForPageTable(
     Pfn->u2.ShareCount++;
 }
 
+static
 VOID
-NTAPI
+INIT_FUNCTION
 MiBuildPfnDatabaseFromPageTables(VOID)
 {
     PVOID Address = NULL;
@@ -537,8 +538,8 @@ MiBuildPfnDatabaseFromPageTables(VOID)
 #endif
 }
 
+static
 VOID
-NTAPI
 INIT_FUNCTION
 MiAddDescriptorToDatabase(
     PFN_NUMBER BasePage,
@@ -559,7 +560,7 @@ MiAddDescriptorToDatabase(
         while (PageCount--)
         {
             /* Add it to the free list */
-            Pfn->u3.e1.CacheAttribute = MiNonCached;
+            Pfn->u3.e1.CacheAttribute = MiNonCached; // FIXME: Windows ASSERTs MiChached, but why not MiNotMapped?
             MiInsertPageInFreeList(BasePage + PageCount);
 
             /* Go to the previous page */
@@ -672,6 +673,12 @@ MiBuildPfnDatabase(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     /* Reset the descriptor back so we can create the correct memory blocks */
     *MxFreeDescriptor = MxOldFreeDescriptor;
+
+    /* Now process the page tables */
+    MiBuildPfnDatabaseFromPageTables();
+
+    /* PFNs are initialized now! */
+    MiPfnsInitialized = TRUE;
 }
 
 NTSTATUS
@@ -725,17 +732,6 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         DPRINT1("MmInitializeProcessAddressSpace(9 failed: 0x%lx\n", Status);
         return Status;
     }
-
-    /* Need to be at DISPATCH_LEVEL for MiBuildPfnDatabaseFromPageTables */
-    KeRaiseIrql(DISPATCH_LEVEL, &OldIrql);
-
-    /* Now process the page tables */
-    MiBuildPfnDatabaseFromPageTables();
-
-    /* PFNs are initialized now! */
-    MiPfnsInitialized = TRUE;
-
-    KeLowerIrql(OldIrql);
 
     /* Initialize the balancer */
     MmInitializeBalancer((ULONG)MmAvailablePages, 0);

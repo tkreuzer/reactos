@@ -977,12 +977,19 @@ MmInitializeProcessAddressSpace(IN PEPROCESS Process,
     ASSERT(Process->VadRoot.NumberGenericTableElements == 0);
     Process->VadRoot.BalancedRoot.u1.Parent = &Process->VadRoot.BalancedRoot;
 
+#ifdef _M_AMD64
+    /* On x64 the PFNs for the initial process are already set up */
+    if (Process != &KiInitialProcess) {
+#endif
+
     /* Lock PFN database */
     OldIrql = MiAcquirePfnLock();
 
     /* Setup the PFN for the PDE base of this process */
-#ifdef _M_AMD64
+#if (_MI_PAGING_LEVELS == 4)
     PointerPte = MiAddressToPte(PXE_BASE);
+#elif (_MI_PAGING_LEVELS == 3)
+    PointerPte = MiAddressToPte(PPE_BASE);
 #else
     PointerPte = MiAddressToPte(PDE_BASE);
 #endif
@@ -1025,6 +1032,10 @@ MmInitializeProcessAddressSpace(IN PEPROCESS Process,
 
     /* Release PFN lock */
     MiReleasePfnLock(OldIrql);
+
+#ifdef _M_AMD64
+   }
+#endif
 
 #ifdef _M_AMD64
     /* On x64 we need a VAD for the shared user page */
