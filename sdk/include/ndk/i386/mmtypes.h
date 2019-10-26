@@ -92,6 +92,15 @@ typedef struct _MMPTE_SOFTWARE
     ULONG PageFileHigh:20;
 } MMPTE_SOFTWARE;
 
+// 7ffffc00
+// 11111111'11111111'11111000'00000000
+//                                   ^- Valid
+//                               ^^^^-PageFileLow
+//                         ^^^'^^-Protection
+//                        ^-Prototype
+//                       ^-Transition
+// ^^^^^^^^'^^^^^^^^'^^^^
+
 typedef struct _MMPTE_TRANSITION
 {
     ULONG Valid:1;
@@ -104,6 +113,18 @@ typedef struct _MMPTE_TRANSITION
     ULONG Transition:1;
     ULONG PageFrameNumber:20;
 } MMPTE_TRANSITION;
+
+// 7ffffc00
+// 11111111'11111111'11111000'00000000
+//                                   ^- Valid
+//                                  ^-Write
+//                                 ^-Owner
+//                                ^-WriteThrough
+//                               ^-CacheDisable
+//                         ^^^'^^-Protection
+//                        ^-Prototype
+//                       ^-Transition
+// ^^^^^^^^'^^^^^^^^'^^^^-PageFrameNumber
 
 typedef struct _MMPTE_PROTOTYPE
 {

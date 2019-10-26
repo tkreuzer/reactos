@@ -93,6 +93,17 @@ typedef struct _MMPTE_SOFTWARE
     ULONG64 PageFileHigh:32;
 } MMPTE_SOFTWARE, *PMMPTE_SOFTWARE;
 
+// 0111111111111111111111111111111111111111111111111111110000000000
+// 01111111'1111111'111111111'11111111'11111111'11111111'11111100'00000000
+//                                                                       ^-Valid
+//                                                                   ^^^^-PageFileLow
+//                                                             ^^'^^^-Protection
+//                                                            ^-Prototype
+//                                                           ^-Transition
+//                                                ^^^^^^'^^^^-UsedPageTableEntries
+//                                    '^^^^^^^^'^^-Reserved
+// ^^^^^^^^'^^^^^^^^'^^^^^^^^'^^^^^^^^-PageFileHigh
+
 typedef struct _MMPTE_TRANSITION
 {
     ULONG64 Valid:1;
@@ -111,6 +122,20 @@ typedef struct _MMPTE_TRANSITION
     ULONG64 Unused:24;
 #endif
 } MMPTE_TRANSITION;
+
+// 1111111111111111111111111111111111111111111111111111100000000000
+// 11111111'1111111'111111111'11111111'11111111'11111111'11111000'00000000
+//                                                                       ^-Valid
+//                                                                      ^-Write
+//                                                                     ^-Owner
+//                                                                    ^-WriteThrough
+//                                                                   ^-CacheDisable
+//                                                             ^^'^^^-Protection
+//                                                            ^-Prototype
+//                                                           ^-Transition
+//                                                ^^^^^^'^^^^-UsedPageTableEntries
+//                                    '^^^^^^^^'^^-Reserved
+// ^^^^^^^^'^^^^^^^^'^^^^^^^^'^^^^^^^^-PageFileHigh
 
 typedef struct _MMPTE_PROTOTYPE
 {

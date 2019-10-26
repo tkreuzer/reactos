@@ -18,7 +18,14 @@
 #define SHARE_COUNT_FROM_SSE(E)  (((E) & 0x00000FFC) >> 2)
 #define MAX_SHARE_COUNT          0x3FF
 #define MAKE_SSE(P, C)           ((ULONG_PTR)((P) | ((C) << 2)))
+/*
+typedef struct _MMPTE_SSE {
+    ULONG ValidMBZ : 1;
 
+    ULONG ShareCount : 10;
+    ULONG PageFrameNumber : 20;
+} MMPTE_SSE;
+*/
 #define MM_SEGMENT_FINALIZE (0x40000000)
 
 #define RMAP_SEGMENT_MASK ~((ULONG_PTR)0xff)
