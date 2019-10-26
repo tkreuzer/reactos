@@ -405,6 +405,8 @@ MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
 {
     PMM_RMAP_ENTRY current_entry, previous_entry;
     KIRQL OldIrql;
+    if (!RMAP_IS_SEGMENT(Address))
+        Address = (PVOID)PAGE_ROUND_DOWN(Address);
 
     OldIrql = MiAcquirePfnLock();
     previous_entry = NULL;
