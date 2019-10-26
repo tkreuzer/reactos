@@ -3,6 +3,29 @@
 #include <internal/arch/mm.h>
 
 /* TYPES *********************************************************************/
+
+#define PFN_FROM_SSE(E)          ((PFN_NUMBER)((E) >> PAGE_SHIFT))
+#define IS_SWAP_FROM_SSE(E)      ((E) & 0x00000001)
+#define MM_IS_WAIT_PTE(E)        \
+    (IS_SWAP_FROM_SSE(E) && SWAPENTRY_FROM_SSE(E) == MM_WAIT_ENTRY)
+#define MAKE_PFN_SSE(P)          ((ULONG_PTR)((P) << PAGE_SHIFT))
+#define SWAPENTRY_FROM_SSE(E)    ((E) >> 1)
+#define MAKE_SWAP_SSE(S)         (((ULONG_PTR)(S) << 1) | 0x1)
+#define DIRTY_SSE(E)             ((E) | 2)
+#define CLEAN_SSE(E)             ((E) & ~2)
+#define IS_DIRTY_SSE(E)          ((E) & 2)
+#define PAGE_FROM_SSE(E)         ((E) & 0xFFFFF000)
+#define SHARE_COUNT_FROM_SSE(E)  (((E) & 0x00000FFC) >> 2)
+#define MAX_SHARE_COUNT          0x3FF
+#define MAKE_SSE(P, C)           ((ULONG_PTR)((P) | ((C) << 2)))
+/*
+typedef struct _MMPTE_SSE {
+    ULONG ValidMBZ : 1;
+
+    ULONG ShareCount : 10;
+    ULONG PageFrameNumber : 20;
+} MMPTE_SSE;
+*/
 #define MM_SEGMENT_FINALIZE (0x40000000)
 
 
