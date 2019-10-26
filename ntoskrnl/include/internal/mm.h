@@ -1344,6 +1344,16 @@ typedef union _SSE
 
 #define MAX_SHARE_COUNT          0x1FF
 
+/*
+typedef struct _MMPTE_SSE
+{
+    ULONG ValidMBZ : 1;
+
+    ULONG ShareCount : 10;
+    ULONG PageFrameNumber : 20;
+} MMPTE_SSE;
+*/
+
 FORCEINLINE
 PFN_NUMBER
 PFN_FROM_SSE(SSE Sse)
