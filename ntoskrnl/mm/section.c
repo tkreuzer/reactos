@@ -1611,7 +1611,8 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
         ASSERT(DummyEntry == SwapEntry);
 
         /* Tell everyone else we are serving the fault. */
-        MmCreatePageFileMapping(Process, Address, MM_WAIT_ENTRY);
+        Status = MmCreatePageFileMapping(Process, Address, MM_WAIT_ENTRY);
+        NT_ASSERT(NT_SUCCESS(Status));
 
         MmUnlockAddressSpace(AddressSpace);
         MI_SET_USAGE(MI_USAGE_SECTION);
