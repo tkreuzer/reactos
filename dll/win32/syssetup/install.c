@@ -326,6 +326,7 @@ InstallSysSetupInfDevices(VOID)
                             NULL,
                             &InfContext))
     {
+        FatalError("InstallSysSetupInfDevices: SetupFindFirstLineW failed\n");
         return FALSE;
     }
 
@@ -337,6 +338,7 @@ InstallSysSetupInfDevices(VOID)
                                   ARRAYSIZE(szLineBuffer),
                                   &dwLineLength))
         {
+            FatalError("InstallSysSetupInfDevices: SetupGetStringFieldW failed for '%s'\n", szLineBuffer);
             return FALSE;
         }
 
