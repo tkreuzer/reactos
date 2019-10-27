@@ -448,6 +448,7 @@ CcMapData (
             {
                 CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
                 if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
+                *pBcb = NULL; // If you ever remove this for compat, make sure to review all callers for using an unititialized value
                 Ret = FALSE;
             }
             else
