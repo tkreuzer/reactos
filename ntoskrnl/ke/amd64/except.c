@@ -101,8 +101,7 @@ KiDispatchExceptionToUser(
 {
     EXCEPTION_RECORD LocalExceptRecord;
     ULONG64 UserRsp;
-    PCONTEXT UserContext;
-    PEXCEPTION_RECORD UserExceptionRecord;
+    PKUSER_EXCEPTION_STACK UserStack;
 
     /* Make sure we have a valid SS */
     if (TrapFrame->SegSs != (KGDT64_R3_DATA | RPL_MASK))
@@ -115,22 +114,27 @@ KiDispatchExceptionToUser(
     }
 
     /* Get new stack pointer and align it to 16 bytes */
-    UserRsp = (Context->Rsp - sizeof(CONTEXT) - sizeof(EXCEPTION_RECORD)) & ~15;
+    UserRsp = (Context->Rsp - sizeof(KUSER_EXCEPTION_STACK)) & ~15;
 
-    /* Get pointers to the usermode context and exception record */
-    UserContext = (PVOID)UserRsp;
-    UserExceptionRecord = (PVOID)(UserRsp + sizeof(CONTEXT));
+    /* Get pointer to the usermode context, exception record and machine frame */
+    UserStack = (PKUSER_EXCEPTION_STACK)UserRsp;
 
     /* Set up the user-stack */
     _SEH2_TRY
     {
-        /* Probe stack and copy Context */
-        ProbeForWrite(UserContext, sizeof(CONTEXT), sizeof(ULONG64));
-        *UserContext = *Context;
+        /* Probe stack and copy Context and ExceptionRecord */
+        ProbeForWrite(UserStack, sizeof(*UserStack), TYPE_ALIGNMENT(KUSER_EXCEPTION_STACK));
+        UserStack->Context = *Context;
+        UserStack->ExceptionRecord = *ExceptionRecord;
+        UserStack->Alignment = 0;
 
-        /* Probe stack and copy exception record */
-        ProbeForWrite(UserExceptionRecord, sizeof(EXCEPTION_RECORD), sizeof(ULONG64));
-        *UserExceptionRecord = *ExceptionRecord;
+        /* Probe stack and setup machine frame */
+        RtlZeroMemory(&UserStack->MachineFrame, sizeof(UserStack->MachineFrame));
+        UserStack->MachineFrame.Rip = Context->Rip;
+        UserStack->MachineFrame.SegCs = Context->SegCs;
+        UserStack->MachineFrame.EFlags = Context->EFlags;
+        UserStack->MachineFrame.Rsp = Context->Rsp;
+        UserStack->MachineFrame.SegSs = Context->SegSs;
     }
     _SEH2_EXCEPT((LocalExceptRecord = *_SEH2_GetExceptionInformation()->ExceptionRecord),
                  EXCEPTION_EXECUTE_HANDLER)
@@ -143,8 +147,8 @@ KiDispatchExceptionToUser(
     _SEH2_END;
 
     /* Now set the two params for the user-mode dispatcher */
-    TrapFrame->Rcx = (ULONG64)UserContext;
-    TrapFrame->Rdx = (ULONG64)UserExceptionRecord;
+    TrapFrame->Rcx = (ULONG64)&UserStack->ExceptionRecord;
+    TrapFrame->Rdx = (ULONG64)&UserStack->Context;
 
     /* Set new Stack Pointer */
     TrapFrame->Rsp = UserRsp;

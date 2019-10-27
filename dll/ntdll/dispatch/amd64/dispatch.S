@@ -150,11 +150,20 @@ EXTERN RtlRaiseException:PROC
         PEXCEPTION_RECORD ExceptionRecord<rdx>);
 
     This function is called with the following stack layout:
-        CONTEXT ContextRecord <- RSP
-        PEXCEPTION_RECORD ExceptionRecord
+        CONTEXT ContextRecord  <- RSP, RCX
+        EXCEPTION_RECORD ExceptionRecord <- RDX
+        ULONG64 Alignment
+        MACHINE_FRAME MachineFrame
  */
 PUBLIC KiUserExceptionDispatcher
 .PROC KiUserExceptionDispatcher
+
+    ; The stack is set up with a UCALLOUT_FRAME
+    ; The frame ends with a MACHINE_FRAME.
+    .PUSHFRAME
+
+    ; This is for the alignment, EXCEPTION_RECORD and CONTEXT
+    .ALLOCSTACK 8 + EXCEPTION_RECORD_LENGTH + CONTEXT_FRAME_LENGTH
     .ENDPROLOG
 
     /* Clear direction flag */

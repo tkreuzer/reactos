@@ -464,7 +464,7 @@ PageFaultError:
 
     /* Disable interrupts again for the debugger */
     cli
-
+    ;int 3
     /* Set parameter 1 to error code */
     mov r9d, [rbp + KTRAP_FRAME_ErrorCode]
 
