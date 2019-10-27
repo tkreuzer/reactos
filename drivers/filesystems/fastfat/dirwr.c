@@ -660,7 +660,7 @@ FATAddEntry(
         if (MoveContext == NULL)
         {
             CurrentCluster = 0;
-            Status = NextCluster(DeviceExt, 0, &CurrentCluster, TRUE);
+            Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, 0, &CurrentCluster, TRUE);
             if (CurrentCluster == 0xffffffff || !NT_SUCCESS(Status))
             {
                 ExFreePoolWithTag(Buffer, TAG_DIRENT);
@@ -770,7 +770,7 @@ FATAddEntry(
     }
     else
     {
-        Status = vfatMakeFCBFromDirEntry(DeviceExt, ParentFcb, &DirContext, Fcb);
+        Status = vfatMakeFCBFromDirEntry((PVOID*)_AddressOfReturnAddress(), DeviceExt, ParentFcb, &DirContext, Fcb);
     }
     if (!NT_SUCCESS(Status))
     {
@@ -944,7 +944,7 @@ FATXAddEntry(
     else
     {
         /* FIXME: check status */
-        vfatMakeFCBFromDirEntry(DeviceExt, ParentFcb, &DirContext, Fcb);
+        vfatMakeFCBFromDirEntry((PVOID*)_AddressOfReturnAddress(), DeviceExt, ParentFcb, &DirContext, Fcb);
     }
 
     DPRINT("addentry ok\n");
@@ -1028,7 +1028,7 @@ FATDelEntry(
     {
         while (CurrentCluster && CurrentCluster != 0xffffffff)
         {
-            GetNextCluster(DeviceExt, CurrentCluster, &NextCluster);
+            GetNextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, CurrentCluster, &NextCluster);
             /* FIXME: check status */
             WriteCluster(DeviceExt, CurrentCluster, 0);
             CurrentCluster = NextCluster;
@@ -1107,7 +1107,7 @@ FATXDelEntry(
     {
         while (CurrentCluster && CurrentCluster != 0xffffffff)
         {
-            GetNextCluster(DeviceExt, CurrentCluster, &NextCluster);
+            GetNextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, CurrentCluster, &NextCluster);
             /* FIXME: check status */
             WriteCluster(DeviceExt, CurrentCluster, 0);
             CurrentCluster = NextCluster;
