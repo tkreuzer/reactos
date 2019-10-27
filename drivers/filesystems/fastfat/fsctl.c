@@ -1006,7 +1006,7 @@ VfatGetRetrievalPointers(
     while (CurrentCluster != 0xffffffff && RetrievalPointers->ExtentCount < MaxExtentCount)
     {
         LastCluster = CurrentCluster;
-        Status = NextCluster(DeviceExt, CurrentCluster, &CurrentCluster, FALSE);
+        Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, CurrentCluster, &CurrentCluster, FALSE);
         Vcn.QuadPart++;
         if (!NT_SUCCESS(Status))
         {

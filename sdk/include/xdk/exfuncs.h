@@ -1311,10 +1311,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 static __inline
 VOID
 ExFreeToNPagedLookasideList(
-  _Inout_ PNPAGED_LOOKASIDE_LIST Lookaside,
-  _In_ __drv_freesMem(Mem) PVOID Entry)
+    _Inout_ PNPAGED_LOOKASIDE_LIST Lookaside,
+    _In_ __drv_freesMem(Mem) PVOID Entry)
 {
-  Lookaside->L.TotalFrees++;
+    NT_ASSERT(((ULONG_PTR)Entry < (ULONG_PTR)_AddressOfReturnAddress()) ||
+        ((ULONG_PTR)Entry > (ULONG_PTR)_AddressOfReturnAddress() + 0x3000));
+    Lookaside->L.TotalFrees++;
 #ifdef NONAMELESSUNION
   if (ExQueryDepthSList(&Lookaside->L.u.ListHead) >= Lookaside->L.Depth) {
     Lookaside->L.u3.FreeMisses++;

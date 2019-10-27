@@ -192,6 +192,7 @@ CcpDereferenceBcb(
 static
 PVOID
 CcpGetAppropriateBcb(
+    PVOID* AddressOfReturnAddress,
     IN PROS_SHARED_CACHE_MAP SharedCacheMap,
     IN PROS_VACB Vacb,
     IN PLARGE_INTEGER FileOffset,
@@ -202,15 +203,18 @@ CcpGetAppropriateBcb(
     KIRQL OldIrql;
     BOOLEAN Result;
     PINTERNAL_BCB iBcb, DupBcb;
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
 
     iBcb = ExAllocateFromNPagedLookasideList(&iBcbLookasideList);
     if (iBcb == NULL)
     {
         CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         return NULL;
     }
 
     RtlZeroMemory(iBcb, sizeof(*iBcb));
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
     iBcb->PFCB.NodeTypeCode = 0xDE45; /* Undocumented (CAPTIVE_PUBLIC_BCB_NODETYPECODE) */
     iBcb->PFCB.NodeByteSize = sizeof(PUBLIC_BCB);
     iBcb->PFCB.MappedLength = Length;
@@ -224,6 +228,7 @@ CcpGetAppropriateBcb(
 
     /* Check if we raced with another BCB creation */
     DupBcb = CcpFindBcb(SharedCacheMap, FileOffset, Length, ToPin);
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
     /* Yes, and we've lost */
     if (DupBcb != NULL)
     {
@@ -250,6 +255,7 @@ CcpGetAppropriateBcb(
             else
             {
                 CcpDereferenceBcb(SharedCacheMap, DupBcb);
+                if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
                 DupBcb = NULL;
             }
         }
@@ -257,9 +263,13 @@ CcpGetAppropriateBcb(
         if (DupBcb != NULL)
         {
             /* Delete the loser */
+            if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
             CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
+            if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
             ExDeleteResourceLite(&iBcb->Lock);
+            if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
             ExFreeToNPagedLookasideList(&iBcbLookasideList, iBcb);
+            if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         }
 
         /* Return the winner - no need to update buffer address, it's
@@ -287,6 +297,7 @@ CcpGetAppropriateBcb(
         }
 
         InsertTailList(&SharedCacheMap->BcbList, &iBcb->BcbEntry);
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         KeReleaseSpinLock(&SharedCacheMap->BcbSpinLock, OldIrql);
     }
 
@@ -358,7 +369,7 @@ CcpPinData(
         Result = CcpMapData(SharedCacheMap, FileOffset, Length, MapFlags, &Vacb, Buffer);
         if (Result)
         {
-            NewBcb = CcpGetAppropriateBcb(SharedCacheMap, Vacb, FileOffset, Length, Flags, TRUE);
+            NewBcb = CcpGetAppropriateBcb(NULL, SharedCacheMap, Vacb, FileOffset, Length, Flags, TRUE);
             if (NewBcb == NULL)
             {
                 CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
@@ -392,7 +403,10 @@ CcMapData (
     PINTERNAL_BCB iBcb;
     PROS_VACB Vacb;
     PROS_SHARED_CACHE_MAP SharedCacheMap;
-
+    PVOID *AddressOfReturnAddress = (PVOID*)PsGetCurrentThread()->OfsChain;
+    if (((ULONG_PTR)AddressOfReturnAddress < 0xFFFFF88000000000ULL) ||
+        ((ULONG_PTR)AddressOfReturnAddress > 0xFFFFF88100000000ULL)) AddressOfReturnAddress = NULL;
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
     DPRINT("CcMapData(FileObject 0x%p, FileOffset %I64x, Length %lu, Flags 0x%lx,"
            " pBcb 0x%p, pBuffer 0x%p)\n", FileObject, FileOffset->QuadPart,
            Length, Flags, pBcb, pBuffer);
@@ -414,19 +428,26 @@ CcMapData (
     }
 
     KeAcquireSpinLock(&SharedCacheMap->BcbSpinLock, &OldIrql);
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
     iBcb = CcpFindBcb(SharedCacheMap, FileOffset, Length, FALSE);
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
 
     if (iBcb == NULL)
     {
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         KeReleaseSpinLock(&SharedCacheMap->BcbSpinLock, OldIrql);
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
 
         Ret = CcpMapData(SharedCacheMap, FileOffset, Length, Flags, &Vacb, pBuffer);
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         if (Ret)
         {
-            iBcb = CcpGetAppropriateBcb(SharedCacheMap, Vacb, FileOffset, Length, 0, FALSE);
+            iBcb = CcpGetAppropriateBcb(AddressOfReturnAddress, SharedCacheMap, Vacb, FileOffset, Length, 0, FALSE);
+            if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
             if (iBcb == NULL)
             {
                 CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
+                if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
                 Ret = FALSE;
             }
             else
@@ -439,14 +460,17 @@ CcMapData (
     {
         ++iBcb->RefCount;
         KeReleaseSpinLock(&SharedCacheMap->BcbSpinLock, OldIrql);
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
 
         *pBcb = iBcb;
         *pBuffer = (PUCHAR)iBcb->Vacb->BaseAddress + FileOffset->QuadPart % VACB_MAPPING_GRANULARITY;
+        if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         Ret = TRUE;
     }
 
     CCTRACE(CC_API_DEBUG, "FileObject=%p FileOffset=%p Length=%lu Flags=0x%lx -> %d Bcb=%p\n",
         FileObject, FileOffset, Length, Flags, Ret, *pBcb);
+    if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
     return Ret;
 }
 

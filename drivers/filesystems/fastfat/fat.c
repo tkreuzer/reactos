@@ -21,13 +21,14 @@
 		   (pDeviceExt)->FatInfo.BytesPerCluster : PAGE_SIZE)
 
 /* FUNCTIONS ****************************************************************/
-
+#include <ndk/pstypes.h>
 /*
  * FUNCTION: Retrieve the next FAT32 cluster from the FAT table via a physical
  *           disk read
  */
 NTSTATUS
 FAT32GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster)
@@ -44,7 +45,10 @@ FAT32GetNextCluster(
     Offset.QuadPart = ROUND_DOWN(FATOffset, ChunkSize);
     _SEH2_TRY
     {
+        PsGetCurrentThread()->OfsChain = AddressOfReturnAddress;
         CcMapData(DeviceExt->FATFileObject, &Offset, ChunkSize, MAP_WAIT, &Context, &BaseAddress);
+        PsGetCurrentThread()->OfsChain = NULL;
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
     {
@@ -55,6 +59,7 @@ FAT32GetNextCluster(
     CurrentCluster = (*(PULONG)((char*)BaseAddress + (FATOffset % ChunkSize))) & 0x0fffffff;
     if (CurrentCluster >= 0xffffff8 && CurrentCluster <= 0xfffffff)
         CurrentCluster = 0xffffffff;
+    if (*AddressOfReturnAddress == 0) __debugbreak();
 
     if (CurrentCluster == 0)
     {
@@ -63,8 +68,11 @@ FAT32GetNextCluster(
         if (VfatGlobalData->Flags & VFAT_BREAK_ON_CORRUPTION)
             ASSERT(CurrentCluster != 0);
     }
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     CcUnpinData(Context);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     *NextCluster = CurrentCluster;
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     return Status;
 }
 
@@ -73,6 +81,7 @@ FAT32GetNextCluster(
  */
 NTSTATUS
 FAT16GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster)
@@ -119,6 +128,7 @@ FAT16GetNextCluster(
  */
 NTSTATUS
 FAT12GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster)
@@ -740,6 +750,7 @@ ClusterToSector(
  */
 NTSTATUS
 GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster)
@@ -758,7 +769,8 @@ GetNextCluster(
     }
 
     ExAcquireResourceSharedLite(&DeviceExt->FatResource, TRUE);
-    Status = DeviceExt->GetNextCluster(DeviceExt, CurrentCluster, NextCluster);
+    Status = DeviceExt->GetNextCluster(AddressOfReturnAddress, DeviceExt, CurrentCluster, NextCluster);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     ExReleaseResourceLite(&DeviceExt->FatResource);
 
     return Status;
@@ -769,6 +781,7 @@ GetNextCluster(
  */
 NTSTATUS
 GetNextClusterExtend(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster)
@@ -787,6 +800,7 @@ GetNextClusterExtend(
     if (CurrentCluster == 0)
     {
         Status = DeviceExt->FindAndMarkAvailableCluster(DeviceExt, &NewCluster);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         if (!NT_SUCCESS(Status))
         {
             ExReleaseResourceLite(&DeviceExt->FatResource);
@@ -794,11 +808,13 @@ GetNextClusterExtend(
         }
 
         *NextCluster = NewCluster;
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         ExReleaseResourceLite(&DeviceExt->FatResource);
         return STATUS_SUCCESS;
     }
 
-    Status = DeviceExt->GetNextCluster(DeviceExt, CurrentCluster, NextCluster);
+    Status = DeviceExt->GetNextCluster(AddressOfReturnAddress, DeviceExt, CurrentCluster, NextCluster);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
 
     if ((*NextCluster) == 0xFFFFFFFF)
     {
@@ -806,6 +822,7 @@ GetNextClusterExtend(
         /* Firstly, find the next available open allocation unit and
            mark it as end of file */
         Status = DeviceExt->FindAndMarkAvailableCluster(DeviceExt, &NewCluster);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         if (!NT_SUCCESS(Status))
         {
             ExReleaseResourceLite(&DeviceExt->FatResource);
@@ -815,7 +832,9 @@ GetNextClusterExtend(
         /* Now, write the AU of the LastCluster with the value of the newly
            found AU */
         WriteCluster(DeviceExt, CurrentCluster, NewCluster);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         *NextCluster = NewCluster;
+        if (*AddressOfReturnAddress == 0) __debugbreak();
     }
 
     ExReleaseResourceLite(&DeviceExt->FatResource);

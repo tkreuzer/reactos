@@ -424,7 +424,7 @@ vfatPrepareTargetForRename(
 
     *Deleted = FALSE;
     /* Try to open target */
-    Status = vfatGetFCBForFile(DeviceExt, ParentFCB, &TargetFcb, NewName);
+    Status = vfatGetFCBForFile((PVOID*)_AddressOfReturnAddress(), DeviceExt, ParentFCB, &TargetFcb, NewName);
     /* If it exists */
     if (NT_SUCCESS(Status))
     {
@@ -1245,7 +1245,7 @@ VfatSetAllocationSizeInformation(
         if (FirstCluster == 0)
         {
             Fcb->LastCluster = Fcb->LastOffset = 0;
-            Status = NextCluster(DeviceExt, FirstCluster, &FirstCluster, TRUE);
+            Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &FirstCluster, TRUE);
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("NextCluster failed. Status = %x\n", Status);
@@ -1267,7 +1267,7 @@ VfatSetAllocationSizeInformation(
                 Status = STATUS_SUCCESS;
                 while (NT_SUCCESS(Status) && Cluster != 0xffffffff && Cluster > 1)
                 {
-                    Status = NextCluster(DeviceExt, FirstCluster, &NCluster, FALSE);
+                    Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &NCluster, FALSE);
                     WriteCluster(DeviceExt, Cluster, 0);
                     Cluster = NCluster;
                 }
@@ -1332,12 +1332,12 @@ VfatSetAllocationSizeInformation(
             {
                 /* disk is full */
                 NCluster = Cluster;
-                Status = NextCluster(DeviceExt, FirstCluster, &NCluster, FALSE);
+                Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &NCluster, FALSE);
                 WriteCluster(DeviceExt, Cluster, 0xffffffff);
                 Cluster = NCluster;
                 while (NT_SUCCESS(Status) && Cluster != 0xffffffff && Cluster > 1)
                 {
-                    Status = NextCluster(DeviceExt, FirstCluster, &NCluster, FALSE);
+                    Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &NCluster, FALSE);
                     WriteCluster(DeviceExt, Cluster, 0);
                     Cluster = NCluster;
                 }
@@ -1368,7 +1368,7 @@ VfatSetAllocationSizeInformation(
                                      &Cluster, FALSE);
 
             NCluster = Cluster;
-            Status = NextCluster(DeviceExt, FirstCluster, &NCluster, FALSE);
+            Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &NCluster, FALSE);
             WriteCluster(DeviceExt, Cluster, 0xffffffff);
             Cluster = NCluster;
         }
@@ -1397,7 +1397,7 @@ VfatSetAllocationSizeInformation(
 
         while (NT_SUCCESS(Status) && 0xffffffff != Cluster && Cluster > 1)
         {
-            Status = NextCluster(DeviceExt, FirstCluster, &NCluster, FALSE);
+            Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &NCluster, FALSE);
             WriteCluster(DeviceExt, Cluster, 0);
             Cluster = NCluster;
         }
