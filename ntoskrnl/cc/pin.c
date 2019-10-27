@@ -376,6 +376,20 @@ CcMapData (
             CCTRACE(CC_API_DEBUG, "FileObject=%p FileOffset=%p Length=%lu Flags=0x%lx -> FALSE\n",
                 SharedCacheMap->FileObject, FileOffset, Length, Flags);
             ExRaiseStatus(Status);
+#if 0
+            iBcb = CcpGetAppropriateBcb(SharedCacheMap, Vacb, FileOffset, Length, 0, FALSE);
+            if (iBcb == NULL)
+            {
+                CcRosReleaseVacb(SharedCacheMap, Vacb, TRUE, FALSE, FALSE);
+                *pBcb = NULL; // If you ever remove this for compat, make sure to review all callers for using an unititialized value
+                Ret = FALSE;
+                ExRaiseStatus(STATUS_INSUFFICIENT_RESOURCES);
+            }
+            else
+            {
+                *pBcb = iBcb;
+            }
+#endif
         }
 
         iBcb = CcpGetAppropriateBcb(SharedCacheMap, Vacb, FileOffset, Length, 0, FALSE);
