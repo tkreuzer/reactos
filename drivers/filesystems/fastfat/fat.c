@@ -50,7 +50,8 @@ FAT32GetNextCluster(
         {
             NT_ASSERT(FALSE);
             return STATUS_UNSUCCESSFUL;
-        }        PsGetCurrentThread()->OfsChain = NULL;
+        }
+        PsGetCurrentThread()->OfsChain = NULL;
     if (*AddressOfReturnAddress == 0) __debugbreak();
     }
     _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
