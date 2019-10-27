@@ -282,7 +282,7 @@ HASHENTRY;
 
 typedef struct DEVICE_EXTENSION *PDEVICE_EXTENSION;
 
-typedef NTSTATUS (*PGET_NEXT_CLUSTER)(PDEVICE_EXTENSION,ULONG,PULONG);
+typedef NTSTATUS (*PGET_NEXT_CLUSTER)(PVOID*,PDEVICE_EXTENSION,ULONG,PULONG);
 typedef NTSTATUS (*PFIND_AND_MARK_AVAILABLE_CLUSTER)(PDEVICE_EXTENSION,PULONG);
 typedef NTSTATUS (*PWRITE_CLUSTER)(PDEVICE_EXTENSION,ULONG,ULONG,PULONG);
 
@@ -360,6 +360,8 @@ typedef struct DEVICE_EXTENSION
 
     /* Pointers to functions for manipulating directory entries. */
     VFAT_DISPATCH Dispatch;
+
+    PVOID* RetAddress;
 } DEVICE_EXTENSION, VCB, *PVCB;
 
 FORCEINLINE
@@ -844,6 +846,7 @@ VfatReleaseFromLazyWrite(
 
 NTSTATUS
 FAT12GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster);
@@ -862,6 +865,7 @@ FAT12WriteCluster(
 
 NTSTATUS
 FAT16GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster);
@@ -880,6 +884,7 @@ FAT16WriteCluster(
 
 NTSTATUS
 FAT32GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster);
@@ -911,12 +916,14 @@ ClusterToSector(
 
 NTSTATUS
 GetNextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster);
 
 NTSTATUS
 GetNextClusterExtend(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG CurrentCluster,
     PULONG NextCluster);
@@ -1060,6 +1067,7 @@ vfatAttachFCBToFileObject(
 
 NTSTATUS
 vfatDirFindFile(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION pVCB,
     PVFATFCB parentFCB,
     PUNICODE_STRING FileToFindU,
@@ -1067,6 +1075,7 @@ vfatDirFindFile(
 
 NTSTATUS
 vfatGetFCBForFile(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION pVCB,
     PVFATFCB *pParentFCB,
     PVFATFCB *pFCB,
@@ -1074,6 +1083,7 @@ vfatGetFCBForFile(
 
 NTSTATUS
 vfatMakeFCBFromDirEntry(
+    PVOID* AddressOfReturnAddress,
     PVCB vcb,
     PVFATFCB directoryFCB,
     PVFAT_DIRENTRY_CONTEXT DirContext,
@@ -1199,6 +1209,7 @@ VfatWrite(
 
 NTSTATUS
 NextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG FirstCluster,
     PULONG CurrentCluster,

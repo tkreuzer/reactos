@@ -427,6 +427,7 @@ vfatAddFCBToTable(
 static
 VOID
 vfatInitFCBFromDirEntry(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION Vcb,
     PVFATFCB Fcb,
     PVFAT_DIRENTRY_CONTEXT DirContext)
@@ -434,8 +435,11 @@ vfatInitFCBFromDirEntry(
     ULONG Size;
 
     RtlCopyMemory(&Fcb->entry, &DirContext->DirEntry, sizeof (DIR_ENTRY));
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     RtlCopyUnicodeString(&Fcb->ShortNameU, &DirContext->ShortNameU);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     Fcb->Hash.Hash = vfatNameHash(0, &Fcb->PathNameU);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     if (vfatVolumeIsFatX(Vcb))
     {
         Fcb->ShortHash.Hash = Fcb->Hash.Hash;
@@ -443,15 +447,19 @@ vfatInitFCBFromDirEntry(
     else
     {
         Fcb->ShortHash.Hash = vfatNameHash(0, &Fcb->DirNameU);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         Fcb->ShortHash.Hash = vfatNameHash(Fcb->ShortHash.Hash, &Fcb->ShortNameU);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
     }
 
     if (vfatFCBIsDirectory(Fcb))
     {
         ULONG FirstCluster, CurrentCluster;
         NTSTATUS Status = STATUS_SUCCESS;
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         Size = 0;
         FirstCluster = vfatDirEntryGetFirstCluster(Vcb, &Fcb->entry);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         if (FirstCluster == 1)
         {
             Size = Vcb->FatInfo.rootDirectorySectors * Vcb->FatInfo.BytesPerSector;
@@ -462,22 +470,27 @@ vfatInitFCBFromDirEntry(
             while (CurrentCluster != 0xffffffff && NT_SUCCESS(Status))
             {
                 Size += Vcb->FatInfo.BytesPerCluster;
-                Status = NextCluster(Vcb, FirstCluster, &CurrentCluster, FALSE);
+                Status = NextCluster(AddressOfReturnAddress, Vcb, FirstCluster, &CurrentCluster, FALSE);
+                if (*AddressOfReturnAddress == 0) __debugbreak();
             }
         }
     }
     else if (vfatVolumeIsFatX(Vcb))
     {
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         Size = Fcb->entry.FatX.FileSize;
     }
     else
     {
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         Size = Fcb->entry.Fat.FileSize;
     }
     Fcb->dirIndex = DirContext->DirIndex;
     Fcb->startIndex = DirContext->StartIndex;
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     if (vfatVolumeIsFatX(Vcb) && !vfatFCBIsRoot(Fcb))
     {
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         ASSERT(DirContext->DirIndex >= 2 && DirContext->StartIndex >= 2);
         Fcb->dirIndex = DirContext->DirIndex-2;
         Fcb->startIndex = DirContext->StartIndex-2;
@@ -572,7 +585,7 @@ vfatUpdateFCB(
     RemoveEntryList(&Fcb->ParentListEntry);
 
     /* Reinit FCB */
-    vfatInitFCBFromDirEntry(pVCB, Fcb, DirContext);
+    vfatInitFCBFromDirEntry((PVOID*)_AddressOfReturnAddress(), pVCB, Fcb, DirContext);
 
     if (vfatFCBIsDirectory(Fcb))
     {
@@ -678,7 +691,7 @@ vfatMakeRootFCB(
             while (CurrentCluster != 0xffffffff && NT_SUCCESS(Status))
             {
                 Size += pVCB->FatInfo.BytesPerCluster;
-                Status = NextCluster (pVCB, FirstCluster, &CurrentCluster, FALSE);
+                Status = NextCluster ((PVOID*)_AddressOfReturnAddress(), pVCB, FirstCluster, &CurrentCluster, FALSE);
             }
         }
         else
@@ -723,6 +736,7 @@ vfatOpenRootFCB(
 
 NTSTATUS
 vfatMakeFCBFromDirEntry(
+    PVOID* AddressOfReturnAddress,
     PVCB vcb,
     PVFATFCB directoryFCB,
     PVFAT_DIRENTRY_CONTEXT DirContext,
@@ -733,21 +747,27 @@ vfatMakeFCBFromDirEntry(
     NTSTATUS Status;
 
     Status = vfatMakeFullName(directoryFCB, &DirContext->LongNameU, &DirContext->ShortNameU, &NameU);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     if (!NT_SUCCESS(Status))
     {
         return Status;
     }
 
     rcFCB = vfatNewFCB(vcb, &NameU);
-    vfatInitFCBFromDirEntry(vcb, rcFCB, DirContext);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
+    vfatInitFCBFromDirEntry(AddressOfReturnAddress, vcb, rcFCB, DirContext);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
 
     rcFCB->RefCount = 1;
     rcFCB->parentFcb = directoryFCB;
     InsertTailList(&directoryFCB->ParentListHead, &rcFCB->ParentListEntry);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     vfatAddFCBToTable(vcb, rcFCB);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     *fileFCB = rcFCB;
 
     ExFreePoolWithTag(NameU.Buffer, TAG_FCB);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     return STATUS_SUCCESS;
 }
 
@@ -789,6 +809,7 @@ vfatAttachFCBToFileObject(
 
 NTSTATUS
 vfatDirFindFile(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION pDeviceExt,
     PVFATFCB pDirectoryFCB,
     PUNICODE_STRING FileToFindU,
@@ -823,15 +844,18 @@ vfatDirFindFile(
     DirContext.ShortNameU.Length = 0;
     DirContext.ShortNameU.MaximumLength = sizeof(ShortNameBuffer);
     DirContext.DeviceExt = pDeviceExt;
+    if (*AddressOfReturnAddress == 0) __debugbreak();
 
     while (TRUE)
     {
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         status = VfatGetNextDirEntry(pDeviceExt,
             &Context,
             &Page,
             pDirectoryFCB,
             &DirContext,
             First);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         First = FALSE;
         if (status == STATUS_NO_MORE_ENTRIES)
         {
@@ -866,11 +890,13 @@ vfatDirFindFile(
             }
             if (FoundLong || FoundShort)
             {
-                status = vfatMakeFCBFromDirEntry(pDeviceExt,
+                status = vfatMakeFCBFromDirEntry(AddressOfReturnAddress, pDeviceExt,
                     pDirectoryFCB,
                     &DirContext,
                     pFoundFCB);
+                if (*AddressOfReturnAddress == 0) __debugbreak();
                 CcUnpinData(Context);
+                if (*AddressOfReturnAddress == 0) __debugbreak();
                 return status;
             }
         }
@@ -882,6 +908,7 @@ vfatDirFindFile(
 
 NTSTATUS
 vfatGetFCBForFile(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION pVCB,
     PVFATFCB *pParentFCB,
     PVFATFCB *pFCB,
@@ -903,6 +930,7 @@ vfatGetFCBForFile(
     RtlInitEmptyUnicodeString(&FileNameU, NameBuffer, sizeof(NameBuffer));
 
     parentFCB = *pParentFCB;
+    if (*AddressOfReturnAddress == 0) __debugbreak();
 
     if (parentFCB == NULL)
     {
@@ -915,6 +943,7 @@ vfatGetFCBForFile(
             DPRINT("returning root FCB\n");
 
             FCB = vfatOpenRootFCB(pVCB);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
             *pFCB = FCB;
             *pParentFCB = NULL;
 
@@ -923,11 +952,13 @@ vfatGetFCBForFile(
 
         /* Check for an existing FCB */
         FCB = vfatGrabFCBFromTable(pVCB, &FileNameU);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         if (FCB)
         {
             *pFCB = FCB;
             *pParentFCB = FCB->parentFcb;
             vfatGrabFCB(pVCB, *pParentFCB);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
             return STATUS_SUCCESS;
         }
 
@@ -936,6 +967,7 @@ vfatGetFCBForFile(
         {
             curr--;
         }
+        if (*AddressOfReturnAddress == 0) __debugbreak();
 
         if (curr > FileNameU.Buffer)
         {
@@ -950,6 +982,7 @@ vfatGetFCBForFile(
                     if (FileNameU.Length + FCB->PathNameU.Length - Length > FileNameU.MaximumLength)
                     {
                         vfatReleaseFCB(pVCB, FCB);
+                        if (*AddressOfReturnAddress == 0) __debugbreak();
                         return STATUS_OBJECT_NAME_INVALID;
                     }
                     RtlMoveMemory(FileNameU.Buffer + FCB->PathNameU.Length / sizeof(WCHAR),
@@ -957,8 +990,10 @@ vfatGetFCBForFile(
                     FileNameU.Length += (USHORT)(FCB->PathNameU.Length - Length);
                     curr = FileNameU.Buffer + FCB->PathNameU.Length / sizeof(WCHAR);
                     last = FileNameU.Buffer + FileNameU.Length / sizeof(WCHAR) - 1;
+                    if (*AddressOfReturnAddress == 0) __debugbreak();
                 }
                 RtlCopyMemory(FileNameU.Buffer, FCB->PathNameU.Buffer, FCB->PathNameU.Length);
+                if (*AddressOfReturnAddress == 0) __debugbreak();
             }
         }
         else
@@ -969,6 +1004,7 @@ vfatGetFCBForFile(
         if (FCB == NULL)
         {
             FCB = vfatOpenRootFCB(pVCB);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
             curr = FileNameU.Buffer;
         }
 
@@ -979,19 +1015,23 @@ vfatGetFCBForFile(
     {
         /* Make absolute path */
         RtlCopyUnicodeString(&FileNameU, &parentFCB->PathNameU);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         curr = FileNameU.Buffer + FileNameU.Length / sizeof(WCHAR) - 1;
         if (*curr != L'\\')
         {
             RtlAppendUnicodeToString(&FileNameU, L"\\");
             curr++;
         }
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         ASSERT(*curr == L'\\');
         RtlAppendUnicodeStringToString(&FileNameU, pFileNameU);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
 
         FCB = parentFCB;
         parentFCB = NULL;
         prev = curr;
         last = FileNameU.Buffer + FileNameU.Length / sizeof(WCHAR) - 1;
+        if (*AddressOfReturnAddress == 0) __debugbreak();
     }
 
     while (curr <= last)
@@ -999,6 +1039,7 @@ vfatGetFCBForFile(
         if (parentFCB)
         {
             vfatReleaseFCB(pVCB, parentFCB);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
             parentFCB = NULL;
         }
         //  fail if element in FCB is not a directory
@@ -1011,6 +1052,7 @@ vfatGetFCBForFile(
             *pParentFCB = NULL;
             *pFCB = NULL;
 
+            if (*AddressOfReturnAddress == 0) __debugbreak();
             return  STATUS_OBJECT_PATH_NOT_FOUND;
         }
         parentFCB = FCB;
@@ -1024,15 +1066,19 @@ vfatGetFCBForFile(
                     vfatReleaseFCB(pVCB, parentFCB);
                     *pParentFCB = NULL;
                     *pFCB = NULL;
+                    if (*AddressOfReturnAddress == 0) __debugbreak();
                     return STATUS_OBJECT_NAME_INVALID;
                 }
+                if (*AddressOfReturnAddress == 0) __debugbreak();
                 RtlMoveMemory(prev + parentFCB->LongNameU.Length / sizeof(WCHAR), curr,
                     FileNameU.Length - (curr - FileNameU.Buffer) * sizeof(WCHAR));
+                if (*AddressOfReturnAddress == 0) __debugbreak();
                 FileNameU.Length += (USHORT)(parentFCB->LongNameU.Length - Length);
                 curr = prev + parentFCB->LongNameU.Length / sizeof(WCHAR);
                 last = FileNameU.Buffer + FileNameU.Length / sizeof(WCHAR) - 1;
             }
             RtlCopyMemory(prev, parentFCB->LongNameU.Buffer, parentFCB->LongNameU.Length);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
         }
         curr++;
         prev = curr;
@@ -1040,41 +1086,49 @@ vfatGetFCBForFile(
         {
             curr++;
         }
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         NameU.Buffer = FileNameU.Buffer;
         NameU.Length = (curr - NameU.Buffer) * sizeof(WCHAR);
         NameU.MaximumLength = FileNameU.MaximumLength;
         DPRINT("%wZ\n", &NameU);
         FCB = vfatGrabFCBFromTable(pVCB, &NameU);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         if (FCB == NULL)
         {
             NameU.Buffer = prev;
             NameU.MaximumLength = NameU.Length = (curr - prev) * sizeof(WCHAR);
-            status = vfatDirFindFile(pVCB, parentFCB, &NameU, &FCB);
+            status = vfatDirFindFile(AddressOfReturnAddress, pVCB, parentFCB, &NameU, &FCB);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
             if (status == STATUS_OBJECT_NAME_NOT_FOUND)
             {
                 *pFCB = NULL;
                 if (curr > last)
                 {
                     *pParentFCB = parentFCB;
+                    if (*AddressOfReturnAddress == 0) __debugbreak();
                     return STATUS_OBJECT_NAME_NOT_FOUND;
                 }
                 else
                 {
                     vfatReleaseFCB(pVCB, parentFCB);
                     *pParentFCB = NULL;
+                    if (*AddressOfReturnAddress == 0) __debugbreak();
                     return STATUS_OBJECT_PATH_NOT_FOUND;
                 }
             }
             else if (!NT_SUCCESS(status))
             {
                 vfatReleaseFCB(pVCB, parentFCB);
+                if (*AddressOfReturnAddress == 0) __debugbreak();
                 *pParentFCB = NULL;
                 *pFCB = NULL;
 
+                if (*AddressOfReturnAddress == 0) __debugbreak();
                 return status;
             }
         }
     }
+    if (*AddressOfReturnAddress == 0) __debugbreak();
 
     *pParentFCB = parentFCB;
     *pFCB = FCB;

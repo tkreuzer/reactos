@@ -38,6 +38,7 @@
  */
 NTSTATUS
 NextCluster(
+    PVOID* AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     ULONG FirstCluster,
     PULONG CurrentCluster,
@@ -51,9 +52,9 @@ NextCluster(
     else
     {
         if (Extend)
-            return GetNextClusterExtend(DeviceExt, (*CurrentCluster), CurrentCluster);
+            return GetNextClusterExtend(AddressOfReturnAddress, DeviceExt, (*CurrentCluster), CurrentCluster);
         else
-            return GetNextCluster(DeviceExt, (*CurrentCluster), CurrentCluster);
+            return GetNextCluster(AddressOfReturnAddress, DeviceExt, (*CurrentCluster), CurrentCluster);
     }
 }
 
@@ -93,7 +94,7 @@ OffsetToCluster(
         {
             for (i = 0; i < FileOffset / DeviceExt->FatInfo.BytesPerCluster; i++)
             {
-                Status = GetNextClusterExtend (DeviceExt, CurrentCluster, &CurrentCluster);
+                Status = GetNextClusterExtend ((PVOID*)_AddressOfReturnAddress(), DeviceExt, CurrentCluster, &CurrentCluster);
                 if (!NT_SUCCESS(Status))
                     return Status;
             }
@@ -103,7 +104,7 @@ OffsetToCluster(
         {
             for (i = 0; i < FileOffset / DeviceExt->FatInfo.BytesPerCluster; i++)
             {
-                Status = GetNextCluster (DeviceExt, CurrentCluster, &CurrentCluster);
+                Status = GetNextCluster ((PVOID*)_AddressOfReturnAddress(), DeviceExt, CurrentCluster, &CurrentCluster);
                 if (!NT_SUCCESS(Status))
                     return Status;
             }
@@ -286,7 +287,7 @@ VfatReadFileData(
                     BytesDone = Length;
                 }
             }
-            Status = NextCluster(DeviceExt, FirstCluster, &CurrentCluster, FALSE);
+            Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &CurrentCluster, FALSE);
         }
         while (StartCluster + ClusterCount == CurrentCluster && NT_SUCCESS(Status) && Length > BytesDone);
         DPRINT("start %08x, next %08x, count %u\n",
@@ -501,7 +502,7 @@ VfatWriteFileData(
                     BytesDone = Length;
                 }
             }
-            Status = NextCluster(DeviceExt, FirstCluster, &CurrentCluster, FALSE);
+            Status = NextCluster((PVOID*)_AddressOfReturnAddress(), DeviceExt, FirstCluster, &CurrentCluster, FALSE);
         }
         while (StartCluster + ClusterCount == CurrentCluster && NT_SUCCESS(Status) && Length > BytesDone);
         DPRINT("start %08x, next %08x, count %u\n",

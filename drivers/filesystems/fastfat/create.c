@@ -273,6 +273,7 @@ FindFile(
 static
 NTSTATUS
 VfatOpenFile(
+    PVOID *AddressOfReturnAddress,
     PDEVICE_EXTENSION DeviceExt,
     PUNICODE_STRING PathNameU,
     PFILE_OBJECT FileObject,
@@ -295,7 +296,7 @@ VfatOpenFile(
     {
         *ParentFcb = NULL;
     }
-
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     if (!DeviceExt->FatInfo.FixedMedia)
     {
         Status = VfatBlockDeviceIoControl(DeviceExt->StorageDevice,
@@ -305,6 +306,7 @@ VfatOpenFile(
                                           NULL,
                                           0,
                                           FALSE);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         if (!NT_SUCCESS(Status))
         {
             DPRINT("Status %lx\n", Status);
@@ -316,12 +318,14 @@ VfatOpenFile(
     if (*ParentFcb)
     {
         vfatGrabFCB(DeviceExt, *ParentFcb);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
     }
 
     /*  try first to find an existing FCB in memory  */
     DPRINT("Checking for existing FCB in memory\n");
 
-    Status = vfatGetFCBForFile(DeviceExt, ParentFcb, &Fcb, PathNameU);
+    Status = vfatGetFCBForFile(AddressOfReturnAddress, DeviceExt, ParentFcb, &Fcb, PathNameU);
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     if (!NT_SUCCESS(Status))
     {
         DPRINT ("Could not make a new FCB, status: %x\n", Status);
@@ -335,12 +339,14 @@ VfatOpenFile(
          RequestedDisposition == FILE_SUPERSEDE))
     {
         vfatReleaseFCB(DeviceExt, Fcb);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         return STATUS_OBJECT_NAME_COLLISION;
     }
 
     if (BooleanFlagOn(Fcb->Flags, FCB_DELETE_PENDING))
     {
         vfatReleaseFCB(DeviceExt, Fcb);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         return STATUS_DELETE_PENDING;
     }
 
@@ -350,6 +356,7 @@ VfatOpenFile(
          RequestedDisposition == FILE_OVERWRITE_IF))
     {
         vfatReleaseFCB(DeviceExt, Fcb);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         return STATUS_ACCESS_DENIED;
     }
 
@@ -357,6 +364,7 @@ VfatOpenFile(
         (RequestedOptions & FILE_DELETE_ON_CLOSE))
     {
         vfatReleaseFCB(DeviceExt, Fcb);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         return STATUS_CANNOT_DELETE;
     }
 
@@ -365,6 +373,7 @@ VfatOpenFile(
     {
         // we cannot delete a '.', '..' or the root directory
         vfatReleaseFCB(DeviceExt, Fcb);
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         return STATUS_CANNOT_DELETE;
     }
 
@@ -390,6 +399,7 @@ VfatOpenFile(
                 ConcurrentDeletion = TRUE;
             }
             ExReleaseFastMutex(&VfatGlobalData->CloseMutex);
+            if (*AddressOfReturnAddress == 0) __debugbreak();
 
             /* It's not delayed anymore! */
             ClearFlag(Fcb->Flags, FCB_DELAYED_CLOSE);
@@ -402,6 +412,7 @@ VfatOpenFile(
                 ExFreeToPagedLookasideList(&VfatGlobalData->CloseContextLookasideList, CloseContext);
             }
         }
+        if (*AddressOfReturnAddress == 0) __debugbreak();
 
         DPRINT("Reusing delayed close FCB for %wZ\n", &Fcb->PathNameU);
     }
@@ -410,8 +421,10 @@ VfatOpenFile(
     Status = vfatAttachFCBToFileObject(DeviceExt, Fcb, FileObject);
     if (!NT_SUCCESS(Status))
     {
+        if (*AddressOfReturnAddress == 0) __debugbreak();
         vfatReleaseFCB(DeviceExt, Fcb);
     }
+    if (*AddressOfReturnAddress == 0) __debugbreak();
     return  Status;
 }
 
@@ -439,6 +452,10 @@ VfatCreateFile(
     UNICODE_STRING FileNameU;
     UNICODE_STRING PathNameU;
     ULONG Attributes;
+
+    PVFATFCB TargetFcb;
+    LONG idx, FileNameLen;
+    LARGE_INTEGER SystemTime;
 
     /* Unpack the various parameters. */
     Stack = IoGetCurrentIrpStackLocation(Irp);
@@ -537,7 +554,7 @@ VfatCreateFile(
         Irp->IoStatus.Information = FILE_OPENED;
         return STATUS_SUCCESS;
     }
-
+    if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
     if (FileObject->RelatedFileObject != NULL &&
         FileObject->RelatedFileObject->FsContext == DeviceExt->VolumeFcb)
     {
@@ -578,7 +595,7 @@ VfatCreateFile(
             return STATUS_OBJECT_NAME_INVALID;
         }
     }
-
+    if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
     /* Check if we try to open target directory of root dir */
     if (OpenTargetDir && FileObject->RelatedFileObject == NULL && PathNameU.Length == sizeof(WCHAR) &&
         PathNameU.Buffer[0] == L'\\')
@@ -607,23 +624,25 @@ VfatCreateFile(
     if (!OpenTargetDir)
     {
         vfatAddToStat(DeviceExt, Fat.CreateHits, 1);
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
-        Status = VfatOpenFile(DeviceExt, &PathNameU, FileObject, RequestedDisposition, RequestedOptions, &ParentFcb);
+        Status = VfatOpenFile(_AddressOfReturnAddress(), DeviceExt, &PathNameU, FileObject, RequestedDisposition, RequestedOptions, &ParentFcb);
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
     }
     else
     {
-        PVFATFCB TargetFcb;
-        LONG idx, FileNameLen;
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
         vfatAddToStat(DeviceExt, Fat.CreateHits, 1);
 
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
         ParentFcb = (FileObject->RelatedFileObject != NULL) ? FileObject->RelatedFileObject->FsContext : NULL;
         if (ParentFcb)
         {
             vfatGrabFCB(DeviceExt, ParentFcb);
         }
 
-        Status = vfatGetFCBForFile(DeviceExt, &ParentFcb, &TargetFcb, &PathNameU);
+        Status = vfatGetFCBForFile((PVOID*)_AddressOfReturnAddress(), DeviceExt, &ParentFcb, &TargetFcb, &PathNameU);
         if (NT_SUCCESS(Status))
         {
             vfatReleaseFCB(DeviceExt, TargetFcb);
@@ -633,6 +652,7 @@ VfatCreateFile(
         {
             Irp->IoStatus.Information = FILE_DOES_NOT_EXIST;
         }
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
         idx = FileObject->FileName.Length / sizeof(WCHAR) - 1;
 
@@ -642,12 +662,14 @@ VfatCreateFile(
             --idx;
             PathNameU.Length -= sizeof(WCHAR);
         }
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
         /* Get file name */
         while (idx >= 0 && PathNameU.Buffer[idx] != L'\\')
         {
             --idx;
         }
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
         if (idx > 0 || PathNameU.Buffer[0] == L'\\')
         {
@@ -679,11 +701,13 @@ VfatCreateFile(
 
             /* No need to modify the FO, it already has the name */
         }
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
         /* We're done with opening! */
         if (ParentFcb != NULL)
         {
             Status = vfatAttachFCBToFileObject(DeviceExt, ParentFcb, FileObject);
+            if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
         }
 
         if (NT_SUCCESS(Status))
@@ -712,6 +736,7 @@ VfatCreateFile(
                     return Status;
                 }
             }
+            if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
             pCcb = FileObject->FsContext2;
             if (BooleanFlagOn(RequestedOptions, FILE_DELETE_ON_CLOSE))
@@ -725,6 +750,7 @@ VfatCreateFile(
         else if (ParentFcb != NULL)
         {
             vfatReleaseFCB(DeviceExt, ParentFcb);
+            if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
         }
 
         if (NT_SUCCESS(Status))
@@ -735,10 +761,11 @@ VfatCreateFile(
         {
             vfatAddToStat(DeviceExt, Fat.FailedCreates, 1);
         }
+        if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
 
         return Status;
     }
-
+    if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
     /*
      * If the directory containing the file to open doesn't exist then
      * fail immediately
@@ -769,7 +796,7 @@ VfatCreateFile(
                                                              FILE_ATTRIBUTE_HIDDEN |
                                                              FILE_ATTRIBUTE_DIRECTORY |
                                                              FILE_ATTRIBUTE_READONLY));
-
+    if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
     /* If the file open failed then create the required file */
     if (!NT_SUCCESS (Status))
     {
@@ -968,7 +995,6 @@ VfatCreateFile(
 
             if (!vfatFCBIsDirectory(pFcb))
             {
-                LARGE_INTEGER SystemTime;
 
                 if (RequestedDisposition == FILE_SUPERSEDE)
                 {
@@ -1025,7 +1051,7 @@ VfatCreateFile(
             Irp->IoStatus.Information = FILE_OPENED;
         }
     }
-
+    if (*(PULONG64)_AddressOfReturnAddress() == 0) __debugbreak();
     if (pFcb->OpenHandleCount == 0)
     {
         IoSetShareAccess(Stack->Parameters.Create.SecurityContext->DesiredAccess,
