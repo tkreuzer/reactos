@@ -37,7 +37,7 @@ FAT32GetNextCluster(
     PVOID BaseAddress;
     ULONG FATOffset;
     ULONG ChunkSize;
-    PVOID Context;
+    PVOID Context = NULL;
     LARGE_INTEGER Offset;
 
     ChunkSize = CACHEPAGESIZE(DeviceExt);
@@ -46,7 +46,11 @@ FAT32GetNextCluster(
     _SEH2_TRY
     {
         PsGetCurrentThread()->OfsChain = AddressOfReturnAddress;
-        CcMapData(DeviceExt->FATFileObject, &Offset, ChunkSize, MAP_WAIT, &Context, &BaseAddress);
+        if (!CcMapData(DeviceExt->FATFileObject, &Offset, ChunkSize, MAP_WAIT, &Context, &BaseAddress))
+        {
+            __debugbreak();
+            return STATUS_UNSUCCESSFUL;
+        }
         PsGetCurrentThread()->OfsChain = NULL;
     if (*AddressOfReturnAddress == 0) __debugbreak();
     }
