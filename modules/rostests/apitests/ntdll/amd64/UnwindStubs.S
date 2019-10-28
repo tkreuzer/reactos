@@ -131,6 +131,29 @@ FUNC UnwindStub3
 
 ENDFUNC
 
+;
+; VOID
+; UnwindStub4 (
+;    _Out_ PCONTEXT CapturedContext);
+;
+PUBLIC UnwindStub4
+FUNC UnwindStub4
+
+    sub rsp, HEX(18)    ; 0x00
+    .ALLOCSTACK HEX(18)
+    .ENDPROLOG
+
+    ; Capture the context
+    call RtlCaptureContext ; 0x04
+
+    mov 
+
+    ; restore the context
+    xor rdx, rdx
+    call RtlRestoreContext
+
+ENDFUNC
+
 DB 0,0,0,0,0,0,0,0
 
 END
