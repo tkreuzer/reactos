@@ -14,68 +14,39 @@
 
 /* PUBLIC FUNCTIONS **********************************************************/
 
-#if 0
 VOID
 NTAPI
-RtlRaiseException(IN PEXCEPTION_RECORD ExceptionRecord)
+RtlpRaiseExceptionWithContext(
+    _In_ PCONTEXT Context,
+    _In_ PEXCEPTION_RECORD ExceptionRecord)
 {
-    CONTEXT Context;
-    NTSTATUS Status = STATUS_INVALID_DISPOSITION;
-    ULONG64 ImageBase;
-    PRUNTIME_FUNCTION FunctionEntry;
-    PVOID HandlerData;
-    ULONG64 EstablisherFrame;
+    NTSTATUS Status;
 
-    /* Capture the context */
-    RtlCaptureContext(&Context);
+    /* Save the exception address */
+    ExceptionRecord->ExceptionAddress = (PVOID)Context->Rip;
 
-    /* Get the function entry for this function */
-    FunctionEntry = RtlLookupFunctionEntry(Context.Rip,
-                                           &ImageBase,
-                                           NULL);
-
-    /* Check if we found it */
-    if (FunctionEntry)
+    /* Check if user mode debugger is active */
+    if (RtlpCheckForActiveDebugger())
     {
-        /* Unwind to the caller of this function */
-        RtlVirtualUnwind(UNW_FLAG_NHANDLER,
-                         ImageBase,
-                         Context.Rip,
-                         FunctionEntry,
-                         &Context,
-                         &HandlerData,
-                         &EstablisherFrame,
-                         NULL);
-
-        /* Save the exception address */
-        ExceptionRecord->ExceptionAddress = (PVOID)Context.Rip;
-
-        /* Check if user mode debugger is active */
-        if (RtlpCheckForActiveDebugger())
+        /* Raise an exception immediately */
+        Status = ZwRaiseException(ExceptionRecord, Context, TRUE);
+    }
+    else
+    {
+        /* Dispatch the exception and check if we should continue */
+        if (RtlDispatchException(ExceptionRecord, Context))
         {
-            /* Raise an exception immediately */
-            Status = ZwRaiseException(ExceptionRecord, &Context, TRUE);
+            RtlRestoreContext(Context, ExceptionRecord);
+            DbgRaiseAssertionFailure();
         }
-        else
-        {
-            /* Dispatch the exception and check if we should continue */
-            if (!RtlDispatchException(ExceptionRecord, &Context))
-            {
-                /* Raise the exception */
-                Status = ZwRaiseException(ExceptionRecord, &Context, FALSE);
-            }
-            else
-            {
-                /* Continue, go back to previous context */
-                Status = ZwContinue(&Context, FALSE);
-            }
-        }
+
+        /* Raise the exception */
+        Status = ZwRaiseException(ExceptionRecord, Context, FALSE);
     }
 
     /* If we returned, raise a status */
     RtlRaiseStatus(Status);
 }
-#endif
 
 /*
 * @unimplemented

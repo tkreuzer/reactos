@@ -120,7 +120,7 @@ PUBLIC RtlRestoreContext
     .ALLOCSTACK 8
     .ENDPROLOG
 
-    ; Restore legacy floating point registers (It's slow, so do it first)
+    ; Restore legacy floating point registers (It is slow, so do it first)
     ldmxcsr [rcx + CxMxCsr]
     fxrstor [rcx + CxFltSave]
 
@@ -239,6 +239,7 @@ EXTERN RtlDispatchException:PROC
 EXTERN ZwContinue:PROC
 EXTERN ZwRaiseException:PROC
 EXTERN RtlRaiseStatus:PROC
+EXTERN RtlpRaiseExceptionWithContext:PROC
 
 ;
 ; VOID
@@ -251,64 +252,27 @@ PUBLIC RtlRaiseException
     ; Allocate stack space for a CONTEXT record
     sub rsp, CONTEXT_FRAME_LENGTH + 8
     .allocstack CONTEXT_FRAME_LENGTH + 8
-
-    ; Save the ExceptionRecord pointer
-    mov [rsp + CxP1Home], rcx
-    .savereg rcx, CxP1Home
     .endprolog
 
-    ; Save the return address in EXCEPTION_RECORD.ExceptionAddress
-    mov rdx, [rsp + CONTEXT_FRAME_LENGTH + 8]
-    mov [rcx + ErExceptionAddress], rdx
+    ; Save the ExceptionRecord pointer in rdx
+    mov rdx, rcx
 
-    ; Capture the current context
+    ; Capture the current context (RtlCaptureContext does not clobber rcx/rdx!)
     mov rcx, rsp
     call RtlCaptureContext
 
-    ; Fix up CONTEXT.Rip for the caller (RtlCaptureContext doesn't change rdx!)
-    mov [rsp + CxRip], rdx
+    ; Fix up CONTEXT.Rip for the caller
+    mov rax, [rsp + CONTEXT_FRAME_LENGTH + 8]
+    mov [rcx + CxRip], rax
 
     ; Fix up CONTEXT.Rsp for the caller (+8 for the return address)
-    lea rdx, [rsp + CONTEXT_FRAME_LENGTH + 8 + 8]
-    mov [rsp + CxRsp], rdx
+    lea rax, [rsp + CONTEXT_FRAME_LENGTH + 8 + 8]
+    mov [rcx + CxRsp], rax
 
     ; Check if a user mode debugger is active
-    call RtlpCheckForActiveDebugger
-    test al, al
-    mov r8b, 1
-    jnz RaiseException
+    call RtlpRaiseExceptionWithContext
 
-    ; Dispatch the exception
-    mov rcx, [rsp + CxP1Home]
-    mov rdx, rsp
-    call RtlDispatchException
-
-    ; Check if we should continue
-    test al, al
-    mov r8b, 0
-    jz RaiseException
-
-    ; Continue, go back to previous context
-    mov rcx, rsp
-    mov dl, 0
-    call  ZwContinue
-    jmp RaiseStatus
-
-RaiseException:
-
-    mov rcx, [rsp + CxP1Home]
-    mov rdx, rsp
-    call ZwRaiseException
-
-RaiseStatus:
-
-    mov rcx, rax
-    mov rdx, rsp
-    call RtlRaiseStatus
-
+    int 3
 .ENDP
 
-
 END
-
-
