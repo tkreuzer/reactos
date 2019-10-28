@@ -15,42 +15,32 @@
 
 VOID
 NTAPI
-RtlRaiseException(IN PEXCEPTION_RECORD ExceptionRecord)
+RtlpRaiseExceptionWithContext(
+    _In_ PCONTEXT Context,
+    _In_ PEXCEPTION_RECORD ExceptionRecord)
 {
-    CONTEXT Context;
-    NTSTATUS Status = STATUS_INVALID_DISPOSITION;
-
-    /* Capture the current context */
-    RtlCaptureContext(&Context);
-
-    /* Fix up Context.Rip for the caller */
-    Context.Rip = (ULONG64)_ReturnAddress();
-
-    /* Fix up Context.Rsp for the caller */
-    Context.Rsp = (ULONG64)_AddressOfReturnAddress() + 8;
+    NTSTATUS Status;
 
     /* Save the exception address */
-    ExceptionRecord->ExceptionAddress = (PVOID)Context.Rip;
+    ExceptionRecord->ExceptionAddress = (PVOID)Context->Rip;
 
     /* Check if user mode debugger is active */
     if (RtlpCheckForActiveDebugger())
     {
         /* Raise an exception immediately */
-        Status = ZwRaiseException(ExceptionRecord, &Context, TRUE);
+        Status = ZwRaiseException(ExceptionRecord, Context, TRUE);
     }
     else
     {
         /* Dispatch the exception and check if we should continue */
-        if (!RtlDispatchException(ExceptionRecord, &Context))
+        if (RtlDispatchException(ExceptionRecord, Context))
         {
-            /* Raise the exception */
-            Status = ZwRaiseException(ExceptionRecord, &Context, FALSE);
+            RtlRestoreContext(Context, ExceptionRecord);
+            DbgRaiseAssertionFailure();
         }
-        else
-        {
-            /* Continue, go back to previous context */
-            Status = ZwContinue(&Context, FALSE);
-        }
+
+        /* Raise the exception */
+        Status = ZwRaiseException(ExceptionRecord, Context, FALSE);
     }
 
     /* If we returned, raise a status */
@@ -70,7 +60,7 @@ RtlpGetExceptionAddress(VOID)
 
 BOOLEAN
 NTAPI
-RtlpUnwindInternal(
+RtplUnwindInternal(
     _In_opt_ PVOID TargetFrame,
     _In_opt_ PVOID TargetIp,
     _In_ PEXCEPTION_RECORD ExceptionRecord,
@@ -88,8 +78,6 @@ RtlDispatchException(
     _In_ PEXCEPTION_RECORD ExceptionRecord,
     _In_ PCONTEXT ContextRecord)
 {
-    BOOLEAN Handled;
-
     /* Perform vectored exception handling for user mode */
     if (RtlCallVectoredExceptionHandlers(ExceptionRecord, ContextRecord))
     {
@@ -101,16 +89,11 @@ RtlDispatchException(
     }
 
     /* Call the internal unwind routine */
-    Handled = RtlpUnwindInternal(NULL, // TargetFrame
-                                 NULL, // TargetIp
-                                 ExceptionRecord,
-                                 0, // ReturnValue
-                                 ContextRecord,
-                                 NULL, // HistoryTable
-                                 UNW_FLAG_EHANDLER);
-
-    /* In user mode, call any registered vectored continue handlers */
-    RtlCallVectoredContinueHandlers(ExceptionRecord, ContextRecord);
-
-    return Handled;
+    return RtplUnwindInternal(NULL, // TargetFrame
+                              NULL, // TargetIp
+                              ExceptionRecord,
+                              0, // ReturnValue
+                              ContextRecord,
+                              NULL, // HistoryTable
+                              UNW_FLAG_EHANDLER);
 }
