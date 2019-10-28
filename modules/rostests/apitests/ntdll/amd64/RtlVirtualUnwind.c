@@ -129,6 +129,7 @@ Test_SingleFunction(
 VOID UnwindStub1(_Out_ PCONTEXT UnwindContext);
 VOID UnwindStub2(_Out_ PCONTEXT UnwindContext);
 VOID UnwindStub3(_Out_ PCONTEXT UnwindContext);
+VOID UnwindStub4(_Out_ PCONTEXT UnwindContext);
 
 TEST_ENTRY g_Tests[] =
 {
@@ -148,6 +149,9 @@ TEST_ENTRY g_Tests[] =
     { "Stub3_Epilog1",    UnwindStub3, 0x28, UNW_FLAG_UHANDLER, 16, TRUE },
     { "Stub3_Epilog2",    UnwindStub3, 0x2C, UNW_FLAG_UHANDLER, 16, FALSE },
     { "Stub3_PostEpilog", UnwindStub3, 0x30, UNW_FLAG_UHANDLER, 16, FALSE },
+    { "Stub4_PrologEnd",  UnwindStub4, 0x04, UNW_FLAG_UHANDLER, 0,  TRUE },
+    { "Stub4_Body",       UnwindStub4, 0x09, UNW_FLAG_UHANDLER, 0,  TRUE },
+    { "Stub4_Epilog",     UnwindStub4, 0x0B, UNW_FLAG_UHANDLER, 0,  TRUE },
 };
 
 
