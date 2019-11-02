@@ -24,8 +24,28 @@
 
 static NPAGED_LOOKASIDE_LIST RmapLookasideList;
 FAST_MUTEX RmapListLock;
+extern PEPROCESS RmapFailProcess;
 
 /* FUNCTIONS ****************************************************************/
+
+static
+VOID
+DumpRmapMod(PMM_RMAP_ENTRY Rmap, PFN_NUMBER Page, BOOLEAN Insert)
+{
+    ULONG i;
+
+    DbgPrint("[%04x] %sRMAP @ %p {Addr=%p} Page %Ix <",
+             PsGetProcessId(Rmap->Process),
+             Insert ? "+++" : "---",
+             Rmap,
+             Rmap->Address,
+             Page);
+    for (i = 0; i < Rmap->Frames; i++)
+    {
+        DbgPrint(" %p", Rmap->Callers[i]);
+    }
+    DbgPrint(">\n");
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 static
@@ -34,6 +54,9 @@ NTAPI
 RmapListFree(
     _In_ __drv_freesMem(Mem) PVOID P)
 {
+    PMM_RMAP_ENTRY Rmap = (PMM_RMAP_ENTRY)P;
+    NT_ASSERT(Rmap->Next == NULL);
+    NT_ASSERT(Rmap->Process == NULL);
     ExFreePoolWithTag(P, TAG_RMAP);
 }
 
@@ -272,20 +295,29 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
     ULONG PrevSize;
     if (!RMAP_IS_SEGMENT(Address))
         Address = (PVOID)PAGE_ROUND_DOWN(Address);
+    if ((((ULONG_PTR)Address & ~0xFFF) == 0x630000) &&
+        (Process == RmapFailProcess))
+    {
+        //__debugbreak();
+    }
 
     new_entry = ExAllocateFromNPagedLookasideList(&RmapLookasideList);
     if (new_entry == NULL)
     {
         KeBugCheck(MEMORY_MANAGEMENT);
     }
+
     new_entry->Address = Address;
     new_entry->Process = (PEPROCESS)Process;
 #if DBG
-#ifdef __GNUC__
-    new_entry->Caller = __builtin_return_address(0);
-#else
-    new_entry->Caller = _ReturnAddress();
-#endif
+    new_entry->Frames = RtlWalkFrameChain(new_entry->Callers,
+                                          ARRAYSIZE(new_entry->Callers),
+                                          0);
+
+    if (((ULONG_PTR)Address & ~0xFFF) == 0x630000)
+    {
+        DumpRmapMod(new_entry, Page, TRUE);
+    }
 #endif
 
     if (
@@ -308,11 +340,18 @@ MmInsertRmap(PFN_NUMBER Page, PEPROCESS Process,
     {
         if (current_entry->Address == new_entry->Address && current_entry->Process == new_entry->Process)
         {
+            ULONG i;
             DbgPrint("MmInsertRmap tries to add a second rmap entry for address %p\n    current caller ",
                      current_entry->Address);
-            DbgPrint("%p", new_entry->Caller);
+            for (i = 0; i < new_entry->Frames; i++)
+            {
+                DbgPrint(" %p", new_entry->Callers[i]);
+            }
             DbgPrint("\n    previous caller ");
-            DbgPrint("%p", current_entry->Caller);
+            for (i = 0; i < new_entry->Frames; i++)
+            {
+                DbgPrint(" %p", new_entry->Callers[i]);
+            }
             DbgPrint("\n");
             KeBugCheck(MEMORY_MANAGEMENT);
         }
@@ -360,8 +399,11 @@ MmDeleteAllRmaps(PFN_NUMBER Page, PVOID Context,
 
     while (current_entry != NULL)
     {
+        NT_ASSERT(current_entry->Process != NULL);
         previous_entry = current_entry;
         current_entry = current_entry->Next;
+        previous_entry->Next = NULL;
+        previous_entry->Process = NULL;
         if (!RMAP_IS_SEGMENT(previous_entry->Address))
         {
             if (DeleteMapping)
@@ -395,6 +437,11 @@ MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
     PMM_RMAP_ENTRY current_entry, previous_entry;
     if (!RMAP_IS_SEGMENT(Address))
         Address = (PVOID)PAGE_ROUND_DOWN(Address);
+    if ((((ULONG_PTR)Address & ~0xFFF) == 0x630000) &&
+        (Process == RmapFailProcess))
+    {
+        //__debugbreak();
+    }
 
     ExAcquireFastMutex(&RmapListLock);
     previous_entry = NULL;
@@ -402,9 +449,14 @@ MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
 
     while (current_entry != NULL)
     {
+        NT_ASSERT(current_entry->Process != NULL);
         if (current_entry->Process == (PEPROCESS)Process &&
                 current_entry->Address == Address)
         {
+            if (((ULONG_PTR)Address & ~0xFFF) == 0x630000)
+            {
+                DumpRmapMod(current_entry, Page, FALSE);
+            }
             if (previous_entry == NULL)
             {
                 MmSetRmapListHeadPage(Page, current_entry->Next);
@@ -414,6 +466,8 @@ MmDeleteRmap(PFN_NUMBER Page, PEPROCESS Process,
                 previous_entry->Next = current_entry->Next;
             }
             ExReleaseFastMutex(&RmapListLock);
+            current_entry->Next = NULL;
+            current_entry->Process = NULL;
             ExFreeToNPagedLookasideList(&RmapLookasideList, current_entry);
             if (!RMAP_IS_SEGMENT(Address))
             {
@@ -503,6 +557,8 @@ MmDeleteSectionAssociation(PFN_NUMBER Page)
                 previous_entry->Next = current_entry->Next;
             }
             ExReleaseFastMutex(&RmapListLock);
+            current_entry->Next = NULL;
+            current_entry->Process = NULL;
             ExFreeToNPagedLookasideList(&RmapLookasideList, current_entry);
             return;
         }

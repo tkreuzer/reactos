@@ -118,7 +118,7 @@ KiDispatchExceptionToUser(
 
     /* Get pointer to the usermode context, exception record and machine frame */
     UserStack = (PKUSER_EXCEPTION_STACK)UserRsp;
-
+    __debugbreak();
     /* Set up the user-stack */
     _SEH2_TRY
     {

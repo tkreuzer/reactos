@@ -283,7 +283,7 @@ MmFreeMemoryArea(
 {
     ULONG_PTR Address;
     PVOID EndAddress;
-
+    if (MemoryArea->VadNode.StartingVpn == 0x630000) __debugbreak();
     /* Make sure we own the address space lock! */
     ASSERT(CONTAINING_RECORD(AddressSpace, EPROCESS, Vm)->AddressCreationLock.Owner == KeGetCurrentThread());
 

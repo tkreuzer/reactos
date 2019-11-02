@@ -1320,6 +1320,8 @@ MmCreateProcessAddressSpace(IN ULONG MinWs,
 }
 #endif
 
+extern PEPROCESS RmapFailProcess;
+
 VOID
 NTAPI
 MmCleanProcessAddressSpace(IN PEPROCESS Process)
@@ -1342,12 +1344,15 @@ MmCleanProcessAddressSpace(IN PEPROCESS Process)
     Process->VmDeleted = TRUE;
     MiUnlockProcessWorkingSetUnsafe(Process, Thread);
 
+    if (RmapFailProcess == PsGetCurrentProcess()) __debugbreak();
     /* Enumerate the VADs */
     VadTree = &Process->VadRoot;
     while (VadTree->NumberGenericTableElements)
     {
         /* Grab the current VAD */
         Vad = (PMMVAD)VadTree->BalancedRoot.RightChild;
+
+        if ((Vad->StartingVpn <= 0x630) && (Vad->EndingVpn >= 0x630)) __debugbreak();
 
         /* Check for old-style memory areas */
         if (Vad->u.VadFlags.Spare == 1)

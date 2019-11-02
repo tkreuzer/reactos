@@ -199,6 +199,8 @@ MmNotPresentFault(KPROCESSOR_MODE Mode,
 
 extern BOOLEAN Mmi386MakeKernelPageTableGlobal(PVOID Address);
 
+PEPROCESS RmapFailProcess;
+
 NTSTATUS
 NTAPI
 MmAccessFault(IN ULONG FaultCode,
@@ -207,6 +209,12 @@ MmAccessFault(IN ULONG FaultCode,
               IN PVOID TrapInformation)
 {
     PMEMORY_AREA MemoryArea = NULL;
+    if ((((ULONG_PTR)Address & ~0xFFF) == 0x630000) &&
+        (((PKTRAP_FRAME)TrapInformation)->Rip == 0x000007ffb7545693ULL))
+    {
+        RmapFailProcess = PsGetCurrentProcess();
+        __debugbreak();
+    }
 
     KeInvalidateTlbEntry(Address);
 

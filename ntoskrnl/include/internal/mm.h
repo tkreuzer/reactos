@@ -245,7 +245,8 @@ typedef struct _MM_RMAP_ENTRY
    PEPROCESS Process;
    PVOID Address;
 #if DBG
-   PVOID Caller;
+   PVOID Callers[4];
+   ULONG Frames;
 #endif
 }
 MM_RMAP_ENTRY, *PMM_RMAP_ENTRY;
