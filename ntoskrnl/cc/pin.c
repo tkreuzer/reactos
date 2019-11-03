@@ -183,6 +183,8 @@ CcpDereferenceBcb(
                          FALSE);
 
         ExDeleteResourceLite(&Bcb->Lock);
+        NT_ASSERT(((ULONG_PTR)Bcb < (ULONG_PTR)_AddressOfReturnAddress()) ||
+            ((ULONG_PTR)Bcb > (ULONG_PTR)_AddressOfReturnAddress() + 0x3000));
         ExFreeToNPagedLookasideList(&iBcbLookasideList, Bcb);
     }
     else
@@ -214,6 +216,8 @@ CcpGetAppropriateBcb(
         if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         return NULL;
     }
+    NT_ASSERT(((ULONG_PTR)iBcb < (ULONG_PTR)_AddressOfReturnAddress()) ||
+        ((ULONG_PTR)iBcb > (ULONG_PTR)_AddressOfReturnAddress() + 0x3000));
 
     RtlZeroMemory(iBcb, sizeof(*iBcb));
     if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
@@ -270,6 +274,8 @@ CcpGetAppropriateBcb(
             if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
             ExDeleteResourceLite(&iBcb->Lock);
             if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
+            NT_ASSERT(((ULONG_PTR)iBcb < (ULONG_PTR)_AddressOfReturnAddress()) ||
+                ((ULONG_PTR)iBcb > (ULONG_PTR)_AddressOfReturnAddress() + 0x3000));
             ExFreeToNPagedLookasideList(&iBcbLookasideList, iBcb);
             if (AddressOfReturnAddress != NULL && *AddressOfReturnAddress == NULL) __debugbreak();
         }
@@ -726,6 +732,8 @@ CcUnpinRepinnedBcb (
                          FALSE);
 
         ExDeleteResourceLite(&iBcb->Lock);
+        NT_ASSERT(((ULONG_PTR)iBcb < (ULONG_PTR)_AddressOfReturnAddress()) ||
+            ((ULONG_PTR)iBcb > (ULONG_PTR)_AddressOfReturnAddress() + 0x3000));
         ExFreeToNPagedLookasideList(&iBcbLookasideList, iBcb);
     }
     else
