@@ -65,15 +65,13 @@ extern void winetest_set_location( const char* file, int line );
 extern void winetest_start_todo( int is_todo );
 extern int winetest_loop_todo(void);
 extern void winetest_end_todo(void);
+extern void winetest_start_nocount();
+extern int winetest_loop_nocount(unsigned int flags);
 extern int winetest_get_mainargs( char*** pargv );
 extern LONG winetest_get_failures(void);
 extern LONG winetest_get_successes(void);
 extern void winetest_add_failures( LONG new_failures );
 extern void winetest_wait_child_process( HANDLE process );
-extern void winetest_nocount_start();
-extern int winetest_nocount_end();
-extern int winetest_nocount_get();
-extern int winetest_nocount_set(unsigned flags);
 
 extern const char *wine_dbgstr_wn( const WCHAR *str, intptr_t n );
 extern const char *wine_dbgstr_guid( const GUID *guid );
@@ -164,16 +162,12 @@ extern void __winetest_cdecl winetest_print(const char* msg, ...);
 #define todo_wine_if(is_todo)   todo_if((is_todo) && !strcmp(winetest_platform, "wine"))
 #endif
 
-#define ros_skip_flaky          for (winetest_nocount_start(); \
-                                     (winetest_nocount_get() ? \
-                                         winetest_nocount_end() : \
-                                         winetest_nocount_set(3)); \
+#define ros_skip_flaky          for (winetest_start_nocount(); \
+                                     winetest_loop_nocount(3); \
                                      )
 
-#define disable_success_count   for (winetest_nocount_start(); \
-                                     (winetest_nocount_get() ? \
-                                         winetest_nocount_end() : \
-                                         winetest_nocount_set(1)); \
+#define disable_success_count   for (winetest_start_nocount(); \
+                                     winetest_loop_nocount(1); \
                                      )
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -554,27 +548,30 @@ void winetest_wait_child_process( HANDLE process )
     }
 }
 
-void winetest_nocount_start()
+void winetest_start_nocount()
 {
+    /* The lowest 2 bits of nocount_level specify whether counting of successes
+       and/or failures is disabled. Before the bits are set, the current state
+       is shifted, setting the lowest 2 bits to 0, thus indicating to the for
+       loop, that the loop shall be executed (with the bits set), while when a
+       bit is set, the loop should end and the previous state be restored.
+       This allows nested handling of both states up tp a level of 16. */
     get_tls_data()->nocount_level <<= 2;
 }
 
-int winetest_nocount_end()
+int winetest_loop_nocount(unsigned int flags)
 {
-    get_tls_data()->nocount_level >>= 2;
-    return 0;
-}
-
-int winetest_nocount_get()
-{
-    return get_tls_data()->nocount_level & 3;
-}
-
-int winetest_nocount_set(unsigned flags)
-{
-    unsigned int previous = (get_tls_data()->nocount_level >> 2) & 3;
-    get_tls_data()->nocount_level = flags | previous;
-    return 1;
+    if (get_tls_data()->nocount_level & 3)
+    {
+        get_tls_data()->nocount_level >>= 2;
+        return 0;
+    }
+    else
+    {
+        unsigned int previous = (get_tls_data()->nocount_level >> 2) & 3;
+        get_tls_data()->nocount_level = flags | previous;
+        return 1;
+    }
 }
 
 const char *wine_dbgstr_wn( const WCHAR *str, intptr_t n )
