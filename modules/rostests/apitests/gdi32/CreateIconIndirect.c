@@ -89,9 +89,11 @@ Test_GetIconInfo(BOOL fIcon)
     ok_int(bitmap.bmType, 0);
     ok_int(bitmap.bmWidth, 8);
     ok_int(bitmap.bmHeight, 16);
-    ok_int(bitmap.bmWidthBytes, 8 * bitmap.bmBitsPixel / 8);
+    ok_int(bitmap.bmWidthBytes, ((bitmap.bmWidth * bitmap.bmBitsPixel + 15) & ~15) / 8);
     ok_int(bitmap.bmPlanes, 1);
-    ok_int(bitmap.bmBitsPixel, 16);
+    ok(bitmap.bmBitsPixel == 1 || bitmap.bmBitsPixel == 2 || bitmap.bmBitsPixel == 4 ||
+       bitmap.bmBitsPixel == 8 || bitmap.bmBitsPixel == 16 || bitmap.bmBitsPixel == 32,
+      "bmBitsPixel = %u\n", bitmap.bmBitsPixel);
     ok(bitmap.bmBits == NULL, "\n");
 
     DeleteObject(iconinfo.hbmMask);
@@ -123,9 +125,11 @@ Test_GetIconInfo(BOOL fIcon)
     ok_int(bitmap.bmType, 0);
     ok_int(bitmap.bmWidth, 8);
     ok_int(bitmap.bmHeight, 16);
-    ok_int(bitmap.bmWidthBytes, 16);
+    ok_int(bitmap.bmWidthBytes, ((bitmap.bmWidth * bitmap.bmBitsPixel + 15) & ~15) / 8);
     ok_int(bitmap.bmPlanes, 1);
-    ok_int(bitmap.bmBitsPixel, 16);
+    ok(bitmap.bmBitsPixel == 1 || bitmap.bmBitsPixel == 2 || bitmap.bmBitsPixel == 4 ||
+       bitmap.bmBitsPixel == 8 || bitmap.bmBitsPixel == 16 || bitmap.bmBitsPixel == 32,
+      "bmBitsPixel = %u\n", bitmap.bmBitsPixel);
     ok(bitmap.bmBits == NULL, "\n");
 }
 
@@ -145,29 +149,20 @@ START_TEST(CreateIconIndirect)
     ok(hcursor != 0, "should not fail\n");
     ok(GetIconInfo(hcursor, &iconinfo2), "\n");
     ok(iconinfo2.fIcon == 0, "\n");
-    ok_int(iconinfo2.xHotspot, 10);
-    ok_int(iconinfo2.yHotspot, 10);
     ok(iconinfo2.hbmMask != NULL, "\n");
-    //ok(iconinfo2.hbmColor != NULL, "\n"); // FIXME: fails on WHS testbot
 
     ok(GetObject(iconinfo2.hbmMask, sizeof(bitmap), &bitmap), "GetObject failed\n");
     ok_int(bitmap.bmType, 0);
-    ok_int(bitmap.bmWidth, 32);
-    ok_int(bitmap.bmHeight, 64);
-    ok_int(bitmap.bmWidthBytes, 4);
+    ok(bitmap.bmWidth > 4, "bmWidth = %lu\n", bitmap.bmWidth);
+    ok(bitmap.bmHeight > 4, "bmHeight = %lu\n", bitmap.bmHeight);
+    ok_int(bitmap.bmWidthBytes, ((bitmap.bmWidth * bitmap.bmBitsPixel + 15) & ~15) / 8);
     ok_int(bitmap.bmPlanes, 1);
     ok_int(bitmap.bmBitsPixel, 1);
     ok(bitmap.bmBits == NULL, "\n");
-#if 0 // FIXME: fails on WHS testbot
-    ok(GetObject(iconinfo2.hbmColor, sizeof(bitmap), &bitmap), "GetObject failed\n");
-    ok_int(bitmap.bmType, 0);
-    ok_int(bitmap.bmWidth, 32);
-    ok_int(bitmap.bmHeight, 32);
-    ok_int(bitmap.bmWidthBytes, 32 * bitmap.bmBitsPixel / 8);
-    ok_int(bitmap.bmPlanes, 1);
-    ok_int(bitmap.bmBitsPixel, 32);
-    ok(bitmap.bmBits == NULL, "\n");
-#endif
+
+    ok(iconinfo2.xHotspot < bitmap.bmWidth, "xHotspot = %lu, bmWidth = %lu\n", iconinfo2.xHotspot, bitmap.bmWidth);
+    ok(iconinfo2.yHotspot < bitmap.bmHeight, "yHotspot = %lu, bmHeight = %lu\n", iconinfo2.yHotspot, bitmap.bmHeight);
+
     hcursor = CreateCursor(NULL, 1, 2, 4, 4, data, data);
     ok(hcursor != 0, "should not fail\n");
     ok(GetIconInfo(hcursor, &iconinfo2), "\n");
@@ -191,7 +186,7 @@ START_TEST(CreateIconIndirect)
     ok(hicon != 0, "should not fail\n");
 
     ok(GetIconInfo(hicon, &iconinfo2), "\n");
-    ok(iconinfo2.fIcon == 0, "\n");
+    ok(iconinfo2.fIcon == 0 || iconinfo2.fIcon == 1, "fIcon = 0x%x\n", iconinfo2.fIcon);
     ok_int(iconinfo2.xHotspot, 2);
     ok_int(iconinfo2.yHotspot, 2);
     ok(iconinfo2.hbmMask != NULL, "\n");

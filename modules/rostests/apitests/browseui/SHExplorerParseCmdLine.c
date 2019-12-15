@@ -119,7 +119,7 @@ _Out_opt_ PUINT PWriteEnd)
     if (ExpectedCsidl == PIDL_IS_UNTOUCHED)
         ok(Info.pidl == InvalidPointer, "Line %lu: pidl = %p\n", TestLine, Info.pidl);
     else if (ExpectedCsidl == PIDL_IS_NULL)
-        ok(Info.pidl == NULL, "Line %lu:  = %p\n", TestLine, Info.pidl);
+        ok(Info.pidl == NULL, "Line %lu: pidl = %p\n", TestLine, Info.pidl);
     else
     {
         PIDLIST_ABSOLUTE ExpectedPidl;
