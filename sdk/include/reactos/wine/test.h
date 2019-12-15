@@ -65,8 +65,9 @@ extern void winetest_set_location( const char* file, int line );
 extern void winetest_start_todo( int is_todo );
 extern int winetest_loop_todo(void);
 extern void winetest_end_todo(void);
-extern void winetest_start_nocount();
-extern int winetest_loop_nocount(unsigned int flags);
+extern void winetest_start_nocount(unsigned int flags);
+extern int winetest_loop_nocount(void);
+extern void winetest_end_nocount(void);
 extern int winetest_get_mainargs( char*** pargv );
 extern LONG winetest_get_failures(void);
 extern LONG winetest_get_successes(void);
@@ -162,13 +163,13 @@ extern void __winetest_cdecl winetest_print(const char* msg, ...);
 #define todo_wine_if(is_todo)   todo_if((is_todo) && !strcmp(winetest_platform, "wine"))
 #endif
 
-#define ros_skip_flaky          for (winetest_start_nocount(); \
-                                     winetest_loop_nocount(3); \
-                                     )
+#define ros_skip_flaky          for (winetest_start_nocount(3); \
+                                     winetest_loop_nocount(); \
+                                     winetest_end_nocount())
 
-#define disable_success_count   for (winetest_start_nocount(); \
-                                     winetest_loop_nocount(1); \
-                                     )
+#define disable_success_count   for (winetest_start_nocount(1); \
+                                     winetest_loop_nocount(); \
+                                     winetest_end_nocount())
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -500,6 +501,34 @@ void winetest_end_todo(void)
     data->todo_level >>= 1;
 }
 
+void winetest_start_nocount(unsigned int flags)
+{
+    tls_data* data = get_tls_data();
+
+    /* The lowest 2 bits of nocount_level specify whether counting of successes
+       and/or failures is disabled. For each nested level the bits are shifted
+       left, the new lowest 2 bits are copied from the previous state and ored
+       with the new mask. This allows nested handling of both states up tp a
+       level of 16. */
+    flags |= data->nocount_level & 3;
+    data->nocount_level = (data->nocount_level << 2) | flags;
+    data->todo_do_loop = 1;
+}
+
+int winetest_loop_nocount(void)
+{
+    tls_data* data = get_tls_data();
+    int do_loop = data->todo_do_loop;
+    data->todo_do_loop = 0;
+    return do_loop;
+}
+
+void winetest_end_nocount(void)
+{
+    tls_data* data = get_tls_data();
+    data->nocount_level >>= 2;
+}
+
 int winetest_get_mainargs( char*** pargv )
 {
     *pargv = winetest_argv;
@@ -545,32 +574,6 @@ void winetest_wait_child_process( HANDLE process )
             while (exit_code-- > 0)
                 InterlockedIncrement(&failures);
         }
-    }
-}
-
-void winetest_start_nocount()
-{
-    /* The lowest 2 bits of nocount_level specify whether counting of successes
-       and/or failures is disabled. Before the bits are set, the current state
-       is shifted, setting the lowest 2 bits to 0, thus indicating to the for
-       loop, that the loop shall be executed (with the bits set), while when a
-       bit is set, the loop should end and the previous state be restored.
-       This allows nested handling of both states up tp a level of 16. */
-    get_tls_data()->nocount_level <<= 2;
-}
-
-int winetest_loop_nocount(unsigned int flags)
-{
-    if (get_tls_data()->nocount_level & 3)
-    {
-        get_tls_data()->nocount_level >>= 2;
-        return 0;
-    }
-    else
-    {
-        unsigned int previous = (get_tls_data()->nocount_level >> 2) & 3;
-        get_tls_data()->nocount_level = flags | previous;
-        return 1;
     }
 }
 
