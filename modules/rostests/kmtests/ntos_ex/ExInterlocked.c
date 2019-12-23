@@ -6,17 +6,35 @@
  */
 
 #include <stddef.h>
+#include <kmt_test.h>
+
+/* We do not want to test the macros/intrinsics, but the exported functions */
+#undef InterlockedCompareExchange
+#undef ExInterlockedCompareExchange64
+#undef ExfInterlockedCompareExchange64
+#undef InterlockedExchange
+#undef ExInterlockedExchangeUlong
+#undef InterlockedExchangeAdd
+#undef ExInterlockedAddUlong
+#undef Exi386InterlockedExchangeUlong
+#undef InterlockedIncrement
+#undef InterlockedDecrement
+#undef ExInterlockedIncrementLong
+#undef ExInterlockedDecrementLong
+#undef Exi386InterlockedIncrementLong
+#undef Exi386InterlockedDecrementLong
+#undef InterlockedXor
+#undef ExInterlockedAddLargeStatistic
 
 /* missing prototypes >:| */
+#ifdef _X86_
 __declspec(dllimport)   long            __fastcall  InterlockedCompareExchange(volatile long *, long, long);
 __declspec(dllimport)   __int64         __fastcall  ExInterlockedCompareExchange64(volatile __int64 *, __int64 *, __int64 *, void *);
 __declspec(dllimport)   __int64         __fastcall  ExfInterlockedCompareExchange64(volatile __int64 *, __int64 *, __int64 *);
 __declspec(dllimport)   long            __fastcall  InterlockedExchange(volatile long *, long);
 __declspec(dllimport)   unsigned long   __stdcall   ExInterlockedExchangeUlong(unsigned long *, unsigned long, void *);
 __declspec(dllimport)   long            __fastcall  InterlockedExchangeAdd(volatile long *, long);
-#ifdef _X86_
 __declspec(dllimport)   unsigned long   __stdcall   ExInterlockedAddUlong(unsigned long *, unsigned long, unsigned long *);
-#endif
 __declspec(dllimport)   unsigned long   __stdcall   Exi386InterlockedExchangeUlong(unsigned long *, unsigned long);
 __declspec(dllimport)   long            __fastcall  InterlockedIncrement(long *);
 __declspec(dllimport)   long            __fastcall  InterlockedDecrement(long *);
@@ -24,12 +42,9 @@ __declspec(dllimport)   int             __stdcall   ExInterlockedIncrementLong(l
 __declspec(dllimport)   int             __stdcall   ExInterlockedDecrementLong(long *, void *);
 __declspec(dllimport)   int             __stdcall   Exi386InterlockedIncrementLong(long *);
 __declspec(dllimport)   int             __stdcall   Exi386InterlockedDecrementLong(long *);
+__declspec(dllimport)   void            __fastcall  ExInterlockedAddLargeStatistic(LARGE_INTEGER *, ULONG);
+#endif
 
-#include <kmt_test.h>
-
-/* TODO: There are quite some changes needed for other architectures!
-         ExInterlockedAddLargeInteger, ExInterlockedAddUlong are the only two
-         functions actually exported by my win7/x64 kernel! */
 
 /* TODO: stress-testing */
 
@@ -271,27 +286,9 @@ TestInterlockedFunctional(VOID)
 #endif
 
     /* CompareExchange */
-    /* macro version */
-    CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, "%ld", 5, 6, 8, 5L, 5L);
-    CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, "%ld", 5, 5, 9, 9L, 5L);
-    /* these only exist as macros on x86 */
-    CheckInterlockedCmpXchg(InterlockedCompareExchangeAcquire, LONG, "%ld", 16, 9, 12, 16L, 16L);
-    CheckInterlockedCmpXchg(InterlockedCompareExchangeAcquire, LONG, "%ld", 16, 16, 4, 4L, 16L);
-    CheckInterlockedCmpXchg(InterlockedCompareExchangeRelease, LONG, "%ld", 27, 123, 38, 27L, 27L);
-    CheckInterlockedCmpXchg(InterlockedCompareExchangeRelease, LONG, "%ld", 27, 27, 39, 39L, 27L);
-    /* exported function */
-#undef InterlockedCompareExchange
 #ifdef _M_IX86
     CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, "%ld", 5, 6, 8, 5L, 5L);
     CheckInterlockedCmpXchg(InterlockedCompareExchange, LONG, "%ld", 5, 5, 9, 9L, 5L);
-#endif
-    /* only exists as a macro */
-    CheckInterlockedCmpXchg(InterlockedCompareExchangePointer, PVOID, "%p", (PVOID)117, (PVOID)711, (PVOID)12, (PVOID)117, (PVOID)117);
-    CheckInterlockedCmpXchg(InterlockedCompareExchangePointer, PVOID, "%p", (PVOID)117, (PVOID)117, (PVOID)228, (PVOID)228, (PVOID)117);
-    /* macro version */
-    CheckInterlockedCmpXchgI(ExInterlockedCompareExchange64, LONGLONG, "%I64d", 17, 4LL, 20LL, 17LL, 17LL, pSpinLock);
-    CheckInterlockedCmpXchgI(ExInterlockedCompareExchange64, LONGLONG, "%I64d", 17, 17LL, 21LL, 21LL, 17LL, pSpinLock);
-#ifdef _M_IX86
     /* exported function */
     CheckInterlockedCmpXchgI((ExInterlockedCompareExchange64), LONGLONG, "%I64d", 17, 4LL, 20LL, 17LL, 17LL, pSpinLock);
     CheckInterlockedCmpXchgI((ExInterlockedCompareExchange64), LONGLONG, "%I64d", 17, 17LL, 21LL, 21LL, 17LL, pSpinLock);
@@ -301,9 +298,6 @@ TestInterlockedFunctional(VOID)
 #endif
 
     /* Exchange */
-    CheckInterlockedOp(InterlockedExchange, LONG, "%ld", 5, 8, 8L, 5L);
-    CheckInterlockedOpNoArg(InterlockedExchangePointer, PVOID, "%p", (PVOID)700, (PVOID)93, (PVOID)700, (PVOID)93);
-#undef InterlockedExchange
 #ifdef _M_IX86
     CheckInterlockedOp(InterlockedExchange, LONG, "%ld", 5, 8, 8L, 5L);
     CheckInterlockedOp(ExInterlockedExchangeUlong, ULONG, "%lu", 212, 121, 121LU, 212LU, pSpinLock);
@@ -313,9 +307,6 @@ TestInterlockedFunctional(VOID)
 #endif
 
     /* ExchangeAdd */
-    /* TODO: ExInterlockedExchangeAddLargeInteger? */
-    CheckInterlockedOp(InterlockedExchangeAdd, LONG, "%ld", 312, 7, 319L, 312L);
-#undef InterlockedExchangeAdd
 #ifdef _M_IX86
     CheckInterlockedOp(InterlockedExchangeAdd, LONG, "%ld", 312, 7, 319L, 312L);
 #endif
@@ -323,17 +314,17 @@ TestInterlockedFunctional(VOID)
     /* Add */
     /* these DO need a valid spinlock even on x86 */
     CheckInterlockedOpLarge(ExInterlockedAddLargeInteger, LARGE_INTEGER, "%I64d", Large(23), Large(7), 30LL, 23LL, &SpinLock);
+#ifdef _M_IX86
     CheckInterlockedOpLargeNoRet(ExInterlockedAddLargeStatistic, LARGE_INTEGER, "%I64d", Large(15), 17LL, 32LL);
-    CheckInterlockedOp(ExInterlockedAddUlong, ULONG, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
-#undef ExInterlockedAddUlong
+    CheckInterlockedOp(ExfInterlockedAddUlong, ULONG, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
+#endif
     CheckInterlockedOp(ExInterlockedAddUlong, ULONG, "%lu", 239, 44, 283LU, 239LU, &SpinLock);
 
     /* Increment */
-    CheckInterlockedOpNoArg(InterlockedIncrement, LONG, "%ld", 2341L, 2342L, 2342L);
-    CheckInterlockedOpNoArg(InterlockedIncrement, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)MINLONG);
+#if 0
     CheckInterlockedOpNoArg(InterlockedIncrementAcquire, LONG, "%ld", 2341L, 2342L, 2342L);
     CheckInterlockedOpNoArg(InterlockedIncrementRelease, LONG, "%ld", 2341L, 2342L, 2342L);
-#undef InterlockedIncrement
+#endif
 #ifdef _M_IX86
     CheckInterlockedOpNoArg(InterlockedIncrement, LONG, "%ld", 2341L, 2342L, 2342L);
     CheckInterlockedOpNoArg(InterlockedIncrement, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)MINLONG);
@@ -349,14 +340,17 @@ TestInterlockedFunctional(VOID)
     CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", -1L, 0L, (LONG)ResultZero);
     CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", 0L, 1L, (LONG)ResultPositive);
     CheckInterlockedOpNoArg(Exi386InterlockedIncrementLong, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", -2L, -1L, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", -1L, 0L, (LONG)ResultZero);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", 0L, 1L, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(Exfi386InterlockedIncrementLong, LONG, "%ld", (LONG)MAXLONG, (LONG)MINLONG, (LONG)ResultNegative);
 #endif
 
     /* Decrement */
-    CheckInterlockedOpNoArg(InterlockedDecrement, LONG, "%ld", 1745L, 1744L, 1744L);
-    CheckInterlockedOpNoArg(InterlockedDecrement, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)MAXLONG);
+#if 0 // Who implements these?
     CheckInterlockedOpNoArg(InterlockedDecrementAcquire, LONG, "%ld", 1745L, 1744L, 1744L);
     CheckInterlockedOpNoArg(InterlockedDecrementRelease, LONG, "%ld", 1745L, 1744L, 1744L);
-#undef InterlockedDecrement
+#endif
 #ifdef _M_IX86
     CheckInterlockedOpNoArg(InterlockedDecrement, LONG, "%ld", 1745L, 1744L, 1744L);
     CheckInterlockedOpNoArg(InterlockedDecrement, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)MAXLONG);
@@ -372,14 +366,10 @@ TestInterlockedFunctional(VOID)
     CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", 0L, -1L, (LONG)ResultNegative);
     CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", 1L, 0L, (LONG)ResultZero);
     CheckInterlockedOpNoArg(Exi386InterlockedDecrementLong, LONG, "%ld", 2L, 1L, (LONG)ResultPositive);
-#endif
-
-    /* And, Or, Xor */
-    CheckInterlockedOp(InterlockedAnd, LONG, "0x%lx", 0x1234L, 0x1111L, 0x1010L, 0x1234L);
-    CheckInterlockedOp(InterlockedOr, LONG, "0x%lx", 0x1234L, 0x1111L, 0x1335L, 0x1234L);
-    CheckInterlockedOp(InterlockedXor, LONG, "0x%lx", 0x1234L, 0x1111L, 0x0325L, 0x1234L);
-#ifdef _WIN64
-    CheckInterlockedOp(InterlockedXor64, LONGLONG, "0x%I64x", 0x200001234LL, 0x100001111LL, 0x300000325LL, 0x200001234LL);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", (LONG)MINLONG, (LONG)MAXLONG, (LONG)ResultPositive);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", 0L, -1L, (LONG)ResultNegative);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", 1L, 0L, (LONG)ResultZero);
+    CheckInterlockedOpNoArg(Exfi386InterlockedDecrementLong, LONG, "%ld", 2L, 1L, (LONG)ResultPositive);
 #endif
 }
 
