@@ -908,14 +908,14 @@ typedef struct _MMWSL
     USHORT UsedPageTableEntries[768];
     ULONG CommittedPageTables[24];
 #else
-    VOID* HighestUserAddress;
+    PVOID HighestUserAddress;
     ULONG MaximumUserPageTablePages;
     ULONG MaximumUserPageDirectoryPages;
-    ULONG* CommittedPageTables;
+    PULONG CommittedPageTables;
     ULONG NumberOfCommittedPageDirectories;
-    ULONG* CommittedPageDirectories;
+    PULONG CommittedPageDirectories;
     ULONG NumberOfCommittedPageDirectoryParents;
-    ULONGLONG CommittedPageDirectoryParents[1];
+    ULONG64 CommittedPageDirectoryParents[1];
 #endif
 } MMWSL, *PMMWSL;
 

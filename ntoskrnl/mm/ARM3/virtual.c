@@ -731,7 +731,52 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
             Va += PAGE_SIZE;
             PointerPte++;
             PrototypePte++;
+
+            /* Making sure the PDE is still valid */
+            ASSERT(PointerPde->u.Hard.Valid == 1);
         } while ((Va & (PDE_MAPPED_VA - 1)) && (Va <= EndingAddress));
+
+        /* The PDE should still be valid at this point */
+        ASSERT(PointerPde->u.Hard.Valid == 1);
+
+        /* Check remaining PTE count (go back 1 page due to above loop) */
+        if (MiQueryPageTableReferences((PVOID)(Va - PAGE_SIZE)) == 0)
+        {
+            if (PointerPde->u.Long != 0)
+            {
+                /* Delete the PDE proper */
+                MiDeletePte(PointerPde,
+                            MiPteToAddress(PointerPde),
+                            CurrentProcess,
+                            NULL);
+#if (_MI_PAGING_LEVELS >= 3)
+                if (MiDecrementPageTableReferences(MiPteToAddress(PointerPde)) == 0)
+                {
+                    /* No PDE relies on this PPE. Release it */
+                    PMMPPE PointerPpe = MiAddressToPpe((PVOID)Va);
+                    ASSERT(PointerPpe->u.Hard.Valid == 1);
+                    MiDeletePte(PointerPpe,
+                                MiPteToAddress(PointerPpe),
+                                CurrentProcess,
+                                NULL);
+                    ASSERT(PointerPpe->u.Hard.Valid == 0);
+#if (_MI_PAGING_LEVELS >= 4)
+                    if (MiDecrementPageTableReferences(PointerPde) == 0)
+                    {
+                        /* No PPE relies on this PXE. Release it */
+                        PMMPXE PointerPxe = MiAddressToPxe((PVOID)Va);
+                        ASSERT(PointerPxe->u.Hard.Valid == 1);
+                        MiDeletePte(PointerPxe,
+                                    MiPteToAddress(PointerPxe),
+                                    CurrentProcess,
+                                    NULL);
+                        ASSERT(PointerPxe->u.Hard.Valid == 0);
+                    }
+#endif
+                }
+#endif
+            }
+        }
 
         /* Release the lock */
         MiReleasePfnLock(OldIrql);

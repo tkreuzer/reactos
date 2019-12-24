@@ -735,6 +735,22 @@ MiIsUserPte(PVOID Address)
 }
 #endif
 
+FORCEINLINE
+BOOLEAN
+MiIsUserAddressOrPageTable(PVOID Address)
+{
+    return ((Address <= MmHighestUserAddress) // MM_HIGHEST_USER_ADDRESS
+            || MiIsUserPte(Address)
+            || MiIsUserPde(Address)
+#if (_MI_PAGING_LEVELS >= 3)
+            || MiIsUserPpe(Address)
+#endif
+#if (_MI_PAGING_LEVELS >= 4)
+            || MiIsUserPxe(Address)
+#endif
+            );
+}
+
 //
 // Figures out the hardware bits for a PTE
 //
@@ -2517,56 +2533,32 @@ FORCEINLINE
 USHORT
 MiIncrementPageTableReferences(IN PVOID Address)
 {
+    PULONG RefCount;
     PMMPDE PointerPde = MiAddressToPde(Address);
-    PMMPFN Pfn;
 
-    /* We should not tinker with this one. */
-    ASSERT(PointerPde != (PMMPDE)PXE_SELFMAP);
-    DPRINT("Incrementing %p from %p\n", Address, _ReturnAddress());
+    NT_ASSERT(PointerPde->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPde->u.Hard.PageFrameNumber)->UsedPageTableEntries;
 
-    /* Make sure we're locked */
-    ASSERT(PsGetCurrentThread()->OwnsProcessWorkingSetExclusive);
-
-    /* If we're bumping refcount, then it must be valid! */
-    ASSERT(PointerPde->u.Hard.Valid == 1);
-
-    /* This lies on the PFN */
-    Pfn = MiGetPfnEntry(PFN_FROM_PDE(PointerPde));
-    Pfn->OriginalPte.u.Soft.UsedPageTableEntries++;
-
-    ASSERT(Pfn->OriginalPte.u.Soft.UsedPageTableEntries <= PTE_PER_PAGE);
-
-    return Pfn->OriginalPte.u.Soft.UsedPageTableEntries;
+    *RefCount += 1;
+    ASSERT(*RefCount <= PTE_PER_PAGE);
 }
 
 FORCEINLINE
 USHORT
 MiDecrementPageTableReferences(IN PVOID Address)
 {
+    PULONG RefCount;
     PMMPDE PointerPde = MiAddressToPde(Address);
-    PMMPFN Pfn;
 
-    /* We should not tinker with this one. */
-    ASSERT(PointerPde != (PMMPDE)PXE_SELFMAP);
+    NT_ASSERT(PointerPde->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPde->u.Hard.PageFrameNumber)->UsedPageTableEntries;
 
-    DPRINT("Decrementing %p from %p\n", PointerPde, _ReturnAddress());
+    *RefCount -= 1;
+    ASSERT(*RefCount < PTE_PER_PAGE);
 
-    /* Make sure we're locked */
-    ASSERT(PsGetCurrentThread()->OwnsProcessWorkingSetExclusive);
-
-    /* If we're decreasing refcount, then it must be valid! */
-    ASSERT(PointerPde->u.Hard.Valid == 1);
-
-    /* This lies on the PFN */
-    Pfn = MiGetPfnEntry(PFN_FROM_PDE(PointerPde));
-
-    ASSERT(Pfn->OriginalPte.u.Soft.UsedPageTableEntries != 0);
-    Pfn->OriginalPte.u.Soft.UsedPageTableEntries--;
-
-    ASSERT(Pfn->OriginalPte.u.Soft.UsedPageTableEntries < PTE_PER_PAGE);
-
-    return Pfn->OriginalPte.u.Soft.UsedPageTableEntries;
+    return *RefCount;
 }
+#else
 #endif
 
 #ifdef __cplusplus
