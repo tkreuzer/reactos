@@ -585,7 +585,10 @@ MmCreateVirtualMappingUnsafe(
         MI_WRITE_VALID_PTE(Pte, TmplPte);
 
         if (MiIsHyperspaceAddress(Pte))
+        {
+            __debugbreak();
             MmDeleteHyperspaceMapping((PVOID)PAGE_ROUND_DOWN(Pte));
+        }
 
         if (Address < MmSystemRangeStart)
         {
