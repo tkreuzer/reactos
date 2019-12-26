@@ -429,8 +429,21 @@ MmDeleteVirtualMapping(
         /* Atomically set the entry to zero and get the old value. */
         OldPte.u.Long = InterlockedExchange64((LONG64*)&Pte->u.Long, 0);
 
-        if (OldPte.u.Hard.Valid || !OldPte.u.Trans.Transition)
+        if (OldPte.u.Hard.Valid || 
+            (OldPte.u.Hard.PageFrameNumber && !OldPte.u.Trans.Transition))
         {
+            /* Flush the TLB since we transitioned this PTE
+             * from valid to invalid so any stale translations
+             * are removed from the cache */
+            MiFlushTlb(Pte, Address);
+
+            if (Address < MmSystemRangeStart)
+            {
+                /* Remove PDE reference */
+                NT_ASSERT(Process == PsGetCurrentProcess());
+                MiDecrementPageTableReferences(Address);
+            }
+
             Pfn = OldPte.u.Hard.PageFrameNumber;
         }
         else
@@ -474,6 +487,13 @@ MmDeletePageFileMapping(PEPROCESS Process, PVOID Address,
 
     *SwapEntry = Pte->u.Long >> 1;
     MI_ERASE_PTE(Pte);
+
+    if (Address < MmSystemRangeStart)
+    {
+        /* Remove PDE reference */
+        NT_ASSERT(Process == PsGetCurrentProcess());
+        MiDecrementPageTableReferences(Address);
+    }
 }
 
 NTSTATUS
@@ -511,6 +531,13 @@ MmCreatePageFileMapping(PEPROCESS Process,
     NT_ASSERT(Pte->u.Long == 0);
     PteValue.u.Long = SwapEntry << 1;
     MI_WRITE_INVALID_PTE(Pte, PteValue);
+
+    if (Address < MmSystemRangeStart)
+    {
+        /* Add PDE reference */
+        NT_ASSERT(Process == PsGetCurrentProcess());
+        MiIncrementPageTableReferences(Address);
+    }
 
     return STATUS_UNSUCCESSFUL;
 }
@@ -559,6 +586,13 @@ MmCreateVirtualMappingUnsafe(
 
         if (MiIsHyperspaceAddress(Pte))
             MmDeleteHyperspaceMapping((PVOID)PAGE_ROUND_DOWN(Pte));
+
+        if (Address < MmSystemRangeStart)
+        {
+            /* Add PDE reference */
+            NT_ASSERT(Process == PsGetCurrentProcess());
+            MiIncrementPageTableReferences(Address);
+        }
 
         Address = (PVOID)((ULONG64)Address + PAGE_SIZE);
     }

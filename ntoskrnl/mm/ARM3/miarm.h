@@ -1679,6 +1679,48 @@ MiReferenceUnusedPageAndBumpLockCount(IN PMMPFN Pfn1)
     }
 }
 
+#ifdef _M_AMD64
+FORCEINLINE
+VOID
+MiIncrementPageTableReferences(IN PVOID Address)
+{
+    PULONG RefCount;
+    PMMPTE PointerPte = MiAddressToPde(Address);
+
+    NT_ASSERT(PointerPte->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPte->u.Hard.PageFrameNumber)->UsedPageTableEntries;
+
+    *RefCount += 1;
+    ASSERT(*RefCount <= PTE_PER_PAGE);
+}
+
+FORCEINLINE
+VOID
+MiDecrementPageTableReferences(IN PVOID Address)
+{
+    PULONG RefCount;
+    PMMPTE PointerPte = MiAddressToPde(Address);
+
+    NT_ASSERT(PointerPte->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPte->u.Hard.PageFrameNumber)->UsedPageTableEntries;
+
+    *RefCount -= 1;
+    ASSERT(*RefCount < PTE_PER_PAGE);
+}
+
+FORCEINLINE
+USHORT
+MiQueryPageTableReferences(IN PVOID Address)
+{
+    PULONG RefCount;
+    PMMPTE PointerPte = MiAddressToPde(Address);
+
+    NT_ASSERT(PointerPte->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPte->u.Hard.PageFrameNumber)->UsedPageTableEntries;
+
+    return *RefCount;
+}
+#else
 FORCEINLINE
 VOID
 MiIncrementPageTableReferences(IN PVOID Address)
@@ -1713,6 +1755,7 @@ MiQueryPageTableReferences(IN PVOID Address)
 
     return *RefCount;
 }
+#endif
 
 INIT_FUNCTION
 BOOLEAN
