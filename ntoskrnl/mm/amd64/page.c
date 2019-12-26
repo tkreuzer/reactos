@@ -173,22 +173,26 @@ MiGetPteForProcess(
         /* Check the PXE */
         if (Pxe->u.Long == 0)
         {
-            /* Make it demand zero */
+            /* Make it demand zero (we don't count PML4 entries!) */
             MI_WRITE_INVALID_PDE(Pxe, DemandZeroPde);
         }
 
         /* Check the PPE */
         if (Ppe->u.Long == 0)
         {
-            /* Make it demand zero */
+            /* Make it demand zero and reference to the PDPT */
             MI_WRITE_INVALID_PDE(Ppe, DemandZeroPde);
+            if (Address < MmSystemRangeStart)
+                MiIncrementPageTableReferences(Pde);
         }
 
         /* Check the PDE */
         if (Pde->u.Long == 0)
         {
-            /* Make it demand zero */
+            /* Make it demand zero and reference to the PDT */
             MI_WRITE_INVALID_PDE(Pde, DemandZeroPde);
+            if (Address < MmSystemRangeStart)
+                MiIncrementPageTableReferences(Pte);
         }
     }
     else
@@ -443,8 +447,21 @@ MmDeleteVirtualMapping(
         /* Atomically set the entry to zero and get the old value. */
         OldPte.u.Long = InterlockedExchange64((LONG64*)&Pte->u.Long, 0);
 
-        if (OldPte.u.Hard.Valid)
+        if (OldPte.u.Hard.Valid || 
+            (OldPte.u.Hard.PageFrameNumber && !OldPte.u.Trans.Transition))
         {
+            /* Flush the TLB since we transitioned this PTE
+             * from valid to invalid so any stale translations
+             * are removed from the cache */
+            MiFlushTlb(Pte, Address, OldIrql);
+
+            if (Address < MmSystemRangeStart)
+            {
+                /* Remove PDE reference */
+                NT_ASSERT(Process == PsGetCurrentProcess());
+                MiDecrementPageTableReferences(Address);
+            }
+
             Pfn = OldPte.u.Hard.PageFrameNumber;
         }
         else
@@ -490,6 +507,13 @@ MmDeletePageFileMapping(PEPROCESS Process, PVOID Address,
     *SwapEntry = Pte->u.Long >> 1;
     MI_ERASE_PTE(Pte);
 
+    if (Address < MmSystemRangeStart)
+    {
+        /* Remove PDE reference */
+        NT_ASSERT(Process == PsGetCurrentProcess());
+        MiDecrementPageTableReferences(Address);
+    }
+
     if (MiIsHyperspaceAddress(Pte))
         MiUnmapPageInHyperSpace(PsGetCurrentProcess(), (PVOID)PAGE_ROUND_DOWN(Pte), OldIrql);
 }
@@ -530,6 +554,13 @@ MmCreatePageFileMapping(PEPROCESS Process,
     NT_ASSERT(Pte->u.Long == 0);
     PteValue.u.Long = SwapEntry << 1;
     MI_WRITE_INVALID_PTE(Pte, PteValue);
+
+    if (Address < MmSystemRangeStart)
+    {
+        /* Add PDE reference */
+        NT_ASSERT(Process == PsGetCurrentProcess());
+        MiIncrementPageTableReferences(Address);
+    }
 
     if (MiIsHyperspaceAddress(Pte))
         MiUnmapPageInHyperSpace(PsGetCurrentProcess(), (PVOID)PAGE_ROUND_DOWN(Pte), OldIrql);
@@ -586,6 +617,13 @@ DPRINT("MmCreateVirtualMappingUnsafe, Address=%p, TmplPte=%p, Pte=%p\n",
 
         if (MiIsHyperspaceAddress(Pte))
             MiUnmapPageInHyperSpace(PsGetCurrentProcess(), (PVOID)PAGE_ROUND_DOWN(Pte), OldIrql);
+
+        if (Address < MmSystemRangeStart)
+        {
+            /* Add PDE reference */
+            NT_ASSERT(Process == PsGetCurrentProcess());
+            MiIncrementPageTableReferences(Address);
+        }
 
         Address = (PVOID)((ULONG64)Address + PAGE_SIZE);
     }
