@@ -1866,9 +1866,89 @@ MiReferenceUnusedPageAndBumpLockCount(IN PMMPFN Pfn1)
     }
 }
 
+//// FIXME: merge artifacts
+
+#ifdef _M_AMD64
+FORCEINLINE
+VOID
+MiIncrementPageTableReferences(IN PVOID Address)
+{
+    PULONG RefCount;
+    PMMPDE PointerPde = MiAddressToPde(Address);
+
+    NT_ASSERT(PointerPde->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPde->u.Hard.PageFrameNumber)->UsedPageTableEntries;
+
+    *RefCount += 1;
+    ASSERT(*RefCount <= PTE_PER_PAGE);
+}
+
+FORCEINLINE
+USHORT
+MiDecrementPageTableReferences(IN PVOID Address)
+{
+    PULONG RefCount;
+    PMMPDE PointerPde = MiAddressToPde(Address);
+
+    NT_ASSERT(PointerPde->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPde->u.Hard.PageFrameNumber)->UsedPageTableEntries;
+
+    *RefCount -= 1;
+    ASSERT(*RefCount < PTE_PER_PAGE);
+
+    return *RefCount;
+}
+
+FORCEINLINE
+USHORT
+MiQueryPageTableReferences(IN PVOID Address)
+{
+    PULONG RefCount;
+    PMMPTE PointerPte = MiAddressToPde(Address);
+
+    NT_ASSERT(PointerPte->u.Hard.Valid);
+    RefCount = &MI_PFN_ELEMENT(PointerPte->u.Hard.PageFrameNumber)->UsedPageTableEntries;
+
+    return *RefCount;
+}
+#else
+FORCEINLINE
+VOID
+MiIncrementPageTableReferences(IN PVOID Address)
+{
+    PUSHORT RefCount;
 
 
-CODE_SEG("INIT")
+    *RefCount += 1;
+    ASSERT(*RefCount <= PTE_PER_PAGE);
+}
+
+FORCEINLINE
+USHORT
+MiDecrementPageTableReferences(IN PVOID Address)
+{
+    PUSHORT RefCount;
+
+    RefCount = &MmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)];
+
+    *RefCount -= 1;
+    ASSERT(*RefCount < PTE_PER_PAGE);
+    return *RefCount;
+}
+
+FORCEINLINE
+USHORT
+MiQueryPageTableReferences(IN PVOID Address)
+{
+    PUSHORT RefCount;
+
+    RefCount = &MmWorkingSetList->UsedPageTableEntries[MiGetPdeOffset(Address)];
+
+    return *RefCount;
+}
+#endif
+
+INIT_FUNCTION
 BOOLEAN
 NTAPI
 MmArmInitSystem(
