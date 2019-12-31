@@ -56,11 +56,8 @@ FORCEINLINE
 ULONG
 RtcClockRateToPreciseIncrement(UCHAR Rate)
 {
-    /* Calculate frequency */
-    ULONG Frequency = 32768 >> (Rate - 1);
-
-    /* Calculate interval in 0.1ns interval: Interval = (1 / Frequency) * 10,000,000,000 */
-    return 10000000000ULL / Frequency;
+    ULONG Freqency = ((32768 << 1) >> Rate);
+    return (10000000 + (Freqency/2)) / Freqency;
 }
 
 VOID
