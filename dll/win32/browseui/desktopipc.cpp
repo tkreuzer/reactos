@@ -347,9 +347,11 @@ static HRESULT ExplorerMessageLoop(IEThreadParamBlock * parameters)
     MSG Msg;
     BOOL Ret;
 
+#ifndef _M_AMD64 // FIXME: BROKEN!
     // Tell the thread ref we are using it.
     if (parameters && parameters->pExplorerInstance)
         parameters->pExplorerInstance->AddRef();
+#endif
 
     /* Handle /e parameter */
      UINT wFlags = 0;
@@ -413,8 +415,10 @@ static HRESULT ExplorerMessageLoop(IEThreadParamBlock * parameters)
     ReleaseCComPtrExpectZero(browser);
 
     // Tell the thread ref we are not using it anymore.
+#ifndef _WIN64 // FIXME: BROKEN!
     if (parameters && parameters->pExplorerInstance)
         parameters->pExplorerInstance->Release();
+#endif
 
     return hResult;
 }
@@ -513,8 +517,13 @@ extern "C" void WINAPI SHDestroyIETHREADPARAM(IEThreadParamBlock *param)
         param->offset78->Release();
     if (param->offsetC != NULL)
         param->offsetC->Release();
+    // FIXME: This is completely broken!
+    // And I'm sure that there is a dedicated place
+    // in hell for people writing this kind of code!
+#ifndef _WIN64
     if (param->pExplorerInstance != NULL)
         param->pExplorerInstance->Release();
+#endif
     LocalFree(param);
 }
 
