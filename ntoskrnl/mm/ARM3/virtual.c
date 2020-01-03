@@ -546,11 +546,17 @@ MiDeletePte(IN PMMPTE PointerPte,
 VOID
 NTAPI
 MiDeleteVirtualAddresses(IN ULONG_PTR Va,
-                         IN ULONG_PTR EndingAddress,
+                         IN ULONG_PTR EndingAddress, // inclusive!
                          IN PMMVAD Vad)
 {
     PMMPTE PointerPte, PrototypePte, LastPrototypePte;
     PMMPDE PointerPde;
+#if (_MI_PAGING_LEVELS >= 3)
+    PMMPPE PointerPpe;
+#endif
+#if (_MI_PAGING_LEVELS >= 3)
+    PMMPPE PointerPxe;
+#endif
     MMPTE TempPte;
     PEPROCESS CurrentProcess;
     KIRQL OldIrql;
@@ -564,6 +570,12 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
     CurrentProcess = PsGetCurrentProcess();
     PointerPde = MiAddressToPde(Va);
     PointerPte = MiAddressToPte(Va);
+#if (_MI_PAGING_LEVELS >= 3)
+    PointerPpe = MiAddressToPpe((PVOID)Va);
+#endif
+#if (_MI_PAGING_LEVELS >= 3)
+    PointerPxe = MiAddressToPxe((PVOID)Va);
+#endif
 
     /* Check if this is a section VAD or a VM VAD */
     if (!(Vad) || (Vad->u.VadFlags.PrivateMemory) || !(Vad->FirstPrototypePte))
@@ -584,7 +596,44 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
     /* Loop the PTE for each VA */
     while (TRUE)
     {
-        /* First keep going until we find a valid PDE */
+RestartLoop:
+#if (_MI_PAGING_LEVELS >= 4)
+        /* Skip invalid PXEs */
+        PointerPxe = MiAddressToPxe((PVOID)Va);
+        while (!PointerPxe->u.Long)
+        {
+            /* There are gaps in the address space */
+            AddressGap = TRUE;
+
+            /* Still no valid PXE, try the next 4MB (or whatever) */
+            PointerPxe++;
+
+            /* Update Va and check if we're at the end */
+            Va = (ULONG_PTR)MiPxeToAddress(PointerPxe);
+            if (Va > EndingAddress) return;
+        }
+#endif
+#if (_MI_PAGING_LEVELS >= 3)
+        /* Skip invalid PPEs */
+        PointerPpe = MiAddressToPpe((PVOID)Va);
+        while (!PointerPpe->u.Long)
+        {
+            /* There are gaps in the address space */
+            AddressGap = TRUE;
+
+            /* Still no valid PDE, try the next 4MB (or whatever) */
+            PointerPpe++;
+
+            /* Update Va and check if we're at the end */
+            Va = (ULONG_PTR)MiPpeToAddress(PointerPpe);
+            if (Va > EndingAddress) return;
+#if (_MI_PAGING_LEVELS >= 4)
+            if (MiAddressToPxe((PVOID)Va) != PointerPxe) goto RestartLoop;
+#endif
+        }
+#endif
+        /* Skip invalid PDEs */
+        PointerPde = MiAddressToPde((PVOID)Va);
         while (!PointerPde->u.Long)
         {
             /* There are gaps in the address space */
@@ -599,6 +648,9 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
             /* Check if all the PDEs are invalid, so there's nothing to free */
             Va = (ULONG_PTR)MiPteToAddress(PointerPte);
             if (Va > EndingAddress) return;
+#if (_MI_PAGING_LEVELS >= 3)
+            if (MiAddressToPpe((PVOID)Va) != PointerPpe) goto RestartLoop;
+#endif
         }
 
         /* Now check if the PDE is mapped in */
