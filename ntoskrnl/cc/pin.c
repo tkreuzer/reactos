@@ -202,6 +202,7 @@ CcpGetAppropriateBcb(
     KIRQL OldIrql;
     BOOLEAN Result;
     PINTERNAL_BCB iBcb, DupBcb;
+    ASSERT(Vacb != NULL);
 
     iBcb = ExAllocateFromNPagedLookasideList(&iBcbLookasideList);
     if (iBcb == NULL)
@@ -613,6 +614,9 @@ CcUnpinDataForThread (
 
     CCTRACE(CC_API_DEBUG, "Bcb=%p ResourceThreadId=%lu\n", Bcb, ResourceThreadId);
 
+    KeAcquireSpinLock(&Bcb->SharedCacheMap->BcbSpinLock, &OldIrql);
+
+    ASSERT(iBcb->PinCount != 0);
     if (iBcb->PinCount != 0)
     {
         ExReleaseResourceForThreadLite(&iBcb->Lock, ResourceThreadId);
@@ -632,10 +636,15 @@ CcRepinBcb (
     IN	PVOID Bcb)
 {
     PINTERNAL_BCB iBcb = Bcb;
+    KIRQL OldIrql;
 
     CCTRACE(CC_API_DEBUG, "Bcb=%p\n", Bcb);
 
-    iBcb->RefCount++;
+    KeAcquireSpinLock(&Bcb->SharedCacheMap->BcbSpinLock, &OldIrql);
+
+    iBcb->PinCount++;
+
+    KeReleaseSpinLock(&SharedCacheMap->BcbSpinLock, OldIrql);
 }
 
 /*
