@@ -39,7 +39,11 @@ list(APPEND SOURCE
     NtSetValueKey.c
     NtSetVolumeInformationFile.c
     NtUnloadDriver.c
-    NtWriteFile.c)
+    NtWriteFile.c
+    StackOverflow.c
+    SystemInfo.c
+    Timer.c
+    precomp.h)
 
 list(APPEND RTL_SOURCE
     RtlAllocateHeap.c
@@ -74,10 +78,7 @@ list(APPEND RTL_SOURCE
     RtlReAllocateHeap.c
     RtlUnicodeStringToAnsiString.c
     RtlUpcaseUnicodeStringToCountedOemString.c
-    RtlValidateUnicodeString.c
-    StackOverflow.c
-    SystemInfo.c
-    Timer.c)
+    RtlValidateUnicodeString.c)
 
 if(ARCH STREQUAL "i386")
     add_asm_files(ntdll_apitest_asm
@@ -85,6 +86,7 @@ if(ARCH STREQUAL "i386")
 elseif(ARCH STREQUAL "amd64")
     list(APPEND RTL_SOURCE
         amd64/RtlCaptureContext.c
+        amd64/RtlDispatchException.c
         amd64/RtlVirtualUnwind.c)
     add_asm_files(ntdll_apitest_asm
         amd64/UnwindStubs.S
