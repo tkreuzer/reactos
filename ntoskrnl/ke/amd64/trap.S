@@ -1048,6 +1048,8 @@ PUBLIC KiSystemCallEntry64
     mov [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_Rcx], r10
     mov [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_EFlags], r11
 
+    //mov [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_Rbx], rbx
+
     /* Store user stack pointer in the trap frame */
     mov rax, gs:[PcUserRsp]
     mov [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_Rsp], rax
