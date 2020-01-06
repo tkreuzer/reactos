@@ -72,6 +72,11 @@ KiInitializeUserApc(
         Context->ContextFlags = CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS;
         KeTrapFrameToContext(TrapFrame, ExceptionFrame, Context);
 
+        if (ExceptionFrame == NULL)
+        {
+            __debugbreak();
+        }
+
         /* Set parameters for KiUserApcDispatcher */
         Context->P1Home = (ULONG64)NormalContext;
         Context->P2Home = (ULONG64)SystemArgument1;
