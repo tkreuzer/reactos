@@ -570,6 +570,7 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
     /* Loop the PTE for each VA (EndingAddress is inclusive!) */
     while (Va <= EndingAddress)
     {
+RestartLoop:
 #if (_MI_PAGING_LEVELS >= 4)
         /* Get the PXE and check if it's valid */
         PointerPxe = MiAddressToPxe((PVOID)Va);
@@ -608,7 +609,8 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
 
             /* Make the PPE valid */
             MiMakeSystemAddressValid(MiPteToAddress(PointerPpe), CurrentProcess);
-        }
+#if (_MI_PAGING_LEVELS >= 4)
+            if (MiAddressToPxe((PVOID)Va) != PointerPxe) goto RestartLoop;
 #endif
         /* Skip invalid PDEs */
         PointerPde = MiAddressToPde((PVOID)Va);
@@ -620,6 +622,9 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
             /* Check if all the PDEs are invalid, so there's nothing to free */
             Va = (ULONG_PTR)MiPdeToAddress(PointerPde + 1);
             continue;
+#if (_MI_PAGING_LEVELS >= 3)
+            if (MiAddressToPpe((PVOID)Va) != PointerPpe) goto RestartLoop;
+#endif
         }
 
         /* Now check if the PDE is mapped in */
