@@ -24,8 +24,8 @@ list(APPEND INF_FILES
     scsi.inf
     shortcuts.inf
     unknown.inf
-#    usb.inf
-#    usbport.inf
+    usb.inf
+    usbport.inf
     wdmaudio.inf
     wmiacpi.inf)
 
