@@ -1592,10 +1592,12 @@ MiCreatePagingFileMap(OUT PSEGMENT *Segment,
                                        sizeof(SEGMENT) +
                                        sizeof(MMPTE) * (PteCount - 1),
                                        'tSmM');
-    if (!NewSegment)
+    if (NewSegment == NULL)
     {
+        DPRINT1("Failed to allocate segment. PteCount = 0x%Ix\n", PteCount);
         return STATUS_INSUFFICIENT_RESOURCES;
     }
+
     *Segment = NewSegment;
 
     /* Now allocate the control area, which has the subsection structure */
