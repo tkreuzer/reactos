@@ -58,8 +58,8 @@
 @ stdcall -arch=i386,x86_64,arm __uncaught_exception() msvcrt.__uncaught_exception
 @ stub -arch=x86_64 __uncaught_exceptions
 @ stdcall -arch=i386 _chkesp() msvcrt._chkesp
-@ stdcall -arch=i386 _except_handler2() msvcrt._except_handler2
-@ stdcall -arch=i386 _except_handler3() msvcrt._except_handler3
+@ cdecl -arch=i386 _except_handler2() msvcrt._except_handler2
+@ cdecl -arch=i386 _except_handler3() msvcrt._except_handler3
 @ stdcall -arch=i386 -version=0x600+ _except_handler4_common()  msvcrt._except_handler4_common
 @ stub _get_purecall_handler
 @ stub _get_unexpected
