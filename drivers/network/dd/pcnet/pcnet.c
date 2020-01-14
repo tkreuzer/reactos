@@ -950,7 +950,7 @@ MiniportInitialize(
         }
 
       MapRegistersAllocated = TRUE;
-
+      __debugbreak();
       /* set up the interrupt */
       Status = NdisMRegisterInterrupt(&Adapter->InterruptObject, Adapter->MiniportAdapterHandle, Adapter->InterruptVector,
           Adapter->InterruptVector, TRUE, TRUE, NdisInterruptLevelSensitive);
@@ -1358,7 +1358,7 @@ DriverEntry(
 
   NdisMInitializeWrapper(&WrapperHandle, DriverObject, RegistryPath, 0);
   if (!WrapperHandle) return NDIS_STATUS_FAILURE;
-
+  __debugbreak();
   Status = NdisMRegisterMiniport(WrapperHandle, &Characteristics, sizeof(Characteristics));
   if(Status != NDIS_STATUS_SUCCESS)
     {

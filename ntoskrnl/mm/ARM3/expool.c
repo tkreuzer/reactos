@@ -2636,7 +2636,19 @@ ExFreePoolWithTag(IN PVOID P,
     //
     Entry = P;
     Entry--;
-    ASSERT((ULONG_PTR)Entry % POOL_BLOCK_SIZE == 0);
+    //ASSERT((ULONG_PTR)Entry % POOL_BLOCK_SIZE == 0);
+    if ((ULONG_PTR)Entry % POOL_BLOCK_SIZE != 0)
+    {
+        //static PVOID buffer[30];
+        //ULONG Count, i;
+        DPRINT1("Assertion failure!");
+        KeRosDumpStackFrames(NULL, 30);
+        //__debugbreak();
+        _disable();
+        __halt();
+        _enable();
+        return;
+    }
 
     //
     // Get the size of the entry, and it's pool type, then load the descriptor

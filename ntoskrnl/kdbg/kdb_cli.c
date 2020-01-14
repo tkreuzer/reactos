@@ -1179,6 +1179,21 @@ KdbpCmdBackTrace(
     ULONG Argc,
     PCHAR Argv[])
 {
+    static PVOID s_Frames[30];
+    PKTRAP_FRAME TrapFrame = &KdbCurrentTrapFrame->Tf;
+    ULONG Count, i;
+
+    KdbpPrint("Rip: <%p>\n", TrapFrame->Rip);
+
+    Count = RtlCaptureStackBackTrace(1, 2, s_Frames, NULL);
+
+    KdbpPrint("Captured %lu frames:\n", Count);
+
+    for (i = 0; i < Count; i++)
+    {
+        KdbpPrint("<%p>\n", s_Frames[i]);
+    }
+
     return TRUE;
 }
 #else
