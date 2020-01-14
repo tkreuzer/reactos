@@ -8,7 +8,11 @@ KdbpStackSwitchAndCall:
     push rbp
     mov rbp, rsp    /* Old stack - frame */
 
-    /* Switch stack */
+    /* Save old stack */
+    mov rax, rsp
+cli
+hlt
+    /* Set new stack */
     mov rsp, rcx
 
     /* Call function */

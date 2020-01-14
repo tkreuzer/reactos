@@ -261,6 +261,8 @@ HalpIrqToVector(UCHAR Irq)
     /* Read low dword of the redirection entry */
     ReDirReg.Long0 = IOApicRead(IOAPIC_REDTBL + 2 * Irq);
 
+    NT_ASSERT(HalpVectorToIrqLine[ReDirReg.Vector] == Irq);
+
     /* Return the vector */
     return (UCHAR)ReDirReg.Vector;
 }
@@ -372,7 +374,7 @@ HalpAllocateSystemInterrupt(
     IOAPIC_REDIRECTION_REGISTER ReDirReg;
 
     ASSERT(Irq < APIC_MAX_IRQ);
-    ASSERT(HalpVectorToIndex[Vector] == APIC_FREE_VECTOR);
+    ASSERT(Irql <= HIGH_LEVEL);
 
     /* Setup a redirection entry */
     ReDirReg.Vector = Vector;
