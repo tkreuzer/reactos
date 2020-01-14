@@ -4,9 +4,11 @@
  * FILE:            hal/halx86/apic/apic.c
  * PURPOSE:         HAL APIC Management and Control Code
  * PROGRAMMERS:     Timo Kreuzer (timo.kreuzer@reactos.org)
- * REFERENCES:      http://www.joseflores.com/docs/ExploringIrql.html
+ * REFERENCES:      https://web.archive.org/web/20190407074221/http://www.joseflores.com/docs/ExploringIrql.html
  *                  http://www.codeproject.com/KB/system/soviet_kernel_hack.aspx
  *                  http://bbs.unixmap.net/thread-2022-1-1.html
+ *                  https://www.codemachine.com/article_interruptdispatching.html
+ *                  https://www.osronline.com/article.cfm%5Earticle=211.htm
  */
 
 /* INCLUDES *******************************************************************/
@@ -25,7 +27,7 @@ void __cdecl HackEoi(void);
 /* GLOBALS ********************************************************************/
 
 ULONG ApicVersion;
-UCHAR HalpVectorToIndex[256];
+UCHAR HalpVectorToIrqLine[256];
 
 #ifndef _M_AMD64
 const UCHAR
@@ -229,6 +231,8 @@ HalpIrqToVector(UCHAR Irq)
     /* Read low dword of the redirection entry */
     ReDirReg.Long0 = IOApicRead(IOAPIC_REDTBL + 2 * Irq);
 
+    NT_ASSERT(HalpVectorToIrqLine[ReDirReg.Vector] == Irq);
+
     /* Return the vector */
     return (UCHAR)ReDirReg.Vector;
 }
@@ -244,7 +248,7 @@ UCHAR
 FASTCALL
 HalpVectorToIrq(UCHAR Vector)
 {
-    return HalpVectorToIndex[Vector];
+    return HalpVectorToIrqLine[Vector];
 }
 
 VOID
@@ -340,11 +344,14 @@ HalpAllocateSystemInterrupt(
     IOAPIC_REDIRECTION_REGISTER ReDirReg;
     IN UCHAR Vector;
 
+    ASSERT(Irq < 24);
+    ASSERT(Irql <= HIGH_LEVEL);
+
     /* Start with lowest vector */
     Vector = IrqlToTpr(Irql) & 0xF0;
 
     /* Find an empty vector */
-    while (HalpVectorToIndex[Vector] != 0xFF)
+    while (HalpVectorToIrqLine[Vector] != 0xFF)
     {
         Vector++;
 
@@ -357,7 +364,7 @@ HalpAllocateSystemInterrupt(
     }
 
     /* Save irq in the table */
-    HalpVectorToIndex[Vector] = Irq;
+    HalpVectorToIrqLine[Vector] = Irq;
 
     /* Setup a redirection entry */
     ReDirReg.Vector = Vector;
@@ -420,7 +427,7 @@ ApicInitializeIOApic(VOID)
     /* Init the vactor to index table */
     for (Vector = 0; Vector <= 255; Vector++)
     {
-        HalpVectorToIndex[Vector] = 0xFF;
+        HalpVectorToIrqLine[Vector] = 0xFF;
     }
 
     // HACK: Allocate all IRQs, should rather do that on demand
@@ -457,9 +464,10 @@ HalpInitializePICs(IN BOOLEAN EnableInterrupts)
     ApicInitializeIOApic();
 
     /* Manually reserve some vectors */
-    HalpVectorToIndex[APIC_CLOCK_VECTOR] = 8;
-    HalpVectorToIndex[APC_VECTOR] = 99;
-    HalpVectorToIndex[DISPATCH_VECTOR] = 99;
+    HalpVectorToIrqLine[APC_VECTOR] = 99;
+    HalpVectorToIrqLine[DISPATCH_VECTOR] = 99;
+    HalpVectorToIrqLine[APIC_CLOCK_VECTOR] = 8;
+  //  HalpVectorToIrqLine[APIC_SPURIOUS_VECTOR] = 99;
 
     /* Set interrupt handlers in the IDT */
     KeRegisterInterruptHandler(APIC_CLOCK_VECTOR, HalpClockInterrupt);
@@ -609,7 +617,7 @@ HalEnableSystemInterrupt(
     ASSERT((IrqlToTpr(Irql) & 0xF0) == (Vector & 0xF0));
 
     /* Get the irq for this vector */
-    Index = HalpVectorToIndex[Vector];
+    Index = HalpVectorToIrqLine[Vector];
 
     /* Check if its valid */
     if (Index == 0xff)
@@ -658,9 +666,9 @@ HalDisableSystemInterrupt(
     IOAPIC_REDIRECTION_REGISTER ReDirReg;
     UCHAR Index;
     ASSERT(Irql <= HIGH_LEVEL);
-    ASSERT(Vector < RTL_NUMBER_OF(HalpVectorToIndex));
+    ASSERT(Vector < RTL_NUMBER_OF(HalpVectorToIrqLine));
 
-    Index = HalpVectorToIndex[Vector];
+    Index = HalpVectorToIrqLine[Vector];
 
     /* Read lower dword of redirection entry */
     ReDirReg.Long0 = IOApicRead(IOAPIC_REDTBL + 2 * Index);
@@ -702,7 +710,7 @@ HalBeginSystemInterrupt(
         ApicSendEOI();
 
         /* Get the irq for this vector */
-        Index = HalpVectorToIndex[Vector];
+        Index = HalpVectorToIrqLine[Vector];
 
         /* Check if its valid */
         if (Index != 0xff)

@@ -3,18 +3,33 @@
 
 #ifdef _M_AMD64
 #define IOAPIC_BASE 0xFFFFFFFFFFFE1000ULL // checkme
+
 #define ZERO_VECTOR          0x00 // IRQL 00
-#define APC_VECTOR           0x3D // IRQL 01
-#define APIC_SPURIOUS_VECTOR 0x3f
-#define DISPATCH_VECTOR      0x41 // IRQL 02
-#define APIC_GENERIC_VECTOR  0xC1 // IRQL 27
-#define APIC_CLOCK_VECTOR    0xD1 // IRQL 28
-#define APIC_SYNCH_VECTOR    0xD1 // IRQL 28
-#define APIC_IPI_VECTOR      0xE1 // IRQL 29
-#define APIC_ERROR_VECTOR    0xE3
-#define POWERFAIL_VECTOR     0xEF // IRQL 30
-#define APIC_PROFILE_VECTOR  0xFD // IRQL 31
+
+/* Software Interrupts */
+#define APC_VECTOR           0x1F // IRQL 01 (APC_LEVEL) - nt!KiApcInterrupt
+// 0x20 : nt!KiSwInterrupt
+// 0x29 : nt!KiRaiseSecurityCheckFailure
+// 0x2C : nt!KiRaiseAssertion
+// 0x2D : nt!KiDebugServiceTrap
+#define DISPATCH_VECTOR      0x2F // IRQL 02 (DISPATCH_LEVEL) - nt!KiDpcInterrupt
+
+/* Hardware Interrupts */
+// 0x30 : nt!KiHvInterrupt
+#define CMCI_VECTOR          0x35 // hal!HalpInterruptCmciService
+// 0xB0 : ACPI!ACPIInterruptServiceRoutine
+#define APIC_CLOCK_VECTOR    0xD1 // IRQL 13 (CLOCK_LEVEL) - hal!HalpTimerClockInterrupt
+// 0xD2 // IRQL 13 - hal!HalpTimerClockIpiRoutine
+// 0xD7 : hal!HalpInterruptRebootService
+// 0xD8 : hal!HalpInterruptStubService
+#define APIC_SPURIOUS_VECTOR 0xDF // IRQL 13 - hal!HalpInterruptSpuriousService
+#define APIC_IPI_VECTOR      0xE1 // IRQL 14 (IPI_LEVEL) - nt!KiIpiInterrupt
+#define APIC_ERROR_VECTOR    0xE2 // IRQL 14 - hal!HalpInterruptLocalErrorService
+#define POWERFAIL_VECTOR     0xE3 // IRQL 14 (POWER_LEVEL) : hal!HalpInterruptDeferredRecoveryService
+// 0xFD : hal!HalpTimerProfileInterrupt
+#define APIC_PROFILE_VECTOR  0xFE // IRQL 15 (PROFILE_LEVEL) - hal!HalpPerfInterrupt
 #define APIC_NMI_VECTOR      0xFF
+
 #define IrqlToTpr(Irql) (Irql << 4)
 #define IrqlToSoftVector(Irql) ((Irql << 4)|0xf)
 #define TprToIrql(Tpr) ((KIRQL)(Tpr >> 4))
@@ -25,9 +40,7 @@
 #define APIC_SPURIOUS_VECTOR 0x1f
 #define APC_VECTOR           0x3D // IRQL 01
 #define DISPATCH_VECTOR      0x41 // IRQL 02
-#define APIC_GENERIC_VECTOR  0xC1 // IRQL 27
 #define APIC_CLOCK_VECTOR    0xD1 // IRQL 28
-#define APIC_SYNCH_VECTOR    0xD1 // IRQL 28
 #define APIC_IPI_VECTOR      0xE1 // IRQL 29
 #define APIC_ERROR_VECTOR    0xE3
 #define POWERFAIL_VECTOR     0xEF // IRQL 30

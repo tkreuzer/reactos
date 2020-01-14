@@ -140,7 +140,8 @@ KdbpStackSwitchAndCall:
 
     /* Save old stack */
     mov rax, rsp
-
+cli
+hlt
     /* Set new stack */
     mov rsp, rcx
 
