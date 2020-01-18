@@ -2020,21 +2020,24 @@ NTAPI
 RtlAnsiCharToUnicodeChar(
   _Inout_ PUCHAR *SourceCharacter);
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAnsiStringToUnicodeString(
+    _When_(AllocateDestinationString, _Out_ _At_(DestinationString->Buffer, __drv_allocatesMem(Mem)))
+    _When_(!AllocateDestinationString, _Inout_)
     PUNICODE_STRING DestinationString,
-    PCANSI_STRING SourceString,
-    BOOLEAN AllocateDestinationString
-);
+    _In_ PANSI_STRING SourceString,
+    _In_ BOOLEAN AllocateDestinationString);
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTSYSAPI
 ULONG
 NTAPI
 RtlxAnsiStringToUnicodeSize(
-    PCANSI_STRING AnsiString
-);
+    _In_ PCANSI_STRING AnsiString);
 
 #ifdef NTOS_MODE_USER
 
@@ -2057,30 +2060,47 @@ RtlCreateUnicodeStringFromAsciiz(
 //
 // Unicode String Functions
 //
+_Success_(1)
+_Unchanged_(Destination->MaximumLength)
+_Unchanged_(Destination->Buffer)
+_When_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR) <= Destination->MaximumLength,
+    _At_(Destination->Length, _Post_equal_to_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR)))
+    _At_(return, _Out_range_(==, 0)))
+_When_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR) > Destination->MaximumLength,
+    _Unchanged_(Destination->Length)
+    _At_(return, _Out_range_(<, 0)))
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppendUnicodeToString(
-    PUNICODE_STRING Destination,
-    PCWSTR Source
-);
+    _Inout_ PUNICODE_STRING Destination,
+    _In_opt_z_ PCWSTR Source);
 
+_Success_(1)
+_Unchanged_(Destination->MaximumLength)
+_Unchanged_(Destination->Buffer)
+_When_(_Old_(Destination->Length) + Source->Length <= Destination->MaximumLength,
+    _At_(Destination->Length, _Post_equal_to_(_Old_(Destination->Length) + Source->Length))
+    _At_(return, _Out_range_(==, 0)))
+_When_(_Old_(Destination->Length) + Source->Length > Destination->MaximumLength,
+    _Unchanged_(Destination->Length)
+    _At_(return, _Out_range_(<, 0)))
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlAppendUnicodeStringToString(
-    PUNICODE_STRING Destination,
-    PCUNICODE_STRING Source
-);
+    _Inout_ PUNICODE_STRING Destination,
+    _In_ PCUNICODE_STRING Source);
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
 NTSYSAPI
 LONG
 NTAPI
 RtlCompareUnicodeString(
-    PCUNICODE_STRING String1,
-    PCUNICODE_STRING String2,
-    BOOLEAN CaseInsensitive
-);
+    _In_ PCUNICODE_STRING String1,
+    _In_ PCUNICODE_STRING String2,
+    _In_ BOOLEAN CaseInSensitive);
 
 NTSYSAPI
 VOID

@@ -448,12 +448,12 @@ RtlAppendUnicodeStringToString(
 _Success_(1)
 _Unchanged_(Destination->MaximumLength)
 _Unchanged_(Destination->Buffer)
-/* _When_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR) <= Destination->MaximumLength,
+_When_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR) <= Destination->MaximumLength,
   _At_(Destination->Length, _Post_equal_to_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR)))
   _At_(return, _Out_range_(==, 0)))
 _When_(_Old_(Destination->Length) + _String_length_(Source) * sizeof(WCHAR) > Destination->MaximumLength,
   _Unchanged_(Destination->Length)
-  _At_(return, _Out_range_(<, 0))) */
+  _At_(return, _Out_range_(<, 0)))
 NTSYSAPI
 NTSTATUS
 NTAPI
