@@ -279,14 +279,17 @@ ENDM
 #define KI_NMI  HEX(0001)
 
 MACRO(TASK_ENTRY, Trap, Flags)
-    EXTERN _&Trap&Handler :PROC
+    EXTERN @&Trap&Handler@4 :PROC
     PUBLIC _&Trap
     .PROC _&Trap
         /* Generate proper debugging symbols */
         FPO 0, 0, 0, 0, 0, FRAME_TSS
 
+        /* Common code to create the trap frame */
+        KiEnterTrap Flags
+
         /* Call the C handler */
-        call _&Trap&Handler
+        KiCallHandler @&Trap&Handler@4
 
         if (Flags AND KI_NMI)
             /* Return from NMI: return with iret and handle NMI recursion */

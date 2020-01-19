@@ -456,8 +456,8 @@ KiTrap01Handler(IN PKTRAP_FRAME TrapFrame)
 }
 
 VOID
-__cdecl
-KiTrap02Handler(VOID)
+FASTCALL
+KiTrap02Handler(IN PKTRAP_FRAME TrapFrameX)
 {
     PKTSS Tss, NmiTss;
     PKTHREAD Thread;
@@ -475,6 +475,9 @@ KiTrap02Handler(VOID)
      * NMIs will already be since the CPU does it for us.
      */
     _disable();
+
+    /* Save trap frame */
+    KiEnterTrap(TrapFrameX);
 
     /* Get the current TSS, thread, and process */
     Tss = KeGetPcr()->TSS;
@@ -827,8 +830,8 @@ KiTrap07Handler(IN PKTRAP_FRAME TrapFrame)
 
 DECLSPEC_NORETURN
 VOID
-__cdecl
-KiTrap08Handler(VOID)
+FASTCALL
+KiTrap08Handler(IN PKTRAP_FRAME TrapFrame)
 {
     PKTSS Tss, DfTss;
     PKTHREAD Thread;
@@ -837,6 +840,9 @@ KiTrap08Handler(VOID)
 
     /* For sanity's sake, make sure interrupts are disabled */
     _disable();
+
+    /* Save trap frame */
+    KiEnterTrap(TrapFrame);
 
     /* Get the current TSS, thread, and process */
     Tss = KeGetPcr()->TSS;
@@ -873,7 +879,7 @@ KiTrap08Handler(VOID)
                      (ULONG_PTR)Tss,
                      0,
                      0,
-                     NULL);
+                     TrapFrame);
 }
 
 DECLSPEC_NORETURN
@@ -1439,6 +1445,7 @@ VOID
 FASTCALL
 KiTrap0FHandler(IN PKTRAP_FRAME TrapFrame)
 {
+    __debugbreak();
     /* Save trap frame */
     KiEnterTrap(TrapFrame);
 
