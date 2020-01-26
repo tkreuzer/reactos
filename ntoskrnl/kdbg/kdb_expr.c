@@ -149,6 +149,12 @@ RegisterToTrapFrame[] =
     {"dr3",     FIELD_OFFSET(KDB_KTRAP_FRAME, Dr3),     RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Dr3)},
     {"dr6",     FIELD_OFFSET(KDB_KTRAP_FRAME, Dr6),     RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Dr6)},
     {"dr7",     FIELD_OFFSET(KDB_KTRAP_FRAME, Dr7),     RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Dr7)}
+#if 0
+    {"cr0",     FIELD_OFFSET(KDB_KTRAP_FRAME, Cr0),        RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Cr0)},
+    {"cr2",     FIELD_OFFSET(KDB_KTRAP_FRAME, Cr2),        RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Cr2)},
+    {"cr3",     FIELD_OFFSET(KDB_KTRAP_FRAME, Cr3),        RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Cr3)},
+    {"cr4",     FIELD_OFFSET(KDB_KTRAP_FRAME, Cr4),        RTL_FIELD_SIZE(KDB_KTRAP_FRAME, Cr4)}
+#endif
 };
 static const INT RegisterToTrapFrameCount = sizeof (RegisterToTrapFrame) / sizeof (RegisterToTrapFrame[0]);
 
@@ -437,10 +443,10 @@ RpnpParseExpression(
     RPN_OP ComparativeOp;
     BOOLEAN ComparativeOpFilled = FALSE;
     BOOLEAN IsComparativeOp;
-    INT i, i2;
-    ULONG ul;
+    INT_PTR i, i2;
+    ULONG64 ull;
     UCHAR MemorySize;
-    CHAR Buffer[16];
+    CHAR Buffer[18];
     BOOLEAN First;
 
     ASSERT(Stack);
@@ -596,13 +602,12 @@ get_operand:
             else
             {
                 /* Immediate value */
-                /* FIXME: Need string to ULONGLONG function */
-                ul = strtoul(p, &pend, 0);
+                ull = strtoull(p, &pend, 0);
                 if (p != pend)
                 {
                     RpnOp.Type = RpnOpImmediate;
                     RpnOp.CharacterOffset = CharacterOffset;
-                    RpnOp.Data.Immediate = (ULONGLONG)ul;
+                    RpnOp.Data.Immediate = ull;
                     CharacterOffset += pend - p;
                     p = pend;
                 }

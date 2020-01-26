@@ -387,10 +387,13 @@ if(NOT _WINKD_)
         endif()
     elseif(ARCH STREQUAL "amd64")
         list(APPEND SOURCE
-            ${REACTOS_SOURCE_DIR}/ntoskrnl/kd/i386/kdbg.c)
+            ${REACTOS_SOURCE_DIR}/ntoskrnl/kd/i386/kdbg.c  # Use the x86 file
+            #${REACTOS_SOURCE_DIR}/ntoskrnl/kd/amd64/kd.c
+            )
         if(KDBG)
             list(APPEND ASM_SOURCE ${REACTOS_SOURCE_DIR}/ntoskrnl/kdbg/amd64/kdb_help.S)
             list(APPEND SOURCE ${REACTOS_SOURCE_DIR}/ntoskrnl/kdbg/i386/i386-dis.c)
+            #list(APPEND SOURCE #${REACTOS_SOURCE_DIR}/ntoskrnl/kdbg/amd64/kdb.c)
         endif()
     elseif(ARCH STREQUAL "arm")
         list(APPEND SOURCE ${REACTOS_SOURCE_DIR}/ntoskrnl/kd/arm/kdbg.c)
