@@ -334,6 +334,7 @@ static const struct
 } KdbDebuggerCommands[] = {
     /* Data */
     { NULL, NULL, "Data", NULL },
+#ifndef _M_AMD64
     { "?", "? expression", "Evaluate expression.", KdbpCmdEvalExpression },
     { "disasm", "disasm [address] [L count]", "Disassemble count instructions at address.", KdbpCmdDisassembleX },
     { "x", "x [address] [L count]", "Display count dwords, starting at address.", KdbpCmdDisassembleX },
@@ -341,11 +342,12 @@ static const struct
     { "cregs", "cregs", "Display control, descriptor table and task segment registers.", KdbpCmdRegs },
     { "sregs", "sregs", "Display status registers.", KdbpCmdRegs },
     { "dregs", "dregs", "Display debug registers.", KdbpCmdRegs },
+#endif // _M_AMD64
     { "bt", "bt [*frameaddr|thread id]", "Prints current backtrace or from given frame address.", KdbpCmdBackTrace },
 #ifdef __ROS_DWARF__
     { "dt", "dt [mod] [type] [addr]", "Print a struct. The address is optional.", KdbpCmdPrintStruct },
 #endif
-
+#ifndef _M_AMD64
     /* Flow control */
     { NULL, NULL, "Flow control", NULL },
     { "cont", "cont", "Continue execution (leave debugger).", KdbpCmdContinue },
@@ -388,6 +390,7 @@ static const struct
     { "!defwrites", "!defwrites", "Display cache write values.", ExpKdbgExtDefWrites },
     { "!irpfind", "!irpfind [Pool [startaddress [criteria data]]]", "Lists IRPs potentially matching criteria.", ExpKdbgExtIrpFind },
     { "!handle", "!handle [Handle]", "Displays info about handles.", ExpKdbgExtHandle },
+#endif // _M_AMD64
 };
 
 /* FUNCTIONS *****************************************************************/
@@ -448,6 +451,7 @@ KdbpGetHexNumber(
     return (*endptr == '\0');
 }
 
+#ifndef _M_AMD64
 /*!\brief Evaluates an expression and displays the result.
  */
 static BOOLEAN
@@ -506,6 +510,7 @@ KdbpCmdEvalExpression(
 
     return TRUE;
 }
+#endif // _M_AMD64
 
 #ifdef __ROS_DWARF__
 
@@ -775,6 +780,7 @@ KdbpCmdFilter(
     return TRUE;
 }
 
+#ifndef _M_AMD64
 /*!\brief Disassembles 10 instructions at eip or given address or
  *        displays 16 dwords from memory at given address.
  */
@@ -1098,6 +1104,10 @@ KdbpIsNestedTss(
     if (!Tss)
         return FALSE;
 
+#ifdef _M_AMD64
+    // HACK
+    return FALSE;
+#else
     /* Retrieve the TSS Backlink */
     if (!NT_SUCCESS(KdbpSafeReadMemory(&Backlink,
                                        (PVOID)&Tss->Backlink,
@@ -1105,6 +1115,7 @@ KdbpIsNestedTss(
     {
         return FALSE;
     }
+#endif
 
     return (Backlink != 0 && Backlink != TssSelector);
 }
@@ -1120,6 +1131,10 @@ KdbpTrapFrameFromPrevTss(
     USHORT Backlink;
     PKTSS Tss = *pTss;
 
+#ifdef _M_AMD64
+    // HACK
+    return FALSE;
+#else
     /* Retrieve the TSS Backlink */
     if (!NT_SUCCESS(KdbpSafeReadMemory(&Backlink,
                                        (PVOID)&Tss->Backlink,
@@ -1152,9 +1167,21 @@ KdbpTrapFrameFromPrevTss(
     *pTss = Tss;
     TrapFrame->Eip = Eip;
     TrapFrame->Ebp = Ebp;
+#endif
     return TRUE;
 }
 
+#endif // _M_AMD64
+
+#ifdef _M_AMD64
+static BOOLEAN
+KdbpCmdBackTrace(
+    ULONG Argc,
+    PCHAR Argv[])
+{
+    return TRUE;
+}
+#else
 /*!\brief Displays a backtrace.
  */
 static BOOLEAN
@@ -1317,6 +1344,8 @@ CheckForParentTSS:
     return TRUE;
 }
 
+#endif // M_AMD64
+
 /*!\brief Continues execution of the system/leaves KDB.
  */
 static BOOLEAN
@@ -1328,6 +1357,7 @@ KdbpCmdContinue(
     return FALSE;
 }
 
+#ifndef _M_AMD64
 /*!\brief Continues execution of the system/leaves KDB.
  */
 static BOOLEAN
@@ -2373,6 +2403,8 @@ KdbpCmdTss(
 
     return TRUE;
 }
+
+#endif // _M_AMD64
 
 /*!\brief Bugchecks the system.
  */
@@ -3665,6 +3697,18 @@ KdbpCliMainLoop(
 
     if (EnteredOnSingleStep)
     {
+#ifdef _M_AMD64
+        if (!KdbSymPrintAddress((PVOID)KdbCurrentTrapFrame->Tf.Rip, &KdbCurrentTrapFrame->Tf))
+        {
+            KdbpPrint("<%p>", (PVOID)KdbCurrentTrapFrame->Tf.Rip);
+        }
+
+        KdbpPrint(": ");
+        if (KdbpDisassemble(KdbCurrentTrapFrame->Tf.Rip, KdbUseIntelSyntax) < 0)
+        {
+            KdbpPrint("<INVALID>");
+        }
+#else
         if (!KdbSymPrintAddress((PVOID)KdbCurrentTrapFrame->Tf.Eip, &KdbCurrentTrapFrame->Tf))
         {
             KdbpPrint("<%08x>", KdbCurrentTrapFrame->Tf.Eip);
@@ -3675,6 +3719,7 @@ KdbpCliMainLoop(
         {
             KdbpPrint("<INVALID>");
         }
+#endif
         KdbpPrint("\n");
     }
 
