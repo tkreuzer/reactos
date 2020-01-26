@@ -1366,7 +1366,7 @@ BOOLEAN ExpKdbgExtHandle(ULONG Argc, PCHAR Argv[])
         }
         else
         {
-            ProcessId = (HANDLE)strtoulptr(Argv[1], &endptr, 10);
+            ProcessId = UlongToHandle(strtoul(Argv[1], &endptr, 10));
             if (*endptr != '\0')
             {
                 KdbpPrint("Invalid parameter: %s\n", Argv[1]);
