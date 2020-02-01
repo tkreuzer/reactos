@@ -167,14 +167,11 @@ extern const ULONG MmProtectToValue[32];
 //
 // Assertions for session images, addresses, and PTEs
 //
-#define MI_IS_SESSION_IMAGE_ADDRESS(Address) \
-    (((Address) >= MiSessionImageStart) && ((Address) < MiSessionImageEnd))
+#define MI_IS_SESSION_IMAGE_ADDRESS(Address) (((Address) >= MiSessionImageStart) && ((Address) < MiSessionImageEnd))
 
-#define MI_IS_SESSION_ADDRESS(Address) \
-    (((Address) >= MmSessionBase) && ((Address) < MiSessionSpaceEnd))
+#define MI_IS_SESSION_ADDRESS(Address) (((Address) >= MmSessionBase) && ((Address) < MiSessionSpaceEnd))
 
-#define MI_IS_SESSION_PTE(Pte) \
-    ((((PMMPTE)Pte) >= MiSessionBasePte) && (((PMMPTE)Pte) < MiSessionLastPte))
+#define MI_IS_SESSION_PTE(Pte) ((((PMMPTE)Pte) >= MiSessionBasePte) && (((PMMPTE)Pte) < MiSessionLastPte))
 
 #define MI_IS_PAGE_TABLE_ADDRESS(Address) \
     (((PVOID)(Address) >= (PVOID)PTE_BASE) && ((PVOID)(Address) <= (PVOID)PTE_TOP))
@@ -793,10 +790,11 @@ MiDetermineUserGlobalPteMask(IN PVOID PointerPte)
 //
 FORCEINLINE
 VOID
-MI_MAKE_HARDWARE_PTE_KERNEL(IN PMMPTE NewPte,
-                            IN PMMPTE MappingPte,
-                            IN ULONG_PTR ProtectionMask,
-                            IN PFN_NUMBER PageFrameNumber)
+MI_MAKE_HARDWARE_PTE_KERNEL(
+    IN PMMPTE NewPte,
+    IN PMMPTE MappingPte,
+    IN ULONG_PTR ProtectionMask,
+    IN PFN_NUMBER PageFrameNumber)
 {
     /* Only valid for kernel, non-session PTEs */
     ASSERT(MappingPte > MiHighestUserPte);
@@ -864,10 +862,11 @@ MI_MAKE_HARDWARE_PTE2(IN PMMPTE NewPte,
 //
 FORCEINLINE
 VOID
-MI_MAKE_HARDWARE_PTE_USER(IN PMMPTE NewPte,
-                          IN PMMPTE MappingPte,
-                          IN ULONG_PTR ProtectionMask,
-                          IN PFN_NUMBER PageFrameNumber)
+MI_MAKE_HARDWARE_PTE_USER(
+    IN PMMPTE NewPte,
+    IN PMMPTE MappingPte,
+    IN ULONG_PTR ProtectionMask,
+    IN PFN_NUMBER PageFrameNumber)
 {
     /* Only valid for kernel, non-session PTEs */
     ASSERT(MappingPte <= MiHighestUserPte);
@@ -2576,7 +2575,8 @@ FORCEINLINE
 PFN_NUMBER
 MiRemoveZeroPageSafe(IN ULONG Color)
 {
-    if (MmFreePagesByColor[ZeroedPageList][Color].Flink != LIST_HEAD) return MiRemoveZeroPage(Color);
+    if (MmFreePagesByColor[ZeroedPageList][Color].Flink != LIST_HEAD)
+        return MiRemoveZeroPage(Color);
     return 0;
 }
 
