@@ -1,3 +1,3 @@
 
-#define ROS_REGTEST
+//#define ROS_REGTEST
 #include "isoboot.S"

@@ -3,7 +3,7 @@ add_subdirectory(packages)
 
 # Common hives
 
-add_cd_file(FILE ${CMAKE_CURRENT_SOURCE_DIR}/txtsetup.sif DESTINATION reactos NO_CAB FOR bootcd regtest)
+add_cd_file(FILE ${CMAKE_CURRENT_SOURCE_DIR}/txtsetup.sif DESTINATION reactos NO_CAB FOR all)
 
 add_custom_target(converted_caroots_inf DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/caroots.inf)
 add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/caroots.inf

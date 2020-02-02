@@ -433,6 +433,11 @@ function(create_iso_lists)
         DESTINATION livecd
         FOR hybridcd)
 
+    add_cd_file(
+        FILE ${CMAKE_CURRENT_BINARY_DIR}/bootcdregtest.iso
+        DESTINATION bootcd
+        FOR hybridcd)
+
     get_property(_filelist GLOBAL PROPERTY BOOTCD_FILE_LIST)
     string(REPLACE ";" "\n" _filelist "${_filelist}")
     file(APPEND ${REACTOS_BINARY_DIR}/boot/bootcd.cmake.lst "${_filelist}")
