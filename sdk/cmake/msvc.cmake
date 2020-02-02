@@ -67,7 +67,7 @@ add_compile_options(/Zc:threadSafeInit-)
 # See https://developercommunity.visualstudio.com/content/problem/746534/visual-c-163-runtime-uses-an-unsupported-api-for-u.html
 if(ARCH STREQUAL "amd64" AND MSVC_VERSION GREATER 1922)
     add_compile_options(/d2FH4-)
-    add_link_options(/d2:-FH4-)
+    #add_link_options("/d2:-FH4-")
 endif()
 
 # Generate Warnings Level 3
@@ -152,8 +152,9 @@ if(RUNTIME_CHECKS)
     add_compile_options(/RTC1)
 endif()
 
-add_link_options(/MANIFEST:NO /INCREMENTAL:NO /SAFESEH:NO /NODEFAULTLIB /RELEASE ${_hotpatch_link_flag} /IGNORE:4039)
-
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /MANIFEST:NO /INCREMENTAL:NO /SAFESEH:NO /NODEFAULTLIB /RELEASE ${_hotpatch_link_flag} /IGNORE:4039 /d2:-FH4-")
+set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFEST:NO /INCREMENTAL:NO /SAFESEH:NO /NODEFAULTLIB /RELEASE ${_hotpatch_link_flag} /IGNORE:4104 /IGNORE:4039 /d2:-FH4-")
+set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /MANIFEST:NO /INCREMENTAL:NO /SAFESEH:NO /NODEFAULTLIB /RELEASE ${_hotpatch_link_flag} /IGNORE:4039 /d2:-FH4-")
 set(CMAKE_MSVC_RUNTIME_LIBRARY "")
 
 # HACK: Remove the /implib argument, implibs are generated separately
