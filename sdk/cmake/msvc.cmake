@@ -72,7 +72,7 @@ if(ARCH STREQUAL "amd64" AND MSVC_VERSION GREATER 1922)
     if (NOT CMAKE_C_COMPILER_ID STREQUAL "Clang")
         add_compile_options(/d2FH4-)
     endif()
-    add_link_options(/d2:-FH4-)
+    #add_link_options(/d2:-FH4-)
 endif()
 
 # Generate Warnings Level 3
@@ -172,7 +172,7 @@ if(RUNTIME_CHECKS)
     add_compile_options(/RTC1)
 endif()
 
-add_link_options(/MANIFEST:NO /INCREMENTAL:NO /SAFESEH:NO /NODEFAULTLIB /RELEASE ${_hotpatch_link_flag} /IGNORE:4039)
+add_link_options(/MANIFEST:NO /INCREMENTAL:NO /SAFESEH:NO /NODEFAULTLIB /RELEASE ${_hotpatch_link_flag} /IGNORE:4039 /d2:-FH4-")
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "")
 
