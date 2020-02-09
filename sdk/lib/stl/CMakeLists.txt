@@ -13,7 +13,7 @@ list(APPEND SOURCE
     #src/cond.cpp
     #src/cout.cpp
     #src/cthread.cpp
-    src/dllmain.cpp
+    #src/dllmain.cpp
     #src/excptptr.cpp
     #src/filesys.cpp
     #src/filesystem.cpp
