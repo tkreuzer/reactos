@@ -626,6 +626,7 @@ IopInitiatePnpIrp(IN PDEVICE_OBJECT DeviceObject,
                   IN PIO_STACK_LOCATION Stack OPTIONAL)
 {
     IO_STACK_LOCATION IoStackLocation;
+    PAGED_CODE();
 
     /* Fill out the stack information */
     RtlZeroMemory(&IoStackLocation, sizeof(IO_STACK_LOCATION));
