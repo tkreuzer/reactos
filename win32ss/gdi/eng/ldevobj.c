@@ -120,6 +120,7 @@ LDEVOBJ_bLoadImage(
     PSYSTEM_GDI_DRIVER_INFORMATION pDriverInfo;
     NTSTATUS Status;
     ULONG cbSize;
+    PAGED_CODE();
 
     /* Make sure no image is loaded yet */
     ASSERT(pldev && pldev->pGdiDriverInfo == NULL);
@@ -354,6 +355,7 @@ LDEVOBJ_pLoadDriver(
     UNICODE_STRING strDriverName;
     SIZE_T cwcLength;
     LPWSTR pwsz;
+    PAGED_CODE();
 
     TRACE("LDEVOBJ_pLoadDriver(%ls, %lu)\n", pwszDriverName, ldevtype);
     ASSERT(pwszDriverName);

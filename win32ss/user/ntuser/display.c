@@ -74,6 +74,7 @@ InitDisplayDriver(
     ULONG cbSize;
     HKEY hkey;
     DWORD dwVga;
+    PAGED_CODE();
 
     TRACE("InitDisplayDriver(%S, %S);\n",
           pwszDeviceName, pwszRegKey);
@@ -152,6 +153,7 @@ InitVideo(VOID)
 {
     NTSTATUS Status;
     HKEY hkey;
+    PAGED_CODE();
 
     TRACE("----------------------------- InitVideo() -------------------------------\n");
 

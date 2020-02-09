@@ -507,6 +507,7 @@ EngpRegisterGraphicsDevice(
     ULONG ulReturn;
     PWSTR pwsz;
     ULONG cj;
+    PAGED_CODE();
 
     TRACE("EngpRegisterGraphicsDevice(%wZ)\n", pustrDeviceName);
 
