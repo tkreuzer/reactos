@@ -293,6 +293,71 @@ _Check_return_ __CRT_INLINE long long llrintf(_In_ float x) { return (long long)
 _Check_return_ __CRT_INLINE long long llrintl(_In_ long double x) { return (long long)((x < 0) ? (x - 0.5f) : (x + 0.5)); }
 _Check_return_ __CRT_INLINE double log2(_In_ double x) { return log(x) / log(2); }
 
+// from corecrt_math.h
+_Check_return_ _ACRTIMP float __cdecl acoshf(_In_ float _X);
+_Check_return_ _ACRTIMP float __cdecl asinhf(_In_ float _X);
+_Check_return_ _ACRTIMP float __cdecl atanhf(_In_ float _X);
+_Check_return_ _ACRTIMP float     __cdecl cbrtf(_In_ float _X);
+_Check_return_ _ACRTIMP float     __cdecl copysignf(_In_ float _Number, _In_ float _Sign);
+_Check_return_ _ACRTIMP float     __cdecl erff(_In_ float _X);
+_Check_return_ _ACRTIMP float     __cdecl erfcf(_In_ float _X);
+_Check_return_ _ACRTIMP float     __cdecl exp2f(_In_ float _X);
+_Check_return_ _ACRTIMP float     __cdecl expm1f(_In_ float _X);
+_Check_return_ _ACRTIMP float     __cdecl expm1f(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl fdimf(_In_ float _X, _In_ float _Y);
+    _Check_return_ _ACRTIMP float     __cdecl fmaf(_In_ float _X, _In_ float _Y, _In_ float _Z);
+    _Check_return_ _ACRTIMP float     __cdecl fmaxf(_In_ float _X, _In_ float _Y);
+    _Check_return_ _ACRTIMP float     __cdecl fminf(_In_ float _X, _In_ float _Y);
+    _Check_return_ _ACRTIMP int       __cdecl ilogbf(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl lgammaf(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl log1pf(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl log2f(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl logbf(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl nearbyintf(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl nextafterf(_In_ float _X, _In_ float _Y);
+    _Check_return_ _ACRTIMP float     __cdecl nexttowardf(_In_ float _X, _In_ long double _Y);
+    _Check_return_ _ACRTIMP float     __cdecl remainderf(_In_ float _X, _In_ float _Y);
+    _Check_return_ _ACRTIMP float     __cdecl remquof(_In_ float _X, _In_ float _Y, _Out_ int* _Z);
+    _Check_return_ _ACRTIMP float     __cdecl scalblnf(_In_ float _X, _In_ long _Y);
+    _Check_return_ _ACRTIMP float     __cdecl scalbnf(_In_ float _X, _In_ int _Y);
+    _Check_return_ _ACRTIMP float     __cdecl tgammaf(_In_ float _X);
+    _Check_return_ _ACRTIMP float     __cdecl truncf(_In_ float _X);
+
+_Check_return_ _ACRTIMP long double __cdecl acoshl(_In_ long double _X);
+_Check_return_ _ACRTIMP long double __cdecl asinhl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl atanhl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl cbrtl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl copysignl(_In_ long double _Number, _In_ long double _Sign);
+    _Check_return_ _ACRTIMP long double __cdecl erfl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl erfcl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl exp2l(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl expm1l(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl fdiml(_In_ long double _X, _In_ long double _Y);
+    _Check_return_ _ACRTIMP long double __cdecl fmal(_In_ long double _X, _In_ long double _Y, _In_ long double _Z);
+    _Check_return_ _ACRTIMP long double __cdecl fmaxl(_In_ long double _X, _In_ long double _Y);
+    _Check_return_ _ACRTIMP long double __cdecl fminl(_In_ long double _X, _In_ long double _Y);
+    _Check_return_ _ACRTIMP int __cdecl ilogbl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl lgammal(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl log1pl(_In_ long double _X);
+    _Check_return_ _ACRTIMP long double __cdecl log2l(_In_ long double _X);
+_Check_return_ _ACRTIMP long double __cdecl logbl(_In_ long double _X);
+_Check_return_ _ACRTIMP long double __cdecl nearbyintl(_In_ long double _X);
+_Check_return_ _ACRTIMP long double __cdecl nextafterl(_In_ long double _X, _In_ long double _Y);
+_Check_return_ _ACRTIMP long double __cdecl nexttowardl(_In_ long double _X, _In_ long double _Y);
+_Check_return_ _ACRTIMP long double __cdecl remainderl(_In_ long double _X, _In_ long double _Y);
+_Check_return_ _ACRTIMP long double __cdecl remquol(_In_ long double _X, _In_ long double _Y, _Out_ int* _Z);
+_Check_return_ _ACRTIMP long double __cdecl scalblnl(_In_ long double _X, _In_ long _Y);
+_Check_return_ _ACRTIMP long double __cdecl scalbnl(_In_ long double _X, _In_ int _Y);
+_Check_return_ _ACRTIMP long double __cdecl tgammal(_In_ long double _X);
+_Check_return_ _ACRTIMP long double __cdecl truncl(_In_ long double _X);
+
+_Check_return_ _ACRTIMP double __cdecl nan(_In_ char const* _X);
+_Check_return_ _ACRTIMP float     __cdecl nanf(_In_ char const* _X);
+_Check_return_ _ACRTIMP long double __cdecl nanl(_In_ char const* _X);
+_Check_return_ _ACRTIMP short __cdecl _fdtest(_In_ float* _Px);
+_Check_return_ _ACRTIMP int __cdecl _fdsign(_In_ float _X);
+
+
 #ifndef NO_OLDNAMES /* !__STDC__ */
 
 #define DOMAIN _DOMAIN
@@ -318,12 +383,11 @@ _CRT_NONSTDC_DEPRECATE(_yn) _CRTIMP double __cdecl yn(_In_ int x, _In_ double y)
 
 #ifdef __cplusplus
 }
-#ifndef _CMATH_
+#if 1 // !defined(_CMATH_) && !defined(_CSTDLIB_)
 extern "C++" {
 
+#if !defined(_CMATH_) && !defined(_CSTDLIB_)
 //inline long abs(_In_ long x) { return labs(x); }
-_Check_return_ inline double abs(_In_ double x)  throw() { return fabs(x); }
-
 _Check_return_ inline float abs(_In_ float x) throw() { return fabsf(x); }
 _Check_return_ inline float acos(_In_ float x) throw() { return acosf(x); }
 _Check_return_ inline float asin(_In_ float x) throw() { return asinf(x); }
@@ -350,6 +414,8 @@ _Check_return_ inline float sqrt(_In_ float x) throw() { return sqrtf(x); }
 _Check_return_ inline float tan(_In_ float x) throw() { return tanf(x); }
 _Check_return_ inline float tanh(_In_ float x) throw() { return tanhf(x); }
 
+_Check_return_ inline double abs(_In_ double x)  throw() { return fabs(x); }
+
 _Check_return_ inline long double abs(_In_ long double x) throw() { return fabsl(x); }
 _Check_return_ inline long double acos(_In_ long double x) throw() { return acosl(x); }
 _Check_return_ inline long double asin(_In_ long double x) throw() { return asinl(x); }
@@ -375,6 +441,15 @@ _Check_return_ inline long double sinh(_In_ long double x) throw() { return sinh
 _Check_return_ inline long double sqrt(_In_ long double x) throw() { return sqrtl(x); }
 _Check_return_ inline long double tan(_In_ long double x) throw() { return tanl(x); }
 _Check_return_ inline long double tanh(_In_ long double x) throw() { return tanhl(x); }
+
+#endif
+
+_Check_return_ inline int fpclassify(_In_ float _X) throw() { return _fdtest(&_X); }
+_Check_return_ inline bool signbit(_In_ float _X) throw() { return _fdsign(_X) != 0; }
+
+template <class _Ty> _Check_return_ inline bool isfinite(_In_ _Ty _X) throw() { return fpclassify(_X) <= 0; }
+
+
 }
 #endif /* !_CMATH_ */
 #endif /* __cplusplus */

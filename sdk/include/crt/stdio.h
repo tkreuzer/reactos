@@ -102,14 +102,11 @@ extern "C" {
 
 #ifndef _FPOS_T_DEFINED
 #define _FPOS_T_DEFINED
-#undef _FPOSOFF
 
 #if (!defined(NO_OLDNAMES) || defined(__GNUC__)) && _INTEGRAL_MAX_BITS >= 64
   __MINGW_EXTENSION typedef __int64 fpos_t;
-#define _FPOSOFF(fp) ((long)(fp))
 #else
   __MINGW_EXTENSION typedef long long fpos_t;
-#define _FPOSOFF(fp) ((long)(fp))
 #endif
 
 #endif

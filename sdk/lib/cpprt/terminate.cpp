@@ -10,5 +10,5 @@
 extern "C"
 void __std_terminate()
 {
-    terminate();
+    //terminate();
 }

@@ -167,6 +167,16 @@
 #define __CRTDECL __cdecl
 #endif
 
+#ifndef _ACRTIMP
+    #if defined _CRTIMP && !defined _VCRT_DEFINED_CRTIMP
+        #define _ACRTIMP _CRTIMP
+    #elif !defined _CORECRT_BUILD && defined _DLL
+        #define _ACRTIMP __declspec(dllimport)
+    #else
+        #define _ACRTIMP
+    #endif
+#endif
+
 #ifndef _CRT_UNUSED
 #define _CRT_UNUSED(x) (void)x
 #endif
@@ -251,6 +261,22 @@
 
 #ifndef _CRT_JIT_INTRINSIC
 #define _CRT_JIT_INTRINSIC
+#endif
+
+#ifdef _GUARDOVERFLOW_CRT_ALLOCATORS
+    #define _CRT_GUARDOVERFLOW __declspec(guard(overflow))
+#else
+    #define _CRT_GUARDOVERFLOW
+#endif
+
+#ifndef _CRT_SECURE_INVALID_PARAMETER
+    #ifdef _DEBUG
+        #define _CRT_SECURE_INVALID_PARAMETER(expr) \
+            ::_invalid_parameter(_CRT_WIDE(#expr), __FUNCTIONW__, __FILEW__, __LINE__, 0)
+    #else
+        #define _CRT_SECURE_INVALID_PARAMETER(expr) \
+            ::_invalid_parameter_noinfo_noreturn()
+    #endif
 #endif
 
 
@@ -460,6 +486,8 @@ typedef struct localeinfo_struct {
 #endif
 
 #pragma pack(pop)
+
+_ACRTIMP __declspec(noreturn) void __cdecl _invalid_parameter_noinfo_noreturn(void);
 
 /* GCC-style diagnostics */
 #ifndef PRAGMA_DIAGNOSTIC_IGNORED

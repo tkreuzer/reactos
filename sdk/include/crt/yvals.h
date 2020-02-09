@@ -9,10 +9,10 @@
 #include <_mingw.h>
 /* TODO, don't include crtdef.h.  */
 #include <crtdefs.h>
+#include <crtdbg.h>
 
 #pragma pack(push,_CRT_PACKING)
 
-#define _CPPLIB_VER 405
 #define __PURE_APPDOMAIN_GLOBAL
 
 #ifndef __CRTDECL
@@ -117,11 +117,109 @@
 #define _CRTIMP2_PURE _CRTIMP
 #endif
 
+#ifndef _CRTIMP2_IMPORT
+#if defined(CRTDLL2) && defined(_CRTBLD)
+#define _CRTIMP2_IMPORT __declspec(dllexport)
+#elif defined(_DLL) && !defined(_STATIC_CPPLIB)
+#define _CRTIMP2_IMPORT __declspec(dllimport)
+#else
+#define _CRTIMP2_IMPORT
+#endif
+#endif // _CRTIMP2_IMPORT
+
+#ifndef _CRTIMP2_PURE_IMPORT
+#ifdef _M_CEE_PURE
+#define _CRTIMP2_PURE_IMPORT
+#else
+#define _CRTIMP2_PURE_IMPORT _CRTIMP2_IMPORT
+#endif
+#endif // _CRTIMP2_PURE_IMPORT
+
 #ifndef _CRTDATA2
 #define _CRTDATA2 _CRTIMP
 #endif
 
 #define _DEPRECATED
+
+#ifdef _ITERATOR_DEBUG_LEVEL // A. _ITERATOR_DEBUG_LEVEL is already defined.
+
+// A1. Validate _ITERATOR_DEBUG_LEVEL.
+#if _ITERATOR_DEBUG_LEVEL > 2 && defined(_DEBUG)
+#error _ITERATOR_DEBUG_LEVEL > 2 is not supported in debug mode.
+#elif _ITERATOR_DEBUG_LEVEL > 1 && !defined(_DEBUG)
+#error _ITERATOR_DEBUG_LEVEL > 1 is not supported in release mode.
+#endif
+
+// A2. Inspect _HAS_ITERATOR_DEBUGGING.
+#ifdef _HAS_ITERATOR_DEBUGGING // A2i. _HAS_ITERATOR_DEBUGGING is already defined, validate it.
+#if _ITERATOR_DEBUG_LEVEL == 2 && _HAS_ITERATOR_DEBUGGING != 1
+#error _ITERATOR_DEBUG_LEVEL == 2 must imply _HAS_ITERATOR_DEBUGGING == 1.
+#elif _ITERATOR_DEBUG_LEVEL < 2 && _HAS_ITERATOR_DEBUGGING != 0
+#error _ITERATOR_DEBUG_LEVEL < 2 must imply _HAS_ITERATOR_DEBUGGING == 0.
+#endif
+#else // A2ii. _HAS_ITERATOR_DEBUGGING is not yet defined, derive it.
+#if _ITERATOR_DEBUG_LEVEL == 2
+#define _HAS_ITERATOR_DEBUGGING 1
+#else
+#define _HAS_ITERATOR_DEBUGGING 0
+#endif
+#endif // _HAS_ITERATOR_DEBUGGING
+
+// A3. Inspect _SECURE_SCL.
+#ifdef _SECURE_SCL // A3i. _SECURE_SCL is already defined, validate it.
+#if _ITERATOR_DEBUG_LEVEL > 0 && _SECURE_SCL != 1
+#error _ITERATOR_DEBUG_LEVEL > 0 must imply _SECURE_SCL == 1.
+#elif _ITERATOR_DEBUG_LEVEL == 0 && _SECURE_SCL != 0
+#error _ITERATOR_DEBUG_LEVEL == 0 must imply _SECURE_SCL == 0.
+#endif
+#else // A3ii. _SECURE_SCL is not yet defined, derive it.
+#if _ITERATOR_DEBUG_LEVEL > 0
+#define _SECURE_SCL 1
+#else
+#define _SECURE_SCL 0
+#endif
+#endif // _SECURE_SCL
+
+#else // B. _ITERATOR_DEBUG_LEVEL is not yet defined.
+
+// B1. Inspect _HAS_ITERATOR_DEBUGGING.
+#ifdef _HAS_ITERATOR_DEBUGGING // B1i. _HAS_ITERATOR_DEBUGGING is already defined, validate it.
+#if _HAS_ITERATOR_DEBUGGING > 1
+#error _HAS_ITERATOR_DEBUGGING must be either 0 or 1.
+#elif _HAS_ITERATOR_DEBUGGING == 1 && !defined(_DEBUG)
+#error _HAS_ITERATOR_DEBUGGING == 1 is not supported in release mode.
+#endif
+#else // B1ii. _HAS_ITERATOR_DEBUGGING is not yet defined, default it.
+#ifdef _DEBUG
+#define _HAS_ITERATOR_DEBUGGING 1
+#else
+#define _HAS_ITERATOR_DEBUGGING 0
+#endif
+#endif // _HAS_ITERATOR_DEBUGGING
+
+// B2. Inspect _SECURE_SCL.
+#ifdef _SECURE_SCL // B2i. _SECURE_SCL is already defined, validate it.
+#if _SECURE_SCL > 1
+#error _SECURE_SCL must be either 0 or 1.
+#endif
+#else // B2ii. _SECURE_SCL is not yet defined, default it.
+#if _HAS_ITERATOR_DEBUGGING == 1
+#define _SECURE_SCL 1
+#else
+#define _SECURE_SCL 0
+#endif
+#endif // _SECURE_SCL
+
+// B3. Derive _ITERATOR_DEBUG_LEVEL.
+#if _HAS_ITERATOR_DEBUGGING
+#define _ITERATOR_DEBUG_LEVEL 2
+#elif _SECURE_SCL
+#define _ITERATOR_DEBUG_LEVEL 1
+#else
+#define _ITERATOR_DEBUG_LEVEL 0
+#endif
+
+#endif // _ITERATOR_DEBUG_LEVEL
 
 #ifdef __cplusplus
 #define _STD_BEGIN namespace std {
@@ -187,7 +285,7 @@ __MINGW_EXTENSION typedef _ULONGLONG _ULonglong;
 #define _Filet _iobuf
 
 #ifndef _FPOS_T_DEFINED
-#define _FPOSOFF(fp) ((long)(fp))
+//#define _FPOSOFF(fp) ((long)(fp))
 #endif
 
 #define _IOBASE _base
@@ -250,6 +348,73 @@ private:
   static void __cdecl _Init_locks_dtor(_Init_locks *);
 };
 
+#define _STL_REPORT_ERROR(mesg)              \
+    do {                                     \
+        _RPTF0(_CRT_ASSERT, mesg);           \
+        _CRT_SECURE_INVALID_PARAMETER(mesg); \
+    } while (false)
+
+#define _STL_VERIFY(cond, mesg)                                     \
+    do {                                                            \
+        if (cond) { /* contextually convertible to bool paranoia */ \
+        } else {                                                    \
+            _STL_REPORT_ERROR(mesg);                                \
+        }                                                           \
+                                                                    \
+        _Analysis_assume_(cond);                                    \
+    } while (false)
+
+#ifdef _DEBUG
+#define _STL_ASSERT(cond, mesg) _STL_VERIFY(cond, mesg)
+#else // ^^^ _DEBUG ^^^ // vvv !_DEBUG vvv
+#define _STL_ASSERT(cond, mesg) _Analysis_assume_(cond)
+#endif // _DEBUG
+
+#ifdef _ENABLE_STL_INTERNAL_CHECK
+#define _STL_INTERNAL_CHECK(cond) _STL_VERIFY(cond, "STL internal check: " _CRT_STRINGIZE(cond))
+#else // ^^^ _ENABLE_STL_INTERNAL_CHECK ^^^ // vvv !_ENABLE_STL_INTERNAL_CHECK vvv
+#define _STL_INTERNAL_CHECK(cond) _Analysis_assume_(cond)
+#endif // _ENABLE_STL_INTERNAL_CHECK
+
+// EXCEPTION MACROS
+#if _HAS_EXCEPTIONS
+#define _TRY_BEGIN try {
+#define _CATCH(x) \
+    }             \
+    catch (x) {
+#define _CATCH_ALL \
+    }              \
+    catch (...) {
+#define _CATCH_END }
+
+#define _RAISE(x) throw x
+#define _RERAISE throw
+#define _THROW(x) throw x
+
+#else // _HAS_EXCEPTIONS
+#define _TRY_BEGIN \
+    {              \
+        if (1) {
+#define _CATCH(x) \
+    }             \
+    else if (0) {
+#define _CATCH_ALL \
+    }              \
+    else if (0) {
+#define _CATCH_END \
+    }              \
+    }
+
+#ifdef _DEBUG
+#define _RAISE(x) _invoke_watson(_CRT_WIDE(#x), __FUNCTIONW__, __FILEW__, __LINE__, 0)
+#else // _DEBUG
+#define _RAISE(x) _invoke_watson(nullptr, nullptr, nullptr, 0, 0)
+#endif // _DEBUG
+
+#define _RERAISE
+#define _THROW(x) x._Raise()
+#endif // _HAS_EXCEPTIONS
+
 _STD_END
 #endif
 
@@ -268,6 +433,8 @@ _C_STD_END
 
 #define _EXTERN_TEMPLATE template
 #define _THROW_BAD_ALLOC _THROW1(...)
+
+#define _THROW(x) throw x
 
 #pragma pack(pop)
 #endif

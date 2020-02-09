@@ -4,7 +4,7 @@ PROJECT(msconfig_new)
 include_directories(
     .
     comctl32ex
-    ${REACTOS_SOURCE_DIR}/sdk/include/c++)
+    ${REACTOS_SOURCE_DIR}/sdk/lib/stl/inc)
 
 list(APPEND C_SOURCE
     comctl32ex/comctl32supp.c

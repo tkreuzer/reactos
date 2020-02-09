@@ -53,7 +53,7 @@ void operator delete(void* ptr)
         free(ptr);
     }
 }
-
+#if 0
 // Implement our own new operator so that we can throw our own exception in case
 // of allocation failure.
 // It could have been done using set_new_handler(), but well. MS guys didn't do it
@@ -266,12 +266,13 @@ void CHString::AllocBeforeWrite(int nLen)
         AllocBuffer(nLen);
     }
 }
-
+#endif
 /*
  * @implemented
  */
 void CHString::AllocBuffer(int nSize)
 {
+#if 0
     // Here we have to allocate a buffer for the string
     // It actually consists in: CHStringData structure
     // with a buffer big enough at its end to store the
@@ -315,8 +316,9 @@ void CHString::AllocBuffer(int nSize)
     // We only return the string
     // We can find back data with some mathematics
     m_pchData = Data->data();
+#endif
 }
-
+#if 0
 /*
  * @implemented
  */
@@ -1033,7 +1035,7 @@ CHString CHString::Right(int nCount) const
 
     return NewString;
 }
-
+#endif
 /*
  * @implemented
  */
@@ -1050,7 +1052,7 @@ int CHString::SafeStrlen(CHSTRING_LPCWSTR lpsz)
     // in this class...
     return (int)wcslen(reinterpret_cast<LPCWSTR>(lpsz));
 }
-
+#if 0
 /*
  * @implemented
  */
@@ -1419,3 +1421,4 @@ CHString WINAPI operator+(const CHString& string1, const CHString& string2)
 
     return NewString;
 }
+#endif

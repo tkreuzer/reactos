@@ -72,7 +72,7 @@ void PrintSystemInfo(FILE* output, DumpData& data)
     if (Record.NumberParameters)
     {
         xfprintf(output, "    Exception parameters: %u" NEWLINE, Record.NumberParameters);
-        for (DWORD n = 0; n < std::min<DWORD>(EXCEPTION_MAXIMUM_PARAMETERS, Record.NumberParameters); ++n)
+        for (DWORD n = 0; n < min(EXCEPTION_MAXIMUM_PARAMETERS, Record.NumberParameters); ++n)
         {
             xfprintf(output, "      Parameter %u: 0x%p" NEWLINE, n, Record.ExceptionInformation[n]);
         }

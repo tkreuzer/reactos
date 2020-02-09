@@ -19,7 +19,7 @@
 #include <atlstr.h>
 #include "resource.h"
 
-
+#if 0
 static const char szUsage[] = "Usage: DrWtsn32 [-i] [-g] [-p dddd] [-e dddd] [-?]\n"
                               "    -i: Install DrWtsn32 as the postmortem debugger\n"
                               "    -g: Ignored, Provided for compatibility with WinDbg and CDB.\n"
@@ -386,3 +386,4 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR cmdLine, INT)
 
     return abort(output, 0);
 }
+#endif
