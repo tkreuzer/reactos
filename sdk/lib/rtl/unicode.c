@@ -831,6 +831,7 @@ RtlIntegerToUnicodeString(
     ANSI_STRING AnsiString;
     CHAR Buffer[33];
     NTSTATUS Status;
+    RTL_PAGED_CODE();
 
     Status = RtlIntegerToChar(Value, Base, sizeof(Buffer), Buffer);
     if (NT_SUCCESS(Status))
