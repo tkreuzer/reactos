@@ -75,6 +75,10 @@ endif()
 # Generate Warnings Level 3
 add_compile_options(/W3)
 
+if (NOT ARCH STREQUAL "amd64")
+    add_compile_options(/WX)
+endif()
+
 # Disable overly sensitive warnings as well as those that generally aren't
 # useful to us.
 # - C4244: implicit integer truncation
