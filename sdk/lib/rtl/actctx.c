@@ -23,6 +23,10 @@
 
 #include <wine/unicode.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'UINT', possible loss of data
+#endif // _MSC_VER
+
 BOOLEAN RtlpNotAllowingMultipleActivation;
 
 #define ACTCTX_FLAGS_ALL (\
