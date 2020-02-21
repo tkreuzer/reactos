@@ -7,10 +7,15 @@ size_t CDECL _mbstowcs_l(wchar_t *wcstr, const char *mbstr,
         size_t count, _locale_t locale)
 {
     MSVCRT_pthreadlocinfo locinfo;
-    size_t i, size;
+    unsigned int i, size;
 
     if(!mbstr) {
         _set_errno(EINVAL);
+        return -1;
+    }
+
+    if (count > INT_MAX)
+    {
         return -1;
     }
 
@@ -43,7 +48,7 @@ size_t CDECL _mbstowcs_l(wchar_t *wcstr, const char *mbstr,
 
     if(size) {
         size = MultiByteToWideChar(locinfo->lc_codepage, 0,
-                                   mbstr, size, wcstr, count);
+                                   mbstr, size, wcstr, (int)count);
         if(!size) {
             if(count) wcstr[0] = '\0';
             _set_errno(EILSEQ);

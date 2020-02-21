@@ -7,6 +7,10 @@
  */
 #include <precomp.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'UINT', possible loss of data
+#endif // _MSC_VER
+
 static inline BOOL strftime_date(char *str, size_t *pos, size_t max,
         BOOL alternate, const struct tm *mstm, MSVCRT___lc_time_data *time_data)
 {

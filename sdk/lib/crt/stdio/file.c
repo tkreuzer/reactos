@@ -50,6 +50,10 @@
 #include <sys/utime.h>
 #include <direct.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'UINT', possible loss of data
+#endif // _MSC_VER
+
 int *__p__fmode(void);
 int *__p___mb_cur_max(void);
 

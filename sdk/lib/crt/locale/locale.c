@@ -24,6 +24,10 @@
 #include "mbctype.h"
 #include <internal/wine/msvcrt.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'UINT', possible loss of data
+#endif // _MSC_VER
+
 #define MAX_ELEM_LEN 64 /* Max length of country/language/CP string */
 #define MAX_LOCALE_LENGTH 256
 
