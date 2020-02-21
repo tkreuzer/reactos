@@ -500,7 +500,7 @@ ObpParseSymbolicLink(IN PVOID ParsedObject,
 
         /* Calculate the new length */
         LengthUsed = TempLength + RemainingName->Length;
-        LengthUsed += (sizeof(WCHAR) * (RemainingName->Buffer - FullPath->Buffer));
+        LengthUsed += (USHORT)(sizeof(WCHAR) * (RemainingName->Buffer - FullPath->Buffer));
 
         /* Check if it's not too much */
         if (LengthUsed > 0xFFF0)
