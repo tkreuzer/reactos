@@ -631,8 +631,8 @@ PiCallDriverAddDevice(
         if (kvInfo->Type == REG_SZ && kvInfo->DataLength > sizeof(WCHAR))
         {
             UNICODE_STRING classGUID = {
-                .MaximumLength = kvInfo->DataLength,
-                .Length = kvInfo->DataLength - sizeof(UNICODE_NULL),
+                .MaximumLength = (USHORT)kvInfo->DataLength,
+                .Length = (USHORT)kvInfo->DataLength - sizeof(UNICODE_NULL),
                 .Buffer = (PVOID)((ULONG_PTR)kvInfo + kvInfo->DataOffset)
             };
             HANDLE ccsControlHandle;
@@ -1363,14 +1363,16 @@ IopSetServiceEnumData(
         return Status;
     }
 
-    if (kvInfo2->Type != REG_SZ || kvInfo2->DataLength <= sizeof(WCHAR))
+    if ((kvInfo2->Type != REG_SZ) ||
+        (kvInfo2->DataLength <= sizeof(WCHAR)) ||
+        (kvInfo2->DataLength > UNICODE_STRING_MAX_BYTES))
     {
         ExFreePool(kvInfo2);
         return STATUS_UNSUCCESSFUL;
     }
 
-    ServiceName.MaximumLength = kvInfo2->DataLength;
-    ServiceName.Length = kvInfo2->DataLength - sizeof(UNICODE_NULL);
+    ServiceName.MaximumLength = (USHORT)kvInfo2->DataLength;
+    ServiceName.Length = (USHORT)kvInfo2->DataLength - sizeof(UNICODE_NULL);
     ServiceName.Buffer = (PVOID)((ULONG_PTR)kvInfo2 + kvInfo2->DataOffset);
 
     DPRINT("IopSetServiceEnumData(%p)\n", DeviceNode);
