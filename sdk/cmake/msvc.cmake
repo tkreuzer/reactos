@@ -72,12 +72,9 @@ if(ARCH STREQUAL "amd64" AND MSVC_VERSION GREATER 1922)
     add_link_options(/d2:-FH4-)
 endif()
 
-# Generate Warnings Level 3
-add_compile_options(/W3)
+# Generate Warnings Level 3 and make all warnings errors
+add_compile_options(/W3 /WX)
 
-if (NOT ARCH STREQUAL "amd64")
-    add_compile_options(/WX)
-endif()
 
 # Disable overly sensitive warnings as well as those that generally aren't
 # useful to us.
