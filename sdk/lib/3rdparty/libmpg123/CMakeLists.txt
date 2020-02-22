@@ -14,6 +14,13 @@ add_definitions(
 
 include_directories(BEFORE ${REACTOS_SOURCE_DIR}/sdk/include/reactos/libs/libmpg123)
 
+if (MSVC)
+    if (ARCH STREQUAL "amd64")
+        add_compile_flags("/wd4267") # C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+        add_compile_flags("/wd4334") # C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+    endif()
+endif()
+
 list(APPEND SOURCE
     compat/compat.c
     compat/compat_str.c
