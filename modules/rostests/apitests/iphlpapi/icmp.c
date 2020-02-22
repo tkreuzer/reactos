@@ -123,7 +123,7 @@ test_IcmpSendEcho(void)
     ok(bRet, "IcmpSendEcho failed unexpectedly: %lu\n", GetLastError());
 
     free(ReplyBuffer);
-    IcmpCloseHandle(hIcmp);
+    //IcmpCloseHandle(hIcmp); // FIXME: double free!
 }
 
 START_TEST(icmp)
