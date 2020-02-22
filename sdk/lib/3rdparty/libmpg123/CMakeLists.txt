@@ -48,5 +48,13 @@ add_library(libmpg123
     ${SOURCE}
     ${PCH_SKIP_SOURCE})
 
+if (MSVC)
+    if (ARCH STREQUAL "amd64")
+        # Disable warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+        # Disable warning C4334: '<<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
+        target_compile_options(libmpg123 PRIVATE /wd4267 /wd4334)
+    endif()
+endif()
+
 add_dependencies(libmpg123 psdk)
 add_pch(libmpg123 precomp.h "${PCH_SKIP_SOURCE}")
