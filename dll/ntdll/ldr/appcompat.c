@@ -294,9 +294,10 @@ LdrpPatchExportTable(
     //    (ULONG_PTR)ExportDirectory->AddressOfFunctions);
 
     /* Unprotect the export directory */
+    ProtectAddress = ExportDirectory;
     ProtectSize = ExportDirectorySize;
     Status = NtProtectVirtualMemory(NtCurrentProcess(),
-                                    (PVOID*)&ExportDirectory,
+                                    &ProtectAddress,
                                     &ProtectSize,
                                     OldProtect,
                                     &OldProtect);
