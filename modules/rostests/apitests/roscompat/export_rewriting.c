@@ -196,13 +196,13 @@ static void write_file(const char *filename, const void* data, int data_size, co
 
 static void write_exe(const char* filename, const char* function_name, const char* reason)
 {
-    PBYTE p;
+    PCHAR p;
     size_t n;
     PBYTE data = LocalAlloc(LMEM_ZEROINIT, kImageFileSize);
 
     memcpy(data, &ImageFile, sizeof(ImageFile));
 
-    p = data + FIELD_OFFSET(struct _MY_IMAGE_FILE, rdata_data);
+    p = (PCHAR)data + FIELD_OFFSET(struct _MY_IMAGE_FILE, rdata_data);
     for (n = 0; n < sizeof(ImageFile.rdata_data); ++n)
     {
         if (!stricmp(p + n, "InitializeCriticalSectionAndSpinCount"))
@@ -251,7 +251,7 @@ static DWORD run_exe(const char* function_name, const char* reason)
     if (hProc)
     {
         dwExitCode = WaitForSingleObject(hProc, 2000);
-        ok(dwExitCode == WAIT_OBJECT_0, "Error waiting for proc: %u (%s)\n", dwExitCode, reason);
+        ok(dwExitCode == WAIT_OBJECT_0, "Error waiting for proc: %lu (%s)\n", dwExitCode, reason);
         dwExitCode = 123;
         GetExitCodeProcess(hProc, &dwExitCode);
         ok(dwExitCode != STILL_ACTIVE, "Process still running (%s)\n", reason);
@@ -282,12 +282,12 @@ static void test_functions(DWORD dwVersion)
 
     for (n = 0; n < _countof(all_functions); ++n)
     {
-        sprintf(reason, "%s on 0x%x", all_functions[n].function, dwVersion);
+        sprintf(reason, "%s on 0x%lx", all_functions[n].function, dwVersion);
 
         dwExpectedResult = (all_functions[n].dwMinVersion > dwVersion || all_functions[n].dwMaxVersion < dwVersion) ? STATUS_ENTRYPOINT_NOT_FOUND : 0;
 
         dwResult = run_exe(all_functions[n].function, reason);
-        ok(dwResult == dwExpectedResult, "Expected %d, got %d (%s)\n", dwExpectedResult, dwResult, reason);
+        ok(dwResult == dwExpectedResult, "Expected %ld, got %ld (%s)\n", dwExpectedResult, dwResult, reason);
     }
 }
 
