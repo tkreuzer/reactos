@@ -1557,8 +1557,7 @@ LdrUnloadDll(IN PVOID BaseAddress)
         /* Check if a Hotpatch is active */
         if (LdrEntry->PatchInformation)
         {
-            /* FIXME */
-            DPRINT1("We don't support Hotpatching yet\n");
+            DPRINT1("roscompat: %wZ has compat info\n", &CurrentEntry->BaseDllName);
         }
 
         /* Deallocate the Entry */
