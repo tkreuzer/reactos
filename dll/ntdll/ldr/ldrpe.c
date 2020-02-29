@@ -1035,9 +1035,6 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                                 OrdinalTable + ExportDirectory->NumberOfNames);
                 }
             }
-
-            if (((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions) &&
-                !strcmp(ImportName, "RegDeleteTreeW")) __debugbreak();
         }
     }
 
@@ -1050,9 +1047,9 @@ FailurePath:
         {
             /* Inform the debug log */
             if (IsOrdinal)
-                DPRINT1("Failed to snap ordinal %Z!0x%x\n", &ExportLdrEntry->BaseDllName, OriginalOrdinal);
+                DPRINT1("Failed to snap ordinal %wZ!0x%x\n", &ExportLdrEntry->BaseDllName, OriginalOrdinal);
             else
-                DPRINT1("Failed to snap %Z!%s\n", &ExportLdrEntry->BaseDllName, ImportName);
+                DPRINT1("Failed to snap %wZ!%s\n", &ExportLdrEntry->BaseDllName, ImportName);
 
             /* These are critical errors. Setup a string for the DLL name */
             RtlDuplicateUnicodeString(RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE,
