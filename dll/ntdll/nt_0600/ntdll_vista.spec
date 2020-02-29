@@ -1,14 +1,14 @@
-@ stdcall RtlInitializeConditionVariable(ptr)
-@ stdcall RtlWakeConditionVariable(ptr)
-@ stdcall RtlWakeAllConditionVariable(ptr)
-@ stdcall RtlSleepConditionVariableCS(ptr ptr ptr)
-@ stdcall RtlSleepConditionVariableSRW(ptr ptr ptr long)
-@ stdcall RtlInitializeSRWLock(ptr)
-@ stdcall RtlAcquireSRWLockShared(ptr)
-@ stdcall RtlReleaseSRWLockShared(ptr)
-@ stdcall RtlAcquireSRWLockExclusive(ptr)
-@ stdcall RtlReleaseSRWLockExclusive(ptr)
-@ stdcall RtlRunOnceInitialize(ptr)
-@ stdcall RtlRunOnceBeginInitialize(ptr long ptr)
-@ stdcall RtlRunOnceComplete(ptr long ptr)
-@ stdcall RtlRunOnceExecuteOnce(ptr ptr ptr ptr)
+@ stdcall RtlInitializeConditionVariable(ptr) ntdll.RtlInitializeConditionVariable
+@ stdcall RtlWakeConditionVariable(ptr) ntdll.RtlWakeConditionVariable
+@ stdcall RtlWakeAllConditionVariable(ptr) ntdll.RtlWakeAllConditionVariable
+@ stdcall RtlSleepConditionVariableCS(ptr ptr ptr) ntdll.RtlSleepConditionVariableCS
+@ stdcall RtlSleepConditionVariableSRW(ptr ptr ptr long) ntdll.RtlSleepConditionVariableSRW
+@ stdcall RtlInitializeSRWLock(ptr) ntdll.RtlInitializeSRWLock
+@ stdcall RtlAcquireSRWLockShared(ptr) ntdll.RtlAcquireSRWLockShared
+@ stdcall RtlReleaseSRWLockShared(ptr) ntdll.RtlReleaseSRWLockShared
+@ stdcall RtlAcquireSRWLockExclusive(ptr) ntdll.RtlAcquireSRWLockExclusive
+@ stdcall RtlReleaseSRWLockExclusive(ptr) ntdll.RtlReleaseSRWLockExclusive
+@ stdcall RtlRunOnceInitialize(ptr) ntdll.RtlRunOnceInitialize
+@ stdcall RtlRunOnceBeginInitialize(ptr long ptr) ntdll.RtlRunOnceBeginInitialize
+@ stdcall RtlRunOnceComplete(ptr long ptr) ntdll.RtlRunOnceComplete
+@ stdcall RtlRunOnceExecuteOnce(ptr ptr ptr ptr) ntdll.RtlRunOnceExecuteOnce
