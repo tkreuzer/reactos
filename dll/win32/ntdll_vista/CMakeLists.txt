@@ -5,12 +5,12 @@ add_definitions(-D_WIN32_WINNT=0x600 -DWINVER=0x600
     -D_NTOSKRNL_
     -D_NTSYSTEM_)
 
-spec2def(ntdll_vista.dll ntdll_vista.spec ADD_IMPORTLIB)
+spec2def(ntdll_vista_addon.dll ntdll_vista_addon.spec ADD_IMPORTLIB)
 
 list(APPEND SOURCE
     condvar.c
     srw.c
-    ${CMAKE_CURRENT_BINARY_DIR}/ntdll_vista.def)
+    ${CMAKE_CURRENT_BINARY_DIR}/ntdll_vista_addon.def)
 
 add_library(ntdll_vista_static ${SOURCE})
 add_library(ntdll_vista_addon MODULE DllMain.c)

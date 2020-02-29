@@ -61,8 +61,12 @@ add_pch(ntdll include/ntdll.h SOURCE)
 add_dependencies(ntdll ntstatus asm)
 add_cd_file(TARGET ntdll DESTINATION reactos/system32 NO_CAB FOR all)
 
-# Vista forwarder dll
-add_library(ntdll_vista MODULE DllMainStub.c)
+# Vista forwarder
+spec2def(ntdll_vista.dll ntdll_vista.spec ADD_IMPORTLIB)
+add_library(ntdll_vista MODULE
+    DllMainStub.c
+    ${CMAKE_CURRENT_BINARY_DIR}/ntdll_vista_stubs.c
+    ${CMAKE_CURRENT_BINARY_DIR}/ntdll_vista.def)
 set_module_type(ntdll_vista win32dll ENTRYPOINT DllMain 12)
 add_importlibs(ntdll_vista ntdll)
 add_dependencies(ntdll_vista psdk)
