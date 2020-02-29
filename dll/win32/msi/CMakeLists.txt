@@ -80,7 +80,7 @@ add_importlibs(msi advapi32_vista advapi32 cabinet comctl32 gdi32 ole32 oleaut32
     #FIXME : should be in delayed imports
     imagehlp
     msvcrt
-    ${KERNEL32_VISTA}
+    kernel32_vista
     kernel32
     ntdll)
 
