@@ -201,6 +201,8 @@ NtGdiCreateBitmap(
     ULONGLONG cjSize;
     PSURFACE psurf;
 
+    //PEXCEPTION_REGISTRATION_RECORD prec = (PEXCEPTION_REGISTRATION_RECORD)__readfsdword(0);
+    //if (prec->Next == prec) __debugbreak();
     /* Calculate bitmap format and real bits per pixel. */
     iFormat = BitmapFormat(cBitsPixel * cPlanes, BI_RGB);
     cRealBpp = gajBitsPerFormat[iFormat];
@@ -248,6 +250,7 @@ NtGdiCreateBitmap(
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
         {
+            //__debugbreak();
             GDIOBJ_vDeleteObject(&psurf->BaseObject);
             _SEH2_YIELD(return NULL;)
         }
@@ -264,6 +267,9 @@ NtGdiCreateBitmap(
 
     /* Unlock the surface */
     SURFACE_UnlockSurface(psurf);
+
+    //PEXCEPTION_REGISTRATION_RECORD prec2 = (PEXCEPTION_REGISTRATION_RECORD)__readfsdword(0);
+    //if (prec->Next == prec2) __debugbreak();
 
     return hbmp;
 }
