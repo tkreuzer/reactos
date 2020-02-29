@@ -119,8 +119,12 @@ add_dependencies(kernel32 psdk errcodes asm)
 add_cd_file(TARGET kernel32 DESTINATION reactos/system32 FOR all)
 
 # Vista forwarder
-add_library(kernel32_vista MODULE DllMainStub.c)
+spec2def(kernel32_vista.dll kernel32_vista.spec ADD_IMPORTLIB)
+add_library(kernel32_vista MODULE
+    DllMainStub.c
+    ${CMAKE_CURRENT_BINARY_DIR}/kernel32_vista_stubs.c
+    ${CMAKE_CURRENT_BINARY_DIR}/kernel32_vista.def)
 set_module_type(kernel32_vista win32dll ENTRYPOINT DllMain 12)
-add_importlibs(kernel32_vista kernel32 ntdll)
+add_importlibs(kernel32_vista kernel32)
 add_dependencies(kernel32_vista psdk)
-add_cd_file(TARGET kernel32_vista_addon DESTINATION reactos/system32 FOR all)
+add_cd_file(TARGET kernel32_vista DESTINATION reactos/system32 FOR all)
