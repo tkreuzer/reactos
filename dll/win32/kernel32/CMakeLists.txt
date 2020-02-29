@@ -112,8 +112,15 @@ set_module_type(kernel32 win32dll ENTRYPOINT DllMain 12)
 set_subsystem(kernel32 console)
 ################# END  HACK #################
 
-target_link_libraries(kernel32 wine chkstk ${PSEH_LIB})
+target_link_libraries(kernel32 kernel32_vista_static wine chkstk ${PSEH_LIB})
 add_importlibs(kernel32 ntdll)
 add_pch(kernel32 k32.h SOURCE)
 add_dependencies(kernel32 psdk errcodes asm)
 add_cd_file(TARGET kernel32 DESTINATION reactos/system32 FOR all)
+
+# Vista forwarder
+add_library(kernel32_vista MODULE DllMainStub.c)
+set_module_type(kernel32_vista win32dll ENTRYPOINT DllMain 12)
+add_importlibs(kernel32_vista kernel32 ntdll)
+add_dependencies(kernel32_vista psdk)
+add_cd_file(TARGET kernel32_vista_addon DESTINATION reactos/system32 FOR all)
