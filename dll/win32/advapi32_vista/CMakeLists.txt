@@ -9,7 +9,7 @@ list(APPEND SOURCE
     RegDeleteTree.c
     RegSetKeyValue.c
     RegLoadMUIString.c
-    ${CMAKE_CURRENT_BINARY_DIR}/advapi32_vista.def)
+    ${CMAKE_CURRENT_BINARY_DIR}/advapi32_vista_addon.def)
 
 add_library(advapi32_vista_static ${SOURCE})
 add_library(advapi32_vista_addon MODULE DllMain.c)
