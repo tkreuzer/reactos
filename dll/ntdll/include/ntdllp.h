@@ -103,7 +103,8 @@ LdrpGetProcedureAddress(IN PVOID BaseAddress,
                         IN PANSI_STRING Name,
                         IN ULONG Ordinal,
                         OUT PVOID *ProcedureAddress,
-                        IN BOOLEAN ExecuteInit);
+                        IN BOOLEAN ExecuteInit,
+                        IN BOOLEAN UsePrivateExports);
 
 PLDR_DATA_TABLE_ENTRY NTAPI
 LdrpAllocateDataTableEntry(IN PVOID BaseAddress);
