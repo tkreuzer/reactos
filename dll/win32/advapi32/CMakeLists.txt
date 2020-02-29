@@ -65,11 +65,10 @@ add_cd_file(TARGET advapi32 DESTINATION reactos/system32 FOR all)
 
 # Vista forwarder
 spec2def(advapi32_vista.dll advapi32_vista.spec ADD_IMPORTLIB)
-list(APPEND VISTA_STUB_SOURCE
+add_library(advapi32_vista MODULE
     DllMainStub.c
     ${CMAKE_CURRENT_BINARY_DIR}/advapi32_vista_stubs.c
     ${CMAKE_CURRENT_BINARY_DIR}/advapi32_vista.def)
-add_library(advapi32_vista MODULE ${VISTA_STUB_SOURCE})
 set_module_type(advapi32_vista win32dll ENTRYPOINT DllMain 12)
 add_importlibs(advapi32_vista advapi32 kernel32)
 add_cd_file(TARGET advapi32_vista DESTINATION reactos/system32 FOR all)
