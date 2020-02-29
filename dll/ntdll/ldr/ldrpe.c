@@ -167,7 +167,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                        FirstThunk,
                                        ExportDirectory,
                                        ExportSize,
-                                       ImportLdrEntry->PatchInformation ? 2 : TRUE,
+                                       ImportLdrEntry->PatchInformation ? 3 : 1,
                                        ImportName);
 
                 /* Move to the next thunk */
@@ -223,7 +223,7 @@ LdrpSnapIAT(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                        FirstThunk,
                                        ExportDirectory,
                                        ExportSize,
-                                       ImportLdrEntry->PatchInformation ? 2 : TRUE,
+                                       ImportLdrEntry->PatchInformation ? 3 : TRUE,
                                        ImportName);
 
                 /* Next thunks */
@@ -1019,10 +1019,9 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                         ExportLdrEntry->DllBase,
                                         NameTable,
                                         OrdinalTable);
-
             /* Check if that failed and the importer may import from private exports */
             if (((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions) &&
-                (Static == 2))
+                (Static & 2))
             {
                 /* Check if the exporter has private exports */
                 RosCompatDescriptor = ExportLdrEntry->PatchInformation;
@@ -1036,6 +1035,9 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
                                                 OrdinalTable + ExportDirectory->NumberOfNames);
                 }
             }
+
+            if (((ULONG)Ordinal >= ExportDirectory->NumberOfFunctions) &&
+                !strcmp(ImportName, "RegDeleteTreeW")) __debugbreak();
         }
     }
 
@@ -1044,17 +1046,18 @@ LdrpSnapThunk(IN PLDR_DATA_TABLE_ENTRY ExportLdrEntry,
     {
 FailurePath:
         /* Is this a static snap? */
-        if (Static)
+        if (Static & 1)
         {
-            RtlInitAnsiString(&TempString, DllName ? DllName : "Unknown");
             /* Inform the debug log */
             if (IsOrdinal)
-                DPRINT1("Failed to snap ordinal %Z!0x%x\n", &TempString, OriginalOrdinal);
+                DPRINT1("Failed to snap ordinal %Z!0x%x\n", &ExportLdrEntry->BaseDllName, OriginalOrdinal);
             else
-                DPRINT1("Failed to snap %Z!%s\n", &TempString, ImportName);
+                DPRINT1("Failed to snap %Z!%s\n", &ExportLdrEntry->BaseDllName, ImportName);
 
             /* These are critical errors. Setup a string for the DLL name */
-            RtlAnsiStringToUnicodeString(&HardErrorDllName, &TempString, TRUE);
+            RtlDuplicateUnicodeString(RTL_DUPLICATE_UNICODE_STRING_NULL_TERMINATE,
+                                      &ExportLdrEntry->BaseDllName,
+                                      &HardErrorDllName);
 
             /* Set it as the parameter */
             HardErrorParameters[1] = (ULONG_PTR)&HardErrorDllName;
@@ -1225,7 +1228,8 @@ FailurePath:
                                              ForwardName,
                                              ForwardOrdinal,
                                              (PVOID*)&Thunk->u1.Function,
-                                             FALSE);
+                                             FALSE,
+                                             (ExportLdrEntry->PatchInformation != NULL));
             /* If this fails, then error out */
             if (!NT_SUCCESS(Status)) goto FailurePath;
         }
