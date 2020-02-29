@@ -7,20 +7,10 @@
 
 /* INCLUDES *******************************************************************/
 
-#undef _WIN32_WINNT
-#undef WINVER
-#define _WIN32_WINNT 0x600
-#define WINVER 0x600
-
 #include <k32.h>
 
 #define NDEBUG
 #include <debug.h>
-
-#define REPARSE_DATA_BUFFER_HEADER_SIZE   FIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
-
-char __roscompat_descriptor__;
-char* p__roscompat_descriptor__ = &__roscompat_descriptor__;
 
 #if _WIN32_WINNT >= 0x600
 

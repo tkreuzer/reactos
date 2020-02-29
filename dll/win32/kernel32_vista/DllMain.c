@@ -1,9 +1,6 @@
 
 #include "k32_vista.h"
 
-char __roscompat_descriptor__;
-char* p__roscompat_descriptor__ = &__roscompat_descriptor__;
-
 BOOL
 WINAPI
 DllMain(HANDLE hDll,
