@@ -13,9 +13,6 @@
 
 /* INCLUDES ******************************************************************/
 
-#ifndef _NTSYSTEM_
-#define _NTSYSTEM_
-#endif
 #include <rtl_vista.h>
 
 #define NDEBUG
