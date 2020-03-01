@@ -522,6 +522,8 @@ struct actctx_loader
 
 static const WCHAR asmv1W[] = {'a','s','m','v','1',':',0};
 static const WCHAR asmv2W[] = {'a','s','m','v','2',':',0};
+static const WCHAR asmv3W[] = {'a','s','m','v','3',':',0};
+static const WCHAR ms_asmv3W[] = {'m', 's', '_', 'a','s','m','v','3',':',0};
 
 typedef struct _ACTIVATION_CONTEXT_WRAPPED
 {
@@ -2523,12 +2525,19 @@ static BOOL parse_requested_privileges_elem(xmlbuf_t* xmlbuf, struct assembly* a
 
     while (ret && (ret = next_xml_elem(xmlbuf, &elem)))
     {
-        if (xml_elem_cmp_end(&elem, requestedPrivilegesW, asmv2W))
+        if (xml_elem_cmp_end(&elem, requestedPrivilegesW, ms_asmv3W))
+        {
+            DPRINT1("Experimental supprto for ms_asmv3:requestedPrivileges\n");
+            ret = parse_end_element(xmlbuf);
+            break;
+        }
+        else if (xml_elem_cmp_end(&elem, requestedPrivilegesW, asmv2W))
         {
             ret = parse_end_element(xmlbuf);
             break;
         }
-        else if (xml_elem_cmp(&elem, requestedExecutionLevelW, asmv2W))
+        else if (xml_elem_cmp(&elem, requestedExecutionLevelW, ms_asmv3W) ||
+                 xml_elem_cmp(&elem, requestedExecutionLevelW, asmv2W))
             ret = parse_requested_execution_level_elem(xmlbuf, assembly, acl);
         else
         {
@@ -2548,12 +2557,19 @@ static BOOL parse_security_elem(xmlbuf_t *xmlbuf, struct assembly *assembly, str
 
     while (ret && (ret = next_xml_elem(xmlbuf, &elem)))
     {
+        if (xml_elem_cmp_end(&elem, securityW, ms_asmv3W))
+        {
+            DPRINT1("Experimental support for ms_asmv3:security\n");
+            ret = parse_end_element(xmlbuf);
+            break;
+        }
         if (xml_elem_cmp_end(&elem, securityW, asmv2W))
         {
             ret = parse_end_element(xmlbuf);
             break;
         }
-        else if (xml_elem_cmp(&elem, requestedPrivilegesW, asmv2W))
+        else if (xml_elem_cmp(&elem, requestedPrivilegesW, ms_asmv3W) ||
+                 xml_elem_cmp(&elem, requestedPrivilegesW, asmv2W))
             ret = parse_requested_privileges_elem(xmlbuf, assembly, acl);
         else
         {
@@ -2573,12 +2589,25 @@ static BOOL parse_trust_info_elem(xmlbuf_t *xmlbuf, struct assembly *assembly, s
 
     while (ret && (ret = next_xml_elem(xmlbuf, &elem)))
     {
-        if (xml_elem_cmp_end(&elem, trustInfoW, asmv2W))
+        if (xml_elem_cmp_end(&elem, trustInfoW, ms_asmv3W))
+        {
+            DPRINT1("Experimental support for ms_asmv3:trustInfo\n");
+            ret = parse_end_element(xmlbuf);
+            break;
+        }
+        if (xml_elem_cmp_end(&elem, trustInfoW, asmv3W))
+        {
+            DPRINT1("Experimental support for asmv3:trustInfo\n");
+            ret = parse_end_element(xmlbuf);
+            break;
+        }
+        else if (xml_elem_cmp_end(&elem, trustInfoW, asmv2W))
         {
             ret = parse_end_element(xmlbuf);
             break;
         }
-        else if (xml_elem_cmp(&elem, securityW, asmv2W))
+        else if (xml_elem_cmp(&elem, securityW, ms_asmv3W) ||
+                 xml_elem_cmp(&elem, securityW, asmv2W))
             ret = parse_security_elem(xmlbuf, assembly, acl);
         else
         {
@@ -2683,7 +2712,9 @@ static BOOL parse_assembly_elem(xmlbuf_t* xmlbuf, struct actctx_loader* acl,
         {
             ret = parse_clr_surrogate_elem(xmlbuf, assembly, acl);
         }
-        else if (xml_elem_cmp(&elem, trustInfoW, asmv2W) ||
+        else if (xml_elem_cmp(&elem, trustInfoW, ms_asmv3W) ||
+                 xml_elem_cmp(&elem, trustInfoW, asmv3W) ||
+                 xml_elem_cmp(&elem, trustInfoW, asmv2W) ||
                  xml_elem_cmp(&elem, trustInfoW, asmv1W))
         {
             ret = parse_trust_info_elem(xmlbuf, assembly, acl);
@@ -2730,6 +2761,10 @@ static BOOL parse_assembly_elem(xmlbuf_t* xmlbuf, struct actctx_loader* acl,
         if (ret) ret = next_xml_elem(xmlbuf, &elem);
     }
 
+    if (!ret)
+    {
+        DPRINT1("parse_assembly_elem failed.\n");
+    }
     return ret;
 }
 
