@@ -559,6 +559,8 @@ static const WCHAR current_archW[] = {'n','o','n','e',0};
 static const WCHAR asmv1W[] = {'u','r','n',':','s','c','h','e','m','a','s','-','m','i','c','r','o','s','o','f','t','-','c','o','m',':','a','s','m','.','v','1',0};
 static const WCHAR asmv2W[] = {'u','r','n',':','s','c','h','e','m','a','s','-','m','i','c','r','o','s','o','f','t','-','c','o','m',':','a','s','m','.','v','2',0};
 static const WCHAR asmv3W[] = {'u','r','n',':','s','c','h','e','m','a','s','-','m','i','c','r','o','s','o','f','t','-','c','o','m',':','a','s','m','.','v','3',0};
+static const WCHAR asmv3W[] = {'u','r','n',':','s','c','h','e','m','a','s','-','m','i','c','r','o','s','o','f','t','-','c','o','m',':','m','s','_','a','s','m','.','v','3',0};
+static const WCHAR ms_asmv3W[] = {'m', 's', '_', 'a','s','m','v','3',':',0};
 
 typedef struct _ACTIVATION_CONTEXT_WRAPPED
 {
@@ -823,10 +825,16 @@ static inline BOOL xml_elem_cmp(const struct xml_elem* elem, const WCHAR *str, c
     {
         if (xmlstr_cmp( &elem->ns, asmv2W )) return TRUE;
         if (xmlstr_cmp( &elem->ns, asmv3W )) return TRUE;
+        if (xmlstr_cmp( &elem->ns, ms_asmv3W ))
+        {
+          DPRINT1("Found ms_asmv3W");
+          return TRUE;
+        }
     }
     else if (!wcscmp( namespace, asmv2W ))
     {
         if (xmlstr_cmp( &elem->ns, asmv3W )) return TRUE;
+        if (xmlstr_cmp( &elem->ns, ms_asmv3W )) return TRUE;
     }
     return FALSE;
 }
