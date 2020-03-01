@@ -1637,8 +1637,13 @@ LdrpInitializeProcessCompat(PVOID pProcessActctx, PVOID* pOldShimData)
     if (ContextCompatInfo->ElementCount == 0)
         return;
 
-    /* Search for known GUID's, starting from newest to oldest. */
-    for (cur = 0; cur < RTL_NUMBER_OF(KnownCompatGuids); ++cur)
+    /* Search for known GUID's, starting from oldest to newest.
+       Note that on Windows it is somewhat reversed, starting from the latest known
+       vesion, going down. But we are not Windows, trying to allow a lower version,
+       we are ReactOS trying to fake a higher version. So we interpret what Windows
+       does as "try the closes version to the actual version", so we start with the
+       lowest version, which is closest to Windows 2003, which we mostly are. */
+    for (cur = RTL_NUMBER_OF(KnownCompatGuids) - 1; cur != -1; --cur)
     {
         for (n = 0; n < ContextCompatInfo->ElementCount; ++n)
         {
@@ -1674,7 +1679,9 @@ LdrpInitializeProcessCompat(PVOID pProcessActctx, PVOID* pOldShimData)
 
                 /* Store the highest found version, and bail out. */
                 pShimData->dwRosProcessCompatVersion = KnownCompatGuids[cur].Version;
-                DPRINT1("LdrpInitializeProcessCompat: Found guid for winver 0x%x\n", KnownCompatGuids[cur].Version);
+                DPRINT1("LdrpInitializeProcessCompat: Found guid for winver 0x%x in manifest from %wZ\n",
+                        KnownCompatGuids[cur].Version,
+                        &(NtCurrentPeb()->ProcessParameters->ImagePathName));
                 return;
             }
         }
@@ -1916,6 +1923,11 @@ LdrpInitializeProcess(IN PCONTEXT Context,
                                          ProcessAffinityMask,
                                          &Peb->ImageProcessAffinityMask,
                                          sizeof(Peb->ImageProcessAffinityMask));
+    }
+
+    if (wcsstr(Peb->ProcessParameters->CommandLine.Buffer, L"firefox.exe"))
+    {
+        Peb->NtGlobalFlag |= FLG_SHOW_LDR_SNAPS;
     }
 
     /* Check if verbose debugging (ShowSnaps) was requested */
@@ -2321,15 +2333,16 @@ LdrpInitializeProcess(IN PCONTEXT Context,
             return Status;
         }
 
-        Status = LdrGetProcedureAddress(Kernel32BaseAddress,
-                                        &BaseProcessInitPostImportName,
-                                        0,
-                                        &FunctionAddress);
-
+        /* Look up BaseProcessInitPostImport and allow to get exports hidden by roscompat */
+        Status = LdrpGetProcedureAddress(Kernel32BaseAddress,
+                                         &BaseProcessInitPostImportName,
+                                         0,
+                                         &FunctionAddress,
+                                         TRUE,
+                                         TRUE);
         if (!NT_SUCCESS(Status))
         {
-            if (ShowSnaps)
-                DPRINT1("LDR: Unable to find post-import process init function, Status=0x%08lx\n", &Kernel32String, Status);
+            DPRINT1("LDR: Unable to find BaseProcessInitPostImport in kernel32, Status=0x%08lx\n", &Kernel32String, Status);
             return Status;
         }
         Kernel32ProcessInitPostImportFunction = FunctionAddress;
