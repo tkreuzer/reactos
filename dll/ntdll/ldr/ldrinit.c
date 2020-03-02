@@ -1925,11 +1925,6 @@ LdrpInitializeProcess(IN PCONTEXT Context,
                                          sizeof(Peb->ImageProcessAffinityMask));
     }
 
-    if (wcsstr(Peb->ProcessParameters->CommandLine.Buffer, L"firefox.exe"))
-    {
-        Peb->NtGlobalFlag |= FLG_SHOW_LDR_SNAPS;
-    }
-
     /* Check if verbose debugging (ShowSnaps) was requested */
     ShowSnaps = Peb->NtGlobalFlag & FLG_SHOW_LDR_SNAPS;
 
