@@ -362,11 +362,9 @@ LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry)
     PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
     NTSTATUS Status;
 
-    /* Make sure we have a data table entry */
-    ASSERT(LdrEntry != NULL);
-
     /* Ensure that this field is not used */
     ASSERT(LdrEntry->PatchInformation == NULL);
+
 
     /* Get the appcompat descriptor */
     RosCompatDescriptor = FindRosCompatDescriptor(LdrEntry->DllBase);
@@ -382,13 +380,6 @@ LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry)
     {
         /* Default to WS 2003 */
         AppCompatVersion = _WIN32_WINNT_WS03;
-    }
-    else
-    {
-        /* Patch the PEB */
-        PPEB Peb = NtCurrentPeb();
-        Peb->OSMajorVersion = AppCompatVersion >> 8;
-        Peb->OSMinorVersion = AppCompatVersion & 0xFF;
     }
 
     DPRINT("roscompat: Patching eat of %wZ for 0x%x\n", &LdrEntry->BaseDllName, AppCompatVersion);

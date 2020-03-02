@@ -4810,13 +4810,4 @@ WinExec(LPCSTR lpCmdLine,
     return 33; /* Something bigger than 31 means success. */
 }
 
-BOOL
-WINAPI
-SetProcessDEPPolicy(
-    _In_ DWORD dwFlags)
-{
-    UNIMPLEMENTED;
-    return TRUE;
-}
-
 /* EOF */

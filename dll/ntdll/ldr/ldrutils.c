@@ -1534,10 +1534,7 @@ NoRelocNeeded:
         LdrpValidateImageForMp(LdrEntry);
     }
 
-    if (NT_SUCCESS(Status))
-    {
-        LdrpApplyRosCompatMagic(LdrEntry);
-    }
+    LdrpApplyRosCompatMagic(LdrEntry);
 
     // FIXME: LdrpCorUnloadImage() is missing
 
