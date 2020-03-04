@@ -1962,7 +1962,7 @@ static void test_section_access(void)
         SetLastError(0xdeadbeef);
         ret = CreateProcessA(dll_name, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sti, &pi);
         ok(ret, "CreateProcess() error %d\n", GetLastError());
-
+ if (!ret) { __debugbreak(); ret = CreateProcessA(dll_name, NULL, NULL, NULL, FALSE, CREATE_SUSPENDED, NULL, NULL, &sti, &pi);}
         SetLastError(0xdeadbeef);
         size = VirtualQueryEx(pi.hProcess, (char *)hlib + section.VirtualAddress, &info, sizeof(info));
         ok(size == sizeof(info),
