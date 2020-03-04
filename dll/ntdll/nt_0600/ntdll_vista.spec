@@ -12,3 +12,12 @@
 @ stdcall RtlRunOnceBeginInitialize(ptr long ptr) ntdll.RtlRunOnceBeginInitialize
 @ stdcall RtlRunOnceComplete(ptr long ptr) ntdll.RtlRunOnceComplete
 @ stdcall RtlRunOnceExecuteOnce(ptr ptr ptr ptr) ntdll.RtlRunOnceExecuteOnce
+@ stdcall A_SHAFinal(ptr ptr) ntdll.A_SHAFinal
+@ stdcall A_SHAInit(ptr) ntdll.A_SHAInit
+@ stdcall A_SHAUpdate(ptr ptr long) ntdll.A_SHAUpdate
+@ stdcall MD4Final(ptr) ntdll.MD4Final
+@ stdcall MD4Init(ptr) ntdll.MD4Init
+@ stdcall MD4Update(ptr ptr long) ntdll.MD4Update
+@ stdcall MD5Final(ptr) ntdll.MD5Final
+@ stdcall MD5Init(ptr) ntdll.MD5Init
+@ stdcall MD5Update(ptr ptr long) ntdll.MD5Update

@@ -398,12 +398,12 @@
 @ stdcall LsaSetTrustedDomainInfoByName(ptr ptr long ptr)
 @ stdcall LsaSetTrustedDomainInformation(ptr ptr long ptr)
 @ stdcall LsaStorePrivateData(ptr ptr ptr)
-@ stdcall MD4Final(ptr)
-@ stdcall MD4Init(ptr)
-@ stdcall MD4Update(ptr ptr long)
-@ stdcall MD5Final(ptr)
-@ stdcall MD5Init(ptr)
-@ stdcall MD5Update(ptr ptr long)
+@ stdcall MD4Final(ptr) NTDLL.MD4Final
+@ stdcall MD4Init(ptr) NTDLL.MD4Init
+@ stdcall MD4Update(ptr ptr long) NTDLL.MD4Update
+@ stdcall MD5Final(ptr) NTDLL.MD5Final
+@ stdcall MD5Init(ptr) NTDLL.MD5Init
+@ stdcall MD5Update(ptr ptr long) NTDLL.MD5Update
 @ stub MSChapSrvChangePassword2
 @ stub MSChapSrvChangePassword
 @ stdcall MakeAbsoluteSD2(ptr ptr)
