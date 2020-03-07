@@ -2,6 +2,7 @@
 #define _PCI_PCH_
 
 #include <ntifs.h>
+#include <cmreslist.h>
 
 #define TAG_PCI '0ICP'
 
@@ -159,11 +160,6 @@ PciDuplicateUnicodeString(
     IN ULONG Flags,
     IN PCUNICODE_STRING SourceString,
     OUT PUNICODE_STRING DestinationString);
-
-PCM_PARTIAL_RESOURCE_DESCRIPTOR
-NTAPI
-PciNextPartialDescriptor(
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDescriptor);
 
 /* pdo.c */
 

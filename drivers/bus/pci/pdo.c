@@ -1322,7 +1322,6 @@ PdoStartDevice(
 {
     PCM_RESOURCE_LIST RawResList = IrpSp->Parameters.StartDevice.AllocatedResources;
     PCM_FULL_RESOURCE_DESCRIPTOR RawFullDesc;
-    PCM_PARTIAL_RESOURCE_LIST PartialResourceList;
     PCM_PARTIAL_RESOURCE_DESCRIPTOR RawPartialDesc;
     ULONG i, ii;
     PPDO_DEVICE_EXTENSION DeviceExtension = DeviceObject->DeviceExtension;
@@ -1335,19 +1334,16 @@ PdoStartDevice(
         return STATUS_SUCCESS;
 
     /* TODO: Assign the other resources we get to the card */
-;
-    RawFullDesc = &RawResList->List[0];
-    for (i = 0; i < RawResList->Count; i++)
-    {
-        PartialResourceList = &RawFullDesc->PartialResourceList;
-        RawFullDesc = (PCM_FULL_RESOURCE_DESCRIPTOR)
-            (&PartialResourceList->PartialDescriptors[PartialResourceList->Count]);
 
-        RawPartialDesc = &PartialResourceList->PartialDescriptors[0];
-        for (ii = 0;
-             ii < PartialResourceList->Count;
-             ii++, RawPartialDesc = PciNextPartialDescriptor(RawPartialDesc))
+    RawFullDesc = &RawResList->List[0];
+    for (i = 0; i < RawResList->Count; i++, RawFullDesc = CmiGetNextResourceDescriptor(RawFullDesc))
+    {
+        for (ii = 0; ii < RawFullDesc->PartialResourceList.Count; ii++)
         {
+            /* Partial resource descriptors can be of variable size (CmResourceTypeDeviceSpecific),
+               but only one is allowed and it must be the last one in the list! */
+            RawPartialDesc = &RawFullDesc->PartialResourceList.PartialDescriptors[ii];
+
             if (RawPartialDesc->Type == CmResourceTypeInterrupt)
             {
                 DPRINT("Assigning IRQ %u to PCI device 0x%x on bus 0x%x\n",

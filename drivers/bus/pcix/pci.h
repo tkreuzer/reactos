@@ -18,6 +18,7 @@
 #include <ndk/halfuncs.h>
 #include <ndk/rtlfuncs.h>
 #include <ndk/vffuncs.h>
+#include <cmreslist.h>
 
 //
 // Tag used in all pool allocations (Pci Bus)
@@ -1170,12 +1171,6 @@ NTAPI
 PciQueryCapabilities(
     IN PPCI_PDO_EXTENSION PdoExtension,
     IN OUT PDEVICE_CAPABILITIES DeviceCapability
-);
-
-PCM_PARTIAL_RESOURCE_DESCRIPTOR
-NTAPI
-PciNextPartialDescriptor(
-    PCM_PARTIAL_RESOURCE_DESCRIPTOR CmDescriptor
 );
 
 //
