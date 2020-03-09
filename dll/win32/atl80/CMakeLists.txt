@@ -18,6 +18,7 @@ list(APPEND SOURCE
 
 add_library(atl80 MODULE
     ${SOURCE}
+    atl80.rc
     ${CMAKE_CURRENT_BINARY_DIR}/atl80.def)
 
 set_module_type(atl80 win32dll)
