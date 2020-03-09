@@ -108,6 +108,8 @@ RtlDispatchException(
     _In_ PEXCEPTION_RECORD ExceptionRecord,
     _In_ PCONTEXT ContextRecord)
 {
+    BOOLEAN Handled;
+
     /* Perform vectored exception handling for user mode */
     if (RtlCallVectoredExceptionHandlers(ExceptionRecord, ContextRecord))
     {
@@ -119,11 +121,16 @@ RtlDispatchException(
     }
 
     /* Call the internal unwind routine */
-    return RtplUnwindInternal(NULL, // TargetFrame
-                              NULL, // TargetIp
-                              ExceptionRecord,
-                              0, // ReturnValue
-                              ContextRecord,
-                              NULL, // HistoryTable
-                              UNW_FLAG_EHANDLER);
+    Handled = RtplUnwindInternal(NULL, // TargetFrame
+                                 NULL, // TargetIp
+                                 ExceptionRecord,
+                                 0, // ReturnValue
+                                 ContextRecord,
+                                 NULL, // HistoryTable
+                                 UNW_FLAG_EHANDLER);
+
+    /* In user mode, call any registered vectored continue handlers */
+    RtlCallVectoredContinueHandlers(ExceptionRecord, ContextRecord);
+
+    return Handled;
 }
