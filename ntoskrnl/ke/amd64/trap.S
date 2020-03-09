@@ -885,6 +885,12 @@ PUBLIC KiServiceExit2
 .PROC KiServiceExit2
     .ENDPROLOG
 
+    ; Get the current IRQL and compare it to the trap frame
+    mov rax, cr8
+    cmp byte ptr [rcx + KTRAP_FRAME_PreviousIrql], al
+    je KiServiceExit2_ok
+    int 3
+KiServiceExit2_ok:
     mov rbp, rcx
     mov rsp, rcx
 
