@@ -3001,7 +3001,7 @@ static NTSTATUS get_manifest_in_pe_file( struct actctx_loader* acl, struct assem
     void               *base;
     WCHAR resnameBuf[20];
     LPCWSTR resptr = resname;
-
+    if (filename && wcsstr(filename, L"atl80")) __debugbreak();
     if ((!((ULONG_PTR)resname >> 16)))
     {
         sprintfW(resnameBuf, L"#%u", PtrToUlong(resname));
@@ -3220,7 +3220,11 @@ static WCHAR *lookup_manifest_file( HANDLE dir, struct assembly_identity *ai )
             }
         }
     }
-    else DPRINT1("no matching file for %S\n", lookup);
+    else
+    {
+        DPRINT1("no matching file for %S\n", lookup);
+        __debugbreak();
+    }
     RtlFreeHeap( RtlGetProcessHeap(), 0, lookup );
     return ret;
 }
