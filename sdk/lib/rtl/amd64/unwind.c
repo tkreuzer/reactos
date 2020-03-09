@@ -808,9 +808,6 @@ RtplUnwindInternal(
                         RtlRaiseStatus(EXCEPTION_NONCONTINUABLE_EXCEPTION);
                     }
 
-                    /* In user mode, call any registered vectored continue handlers */
-                    RtlCallVectoredContinueHandlers(ExceptionRecord, ContextRecord);
-
                     /* Execution continues */
                     return TRUE;
                 }
