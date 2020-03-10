@@ -10,21 +10,21 @@
 char test[] = "SEH0026.c";
 
 void dojump(jmp_buf JumpBuffer, PLONG Counter) {
-  try {
-    try {
+  try {printf("try 5: %lu\n", *Counter);
+    try {printf("try 6: %lu\n", *Counter);
       /* set Counter = 1 */
-      *Counter += 1;
+      *Counter += 1;__debugbreak();
       RaiseException(EXCEPTION_INT_OVERFLOW, 0, /*no flags*/ 0, 0);
     }
-    finally {
+    finally {printf("finally 6: %lu\n", *Counter);
       /* set counter = 2 */
-      *Counter += 1;
+      *Counter += 1;__debugbreak();
     }
     endtry
   }
-  finally {
+  finally {printf("finally 5: %lu\n", *Counter);
     /* set counter = 3 */
-    *Counter += 1;
+    *Counter += 1;__debugbreak();
     longjmp(JumpBuffer, 1);
   }
   endtry
@@ -35,34 +35,34 @@ int main() {
   LONG Counter;
 
   Counter = 0;
-
+  __debugbreak();
   if (_setjmp(JumpBuffer) == 0) {
-    try {
-      try {
-        try {
-          try {
+    try {printf("try 1\n");
+      try {printf("try 2\n");
+        try {printf("try 3\n");
+          try {printf("try 4\n");
             *(volatile LONG*)&Counter += 1;
             dojump(JumpBuffer, &Counter);
           }
-          finally { *(volatile LONG*)&Counter += 1; }
+          finally { printf("finally 4: %lu\n", Counter); *(volatile LONG*)&Counter += 1; __debugbreak();}
           endtry
         }
-        finally {
-          *(volatile LONG*)&Counter += 1;
+        finally {printf("finally 3: %lu\n", Counter);
+          *(volatile LONG*)&Counter += 1;__debugbreak();
           longjmp(JumpBuffer, 1);
         }
         endtry
       }
-      finally { *(volatile LONG*)&Counter += 1; }
+      finally { printf("finally 2: %lu\n", Counter); *(volatile LONG*)&Counter += 1; }
       endtry
     }
     except(1)
     /* EXECUTE HANDLER after unwinding */
-    {
+    {printf("except 1: %lu\n", Counter);
       *(volatile LONG*)&Counter += 1;
     }
     endtry
-  } else {
+  } else {printf("else: %lu\n", Counter);
     /* set Counter  = 4 */ //
     *(volatile LONG*)&Counter += 1;
   }

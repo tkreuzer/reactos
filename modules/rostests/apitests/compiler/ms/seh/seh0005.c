@@ -9,8 +9,8 @@ char test[] = "SEH0005.c";
 
 int main() {
   PLONG BadAddress;
-  PLONG BlackHole;
-  LONG Counter;
+  gcc_volatile LONG *BlackHole;
+  gcc_volatile LONG Counter;
 
   BadAddress = (PLONG)((PVOID)0);
   BlackHole = &Counter;
