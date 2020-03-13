@@ -90,13 +90,6 @@ _SEH3$_Unregister(
         HeadFrame = HeadFrame->Next;
     }
 
-    /* Now find the link that points to our head frame, starting from the TEB */
-    LinkPointer = (SEH3$_REGISTRATION_FRAME **)NtCurrentTeb();
-    while (*LinkPointer != HeadFrame)
-    {
-        LinkPointer = &((*LinkPointer)->Next);
-    }
-
     /* Check if this is the frame we want to remove */
     if (Frame == HeadFrame)
     {
@@ -105,8 +98,15 @@ _SEH3$_Unregister(
         /* There shouldn't be any more nested try-level frames */
         ASSERT(Frame->EndOfChain == Frame);
 
-        /* Remove the frame from the */
-        *LinkPointer = Frame->Next;
+        /* Now find the link that points to our head frame, starting from the TEB */
+        LinkPointer = (SEH3$_REGISTRATION_FRAME **)NtCurrentTeb();
+        while (*LinkPointer != HeadFrame)
+        {
+            LinkPointer = &((*LinkPointer)->Next);
+        }
+
+        /* Remove the frame from the linked list */
+        *LinkPointer = HeadFrame->Next;
     }
     else
     {
@@ -314,7 +314,7 @@ _SEH3$_except_handler(
     PSEH3$_SCOPE_TABLE OriginalScopeTable;
     SEH3$_EXCEPTION_POINTERS ExceptionPointers;
     LONG FilterResult;
-
+    __debugbreak();
     /* Clear the direction flag. */
     asm volatile ("cld" : : : "memory");
 
