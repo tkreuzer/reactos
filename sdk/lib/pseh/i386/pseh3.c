@@ -81,37 +81,36 @@ _SEH3$_Unregister(
     volatile SEH3$_REGISTRATION_FRAME *HeadFrame;
     SEH3$_REGISTRATION_FRAME **LinkPointer;
 
-     /* During unwinding on Windows ExecuteHandler2 installs it's own EH frame,
-       so we need to search for the pointer that points to our head frame.
-       Start with finding the head frame of our internal chain. */
-    HeadFrame = Frame;
-    while (HeadFrame->Handler == NULL)
+    /* Check if the frame has a handler (then it's the registered frame) */
+    if (Frame->Handler != NULL)
     {
-        HeadFrame = HeadFrame->Next;
-    }
-
-    /* Check if this is the frame we want to remove */
-    if (Frame == HeadFrame)
-    {
-        ASSERT(Frame->Handler != NULL);
-
         /* There shouldn't be any more nested try-level frames */
         ASSERT(Frame->EndOfChain == Frame);
 
-        /* Now find the link that points to our head frame, starting from the TEB */
+        /* During unwinding on Windows ExecuteHandler2 installs it's own EH frame,
+           so there can be one or even multiple frames before our own one and we
+           need to search for the link that points to our head frame. */
         LinkPointer = (SEH3$_REGISTRATION_FRAME **)NtCurrentTeb();
-        while (*LinkPointer != HeadFrame)
+        while (*LinkPointer != Frame)
         {
             LinkPointer = &((*LinkPointer)->Next);
         }
 
         /* Remove the frame from the linked list */
-        *LinkPointer = HeadFrame->Next;
+        *LinkPointer = Frame->Next;
     }
     else
     {
-        /* This is a try-level frame, so the head */
+        /* This is a try-level frame, it doesn't have a handler */
         ASSERT(Frame->Handler == NULL);
+
+        /* Search for the head frame */
+        HeadFrame = Frame->Next;
+        while (HeadFrame->Handler == NULL)
+        {
+            HeadFrame = HeadFrame->Next;
+        }
+
         ASSERT(HeadFrame->EndOfChain == Frame);
 
         HeadFrame->EndOfChain = Frame->Next;
