@@ -760,7 +760,6 @@ RtlpUnwindInternal(
     _In_opt_ struct _UNWIND_HISTORY_TABLE *HistoryTable,
     _In_ ULONG HandlerType)
 {
-    DISPATCHER_CONTEXT DispatcherContext;
     PEXCEPTION_ROUTINE ExceptionRoutine;
     EXCEPTION_DISPOSITION Disposition;
     PRUNTIME_FUNCTION FunctionEntry;
@@ -771,7 +770,7 @@ RtlpUnwindInternal(
     struct
     {
         CONTEXT UnwindContext;
-        //DISPATCHER_CONTEXT DispatcherContext;
+        DISPATCHER_CONTEXT DispatcherContext;
     } X;
 
     /* Get the current stack limits and registration frame */
@@ -787,9 +786,9 @@ RtlpUnwindInternal(
     X.UnwindContext = *ContextRecord;
 
     /* Set up the constant fields of the dispatcher context */
-    DispatcherContext.ContextRecord = ContextRecord;
-    DispatcherContext.HistoryTable = HistoryTable;
-    DispatcherContext.TargetIp = (ULONG64)TargetIp;
+    X.DispatcherContext.ContextRecord = ContextRecord;
+    X.DispatcherContext.HistoryTable = HistoryTable;
+    X.DispatcherContext.TargetIp = (ULONG64)TargetIp;
 
     NestedFrame = 0;
 
@@ -820,7 +819,7 @@ RtlpUnwindInternal(
                                             X.UnwindContext.Rip,
                                             FunctionEntry,
                                             &X.UnwindContext,
-                                            &DispatcherContext.HandlerData,
+                                            &X.DispatcherContext.HandlerData,
                                             &EstablisherFrame,
                                             NULL);
 
@@ -855,16 +854,16 @@ RtlpUnwindInternal(
             /* Log the exception if it's enabled */
             RtlpCheckLogException(ExceptionRecord,
                                   ContextRecord,
-                                  &DispatcherContext,
-                                  sizeof(DispatcherContext));
+                                  &X.DispatcherContext,
+                                  sizeof(X.DispatcherContext));
 
             /* Set up the variable fields of the dispatcher context */
-            DispatcherContext.ControlPc = ContextRecord->Rip;
-            DispatcherContext.ImageBase = ImageBase;
-            DispatcherContext.FunctionEntry = FunctionEntry;
-            DispatcherContext.LanguageHandler = ExceptionRoutine;
-            DispatcherContext.EstablisherFrame = EstablisherFrame;
-            DispatcherContext.ScopeIndex = 0;
+            X.DispatcherContext.ControlPc = ContextRecord->Rip;
+            X.DispatcherContext.ImageBase = ImageBase;
+            X.DispatcherContext.FunctionEntry = FunctionEntry;
+            X.DispatcherContext.LanguageHandler = ExceptionRoutine;
+            X.DispatcherContext.EstablisherFrame = EstablisherFrame;
+            X.DispatcherContext.ScopeIndex = 0;
 
             /* Loop all nested handlers */
             do
@@ -881,7 +880,7 @@ RtlpUnwindInternal(
                 Disposition = ExceptionRoutine(ExceptionRecord,
                                                (PVOID)EstablisherFrame,
                                                &X.UnwindContext,
-                                               &DispatcherContext);
+                                                 &X.DispatcherContext);
 
                 /* Check if we do exception handling */
                 if (HandlerType == UNW_FLAG_EHANDLER)
@@ -911,10 +910,10 @@ RtlpUnwindInternal(
                         ExceptionRecord->ExceptionFlags |= EXCEPTION_NESTED_CALL;
 
                         /* Update the current nested frame */
-                        if (DispatcherContext.EstablisherFrame > NestedFrame)
+                        if (NestedFrame < X.DispatcherContext.EstablisherFrame)
                         {
                             /* Get the frame from the dispatcher context */
-                            NestedFrame = DispatcherContext.EstablisherFrame;
+                            NestedFrame = X.DispatcherContext.EstablisherFrame;
                         }
 
                         break;
