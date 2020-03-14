@@ -701,7 +701,7 @@ ExecuteHandlerExceptionFilter(
     }
 }
 
-//static
+static
 EXCEPTION_DISPOSITION
 RtlpExecuteHandler(
     PEXCEPTION_RECORD ExceptionRecord,
@@ -877,9 +877,9 @@ RtlpUnwindInternal(
                 X.UnwindContext.Rax = (ULONG64)ReturnValue;
 
                 /* Call the language specific handler */
-                Disposition = ExceptionRoutine(ExceptionRecord,
-                                               (PVOID)EstablisherFrame,
-                                               &X.UnwindContext,
+                Disposition = RtlpExecuteHandler(ExceptionRecord,
+                                                 EstablisherFrame,
+                                                 X.DispatcherContext.ContextRecord,
                                                  &X.DispatcherContext);
 
                 /* Check if we do exception handling */
