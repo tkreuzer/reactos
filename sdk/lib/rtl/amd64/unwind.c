@@ -924,8 +924,15 @@ RtlUnwind(
   IN PEXCEPTION_RECORD ExceptionRecord,
   IN PVOID ReturnValue)
 {
-    UNIMPLEMENTED;
-    return;
+    CONTEXT Context;
+
+    /* Forward to RtlUnwindEx */
+    RtlUnwindEx(TargetFrame,
+                TargetIp,
+                ExceptionRecord,
+                ReturnValue,
+                &Context,
+                NULL);
 }
 
 ULONG
