@@ -2596,6 +2596,7 @@ DEFINE_TEST(test_nested_exception)
 static
 LONG WINAPI unhandled_exception(PEXCEPTION_POINTERS ExceptionInfo)
 {
+	__debugbreak();
 	trace("unhandled exception %08lX thrown from %p\n", ExceptionInfo->ExceptionRecord->ExceptionCode, ExceptionInfo->ExceptionRecord->ExceptionAddress);
 	return EXCEPTION_CONTINUE_SEARCH;
 }
