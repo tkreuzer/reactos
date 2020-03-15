@@ -679,6 +679,7 @@ ExecuteHandlerExceptionFilter(
     //PEXCEPTION_RECORD ExceptionRecord = ExceptionPointers->ExceptionRecord;
     PDISPATCHER_CONTEXT CurrentDispatcherContext;
     __debugbreak();
+    return EXCEPTION_CONTINUE_SEARCH;
     if (InUnwinding)
     {
         /* Get the current dispatcher context (see structure definition in RtlpUnwindInternal) */
@@ -711,11 +712,12 @@ RtlpExecuteHandler(
 {
     PEXCEPTION_ROUTINE ExceptionRoutine = DispatcherContext->LanguageHandler;
     EXCEPTION_DISPOSITION Disposition = ExceptionNestedException;
+    PEXCEPTION_POINTERS ExceptionPointers = NULL;
 
     /* Wrap this in SEH to catch nested exceptions */
     __try
     {
-        //__try
+        __try
         {
             /* Invoke the language specific handler */
             Disposition = ExceptionRoutine(ExceptionRecord,
@@ -723,11 +725,28 @@ RtlpExecuteHandler(
                                             ContextRecord,
                                             DispatcherContext);
         }
-        //__finally
+        __finally
         {
+            if (ExceptionPointers)
+            {
+                PEXCEPTION_RECORD CurrentExceptionRecord = ExceptionPointers->ExceptionRecord;
+                PDISPATCHER_CONTEXT CurrentDispatcherContext = (PDISPATCHER_CONTEXT)(CurrentExceptionRecord + 1);
+                PCONTEXT CurrentUnwindContext = CurrentDispatcherContext->ContextRecord;
+                __debugbreak();
+
+                /* Copy back the previous unwind context, which is stored in the dispatcher context */
+                *CurrentUnwindContext = *DispatcherContext->ContextRecord;
+
+                /* Copy back the previous dispatcher context */
+                *CurrentDispatcherContext = *DispatcherContext;
+
+                /* Restore the context pointer */
+                CurrentDispatcherContext->ContextRecord = CurrentUnwindContext;
+            }
         }
     }
-    __except(ExecuteHandlerExceptionFilter(_SEH2_GetExceptionInformation(),
+    __except(ExceptionPointers = GetExceptionInformation(),
+             ExecuteHandlerExceptionFilter(_SEH2_GetExceptionInformation(),
                                            DispatcherContext,
                                            IS_UNWINDING(ExceptionRecord->ExceptionFlags)))
     {
@@ -764,14 +783,17 @@ RtlpUnwindInternal(
     EXCEPTION_DISPOSITION Disposition;
     PRUNTIME_FUNCTION FunctionEntry;
     ULONG_PTR StackLow, StackHigh;
-    ULONG64 ImageBase, EstablisherFrame, NestedFrame;
+    ULONG64 ImageBase, NestedFrame;
     /* This structure is a hack to allow the exception handler that protects
        the call to the laguage handler to get the dispatcher context */
     struct
     {
-        CONTEXT UnwindContext;
+        EXCEPTION_RECORD ExceptionRecord;
         DISPATCHER_CONTEXT DispatcherContext;
+        CONTEXT UnwindContext;
     } X;
+
+    X.ExceptionRecord = *ExceptionRecord;
 
     /* Get the current stack limits and registration frame */
     RtlpGetStackLimits(&StackLow, &StackHigh);
@@ -786,7 +808,7 @@ RtlpUnwindInternal(
     X.UnwindContext = *ContextRecord;
 
     /* Set up the constant fields of the dispatcher context */
-    X.DispatcherContext.ContextRecord = ContextRecord;
+    X.DispatcherContext.ContextRecord = &X.UnwindContext;
     X.DispatcherContext.HistoryTable = HistoryTable;
     X.DispatcherContext.TargetIp = (ULONG64)TargetIp;
 
@@ -820,20 +842,20 @@ RtlpUnwindInternal(
                                             FunctionEntry,
                                             &X.UnwindContext,
                                             &X.DispatcherContext.HandlerData,
-                                            &EstablisherFrame,
+                                            &X.DispatcherContext.EstablisherFrame,
                                             NULL);
 
         /* Check, if we are still within the stack boundaries */
-        if ((EstablisherFrame < StackLow) ||
-            (EstablisherFrame >= StackHigh) ||
-            (EstablisherFrame & 7))
+        if ((X.DispatcherContext.EstablisherFrame < StackLow) ||
+            (X.DispatcherContext.EstablisherFrame >= StackHigh) ||
+            (X.DispatcherContext.EstablisherFrame & 7))
         {
             /// TODO: Handle DPC stack
 
             /* If we are handling an exception, we are done here. */
             if (HandlerType == UNW_FLAG_EHANDLER)
             {
-                ExceptionRecord->ExceptionFlags |= EXCEPTION_STACK_INVALID;
+                X.ExceptionRecord.ExceptionFlags |= EXCEPTION_STACK_INVALID;
                 return FALSE;
             }
 
@@ -844,41 +866,35 @@ RtlpUnwindInternal(
         /* Check if we have an exception routine */
         if (ExceptionRoutine != NULL)
         {
-            /* Check if this is the target frame */
-            if (EstablisherFrame == (ULONG64)TargetFrame)
-            {
-                /* Set flag to inform the language handler */
-                ExceptionRecord->ExceptionFlags |= EXCEPTION_TARGET_UNWIND;
-            }
-
-            /* Log the exception if it's enabled */
-            RtlpCheckLogException(ExceptionRecord,
-                                  ContextRecord,
-                                  &X.DispatcherContext,
-                                  sizeof(X.DispatcherContext));
-
             /* Set up the variable fields of the dispatcher context */
             X.DispatcherContext.ControlPc = ContextRecord->Rip;
             X.DispatcherContext.ImageBase = ImageBase;
             X.DispatcherContext.FunctionEntry = FunctionEntry;
             X.DispatcherContext.LanguageHandler = ExceptionRoutine;
-            X.DispatcherContext.EstablisherFrame = EstablisherFrame;
             X.DispatcherContext.ScopeIndex = 0;
 
             /* Loop all nested handlers */
             do
             {
-                if (EstablisherFrame == (ULONG64)TargetFrame)
+                /* Check if this is the target frame */
+                if (X.DispatcherContext.EstablisherFrame == (ULONG64)TargetFrame)
                 {
-                    ExceptionRecord->ExceptionFlags |= EXCEPTION_TARGET_UNWIND;
+                    /* Set flag to inform the language handler */
+                    X.ExceptionRecord.ExceptionFlags |= EXCEPTION_TARGET_UNWIND;
                 }
 
                 /* Store the return value in the unwind context */
                 X.UnwindContext.Rax = (ULONG64)ReturnValue;
 
+                /* Log the exception if it's enabled */
+                RtlpCheckLogException(&X.ExceptionRecord,
+                                      ContextRecord,
+                                      &X.DispatcherContext,
+                                      sizeof(X.DispatcherContext));
+
                 /* Call the language specific handler */
-                Disposition = RtlpExecuteHandler(ExceptionRecord,
-                                                 EstablisherFrame,
+                Disposition = RtlpExecuteHandler(&X.ExceptionRecord,
+                                                 X.DispatcherContext.EstablisherFrame,
                                                  X.DispatcherContext.ContextRecord,
                                                  &X.DispatcherContext);
 
@@ -886,16 +902,16 @@ RtlpUnwindInternal(
                 if (HandlerType == UNW_FLAG_EHANDLER)
                 {
                     //exceptionFlags |= ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE;
-                    if (EstablisherFrame == NestedFrame)
+                    if (X.DispatcherContext.EstablisherFrame == NestedFrame)
                     {
-                        ExceptionRecord->ExceptionFlags &= ~EXCEPTION_NESTED_CALL;
+                        X.ExceptionRecord.ExceptionFlags &= ~EXCEPTION_NESTED_CALL;
                         NestedFrame = 0;
                     }
 
                     if (Disposition == ExceptionContinueExecution)
                     {
                         /* Check if it was non-continuable */
-                        if (ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE)
+                        if (X.ExceptionRecord.ExceptionFlags & EXCEPTION_NONCONTINUABLE)
                         {
                             __debugbreak();
                             RtlRaiseStatus(EXCEPTION_NONCONTINUABLE_EXCEPTION);
@@ -907,7 +923,7 @@ RtlpUnwindInternal(
                     else if (Disposition == ExceptionNestedException)
                     {
                         /* Turn the nested flag on */
-                        ExceptionRecord->ExceptionFlags |= EXCEPTION_NESTED_CALL;
+                        X.ExceptionRecord.ExceptionFlags |= EXCEPTION_NESTED_CALL;
 
                         /* Update the current nested frame */
                         if (NestedFrame < X.DispatcherContext.EstablisherFrame)
@@ -922,7 +938,7 @@ RtlpUnwindInternal(
                 else
                 {
                     /* Clear unwind flags for the next iteration */
-                    ExceptionRecord->ExceptionFlags &= ~(EXCEPTION_TARGET_UNWIND |
+                    X.ExceptionRecord.ExceptionFlags &= ~(EXCEPTION_TARGET_UNWIND |
                                                          EXCEPTION_COLLIDED_UNWIND);
                 }
 
@@ -935,6 +951,9 @@ RtlpUnwindInternal(
                 {
                     /// TODO
                     __debugbreak();
+
+
+
                     continue;
                 }
 
@@ -945,9 +964,9 @@ RtlpUnwindInternal(
         }
 
         /* Check, if we have left our stack (8.) */
-        if ((EstablisherFrame < StackLow) ||
-            (EstablisherFrame > StackHigh) ||
-            (EstablisherFrame & 7))
+        if ((X.DispatcherContext.EstablisherFrame < StackLow) ||
+            (X.DispatcherContext.EstablisherFrame > StackHigh) ||
+            (X.DispatcherContext.EstablisherFrame & 7))
         {
             /// TODO: Check for DPC stack
             __debugbreak();
@@ -958,20 +977,23 @@ RtlpUnwindInternal(
             }
             else
             {
-                ZwRaiseException(ExceptionRecord, ContextRecord, FALSE);
+                ZwRaiseException(&X.ExceptionRecord, ContextRecord, FALSE);
             }
         }
 
-        if (EstablisherFrame == (ULONG64)TargetFrame)
+        if (X.DispatcherContext.EstablisherFrame == (ULONG64)TargetFrame)
         {
             break;
         }
 
-        /* We have successfully unwound a frame. Copy the unwind context back. */
-        *ContextRecord = X.UnwindContext;
+        if (IS_UNWINDING(X.ExceptionRecord.ExceptionFlags))
+        {
+            /* We have successfully unwound a frame. Copy the unwind context back. */
+            *ContextRecord = X.UnwindContext;
+        }
     }
 
-    if (ExceptionRecord->ExceptionCode != STATUS_UNWIND_CONSOLIDATE)
+    if (X.ExceptionRecord.ExceptionCode != STATUS_UNWIND_CONSOLIDATE)
     {
         ContextRecord->Rip = (ULONG64)TargetIp;
     }
@@ -980,7 +1002,7 @@ RtlpUnwindInternal(
     ContextRecord->Rax = (ULONG64)ReturnValue;
 
     /* Restore the context */
-    RtlRestoreContext(ContextRecord, ExceptionRecord);
+    RtlRestoreContext(ContextRecord, &X.ExceptionRecord);
 
     /* Should never get here! */
     ASSERT(FALSE);
