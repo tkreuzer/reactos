@@ -2751,6 +2751,244 @@ DEFINE_TEST(test_PSEH3_bug2)
     return (status == STATUS_ACCESS_VIOLATION);
 }
 
+typedef struct
+{
+	EXCEPTION_RECORD ExceptionRecord1;
+	EXCEPTION_RECORD ExceptionRecord2;
+	PEXCEPTION_RECORD pExceptionRecord1;
+	PEXCEPTION_RECORD pExceptionRecord2;
+	CONTEXT Context1;
+	CONTEXT Context2;
+	PCONTEXT pContext1;
+	PCONTEXT pContext2;
+	ULONG Count;
+} FILTER_CONTEXT;
+
+int test_collided_unwind_context_filter(FILTER_CONTEXT *Ctx, PEXCEPTION_POINTERS Ptrs)
+{
+	__debugbreak();
+	if (Ctx->Count == 0)
+	{
+		Ctx->ExceptionRecord1 = *Ptrs->ExceptionRecord;
+		Ctx->pExceptionRecord1 = Ptrs->ExceptionRecord;
+		Ctx->Context1 = *Ptrs->ContextRecord;
+		Ctx->pContext1 = Ptrs->ContextRecord;
+	}
+	else
+	{
+		Ctx->ExceptionRecord2 = *Ptrs->ExceptionRecord;
+		Ctx->pExceptionRecord2 = Ptrs->ExceptionRecord;
+		Ctx->Context2 = *Ptrs->ContextRecord;
+		Ctx->pContext2 = Ptrs->ContextRecord;
+	}
+
+	Ctx->Count++;
+	return EXCEPTION_EXECUTE_HANDLER;
+}
+
+#include <stdio.h>
+
+#if 0
+typedef struct DECLSPEC_ALIGN(16) _CONTEXT {
+  ULONG64 P1Home;
+  ULONG64 P2Home;
+  ULONG64 P3Home;
+  ULONG64 P4Home;
+  ULONG64 P5Home;
+  ULONG64 P6Home;
+  ULONG ContextFlags;
+  ULONG MxCsr;
+  USHORT SegCs;
+  USHORT SegDs;
+  USHORT SegEs;
+  USHORT SegFs;
+  USHORT SegGs;
+  USHORT SegSs;
+  ULONG EFlags;
+  ULONG64 Dr0;
+  ULONG64 Dr1;
+  ULONG64 Dr2;
+  ULONG64 Dr3;
+  ULONG64 Dr6;
+  ULONG64 Dr7;
+  ULONG64 Rax;
+  ULONG64 Rcx;
+  ULONG64 Rdx;
+  ULONG64 Rbx;
+  ULONG64 Rsp;
+  ULONG64 Rbp;
+  ULONG64 Rsi;
+  ULONG64 Rdi;
+  ULONG64 R8;
+  ULONG64 R9;
+  ULONG64 R10;
+  ULONG64 R11;
+  ULONG64 R12;
+  ULONG64 R13;
+  ULONG64 R14;
+  ULONG64 R15;
+  ULONG64 Rip;
+  union {
+    XMM_SAVE_AREA32 FltSave;
+    struct {
+      M128A Header[2];
+      M128A Legacy[8];
+      M128A Xmm0;
+      M128A Xmm1;
+      M128A Xmm2;
+      M128A Xmm3;
+      M128A Xmm4;
+      M128A Xmm5;
+      M128A Xmm6;
+      M128A Xmm7;
+      M128A Xmm8;
+      M128A Xmm9;
+      M128A Xmm10;
+      M128A Xmm11;
+      M128A Xmm12;
+      M128A Xmm13;
+      M128A Xmm14;
+      M128A Xmm15;
+    } DUMMYSTRUCTNAME;
+  } DUMMYUNIONNAME;
+  M128A VectorRegister[26];
+  ULONG64 VectorControl;
+  ULONG64 DebugControl;
+  ULONG64 LastBranchToRip;
+  ULONG64 LastBranchFromRip;
+  ULONG64 LastExceptionToRip;
+  ULONG64 LastExceptionFromRip;
+} CONTEXT;
+#endif
+
+DEFINE_TEST(test_collided_unwind_context)
+{
+	FILTER_CONTEXT Ctx = { 0 };
+
+	_SEH2_TRY
+	{
+		_SEH2_TRY
+		{
+			_disable();
+		}
+		_SEH2_FINALLY
+		{
+			*((char*)(intptr_t)0xc0111ded) = 0;
+		}
+		_SEH2_END
+	}
+	_SEH2_EXCEPT(test_collided_unwind_context_filter(&Ctx, _SEH2_GetExceptionInformation()))
+	{
+	}
+	_SEH2_END;
+
+	ok(Ctx.Count == 2, "Count is %lu\n", Ctx.Count);
+	ok(Ctx.pExceptionRecord1 != Ctx.pExceptionRecord2, "Exception record pointers shouldn't match!\n");
+	ok((ULONG_PTR)Ctx.pExceptionRecord2 < (ULONG_PTR)Ctx.pExceptionRecord1, "Exception record 2 should be below 1 on the stack!\n");
+	ok(Ctx.pContext1 != Ctx.pContext2, "Exception record pointers shouldn't match!\n");
+	ok((ULONG_PTR)Ctx.pContext2 < (ULONG_PTR)Ctx.pContext1, "Exception record 2 should be below 1 on the stack!\n");
+
+	ok_hex(Ctx.ExceptionRecord1.ExceptionCode, STATUS_PRIVILEGED_INSTRUCTION);
+	ok_hex(Ctx.ExceptionRecord1.ExceptionFlags, 0);
+	ok(Ctx.ExceptionRecord1.ExceptionRecord == NULL, "ExceptionRecord: %p\n", Ctx.ExceptionRecord1.ExceptionRecord);
+	ok(Ctx.ExceptionRecord1.ExceptionAddress != NULL, "ExceptionAddress is NULL!\n");
+	ok_hex(Ctx.ExceptionRecord1.NumberParameters, 0);
+	//ok_hex(Ctx.ExceptionRecord1.ExceptionInformation[EXCEPTION_MAXIMUM_PARAMETERS];
+
+	ok_hex(Ctx.ExceptionRecord2.ExceptionCode, STATUS_ACCESS_VIOLATION);
+	ok_hex(Ctx.ExceptionRecord2.ExceptionFlags, 0);
+	ok(Ctx.ExceptionRecord2.ExceptionRecord == NULL, "ExceptionRecord: %p\n", Ctx.ExceptionRecord1.ExceptionRecord);
+	ok(Ctx.ExceptionRecord2.ExceptionAddress != NULL, "ExceptionAddress is NULL!\n");
+	ok_hex(Ctx.ExceptionRecord2.NumberParameters, 2);
+	ok_hex(Ctx.ExceptionRecord2.ExceptionInformation[0], 1);
+	ok_hex(Ctx.ExceptionRecord2.ExceptionInformation[1], 0xc0111ded);
+
+#ifdef _M_IX86
+	ok_hex(Ctx.Context1.ContextFlags, 0x10005f);
+	ok_hex(Ctx.Context1.SegCs, 0);
+#elif defined(_M_AMD64)
+	#define CONTEXT_XSTATE 0x40
+	ok_hex(Ctx.Context1.ContextFlags, CONTEXT_FULL | CONTEXT_SEGMENTS | CONTEXT_DEBUG_REGISTERS | CONTEXT_XSTATE);
+	ok_hex(Ctx.Context1.SegCs, 0x33);
+	ok_hex(Ctx.Context1.SegDs, 0x33);
+	ok_hex(Ctx.Context1.SegEs, 0x33);
+	ok_hex(Ctx.Context1.SegFs, 0x33);
+	ok_hex(Ctx.Context1.SegGs, 0x33);
+#endif
+
+#if 0
+  ULONG64 P1Home;
+  ULONG64 P2Home;
+  ULONG64 P3Home;
+  ULONG64 P4Home;
+  ULONG64 P5Home;
+  ULONG64 P6Home;
+
+  ULONG MxCsr;
+
+  ULONG EFlags;
+  ULONG64 Dr0;
+  ULONG64 Dr1;
+  ULONG64 Dr2;
+  ULONG64 Dr3;
+  ULONG64 Dr6;
+  ULONG64 Dr7;
+  ULONG64 Rax;
+  ULONG64 Rcx;
+  ULONG64 Rdx;
+  ULONG64 Rbx;
+  ULONG64 Rsp;
+  ULONG64 Rbp;
+  ULONG64 Rsi;
+  ULONG64 Rdi;
+  ULONG64 R8;
+  ULONG64 R9;
+  ULONG64 R10;
+  ULONG64 R11;
+  ULONG64 R12;
+  ULONG64 R13;
+  ULONG64 R14;
+  ULONG64 R15;
+  ULONG64 Rip;
+  union {
+    XMM_SAVE_AREA32 FltSave;
+    struct {
+      M128A Header[2];
+      M128A Legacy[8];
+      M128A Xmm0;
+      M128A Xmm1;
+      M128A Xmm2;
+      M128A Xmm3;
+      M128A Xmm4;
+      M128A Xmm5;
+      M128A Xmm6;
+      M128A Xmm7;
+      M128A Xmm8;
+      M128A Xmm9;
+      M128A Xmm10;
+      M128A Xmm11;
+      M128A Xmm12;
+      M128A Xmm13;
+      M128A Xmm14;
+      M128A Xmm15;
+    } DUMMYSTRUCTNAME;
+  } DUMMYUNIONNAME;
+  M128A VectorRegister[26];
+  ULONG64 VectorControl;
+  ULONG64 DebugControl;
+  ULONG64 LastBranchToRip;
+  ULONG64 LastBranchFromRip;
+  ULONG64 LastExceptionToRip;
+  ULONG64 LastExceptionFromRip;
+
+#endif
+
+	printf("ECode: %lx, %lx\n", Ctx.ExceptionRecord1.ExceptionCode, Ctx.ExceptionRecord1.ExceptionCode);
+	printf("ECode ptrs: %lx, %lx\n", Ctx.pExceptionRecord1->ExceptionCode, Ctx.pExceptionRecord1->ExceptionCode);
+
+	return 1;
+}
+
 #define USE_TEST_NAME_(NAME_) # NAME_
 #define USE_TEST_NAME(NAME_) USE_TEST_NAME_(NAME_)
 #define USE_TEST(NAME_) { USE_TEST_NAME(NAME_), NAME_ }
@@ -2886,6 +3124,8 @@ START_TEST(pseh)
 		USE_TEST(test_nested_exception),
 		USE_TEST(test_PSEH3_bug),
 		USE_TEST(test_PSEH3_bug2),
+
+		USE_TEST(test_collided_unwind_context),
 	};
 
 	size_t i;
