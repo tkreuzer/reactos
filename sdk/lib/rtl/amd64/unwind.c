@@ -729,19 +729,21 @@ RtlpExecuteHandler(
         {
             if (ExceptionPointers)
             {
-                PEXCEPTION_RECORD CurrentExceptionRecord = ExceptionPointers->ExceptionRecord;
-                PDISPATCHER_CONTEXT CurrentDispatcherContext = (PDISPATCHER_CONTEXT)(CurrentExceptionRecord + 1);
-                PCONTEXT CurrentUnwindContext = CurrentDispatcherContext->ContextRecord;
+                PEXCEPTION_RECORD ExceptionRecord = ExceptionPointers->ExceptionRecord;
+                //PDISPATCHER_CONTEXT CurrentDispatcherContext = (PDISPATCHER_CONTEXT)(CurrentExceptionRecord + 1);
+                //PCONTEXT CurrentUnwindContext = CurrentDispatcherContext->ContextRecord;
                 __debugbreak();
 
+                ExceptionRecord->ExceptionFlags |= EXCEPTION_NESTED_CALL;
+
                 /* Copy back the previous unwind context, which is stored in the dispatcher context */
-                *CurrentUnwindContext = *DispatcherContext->ContextRecord;
+                //*CurrentUnwindContext = *DispatcherContext->ContextRecord;
 
                 /* Copy back the previous dispatcher context */
-                *CurrentDispatcherContext = *DispatcherContext;
+                //*CurrentDispatcherContext = *DispatcherContext;
 
                 /* Restore the context pointer */
-                CurrentDispatcherContext->ContextRecord = CurrentUnwindContext;
+                //CurrentDispatcherContext->ContextRecord = CurrentUnwindContext;
             }
         }
     }
@@ -944,6 +946,30 @@ RtlpUnwindInternal(
 
                 if (Disposition == ExceptionContinueSearch)
                 {
+                    /* Tiny hack, because our nested exception handler is in C:
+                       The finally handler is being invoked when an excpetion 
+                       happened and it cannot report it back to us in the
+                       disposition, so it sets EXCEPTION_NESTED_CALL in the
+                       exception flags of the exception frame. */
+                    if (X.ExceptionRecord.ExceptionFlags & EXCEPTION_NESTED_CALL)
+                    {
+                        __debugbreak();
+                        /* We got back from the finally handler, which has
+                           stored the pointer to the previous dispatcher
+                           context in the current context's Rax field. */
+                        PDISPATCHER_CONTEXT OldDispatcherContext = 
+                            (PDISPATCHER_CONTEXT)ContextRecord->Rax;
+
+                        /* Copy the old unwind context */
+                        X.UnwindContext = *OldDispatcherContext->ContextRecord;
+
+                        /* Copy the old dispatcher context */
+                        X.DispatcherContext = *OldDispatcherContext;
+
+                        /* Restore the context pointer */
+                        X.DispatcherContext.ContextRecord = &X.UnwindContext;
+                    }
+
                     /* We are done with this function */
                     break;
                 }
@@ -986,7 +1012,7 @@ RtlpUnwindInternal(
             break;
         }
 
-        if (IS_UNWINDING(X.ExceptionRecord.ExceptionFlags))
+        //if (HandlerType == UNW_FLAG_UHANDLER)
         {
             /* We have successfully unwound a frame. Copy the unwind context back. */
             *ContextRecord = X.UnwindContext;
