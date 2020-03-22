@@ -34,7 +34,11 @@
 #include <windef.h>
 #include <winnt.h>
 
+#if DBG
 #define ASSERT(exp) if (!(exp)) __int2c();
+#else
+#define ASSERT(exp)
+#endif
 
 /* We need the full structure with all non-volatile */
 #define _SEH3$_FRAME_ALL_NONVOLATILES 1
@@ -62,13 +66,20 @@ C_ASSERT(SEH3_REGISTRATION_FRAME_ReturnAddress == FIELD_OFFSET(SEH3$_REGISTRATIO
 C_ASSERT(SEH3_SCOPE_TABLE_Filter == FIELD_OFFSET(SEH3$_SCOPE_TABLE, Filter));
 C_ASSERT(SEH3_SCOPE_TABLE_Target == FIELD_OFFSET(SEH3$_SCOPE_TABLE, Target));
 
+FORCEINLINE
+SEH3$_REGISTRATION_FRAME*
+_SEH3$_GetExceptionList(VOID)
+{
+    return (SEH3$_REGISTRATION_FRAME*)__readfsdword(0);
+}
+
 void
 __attribute__((regparm(1)))
 _SEH3$_Unregister(
     volatile SEH3$_REGISTRATION_FRAME *Frame)
 {
     volatile SEH3$_REGISTRATION_FRAME *HeadFrame;
-    SEH3$_REGISTRATION_FRAME **LinkPointer;
+    SEH3$_REGISTRATION_FRAME *LinkFrame;
 
     /* Check if the frame has a handler (then it's the registered frame) */
     if (Frame->Handler != NULL)
@@ -76,17 +87,24 @@ _SEH3$_Unregister(
         /* There shouldn't be any more nested try-level frames */
         ASSERT(Frame->EndOfChain == Frame);
 
-        /* During unwinding on Windows ExecuteHandler2 installs it's own EH frame,
-           so there can be one or even multiple frames before our own one and we
-           need to search for the link that points to our head frame. */
-        LinkPointer = (SEH3$_REGISTRATION_FRAME **)NtCurrentTeb();
-        while (*LinkPointer != Frame)
+        /* During unwinding ExecuteHandler2 installs it's own EH frame, so
+           there can be one or even multiple frames before our own one and
+           we need to search for the link that points to our head frame. */
+        LinkFrame = _SEH3$_GetExceptionList();
+        if (LinkFrame == Frame)
         {
-            LinkPointer = &((*LinkPointer)->Next);
+            _SEH3$_UnregisterFrame(Frame);
         }
+        else
+        {
+            while (LinkFrame->Next != Frame)
+            {
+                LinkFrame = LinkFrame->Next;
+            }
 
-        /* Remove the frame from the linked list */
-        *LinkPointer = Frame->Next;
+            /* Remove the frame from the linked list */
+            LinkFrame->Next = Frame->Next;
+        }
     }
     else
     {
@@ -229,9 +247,10 @@ __attribute__((noreturn))
 static inline
 void
 _SEH3$_JumpToTarget(
-    PSEH3$_REGISTRATION_FRAME RegistrationFrame)
+    PSEH3$_REGISTRATION_FRAME RegistrationFrame,
+    PSEH3$_SCOPE_TABLE ScopeTable)
 {
-    if (RegistrationFrame->ScopeTable->HandlerType == _SEH3$_CLANG_HANDLER)
+    if (ScopeTable->HandlerType == _SEH3$_CLANG_HANDLER)
     {
         asm volatile (
             /* Load the registers */
@@ -249,8 +268,8 @@ _SEH3$_JumpToTarget(
             "jmp *%[Target]"
             : :
             "c" (RegistrationFrame),
-            "a" (RegistrationFrame->ScopeTable),
-             [Target] "m" (RegistrationFrame->ScopeTable->Target)
+            "a" (ScopeTable),
+             [Target] "m" (ScopeTable->Target)
         );
     }
     else
@@ -267,8 +286,8 @@ _SEH3$_JumpToTarget(
             "jmp *%[Target]"
             : :
             "c" (RegistrationFrame),
-            "a" (RegistrationFrame->ScopeTable),
-             [Target] "m" (RegistrationFrame->ScopeTable->Target)
+            "a" (ScopeTable),
+             [Target] "m" (ScopeTable->Target)
         );
     }
 
@@ -280,6 +299,13 @@ __fastcall
 _SEH3$_CallRtlUnwind(
     PSEH3$_REGISTRATION_FRAME RegistrationFrame);
 
+SEH3$_SCOPE_TABLE _SEH3$_DummyScopeTable =
+{
+    NULL, // void *Target;
+    NULL, // void *Filter;
+    0, // unsigned char TryLevel;
+    0, // unsigned char HandlerType;
+};
 
 EXCEPTION_DISPOSITION
 __cdecl
@@ -293,11 +319,15 @@ _SEH3$_except_handler(
     void * DispatcherContext)
 {
     PSEH3$_REGISTRATION_FRAME CurrentFrame, TargetFrame;
+    PSEH3$_SCOPE_TABLE OriginalScopeTable;
     SEH3$_EXCEPTION_POINTERS ExceptionPointers;
     LONG FilterResult;
 
     /* Clear the direction flag. */
     asm volatile ("cld" : : : "memory");
+
+    /* We are always being called with a protection handler before us */
+    ASSERT(_SEH3$_GetExceptionList() != EstablisherFrame);
 
     /* Save the exception pointers on the stack */
     ExceptionPointers.ExceptionRecord = ExceptionRecord;
@@ -343,8 +373,12 @@ _SEH3$_except_handler(
             CurrentFrame = CurrentFrame->Next;
         }
 
-        /* Call RtlUnwind to unwind the frames below this one */
+        /* Call RtlUnwind to unwind the frames below this one.
+           This should (hopefully) bring us back exactly here
+           with no further registration frames before us. */
         _SEH3$_CallRtlUnwind(EstablisherFrame);
+
+        ASSERT(_SEH3$_GetExceptionList() == EstablisherFrame);
 
         /* Do a local unwind up to this frame */
         TargetFrame = CurrentFrame;
@@ -355,7 +389,7 @@ _SEH3$_except_handler(
          CurrentFrame != TargetFrame;
          CurrentFrame = CurrentFrame->Next)
     {
-        /* Manually unregister the frame */
+        /* Unregister the frame before handling it */
         _SEH3$_Unregister(CurrentFrame);
 
         /* Check if this is an unwind frame */
@@ -371,18 +405,21 @@ _SEH3$_except_handler(
     }
 
     /* Check if this was an unwind */
-    if (ExceptionRecord->ExceptionFlags & EXCEPTION_UNWINDING)
+    if (IS_UNWINDING(ExceptionRecord->ExceptionFlags))
     {
+        /* We are done unwinding this frame */
         return ExceptionContinueSearch;
     }
 
-    /* Unregister the frame. It will be unregistered again at the end of the
-       __except block, due to auto cleanup, but that doesn't hurt.
-       All we do is set either fs:[0] or EstablisherFrame->EndOfChain to
-       CurrentFrame->Next, which will not change it's value. */
-    _SEH3$_Unregister(CurrentFrame);
+    /* We are about to return to the __except part of the SEH block.
+       Our handler will be removed at the end of the block, but we 
+       need to make sure it's not active any longer, therefore we
+       set the ScopeTable to a dummy table, that doesn't have any
+       filter or jump target. */
+    OriginalScopeTable = CurrentFrame->ScopeTable;
+    CurrentFrame->ScopeTable = &_SEH3$_DummyScopeTable;
 
     /* Jump to the __except block (does not return) */
-    _SEH3$_JumpToTarget(CurrentFrame);
+    _SEH3$_JumpToTarget(CurrentFrame, OriginalScopeTable);
 }
 

@@ -2575,13 +2575,13 @@ DEFINE_TEST(test_nested_exception)
         _SEH2_EXCEPT(1)
         {
             val |= 8;
-            *((char*)(intptr_t)0xdeadc0de) = 0;
+            *((char*)(intptr_t)0xbaadf00d) = 0;
             val |= 16;
         }
         _SEH2_END;
 
         val |= 32;
-        *((char*)(intptr_t)0xdeadc0de) = 0;
+        *((char*)(intptr_t)0xbaadc0de) = 0;
         val |= 64;
     }
     _SEH2_EXCEPT(1)
