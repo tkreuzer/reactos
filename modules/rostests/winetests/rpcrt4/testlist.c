@@ -17,6 +17,6 @@ const struct test winetest_testlist[] =
     { "ndr_marshall", func_ndr_marshall },
     { "rpc", func_rpc },
     { "rpc_async", func_rpc_async },
-    { "server", func_server },
+//    { "server", func_server },
     { 0, 0 }
 };

@@ -32,7 +32,7 @@ const struct test winetest_testlist[] =
     { "mapping", func_mapping },
     { "metafile", func_metafile },
     { "palette", func_palette },
-    { "path", func_path },
+//    { "path", func_path },
     { "pen", func_pen },
     { 0, 0 }
 };

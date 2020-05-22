@@ -19,7 +19,7 @@ const struct test winetest_testlist[] =
     { "activex", func_activex },
     { "dom", func_dom },
     { "events", func_events },
-    { "htmldoc", func_htmldoc },
+//    { "htmldoc", func_htmldoc },
     { "htmllocation", func_htmllocation },
     { "misc", func_misc },
     { "protocol", func_protocol },

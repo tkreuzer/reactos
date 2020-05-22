@@ -20,7 +20,7 @@ const struct test winetest_testlist[] =
     { "olefont", func_olefont },
     { "olepicture", func_olepicture },
     { "safearray", func_safearray },
-    { "tmarshal", func_tmarshal },
+ //   { "tmarshal", func_tmarshal },
     { "typelib", func_typelib },
     { "usrmarshal", func_usrmarshal },
     { "varformat", func_varformat },
