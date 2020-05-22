@@ -32,7 +32,7 @@ const struct test winetest_testlist[] =
     { "directory", func_directory },
     { "env", func_env },
     { "error", func_error },
-    { "exception", func_exception },
+    //{ "exception", func_exception },
     { "file", func_file },
 #ifdef _M_IX86
     { "generated", func_generated },
