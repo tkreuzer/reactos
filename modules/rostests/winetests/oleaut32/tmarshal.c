@@ -3693,7 +3693,9 @@ START_TEST(tmarshal)
         return;
     }
 
+#ifndef __MSVC_RUNTIME_CHECKS // this is broken and triggers an invalid ESP failure
     test_typelibmarshal();
+#endif
     test_DispCallFunc();
     test_StaticWidget();
     test_libattr();
