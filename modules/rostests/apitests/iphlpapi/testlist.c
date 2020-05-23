@@ -15,7 +15,7 @@ extern void func_SendARP(void);
 const struct test winetest_testlist[] =
 {
     { "GetExtendedTcpTable",        func_GetExtendedTcpTable },
-    { "GetExtendedUdpTable",        func_GetExtendedUdpTable },
+//    { "GetExtendedUdpTable",        func_GetExtendedUdpTable },
     { "GetInterfaceName",           func_GetInterfaceName },
     { "GetNetworkParams",           func_GetNetworkParams },
     { "GetOwnerModuleFromTcpEntry", func_GetOwnerModuleFromTcpEntry },
