@@ -9,7 +9,7 @@
  *                  Jacek Caban for CodeWeavers
  *                  Alexandre Julliard
  *                  Stefan Ginsberg (stefan.ginsberg@reactos.org)
- *                  Samuel Serapión
+ *                  Samuel SerapiÃ³n
  */
 
 /* Based on Wine 3.2-37c98396 */
@@ -2527,7 +2527,7 @@ static BOOL parse_requested_privileges_elem(xmlbuf_t* xmlbuf, struct assembly* a
     {
         if (xml_elem_cmp_end(&elem, requestedPrivilegesW, ms_asmv3W))
         {
-            DPRINT1("Experimental supprto for ms_asmv3:requestedPrivileges\n");
+            DPRINT("Experimental support for ms_asmv3:requestedPrivileges\n");
             ret = parse_end_element(xmlbuf);
             break;
         }
@@ -2559,7 +2559,7 @@ static BOOL parse_security_elem(xmlbuf_t *xmlbuf, struct assembly *assembly, str
     {
         if (xml_elem_cmp_end(&elem, securityW, ms_asmv3W))
         {
-            DPRINT1("Experimental support for ms_asmv3:security\n");
+            DPRINT("Experimental support for ms_asmv3:security\n");
             ret = parse_end_element(xmlbuf);
             break;
         }
@@ -2591,13 +2591,13 @@ static BOOL parse_trust_info_elem(xmlbuf_t *xmlbuf, struct assembly *assembly, s
     {
         if (xml_elem_cmp_end(&elem, trustInfoW, ms_asmv3W))
         {
-            DPRINT1("Experimental support for ms_asmv3:trustInfo\n");
+            DPRINT("Experimental support for ms_asmv3:trustInfo\n");
             ret = parse_end_element(xmlbuf);
             break;
         }
         if (xml_elem_cmp_end(&elem, trustInfoW, asmv3W))
         {
-            DPRINT1("Experimental support for asmv3:trustInfo\n");
+            DPRINT("Experimental support for asmv3:trustInfo\n");
             ret = parse_end_element(xmlbuf);
             break;
         }
