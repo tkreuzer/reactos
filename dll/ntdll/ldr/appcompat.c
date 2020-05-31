@@ -358,7 +358,7 @@ BOOLEAN
 NTAPI
 LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry)
 {
-#if ENABLE_EXPORT_VERSIONING
+#if 1 // def ENABLE_EXPORT_VERSIONING
     DWORD AppCompatVersion;
     PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
     NTSTATUS Status;
