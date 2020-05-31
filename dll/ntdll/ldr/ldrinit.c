@@ -2266,7 +2266,7 @@ LdrpInitializeProcess(IN PCONTEXT Context,
     actctx_init(&OldShimData);
 
     /* Apply export versioning hacks */
-    LdrpApplyRosCompatMagic(NtLdrEntry);
+    //LdrpApplyRosCompatMagic(NtLdrEntry);
 
     /* Set the current directory */
     Status = RtlSetCurrentDirectory_U(&CurrentDirectory);
@@ -2504,6 +2504,10 @@ LdrpInitializeProcess(IN PCONTEXT Context,
      * FIXME: Check for special images, SecuROM, SafeDisc and other NX-
      * incompatible images.
      */
+
+    /* Apply export versioning hacks */
+    LdrpPatchLoadedModulesExportTables();
+
 
     /* Now call the Init Routines */
     Status = LdrpRunInitializeRoutines(Context);

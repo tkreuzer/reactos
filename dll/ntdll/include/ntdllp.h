@@ -230,6 +230,10 @@ BOOLEAN
 NTAPI
 LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry);
 
+VOID
+NTAPI
+LdrpPatchLoadedModulesExportTables();
+
 extern char __ImageBase;
 
 

@@ -17,12 +17,13 @@
 #include <debug.h>
 
 static DWORD g_CompatVersion = REACTOS_COMPATVERSION_UNINITIALIZED;
-
+static BOOL g_LoadedModulesInitialized = FALSE;
 
 DWORD
 NTAPI
 RosGetProcessCompatVersion(VOID)
 {
+    DPRINT1("RosGetProcessCompatVersion(): g_CompatVersion = 0x%lx\n");
     if (g_CompatVersion == REACTOS_COMPATVERSION_UNINITIALIZED)
     {
         ReactOS_ShimData* pShimData = (ReactOS_ShimData*)NtCurrentPeb()->pShimData;
@@ -30,12 +31,12 @@ RosGetProcessCompatVersion(VOID)
             pShimData->dwSize == sizeof(ReactOS_ShimData))
         {
             g_CompatVersion = pShimData->dwRosProcessCompatVersion;
-            DPRINT("roscompat: Initializing version to 0x%x\n", g_CompatVersion);
+            DPRINT1("roscompat: Initializing version to 0x%x\n", g_CompatVersion);
         }
         else
         {
             g_CompatVersion = 0;
-            DPRINT("roscompat: No version set\n");
+            DPRINT1("roscompat: No version set\n");
         }
     }
     return g_CompatVersion < REACTOS_COMPATVERSION_UNINITIALIZED ? g_CompatVersion : 0;
@@ -362,6 +363,11 @@ LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry)
     PROSCOMPAT_DESCRIPTOR RosCompatDescriptor;
     NTSTATUS Status;
 
+    if (!g_LoadedModulesInitialized)
+    {
+        return FALSE;
+    }
+
     /* Make sure we have a data table entry */
     ASSERT(LdrEntry != NULL);
 
@@ -391,11 +397,16 @@ LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry)
         Peb->OSMinorVersion = AppCompatVersion & 0xFF;
     }
 
-    DPRINT("roscompat: Patching eat of %wZ for 0x%x\n", &LdrEntry->BaseDllName, AppCompatVersion);
+    DPRINT1("roscompat: Patching eat of %wZ for 0x%x\n", &LdrEntry->BaseDllName, AppCompatVersion);
 
     /* Save the descriptor in the PatchInformation field, which is otherwise
        unused in user-mode */
     LdrEntry->PatchInformation = RosCompatDescriptor;
+
+    if (wcsstr(LdrEntry->BaseDllName.Buffer, L"nocrapyshf.dll") == 0)
+    {
+        return FALSE;
+    }
 
     /* Now patch the export table */
     Status = LdrpPatchExportTable(LdrEntry,
@@ -408,4 +419,23 @@ LdrpApplyRosCompatMagic(PLDR_DATA_TABLE_ENTRY LdrEntry)
     }
 
     return TRUE;
+}
+
+VOID
+NTAPI
+LdrpPatchLoadedModulesExportTables()
+{
+    PLIST_ENTRY ListHead, ListEntry;
+    PLDR_DATA_TABLE_ENTRY LdrEntry;
+
+    ListHead = &NtCurrentPeb()->Ldr->InLoadOrderModuleList;
+    for (ListEntry = ListHead->Flink;
+         ListHead != ListEntry;
+         ListEntry = ListEntry->Flink)
+    {
+        LdrEntry = CONTAINING_RECORD(ListEntry, LDR_DATA_TABLE_ENTRY, InLoadOrderLinks);
+        LdrpApplyRosCompatMagic(LdrEntry);
+    }
+
+    g_LoadedModulesInitialized = TRUE;
 }
