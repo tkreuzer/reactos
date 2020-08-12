@@ -16,7 +16,7 @@
 #define NDEBUG
 #include <debug.h>
 
-static DWORD g_CompatVersion = REACTOS_COMPATVERSION_UNINITIALIZED;
+static DWORD g_CompatVersion = _WIN32_WINNT_WIN7; // REACTOS_COMPATVERSION_UNINITIALIZED;
 
 
 DWORD
