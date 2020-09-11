@@ -69,7 +69,8 @@ if(MSVC AND (NOT USE_CLANG_CL))
     remove_target_compile_option(libxml2 "/we4101")
     target_compile_options(libxml2 PRIVATE "/wd4101")
     # Conversion from 'x' to 'y', possible loss of data
-    add_target_compile_flags(libxml2 "/wd4267")
+    #add_target_compile_flags(libxml2 "/wd4267")
+    target_compile_options(libxml2 PRIVATE "/wd4267")
     # Local variable initialized but not referenced
     remove_target_compile_option(libxml2 "/we4189")
 else()
