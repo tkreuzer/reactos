@@ -1272,9 +1272,8 @@ CsrCaptureArguments(IN PCSR_THREAD CsrThread,
             CurrentOffset += (ULONG_PTR)ApiMessage;
 
             /* Validate the bounds of the current pointed pointer */
-            if ( (*(PULONG_PTR)CurrentOffset >= ((ULONG_PTR)ClientCaptureBuffer +
-                                                 SizeOfBufferThroughOffsetsArray)) &&
-                 (*(PULONG_PTR)CurrentOffset <= (EndOfClientBuffer - sizeof(PVOID))) )
+            if ((*(PULONG_PTR)CurrentOffset >= CsrThread->Process->ClientViewBase) &&
+                (*(PULONG_PTR)CurrentOffset < CsrThread->Process->ClientViewBounds))
             {
                 /* Modify the pointed pointer to take into account its new position */
                 *(PULONG_PTR)CurrentOffset += BufferDistance;
