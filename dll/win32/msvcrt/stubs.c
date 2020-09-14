@@ -1,5 +1,6 @@
 
 #include <stubs.h>
+#include <ctype.h>
 
 #undef UNIMPLEMENTED
 #define UNIMPLEMENTED __wine_spec_unimplemented_stub("msvcrt.dll", __FUNCTION__)
@@ -756,17 +757,6 @@ _Check_return_wat_
 _CRTIMP
 errno_t
 __cdecl
-_wcslwr_s(
-    _Inout_updates_z_(sizeInWords) wchar_t *str,
-    _In_ size_t sizeInWords)
-{
-    return _wcslwr_s_l(str, sizeInWords, NULL);
-}
-
-_Check_return_wat_
-_CRTIMP
-errno_t
-__cdecl
 _wcslwr_s_l(
     _Inout_updates_z_(sizeInWords) wchar_t *str,
     _In_ size_t sizeInWords,
@@ -790,21 +780,6 @@ strncat_s(
 {
     UNIMPLEMENTED;
     return ENOTSUP;
-}
-
-_Check_return_opt_
-_CRTIMP
-_CRT_INSECURE_DEPRECATE(vsnprintf_s)
-int
-__cdecl
-vsnprintf_(
-    _Out_writes_(maxCount) char *dst,
-    _In_ size_t maxCount,
-    _In_z_ _Printf_format_string_ const char *format,
-    va_list argptr)
-{
-    UNIMPLEMENTED;
-    return 0;
 }
 
 _Check_return_
