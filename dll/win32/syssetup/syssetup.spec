@@ -1,3 +1,4 @@
+@ stub ApplyAcls
 @ stub AsrAddSifEntryA
 @ stub AsrAddSifEntryW
 @ stub AsrCreateStateFileA
@@ -14,6 +15,7 @@
 @ stub CreateLocalUserAccount
 @ stdcall CriticalDeviceCoInstaller(long ptr ptr ptr)
 @ stub DevInstallW
+@ stub GenerateScsiHwIdList
 @ stdcall DeviceBayClassInstaller(long ptr ptr)
 @ stdcall DiskPropPageProvider(ptr ptr long)
 @ stub DoInstallComponentInfs
@@ -23,19 +25,17 @@
 @ stdcall HdcClassInstaller(long ptr ptr)
 @ stdcall InitializeSetupActionLog(long)
 @ stdcall InstallWindowsNt(long ptr)
-@ stub InvokeExternalApplicationEx
 @ stdcall KeyboardClassInstaller(long ptr ptr)
-@ stdcall LegacyDriverPropPageProvider(ptr ptr long)
-@ stub MigrateExceptionPackages
+@ stub LogItem@8
+@ stub LogItem0
+@ stub LogItem1
+@ stub LogItem2
+@ stub LogItem3
+@ stub LogItemN
 @ stdcall MouseClassInstaller(long ptr ptr)
-@ stdcall NtApmClassInstaller(long ptr ptr)
-@ stub OpkCheckVersion
-@ stdcall PS2MousePropPageProvider(ptr ptr long)
 @ stub PnPInitializationThread
-@ stub PrepareForAudit
 @ stub RepairStartMenuItems
 @ stub ReportError
-@ stub RunOEMExtraTasks
 @ stdcall ScsiClassInstaller(long ptr ptr)
 @ stdcall SetAccountsDomainSid(ptr wstr)
 @ stub SetupAddOrRemoveTestCertificate
@@ -43,17 +43,8 @@
 @ stdcall SetupChangeLocale(ptr long)
 @ stdcall SetupChangeLocaleEx(ptr long wstr str long long)
 @ stub SetupCreateOptionalComponentsPage
-@ stub SetupDestroyLanguageList
-@ stub SetupDestroyPhoneList
-@ stub SetupEnumerateRegisteredOsComponents
-@ stub SetupExtendPartition
-@ stub SetupGetGeoOptions
-@ stub SetupGetKeyboardOptions
-@ stub SetupGetLocaleOptions
-@ stub SetupGetProductType
-@ stub SetupGetSetupInfo
-@ stub SetupGetValidEula
 @ stdcall SetupInfObjectInstallActionW() SETUPAPI.InstallHinfSectionW
+@ stub SetupSetLargeDialogFont
 @ stub SetupInstallCatalog
 @ stub SetupMapTapiToIso
 @ stub SetupOobeBnk
@@ -76,9 +67,7 @@
 @ stdcall StorageCoInstaller(long ptr ptr ptr)
 @ stub SystemUpdateUserProfileDirectory
 @ stdcall TapeClassInstaller(long ptr ptr)
-@ stdcall TapePropPageProvider(ptr ptr long)
 @ stdcall TerminateSetupActionLog()
-@ stub UpdatePnpDeviceDrivers
 @ stub UpgradePrinters
 @ stub ViewSetupActionLog
 @ stdcall VolumeClassInstaller(long ptr ptr)

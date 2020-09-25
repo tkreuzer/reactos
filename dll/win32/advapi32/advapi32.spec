@@ -25,6 +25,7 @@
 @ stdcall AddAuditAccessAce(ptr long long ptr long long)
 @ stdcall AddAuditAccessAceEx(ptr long long long ptr long long)
 @ stdcall AddAuditAccessObjectAce(ptr long long long ptr ptr ptr long long)
+@ stdcall AddMandatoryAce(ptr long long long ptr)
 @ stdcall AddUsersToEncryptedFile(wstr ptr)
 @ stdcall AdjustTokenGroups(long long ptr long ptr ptr)
 @ stdcall AdjustTokenPrivileges(long long ptr long ptr ptr)
@@ -95,6 +96,7 @@
 @ stdcall CreatePrivateObjectSecurityEx(ptr ptr ptr ptr long long ptr ptr)
 @ stdcall CreatePrivateObjectSecurityWithMultipleInheritance(ptr ptr ptr ptr long long long ptr ptr)
 @ stdcall CreateProcessAsUserA(long str str ptr ptr long long ptr str ptr ptr)
+@ stub CreateProcessAsUserSecure
 @ stdcall CreateProcessAsUserW(long str str ptr ptr long long ptr str ptr ptr)
 @ stdcall CreateProcessWithLogonW(wstr wstr wstr long wstr wstr long ptr wstr ptr ptr)
 @ stdcall CreateProcessWithTokenW(ptr long wstr wstr long ptr wstr ptr ptr)
@@ -125,8 +127,8 @@
 @ stdcall CredUnmarshalCredentialA(str ptr ptr)
 @ stdcall CredUnmarshalCredentialW(wstr ptr ptr)
 @ stdcall CredWriteA(ptr long)
-# CredWriteDomainCredentialsA
-@ stub CredWriteDomainCredentialsW
+@ stdcall CredWriteDomainCredentialsA(ptr ptr long)
+@ stdcall CredWriteDomainCredentialsW(ptr ptr long)
 @ stdcall CredWriteW(ptr long)
 @ stub CredpConvertCredential
 @ stub CredpConvertTargetInfo
@@ -200,7 +202,7 @@
 @ stdcall ElfRegisterEventSourceW(ptr ptr ptr)
 @ stdcall ElfReportEventA(long long long long ptr long long ptr ptr long ptr ptr)
 @ stdcall ElfReportEventAndSourceW(long long ptr long long long ptr ptr long long ptr ptr long ptr ptr)
-@ stdcall ElfReportEventW(long long long long ptr long long ptr ptr long ptr ptr)
+@ stdcall ElfReportEventW(long long long long ptr long long ptr ptr ptr ptr ptr)
 @ stdcall EnableTrace(long long long ptr double) ntdll.EtwEnableTrace
 @ stdcall EncryptFileA(str)
 @ stdcall EncryptFileW(wstr)
@@ -302,8 +304,8 @@
 @ stdcall I_ScSetServiceBitsW(ptr long long long wstr)
 @ stub IdentifyCodeAuthzLevelW
 @ stdcall ImpersonateAnonymousToken(ptr)
-@ stdcall ImpersonateLoggedOnUser(long)
-@ stdcall ImpersonateNamedPipeClient(long)
+@ stdcall ImpersonateLoggedOnUser(ptr)
+@ stdcall ImpersonateNamedPipeClient(ptr)
 @ stdcall ImpersonateSelf(long)
 @ stdcall InitializeAcl(ptr long long)
 @ stdcall InitializeSecurityDescriptor(ptr long)
@@ -313,8 +315,8 @@
 @ stdcall InitiateSystemShutdownExW(wstr wstr long long long long)
 @ stdcall InitiateSystemShutdownW(str str long long long)
 @ stub InstallApplication
-@ stdcall IsTextUnicode(ptr long ptr)
-@ stdcall IsTokenRestricted(long)
+@ stdcall IsTextUnicode(ptr long ptr) ntdll.RtlIsTextUnicode
+@ stdcall IsTokenRestricted(ptr)
 @ stub IsTokenUntrusted
 @ stdcall IsValidAcl(ptr)
 @ stdcall IsValidSecurityDescriptor(ptr)
@@ -467,8 +469,8 @@
 @ stdcall RegCreateKeyExW(long wstr long ptr long long ptr ptr ptr)
 @ stdcall RegCreateKeyW(long wstr ptr)
 @ stdcall RegDeleteKeyA(long str)
-@ stdcall RegDeleteKeyExA(long str long long)
-@ stdcall RegDeleteKeyExW(long wstr long long)
+@ stdcall RegDeleteKeyExA(ptr str long long)
+@ stdcall RegDeleteKeyExW(ptr wstr long long)
 @ stdcall RegDeleteKeyW(long wstr)
 @ stdcall RegDeleteValueA(long str)
 @ stdcall RegDeleteValueW(long wstr)
