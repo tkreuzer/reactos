@@ -541,8 +541,11 @@ ObpLookupObjectName(IN HANDLE RootHandle OPTIONAL,
             /* Now parse */
             while (TRUE)
             {
+                UNICODE_STRING system32String = RTL_CONSTANT_STRING(L"System32");
                 /* Start with the full name */
                 RemainingName = *ObjectName;
+//__debugbreak();
+                if (RtlPrefixUnicodeString(&system32String, &RemainingName, TRUE)) __debugbreak();
 
                 /* Call the Parse Procedure */
                 ObpCalloutStart(&CalloutIrql);
