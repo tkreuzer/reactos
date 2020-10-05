@@ -846,7 +846,7 @@ Return Value:
         //
         //  Verify the Vcb.
         //
-
+        //__debugbreak();
         CdVerifyVcb( IrpContext, IrpContext->Vcb );
 
         //
