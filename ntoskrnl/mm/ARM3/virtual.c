@@ -546,7 +546,7 @@ MiDeletePte(IN PMMPTE PointerPte,
 VOID
 NTAPI
 MiDeleteVirtualAddresses(IN ULONG_PTR Va,
-                         IN ULONG_PTR EndingAddress, // inclusive!
+                         IN ULONG_PTR EndingAddress,
                          IN PMMVAD Vad)
 {
     PMMPTE PointerPte, PrototypePte, LastPrototypePte;
@@ -566,16 +566,8 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
     /* Get out if this is a fake VAD, RosMm will free the marea pages */
     if ((Vad) && (Vad->u.VadFlags.Spare == 1)) return;
 
-    /* Grab the process and PTE/PDE for the address being deleted */
+    /* Get the current process */
     CurrentProcess = PsGetCurrentProcess();
-    PointerPde = MiAddressToPde(Va);
-    PointerPte = MiAddressToPte(Va);
-#if (_MI_PAGING_LEVELS >= 3)
-    PointerPpe = MiAddressToPpe((PVOID)Va);
-#endif
-#if (_MI_PAGING_LEVELS >= 3)
-    PointerPxe = MiAddressToPxe((PVOID)Va);
-#endif
 
     /* Check if this is a section VAD or a VM VAD */
     if (!(Vad) || (Vad->u.VadFlags.PrivateMemory) || !(Vad->FirstPrototypePte))
@@ -593,64 +585,60 @@ MiDeleteVirtualAddresses(IN ULONG_PTR Va,
     /* In all cases, we don't support fork() yet */
     ASSERT(CurrentProcess->CloneRoot == NULL);
 
-    /* Loop the PTE for each VA */
-    while (TRUE)
+    /* Loop the PTE for each VA (EndingAddress is inclusive!) */
+    while (Va <= EndingAddress)
     {
-RestartLoop:
 #if (_MI_PAGING_LEVELS >= 4)
-        /* Skip invalid PXEs */
+        /* Get the PXE and check if it's valid */
         PointerPxe = MiAddressToPxe((PVOID)Va);
-        while (!PointerPxe->u.Long)
+        if (!PointerPxe->u.Hard.Valid)
         {
-            /* There are gaps in the address space */
-            AddressGap = TRUE;
+            /* Check for unmapped range and skip it */
+            if (!PointerPxe->u.Long)
+            {
+                /* There are gaps in the address space */
+                AddressGap = TRUE;
 
-            /* Still no valid PXE, try the next 4MB (or whatever) */
-            PointerPxe++;
+                /* Update Va and continue looping */
+                Va = (ULONG_PTR)MiPxeToAddress(PointerPxe + 1);
+                continue;
+            }
 
-            /* Update Va and check if we're at the end */
-            Va = (ULONG_PTR)MiPxeToAddress(PointerPxe);
-            if (Va > EndingAddress) return;
+            /* Make the PXE valid */
+            PointerPte = MiPteToAddress(PointerPxe);
+            MiMakeSystemAddressValid(PointerPte, CurrentProcess);
         }
 #endif
 #if (_MI_PAGING_LEVELS >= 3)
-        /* Skip invalid PPEs */
+        /* Get the PPR and check if it's valid */
         PointerPpe = MiAddressToPpe((PVOID)Va);
-        while (!PointerPpe->u.Long)
+        if (!PointerPpe->u.Hard.Valid)
         {
-            /* There are gaps in the address space */
-            AddressGap = TRUE;
+            /* Check for unmapped range and skip it */
+            if (!PointerPpe->u.Long)
+            {
+                /* There are gaps in the address space */
+                AddressGap = TRUE;
 
-            /* Still no valid PDE, try the next 4MB (or whatever) */
-            PointerPpe++;
+                /* Update Va and continue looping */
+                Va = (ULONG_PTR)MiPpeToAddress(PointerPpe + 1);
+                continue;
+            }
 
-            /* Update Va and check if we're at the end */
-            Va = (ULONG_PTR)MiPpeToAddress(PointerPpe);
-            if (Va > EndingAddress) return;
-#if (_MI_PAGING_LEVELS >= 4)
-            if (MiAddressToPxe((PVOID)Va) != PointerPxe) goto RestartLoop;
-#endif
+            /* Make the PDE valid */
+            MiMakeSystemAddressValid(MiPteToAddress(PointerPde), CurrentProcess);
         }
 #endif
         /* Skip invalid PDEs */
         PointerPde = MiAddressToPde((PVOID)Va);
-        while (!PointerPde->u.Long)
+        if (!PointerPde->u.Long)
         {
             /* There are gaps in the address space */
             AddressGap = TRUE;
 
-            /* Still no valid PDE, try the next 4MB (or whatever) */
-            PointerPde++;
-
-            /* Update the PTE on this new boundary */
-            PointerPte = MiPteToAddress(PointerPde);
-
             /* Check if all the PDEs are invalid, so there's nothing to free */
-            Va = (ULONG_PTR)MiPteToAddress(PointerPte);
-            if (Va > EndingAddress) return;
-#if (_MI_PAGING_LEVELS >= 3)
-            if (MiAddressToPpe((PVOID)Va) != PointerPpe) goto RestartLoop;
-#endif
+            Va = (ULONG_PTR)MiPdeToAddress(PointerPde + 1);
+            continue;
         }
 
         /* Now check if the PDE is mapped in */
@@ -687,6 +675,7 @@ RestartLoop:
 
         /* Lock the PFN Database while we delete the PTEs */
         OldIrql = MiAcquirePfnLock();
+        PointerPte = MiAddressToPte(Va);
         do
         {
             /* Capture the PDE and make sure it exists */
