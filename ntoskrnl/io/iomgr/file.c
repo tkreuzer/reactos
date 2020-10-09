@@ -994,16 +994,24 @@ IopParseDevice(IN PVOID ParseObject,
 
         /* Queue the IRP and call the driver */
         IopQueueIrpToThread(Irp);
+        if (Irp->MajorFunction == )
+        __debugbreak();
         Status = IoCallDriver(DeviceObject, Irp);
         if (Status == STATUS_PENDING)
         {
-            /* Wait for the driver to complete the create */
-            KeWaitForSingleObject(&FileObject->Event,
-                                  Executive,
-                                  KernelMode,
-                                  FALSE,
-                                  NULL);
+            LARGE_INTEGER timeOut;
+            NTSTATUS status2;
 
+            timeOut.QuadPart = -10;
+            do
+            {
+                /* Wait for the driver to complete the create */
+                status2 = KeWaitForSingleObject(&FileObject->Event,
+                                                Executive,
+                                                KernelMode,
+                                                FALSE,
+                                                &timeOut);
+            } while (status2 == STATUS_TIMEOUT);
             /* Get the new status */
             Status = IoStatusBlock.Status;
         }
