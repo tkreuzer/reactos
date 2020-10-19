@@ -122,3 +122,24 @@ add_library(rtl_vista ${SOURCE_VISTA})
 add_pch(rtl_vista rtl_vista.h SOURCE_VISTA)
 add_dependencies(rtl_vista psdk)
 target_link_libraries(rtl_vista PRIVATE pseh)
+
+# Kernel mode support
+list(APPEND SOURCE_KM
+    km/libsupp.c
+    km/misc.c)
+if(ARCH STREQUAL "i386")
+list(APPEND ASM_SOURCE_KM
+    km/i386/stack.S)
+elseif(ARCH STREQUAL "arm")
+list(APPEND SOURCE_KM
+    km/arm/rtlexcpt.c)
+endif()
+add_library(rtl_km ${SOURCE_KM})
+
+# User mode support
+list(APPEND SOURCE_UM
+    um/libsupp.c
+    um/uilist.c
+    um/version.c)
+add_library(rtl_um ${SOURCE_UM})
+

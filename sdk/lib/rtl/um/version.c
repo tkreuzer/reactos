@@ -10,7 +10,7 @@
 
 /* INCLUDES *******************************************************************/
 
-#include <ntdll.h>
+#include <rtl.h>
 
 #define NDEBUG
 #include <debug.h>

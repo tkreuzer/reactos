@@ -9,7 +9,7 @@
 
 /* INCLUDES *****************************************************************/
 
-#include <ntdll.h>
+#include <rtl.h>
 
 #define NDEBUG
 #include <debug.h>
@@ -137,7 +137,7 @@ RtlLeaveHeapLock(IN OUT PHEAP_LOCK Lock)
 
 PVOID
 NTAPI
-RtlpAllocateMemory(UINT Bytes,
+RtlpAllocateMemory(ULONG Bytes,
                    ULONG Tag)
 {
     UNREFERENCED_PARAMETER(Tag);

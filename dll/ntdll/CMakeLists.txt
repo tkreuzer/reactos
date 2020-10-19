@@ -27,9 +27,6 @@ list(APPEND SOURCE
     ldr/ldrpe.c
     ldr/ldrutils.c
     ldr/verifier.c
-    rtl/libsupp.c
-    rtl/uilist.c
-    rtl/version.c
     etw/trace.c)
 
 if(ARCH STREQUAL "i386")

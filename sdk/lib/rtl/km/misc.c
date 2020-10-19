@@ -9,7 +9,7 @@
 
 /* INCLUDES *****************************************************************/
 
-#include <ntoskrnl.h>
+#include <rtl.h>
 #define NDEBUG
 #include <debug.h>
 

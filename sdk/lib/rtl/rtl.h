@@ -30,6 +30,7 @@
 #include <winreg.h>
 #include <objbase.h>
 #include <ntintsafe.h>
+#include <ndk/cmfuncs.h>
 #include <ndk/exfuncs.h>
 #include <ndk/iofuncs.h>
 #include <ndk/kefuncs.h>
@@ -64,5 +65,11 @@
 #define InterlockedBitTestAndSet _interlockedbittestandset
 #define InterlockedBitTestAndSet64 _interlockedbittestandset64
 #endif
+
+BOOLEAN
+NTAPI
+RtlDoesFileExists_UStr(
+    IN PUNICODE_STRING FileName
+);
 
 #endif /* RTL_H */
