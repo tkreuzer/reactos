@@ -35,12 +35,14 @@ void __call_atexit(void)
     if (!__onexitbegin)
         return;
 
-    first =  (_PVFV *)_decode_pointer(__onexitbegin);
+    first = (_PVFV *)_decode_pointer(__onexitbegin);
     last = (_PVFV *)_decode_pointer(__onexitend);
 
     while (--last >= first)
+    {
         if (*last)
             (**last)();
+    }
 
     free(first);
 
