@@ -851,10 +851,12 @@ OFFSET(XctxMask, XSTATE_CONTEXT, Mask),
 OFFSET(XctxLength, XSTATE_CONTEXT, Length),
 OFFSET(XctxArea, XSTATE_CONTEXT, Area),
 
+#ifndef __GNUC__ // HACK!
 HEADER("XSAVE_AREA offsets"),
 OFFSET(XsaHeader, XSAVE_AREA, Header),
 SIZE(XsaHeaderLength, XSAVE_AREA_HEADER),
 //CONSTANTX(XSAVE_ALIGN, _alignof(XSAVE_AREA)),
+#endif
 
 //CONSTANT(CFlushSize),
 

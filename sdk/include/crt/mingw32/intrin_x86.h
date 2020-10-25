@@ -82,6 +82,15 @@ __INTRIN_INLINE void* __cdecl memcpy(void* dest, const void* source, size_t num)
 #define _AddressOfReturnAddress() (&(((void **)(__builtin_frame_address(0)))[1]))
 /* TODO: __getcallerseflags but how??? */
 
+
+#ifdef __x86_64__
+__INTRIN_INLINE int __cdecl _abnormal_termination(void)
+{
+    // HACK!
+    return 0;
+}
+#endif
+
 /*** Memory barriers ***/
 
 #if !HAS_BUILTIN(_ReadWriteBarrier)

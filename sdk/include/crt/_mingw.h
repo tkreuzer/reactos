@@ -185,6 +185,15 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 #define __int16 short
 #define __int32 int
 #define __int64 long long
+# ifdef _WIN64
+#  if (__clang_major__ > 3 || (__clang_major__ == 3 && __clang_minor__ >= 1)) && \
+    !defined(__SIZEOF_INT128__) /* clang >= 3.1 has __int128 but no size macro */
+#   define __SIZEOF_INT128__ 16
+#  endif
+#  ifndef __SIZEOF_INT128__
+typedef int __int128 __attribute__ ((__mode__ (TI)));
+#  endif
+# endif
 # define __ptr32
 # define __ptr64
 # ifdef __cplusplus
@@ -210,7 +219,7 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 
 #if defined(_WIN64) && !defined(_MSC_VER)
 #undef USE_MINGW_SETJMP_TWO_ARGS
-#define USE_MINGW_SETJMP_TWO_ARGS
+//#define USE_MINGW_SETJMP_TWO_ARGS
 #endif
 
 /* Disable deprecation for now! */
