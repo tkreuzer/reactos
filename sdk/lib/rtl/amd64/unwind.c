@@ -787,7 +787,7 @@ RtplUnwindInternal(
             /// TODO: call RtlpExecuteHandlerForUnwind instead
 
             /* Loop all nested handlers */
-            while (TRUE)
+            do
             {
                 /* Call the language specific handler */
                 Disposition = ExceptionRoutine(ExceptionRecord,
@@ -841,7 +841,7 @@ RtplUnwindInternal(
                     __debugbreak();
                     RtlRaiseStatus(STATUS_INVALID_DISPOSITION);
                 }
-            }
+            } while (ExceptionRecord->ExceptionFlags & EXCEPTION_COLLIDED_UNWIND);
         }
 
         /* Check, if we have left our stack (8.) */
