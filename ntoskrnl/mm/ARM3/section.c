@@ -1508,7 +1508,7 @@ MiCreateDataFileMap(IN PFILE_OBJECT File,
 NTSTATUS
 NTAPI
 MiCreatePagingFileMap(OUT PSEGMENT *Segment,
-                      IN PULONG64 MaximumSize,
+                      IN PLONG64 MaximumSize,
                       IN ULONG ProtectionMask,
                       IN ULONG AllocationAttributes)
 {
