@@ -46,7 +46,6 @@ BOOLEAN RtlpNotAllowingMultipleActivation;
 #define MAX_NAMESPACES 64
 
 /* Safe for strings in mapped files */
-static
 int
 WINAPI
 lstrlenW(
