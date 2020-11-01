@@ -2270,13 +2270,13 @@ UserFault:
     }
 
     /* Quick check for demand-zero */
-    if ((TempPte.u.Long == (MM_READWRITE << MM_PTE_SOFTWARE_PROTECTION_BITS)) ||
-        (TempPte.u.Long == (MM_EXECUTE_READWRITE << MM_PTE_SOFTWARE_PROTECTION_BITS)))
+    if ((TempPte.u.Soft.Protection == MM_READWRITE) ||
+        (TempPte.u.Soft.Protection == MM_EXECUTE_READWRITE))
     {
         /* Resolve the fault */
         MiResolveDemandZeroFault(Address,
                                  PointerPte,
-                                 MM_READWRITE,
+                                 TempPte.u.Soft.Protection,
                                  CurrentProcess,
                                  MM_NOIRQL);
 
