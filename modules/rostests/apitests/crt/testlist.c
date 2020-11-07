@@ -41,6 +41,7 @@ extern void func_wcstombs(void);
 extern void func_wcstoul(void);
 extern void func_wctomb(void);
 extern void func__wsystem(void);
+extern void func___dllonexit(void);
 extern void func___getmainargs(void);
 
 extern void func_static_construct(void);
@@ -88,6 +89,7 @@ const struct test winetest_testlist[] =
 #elif defined(TEST_MSVCRT)
     { "atexit", func_atexit },
     { "crtdata", func_crtdata },
+    { "__dllonexit", func___dllonexit },
 #if defined(_M_IX86)
     { "__getmainargs", func___getmainargs },
 #endif

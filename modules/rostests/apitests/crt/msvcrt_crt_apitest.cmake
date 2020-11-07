@@ -63,7 +63,7 @@ list(APPEND SOURCE_MSVCRT
 #    __crtLCMapStringA.c
 #    __crtLCMapStringW
 #    __daylight.c __p__daylight
-#    __dllonexit.c
+    __dllonexit.c
 #    __doserrno.c
 #    __fpecode.c
 #    __get_app_type.c
