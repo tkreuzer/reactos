@@ -501,6 +501,5 @@ KiXmmExceptionHandler(
     IN PKTRAP_FRAME TrapFrame)
 {
     UNIMPLEMENTED;
-    KeBugCheckWithTf(TRAP_CAUSE_UNKNOWN, 13, 0, 0, 1, TrapFrame);
-    return -1;
+    return STATUS_FLOAT_MULTIPLE_TRAPS;
 }
