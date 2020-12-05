@@ -20,11 +20,27 @@
   void __cdecl _lock (int _File);
   void __cdecl _unlock (int _File);
 
-_PVFV *__onexitbegin;
+_PVFV *__onexitbegin = (_PVFV *)(LONG_PTR)-1;
 _PVFV *__onexitend;
 
 extern _onexit_t __cdecl __dllonexit (_onexit_t, _PVFV**, _PVFV**);
 extern _onexit_t (__cdecl * __MINGW_IMP_SYMBOL(_onexit)) (_onexit_t func);
+
+void _initialize_onexit(void)
+{
+    _PVFV *onexitbegin;
+
+    onexitbegin = (_PVFV *)calloc(32, sizeof(_onexit_t));
+    __onexitbegin = _encode_pointer(onexitbegin);
+    if (onexitbegin == NULL)
+    {
+        __onexitend = _encode_pointer(NULL);
+    }
+    else
+    {
+        __onexitend = _encode_pointer(onexitbegin + 32);
+    }
+}
 
 /* INTERNAL: call atexit functions */
 void __call_atexit(void)
