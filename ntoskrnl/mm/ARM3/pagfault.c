@@ -2269,7 +2269,7 @@ UserFault:
         MiUnlockProcessWorkingSet(CurrentProcess, CurrentThread);
         return STATUS_SUCCESS;
     }
-
+    if (TempPte.u.Long == (MM_EXECUTE_READWRITE << MM_PTE_SOFTWARE_PROTECTION_BITS)) __debugbreak();
     /* Quick check for demand-zero */
     if ((TempPte.u.Long == (MM_READWRITE << MM_PTE_SOFTWARE_PROTECTION_BITS)) ||
         (TempPte.u.Long == (MM_EXECUTE_READWRITE << MM_PTE_SOFTWARE_PROTECTION_BITS)))
