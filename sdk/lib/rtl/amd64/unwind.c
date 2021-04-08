@@ -628,15 +628,9 @@ RepeatChainedInfo:
                 break;
 
             case UWOP_PUSH_MACHFRAME:
-                /* OpInfo is 1, when an error code was pushed, otherwise 0. */
-                Context->Rsp += UnwindCode.OpInfo * sizeof(DWORD64);
-
-                /* Now pop the MACHINE_FRAME (Yes, "magic numbers", deal with it) */
-                Context->Rip = *(PDWORD64)(Context->Rsp + 0x00);
-                Context->SegCs = *(PDWORD64)(Context->Rsp + 0x08);
-                Context->EFlags = *(PDWORD64)(Context->Rsp + 0x10);
-                Context->SegSs = *(PDWORD64)(Context->Rsp + 0x20);
-                Context->Rsp = *(PDWORD64)(Context->Rsp + 0x18);
+                Offset = UnwindCode.OpInfo * sizeof(DWORD64);
+                Context->Rip = *(PDWORD64)(Context->Rsp + Offset);
+                Context->Rsp = *(PDWORD64)(Context->Rsp + Offset + 24);
                 ASSERT((i + 1) == UnwindInfo->CountOfCodes);
                 goto Exit;
         }
@@ -731,6 +725,13 @@ RtlpUnwindInternal(
             continue;
         }
 
+        /* Check if we have a valid RIP */
+        if ((RtlpGetMode() == KernelMode) &&
+            ((LONG64)UnwindContext.Rip > 0))
+        {
+            __debugbreak();
+        }
+
         /* Do a virtual unwind to get the next frame */
         ExceptionRoutine = RtlVirtualUnwind(HandlerType,
                                             ImageBase,
@@ -741,20 +742,12 @@ RtlpUnwindInternal(
                                             &EstablisherFrame,
                                             NULL);
 
-        /* Check, if we are still within the stack boundaries */
+        /* Check, if the resulting stack frame is valid */
         if ((EstablisherFrame < StackLow) ||
-            (EstablisherFrame >= StackHigh) ||
+            (EstablisherFrame > StackHigh) ||
             (EstablisherFrame & 7))
         {
             /// TODO: Handle DPC stack
-
-            /* If we are handling an exception, we are done here. */
-            if (HandlerType == UNW_FLAG_EHANDLER)
-            {
-                ExceptionRecord->ExceptionFlags |= EXCEPTION_STACK_INVALID;
-                return FALSE;
-            }
-
             __debugbreak();
             RtlRaiseStatus(STATUS_BAD_STACK);
         }
@@ -786,55 +779,63 @@ RtlpUnwindInternal(
             /* Store the return value in the unwind context */
             UnwindContext.Rax = (ULONG64)ReturnValue;
 
-             /* Loop all nested handlers */
-            do
+            /// TODO: call RtlpExecuteHandlerForUnwind instead
+
+            /* Call the language specific handler */
+            Disposition = ExceptionRoutine(ExceptionRecord,
+                                           (PVOID)EstablisherFrame,
+                                           &UnwindContext,
+                                           &DispatcherContext);
+
+            /* Clear exception flags for the next iteration */
+            ExceptionRecord->ExceptionFlags &= ~(EXCEPTION_TARGET_UNWIND |
+                                                 EXCEPTION_COLLIDED_UNWIND);
+
+            /* Check if we do exception handling */
+            if (HandlerType == UNW_FLAG_EHANDLER)
             {
-                /// TODO: call RtlpExecuteHandlerForUnwind instead
-                /* Call the language specific handler */
-                Disposition = ExceptionRoutine(ExceptionRecord,
-                                               (PVOID)EstablisherFrame,
-                                               &UnwindContext,
-                                               &DispatcherContext);
-
-                /* Clear exception flags for the next iteration */
-                ExceptionRecord->ExceptionFlags &= ~(EXCEPTION_TARGET_UNWIND |
-                                                     EXCEPTION_COLLIDED_UNWIND);
-
-                /* Check if we do exception handling */
-                if (HandlerType == UNW_FLAG_EHANDLER)
+                if (Disposition == ExceptionContinueExecution)
                 {
-                    if (Disposition == ExceptionContinueExecution)
+                    /* Check if it was non-continuable */
+                    if (ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE)
                     {
-                        /* Check if it was non-continuable */
-                        if (ExceptionRecord->ExceptionFlags & EXCEPTION_NONCONTINUABLE)
-                        {
-                            __debugbreak();
-                            RtlRaiseStatus(EXCEPTION_NONCONTINUABLE_EXCEPTION);
-                        }
-
-                        /* Execution continues */
-                        return TRUE;
-                    }
-                    else if (Disposition == ExceptionNestedException)
-                    {
-                        /// TODO
                         __debugbreak();
+                        RtlRaiseStatus(EXCEPTION_NONCONTINUABLE_EXCEPTION);
                     }
-                }
 
-                if (Disposition == ExceptionCollidedUnwind)
+                    /* In user mode, call any registered vectored continue handlers */
+                    RtlCallVectoredContinueHandlers(ExceptionRecord, ContextRecord);
+
+                    /* Execution continues */
+                    return TRUE;
+                }
+                else if (Disposition == ExceptionNestedException)
                 {
-                    /// TODO
+                    /* Turn the nested flag on */
+                    ExceptionRecord->ExceptionFlags |= EXCEPTION_NESTED_CALL;
+
+                    /* Update the current nested frame */
+                    //if (DispatcherContext.RegistrationPointer > NestedFrame)
+                    //{
+                    /* Get the frame from the dispatcher context */
+                    //NestedFrame = DispatcherContext.RegistrationPointer;
+                    //}
                     __debugbreak();
                 }
+            }
 
-                /* This must be ExceptionContinueSearch now */
-                if (Disposition != ExceptionContinueSearch)
-                {
-                    __debugbreak();
-                    RtlRaiseStatus(STATUS_INVALID_DISPOSITION);
-                }
-            } while (ExceptionRecord->ExceptionFlags & EXCEPTION_COLLIDED_UNWIND);
+            if (Disposition == ExceptionCollidedUnwind)
+            {
+                /// TODO
+                __debugbreak();
+            }
+
+            /* This must be ExceptionContinueSearch now */
+            if (Disposition != ExceptionContinueSearch)
+            {
+                __debugbreak();
+                RtlRaiseStatus(STATUS_INVALID_DISPOSITION);
+            }
         }
 
         /* Check, if we have left our stack (8.) */
@@ -1066,12 +1067,16 @@ RtlpCaptureNonVolatileContextPointers(
     ULONG64 ImageBase;
     PVOID HandlerData;
     ULONG64 EstablisherFrame;
+    KPROCESSOR_MODE Mode;
 
     /* Zero out the nonvolatile context pointers */
     RtlZeroMemory(NonvolatileContextPointers, sizeof(*NonvolatileContextPointers));
 
     /* Capture the current context */
     RtlCaptureContext(&Context);
+
+    /* Use the highest bit in RIP as mode flag */
+    Mode = Context.Rip >> 63;
 
     do
     {
@@ -1089,15 +1094,9 @@ RtlpCaptureNonVolatileContextPointers(
                          &EstablisherFrame,
                          NonvolatileContextPointers);
 
-        /* Make sure nothing fishy is going on. Currently this is for kernel mode only. */
-        ASSERT(EstablisherFrame != 0);
-        ASSERT((LONG64)Context.Rip < 0);
-
         /* Continue until we reached the target frame or user mode */
-    } while (EstablisherFrame < TargetFrame);
-
-    /* If the caller did the right thing, we should get exactly the target frame */
-    ASSERT(EstablisherFrame == TargetFrame);
+    } while ((EstablisherFrame < TargetFrame) && 
+             ((Context.Rip >> 63) == Mode));
 }
 
 VOID
