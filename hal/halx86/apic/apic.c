@@ -19,7 +19,9 @@
 void __cdecl HackEoi(void);
 
 #ifndef _M_AMD64
-#define APIC_LAZY_IRQL
+#ifndef CONFIG_SMP
+//#define APIC_LAZY_IRQL
+#endif
 #endif
 
 /* GLOBALS ********************************************************************/
@@ -458,8 +460,8 @@ HalpInitializePICs(IN BOOLEAN EnableInterrupts)
 
     /* Manually reserve some vectors */
     HalpVectorToIndex[APIC_CLOCK_VECTOR] = 8;
-    HalpVectorToIndex[APC_VECTOR] = 6;
-    HalpVectorToIndex[DISPATCH_VECTOR] = 6;
+    HalpVectorToIndex[APC_VECTOR] = 99;
+    HalpVectorToIndex[DISPATCH_VECTOR] = 99;
 
     /* Set interrupt handlers in the IDT */
     KeRegisterInterruptHandler(APIC_CLOCK_VECTOR, HalpClockInterrupt);
