@@ -8,6 +8,8 @@
 /* INCLUDES ******************************************************************/
 
 #include <hal.h>
+#include <apic.h>
+#include <smp.h>
 #define NDEBUG
 #include <debug.h>
 
@@ -46,7 +48,11 @@ NTAPI
 HalStartNextProcessor(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                       IN PKPROCESSOR_STATE ProcessorState)
 {
-    /* Ready to start */
+#ifdef CONFIG_SMP
+    //@unimplemented
+    return HalpStartNextProcessor(LoaderBlock, ProcessorState);
+#endif
+    /* We always return false on uniprocessor modes */
     return FALSE;
 }
 

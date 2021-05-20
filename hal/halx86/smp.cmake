@@ -19,7 +19,9 @@ list(APPEND HAL_SMP_SOURCE
     acpi/halacpi.c
     acpi/halpnpdd.c
     acpi/busemul.c
-    legacy/bus/pcibus.c)
+    legacy/bus/pcibus.c
+    #SMP
+    smp/smp.c)
 
 if(ARCH STREQUAL "i386")
     list(APPEND HAL_SMP_SOURCE
