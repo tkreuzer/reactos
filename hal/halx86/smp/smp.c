@@ -17,13 +17,19 @@
 /* GLOBALS ********************************************************************/
 
 /* Tiny bit of a hack to limit the cpu count until we progress further */
-ULONG MAXAPCount = 1;
+ULONG MAXAPCount = 2;
+ULONG APCountStarted = 1;
 
 /* Private Functions **********************************************************/
 
 BOOLEAN
 HalpStartNextProcessor(PLOADER_PARAMETER_BLOCK APLoaderBlock, PKPROCESSOR_STATE APProcessorState)
 {
-    //@unimplemented
-    return FALSE;
+    if(MAXAPCount > APCountStarted)
+    {
+        APCountStarted++;
+        return TRUE;
+    }else{
+        return FALSE;   
+    }
 }
