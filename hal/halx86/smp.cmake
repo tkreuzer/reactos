@@ -28,8 +28,17 @@ if(ARCH STREQUAL "i386")
         generic/bios.c
         generic/portio.c)
     list(APPEND HAL_SMP_ASM_SOURCE
-        generic/v86.S)
+        generic/v86.S
+        smp/i386/apboot.S
+        smp/i386/approtected.S)
 endif()
+
+
+if(ARCH STREQUAL "amd64")
+    list(APPEND HAL_SMP_ASM_SOURCE
+        smp/amd64/apboot.S)
+endif()
+
 
 add_asm_files(lib_hal_smp_asm ${HAL_SMP_ASM_SOURCE})
 add_library(lib_hal_smp OBJECT ${HAL_SMP_SOURCE} ${lib_hal_smp_asm})

@@ -49,6 +49,7 @@ HalpInitPhase0(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                                CLOCK2_LEVEL,
                                HalpClockInterrupt,
                                Latched);
+  //  HalpInitializeMADT(LoaderBlock);
 }
 
 VOID

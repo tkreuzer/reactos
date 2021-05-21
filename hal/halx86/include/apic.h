@@ -87,7 +87,7 @@
 
 #define MSR_APIC_BASE 0x0000001B
 #define IOAPIC_PHYS_BASE 0xFEC00000
-#define APIC_CLOCK_INDEX 8
+#define APIC_CLOCK_INDEX 5
 #define ApicLogicalId(Cpu) ((UCHAR)(1<< Cpu))
 
 /* Message Type */
@@ -278,6 +278,26 @@ typedef union _IOAPIC_REDIRECTION_REGISTER
         UINT64 Destination:8;
     };
 } IOAPIC_REDIRECTION_REGISTER;
+
+typedef union _IO_APIC_VERSION_REGISTER
+{
+    struct {
+        UCHAR ApicVersion;
+        UCHAR Reserved0;
+        UCHAR MaxRedirectionEntry;
+        UCHAR Reserved2;
+    };
+    ULONG AsULONG;
+
+} IO_APIC_VERSION_REGISTER, *PIO_APIC_VERSION_REGISTER;
+
+typedef struct _IO_APIC_REGISTERS
+{
+    volatile ULONG IoRegisterSelect;
+    volatile ULONG Reserved[3];
+    volatile ULONG IoWindow;
+
+} IO_APIC_REGISTERS, *PIO_APIC_REGISTERS;
 #include <poppack.h>
 
 FORCEINLINE
@@ -305,5 +325,9 @@ HalInitializeProfiling(VOID);
 VOID
 NTAPI
 HalpInitApicInfo(IN PLOADER_PARAMETER_BLOCK KeLoaderBlock); 
+
+VOID
+NTAPI
+HalpInitializeMADT(_In_ PLOADER_PARAMETER_BLOCK LoaderBlock);
 
 VOID __cdecl ApicSpuriousService(VOID);

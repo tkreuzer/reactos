@@ -13,21 +13,36 @@
 
 #include <hal.h>
 #include <apic.h>
+#include <madt.h>
+#include <smp.h>
 #define NDEBUG
 #include <debug.h>
 
 void __cdecl HackEoi(void);
 
-#ifndef _M_AMD64
-#ifndef CONFIG_SMP
-//#define APIC_LAZY_IRQL
-#endif
+#ifndef _M_AMD64 
+//#ifndef CONFIG_SMP
+#define APIC_LAZY_IRQL
+//#endif
 #endif
 
 /* GLOBALS ********************************************************************/
 
 ULONG ApicVersion;
 UCHAR HalpVectorToIndex[256];
+#ifdef CONFIG_SMP
+ULONG MAX_CPUS = 8; //TODO: have this set by MADT/APIC Versioning.
+#else
+ULONG MAX_CPUS = 1;
+#endif
+PROCESSOR_IDENTITY HalpStaticProcessorIdentity[8] = {{0}};
+HALP_APIC_INFO_TABLE HalpApicInfoTable;
+IO_APIC_VERSION_REGISTER IOAPICVersion;
+IO_APIC_VERSION_REGISTER HalpIOApicVersion[MAX_IOAPICS];
+USHORT HalpMaxApicInti[MAX_IOAPICS] = {0};
+PACPI_TABLE_MADT MadtTable;
+PPROCESSOR_IDENTITY HalpProcessorIdentity = NULL;
+UCHAR HalpIoApicId[MAX_IOAPICS] = {0};
 
 #ifndef _M_AMD64
 const UCHAR
@@ -258,6 +273,118 @@ HalpSendEOI(VOID)
 
 VOID
 NTAPI
+HalpInitializeMADT(_In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
+{
+    PACPI_SUBTABLE_HEADER AcpiHeader;
+    PACPI_MADT_LOCAL_APIC LAPIC;
+    PIO_APIC_REGISTERS IOApicRegisters;
+    PHYSICAL_ADDRESS PhAddress;
+    ULONG_PTR TableEnd;
+    ULONG PhysicalProcessorCount = 0;
+    ULONG idx;
+    PFN_COUNT PageCount;
+    /* We only support legacy APIC for now, this will be updated in the future */
+    HalpApicInfoTable.ApicMode = 0x10;
+    MadtTable = HalAcpiGetTable(LoaderBlock, 'CIPA');
+
+    AcpiHeader = (PACPI_SUBTABLE_HEADER)&MadtTable[1];
+    TableEnd = (ULONG_PTR)MadtTable + MadtTable->Header.Length;
+
+    HalpProcessorIdentity = HalpStaticProcessorIdentity;
+
+    /* Detect amount of LAPICs in system */
+    for((ULONG_PTR)AcpiHeader; (ULONG_PTR)AcpiHeader < (ULONG_PTR)TableEnd; 
+        AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + AcpiHeader->Length))
+        {
+            LAPIC = (PACPI_MADT_LOCAL_APIC)AcpiHeader;
+            if (LAPIC->Header.Type == ACPI_MADT_TYPE_LOCAL_APIC &&
+                LAPIC->Header.Length == sizeof(ACPI_MADT_LOCAL_APIC) &&
+                LAPIC->LapicFlags)
+            {
+                PhysicalProcessorCount++;
+            }
+        }
+    ULONG Size = PhysicalProcessorCount * LOCAL_APIC_SIZE;
+    PageCount = BYTES_TO_PAGES(Size);
+
+    PhAddress.QuadPart = HalpAllocPhysicalMemory(LoaderBlock, 0xFFFFFFFF, PageCount, FALSE);
+    if (!PhAddress.QuadPart)
+    {
+        ASSERT(PhAddress.QuadPart != 0);
+        KeBugCheckEx(HAL_INITIALIZATION_FAILED, 0x105, 1, Size, PageCount);
+    }
+
+    HalpProcessorIdentity = HalpMapPhysicalMemory64(PhAddress, PageCount);
+    if (!HalpProcessorIdentity)
+    {
+        ASSERT(HalpProcessorIdentity != NULL);
+        KeBugCheckEx(HAL_INITIALIZATION_FAILED, 0x105, 2, Size, PageCount);
+    }
+
+    RtlZeroMemory(HalpProcessorIdentity, Size);
+
+    AcpiHeader = (PACPI_SUBTABLE_HEADER)&MadtTable[1];
+    TableEnd = (ULONG_PTR)MadtTable + MadtTable->Header.Length;
+
+    for (ULONG i = 0; ((ULONG_PTR)AcpiHeader < TableEnd); )
+    {
+        if(AcpiHeader->Type == ACPI_MADT_TYPE_LOCAL_APIC &&
+        AcpiHeader->Length == sizeof(ACPI_MADT_LOCAL_APIC))
+        {
+            LAPIC = (PACPI_MADT_LOCAL_APIC)AcpiHeader;
+            idx = HalpApicInfoTable.ProcessorCount;
+            HalpProcessorIdentity[idx].LapicId = LAPIC->Id;
+            HalpProcessorIdentity[idx].ProcessorId = LAPIC->ProcessorId;
+            HalpApicInfoTable.ProcessorCount++;
+            i++;
+            AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + AcpiHeader->Length);
+        }
+        else if(AcpiHeader->Type == ACPI_MADT_TYPE_IO_APIC &&
+                AcpiHeader->Length == sizeof(ACPI_MADT_IO_APIC))
+            {
+                idx = HalpApicInfoTable.IOAPICCount;
+
+                if(idx < MAX_IOAPICS)
+                {
+                    PACPI_MADT_IO_APIC IoApic = (PACPI_MADT_IO_APIC)AcpiHeader;
+
+                    HalpIoApicId[idx] = IoApic->Id;
+
+                    HalpApicInfoTable.IoApicIrqBase[idx] = IoApic->GlobalIrqBase;
+                    HalpApicInfoTable.IoApicPA[idx] = IoApic->Address;
+
+                    PhAddress.QuadPart = IoApic->Address;
+                    IOApicRegisters = HalpMapPhysicalMemory64(PhAddress, 1);
+
+                    if (!IOApicRegisters)
+                    {
+                        ASSERT(IOApicRegisters != NULL);
+                        KeBugCheckEx(HAL_INITIALIZATION_FAILED, 0x106, (ULONG_PTR)IoApic->Address, (ULONG_PTR)IoApic->Address, 0);
+                    }
+
+                    HalpApicInfoTable.IoApicVA[idx] = (ULONG)IOApicRegisters;
+
+                    IOApicRegisters->IoRegisterSelect = IOAPIC_VER;
+                    IOApicRegisters->IoWindow = 0;
+
+                    IOApicRegisters->IoRegisterSelect = IOAPIC_VER;
+                    IOAPICVersion.AsULONG = IOApicRegisters->IoWindow;
+
+                    HalpIOApicVersion[idx] = IOAPICVersion;
+
+                    HalpMaxApicInti[idx] = IOAPICVersion.MaxRedirectionEntry + 1;
+                    HalpApicInfoTable.IOAPICCount++;
+
+                    ASSERT(HalpApicInfoTable.IoApicPA[idx] == IoApic->Address);
+                }
+                AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + AcpiHeader->Length);
+            }
+            /* add another else if here to continue to parse MADT */
+    } 
+}
+
+VOID
+NTAPI
 ApicInitializeLocalApic(ULONG Cpu)
 {
     APIC_BASE_ADRESS_REGISTER BaseRegister;
@@ -460,8 +587,8 @@ HalpInitializePICs(IN BOOLEAN EnableInterrupts)
 
     /* Manually reserve some vectors */
     HalpVectorToIndex[APIC_CLOCK_VECTOR] = 8;
-    HalpVectorToIndex[APC_VECTOR] = 99;
-    HalpVectorToIndex[DISPATCH_VECTOR] = 99;
+    HalpVectorToIndex[APC_VECTOR] = 1;
+    HalpVectorToIndex[DISPATCH_VECTOR] = 2;
 
     /* Set interrupt handlers in the IDT */
     KeRegisterInterruptHandler(APIC_CLOCK_VECTOR, HalpClockInterrupt);
@@ -635,7 +762,7 @@ HalEnableSystemInterrupt(
     /* Check if the destination is logical */
     if (ReDirReg.DestinationMode == APIC_DM_Logical)
     {
-        /* Set the bit for this cpu */
+       //TODO: Replace with MADT based value
         ReDirReg.Destination |= ApicLogicalId(Prcb->Number);
     }
 

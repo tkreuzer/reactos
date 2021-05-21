@@ -1385,9 +1385,6 @@ KeTerminateThread(IN KPRIORITY Increment)
     /* Lock the process */
     KiAcquireProcessLockRaiseToSynch(Process, &LockHandle);
 
-    /* Make sure we won't get Swapped */
-    KiSetThreadSwapBusy(Thread);
-
     /* Save the Kernel and User Times */
     Process->KernelTime += Thread->KernelTime;
     Process->UserTime += Thread->UserTime;

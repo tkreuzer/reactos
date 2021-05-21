@@ -7,6 +7,8 @@
  */
 
 /* MADT information */
+#pragma once
+
 #define LOCAL_APIC_VERSION_MAX 0x1F
 #define MAX_IOAPICS      64
 
@@ -36,5 +38,26 @@
 #define APIC_ICR0_LEVEL_DEASSERT (0x0 << 14) /* Deassert level */
 #define APIC_ICR0_LEVEL_ASSERT   (0x1 << 14) /* Assert level */
 
+
+/* This table is filled for each physical processor on system */
+#include <pshpack1.h>
+typedef struct _PROCESSOR_IDENTITY
+{
+    UCHAR ProcessorId;
+    UCHAR LapicId;
+    UCHAR NTProcessorNumber;
+    BOOLEAN ProcessorStarted;
+    BOOLEAN BSPStatus;
+
+} PROCESSOR_IDENTITY, *PPROCESSOR_IDENTITY;
+#define LOCAL_APIC_SIZE sizeof(PROCESSOR_IDENTITY)
+#include <poppack.h>
+
 BOOLEAN
 HalpStartNextProcessor(IN PLOADER_PARAMETER_BLOCK LoaderBlock, IN PKPROCESSOR_STATE ProcessorState);
+
+BOOLEAN
+HaliStartApplicationProcessor(ULONG NTProcessorCount);
+
+VOID __cdecl HaliAPBootSpinup(VOID);
+VOID __cdecl HaliAPBootSpinupEnd(VOID);

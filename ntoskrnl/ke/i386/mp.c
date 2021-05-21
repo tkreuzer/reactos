@@ -63,7 +63,6 @@ KeStartAllProcessors()
         ProcessorState.SpecialRegisters.Cr2 = __readcr2();
         ProcessorState.SpecialRegisters.Cr3 = __readcr3();
         ProcessorState.SpecialRegisters.Cr4 = __readcr4();
-
         PVOID KernelStack;
         PVOID DPCStack;
 
@@ -122,7 +121,6 @@ KeStartAllProcessors()
 
         /* Actually Start the AP */
         Success = HalStartNextProcessor(KeLoaderBlock, &ProcessorState);
-
         if(!Success)
         {
             DPRINT1("NTOS: Ntkrnlmp has sucessfully started the APs");
