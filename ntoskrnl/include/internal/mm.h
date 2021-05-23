@@ -374,9 +374,6 @@ typedef struct _MMPFN
             USHORT ShortFlags;
         } e2;
     } u3;
-#ifdef _M_AMD64
-    ULONG UsedPageTableEntries;
-#endif
     union
     {
         MMPTE OriginalPte;
