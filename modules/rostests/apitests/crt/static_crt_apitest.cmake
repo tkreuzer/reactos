@@ -8,6 +8,7 @@ list(APPEND SOURCE_STATIC
     _vsnwprintf.c
     atexit.c
     fabs.c
+    math_functions.c
     mbstowcs.c
     mbtowc.c
     sprintf.c

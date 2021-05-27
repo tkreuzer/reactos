@@ -41,6 +41,7 @@ extern void func___getmainargs(void);
 extern void func_static_construct(void);
 extern void func_static_init(void);
 extern void func_crtdata(void);
+extern void func_math_functions(void);
 
 const struct test winetest_testlist[] =
 {
@@ -62,6 +63,7 @@ const struct test winetest_testlist[] =
 #endif
 #if defined(TEST_STATIC_CRT) || defined(TEST_MSVCRT)
     { "fabs", func_fabs },
+    { "math_functions", func_math_functions },
 #if defined(_M_ARM)
     { "__rt_div", func___rt_div },
     { "__fto64", func___fto64 },

@@ -1264,6 +1264,7 @@ list(APPEND SOURCE_MSVCRT
     crtdata.c
     static_construct.cpp
     static_init.c
+    math_functions.c
 )
 
 if(ARCH STREQUAL "i386")
