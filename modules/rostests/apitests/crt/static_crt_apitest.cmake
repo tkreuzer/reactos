@@ -11,6 +11,7 @@ list(APPEND SOURCE_STATIC
     fabs.c
     floor.c
     fpcontrol.c
+    math_functions.c
     mbstowcs.c
     mbtowc.c
     sprintf.c

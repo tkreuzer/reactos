@@ -46,6 +46,7 @@ extern void func___getmainargs(void);
 extern void func_static_construct(void);
 extern void func_static_init(void);
 extern void func_crtdata(void);
+extern void func_math_functions(void);
 
 const struct test winetest_testlist[] =
 {
@@ -78,6 +79,7 @@ const struct test winetest_testlist[] =
 #ifdef _M_AMD64 // x86 / arm need fixing
     { "fpcontrol", func_fpcontrol },
 #endif
+    { "math_functions", func_math_functions },
 #if defined(_M_ARM)
     { "__rt_div", func___rt_div },
     { "__fto64", func___fto64 },
