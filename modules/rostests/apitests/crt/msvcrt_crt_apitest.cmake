@@ -1264,6 +1264,7 @@ list(APPEND SOURCE_MSVCRT
     crtdata.c
     static_construct.cpp
     static_init.c
+    math_functions.c
 )
 
 if(ARCH STREQUAL "i386")
@@ -1403,6 +1404,10 @@ target_link_libraries(msvcrt_crt_apitest wine ${PSEH_LIB})
 set_module_type(msvcrt_crt_apitest win32cui)
 add_importlibs(msvcrt_crt_apitest msvcrt kernel32 ntdll)
 add_rostests_file(TARGET msvcrt_crt_apitest)
+
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(msvcrt_crt_apitest PRIVATE -Wno-format)
+endif()
 
 spec2def(msvcrt_crt_dll_startup.dll dll_startup.spec)
 add_library(msvcrt_crt_dll_startup MODULE
