@@ -107,7 +107,7 @@ typedef struct _VIDEO_PORT_DEVICE_EXTENSTION
    LIST_ENTRY DmaAdapterList, ChildDeviceList;
    LIST_ENTRY HwResetListEntry;
    ULONG SessionId;
-   CHAR MiniPortDeviceExtension[1];
+   CHAR POINTER_ALIGNMENT MiniPortDeviceExtension[1];
 } VIDEO_PORT_DEVICE_EXTENSION, *PVIDEO_PORT_DEVICE_EXTENSION;
 
 typedef struct _VIDEO_PORT_CHILD_EXTENSION
