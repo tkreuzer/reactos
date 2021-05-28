@@ -4,14 +4,15 @@
 PUBLIC _APProtectedMode
 PUBLIC _APProtectedModeEnd
 EXTERN _PageTable:DWORD
-EXTERN _APsCFunctions:DWORD
+EXTERN _HaliAPBootSpinup:DWORD
+EXTERN _BSPGDTLimit:DWORD
+EXTERN _BSPGDTBase:DWORD
 .code32
 _APProtectedMode:
      mov   ax, HEX(10)
      mov   ds, ax
      mov   es, ax
      mov   fs, ax
-     mov   gs, ax
      mov   ss, ax
 
     /* TODO: Replace the hardcoded value with the _PageTable extern value from BSP. */
@@ -25,10 +26,9 @@ _APProtectedMode:
     mov   cr0, eax
 
     /* ESP points to the 0x500 that is saved just for the temporary stack after the stub is copied. */
-    mov   esp, HEX(4010) + _APProtectedModeEnd - _APProtectedMode
+    mov   esp, HEX(6010) + _APProtectedModeEnd - _APProtectedMode
     mov   ebp, 0
     hlt
-    jmp _APsCFunctions
 _APProtectedModeEnd:
 END
 

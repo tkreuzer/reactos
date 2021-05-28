@@ -61,3 +61,12 @@ HaliStartApplicationProcessor(ULONG NTProcessorCount);
 
 VOID __cdecl HaliAPBootSpinup(VOID);
 VOID __cdecl HaliAPBootSpinupEnd(VOID);
+VOID __cdecl KiApplicationProcessorSpinup(VOID);
+
+DECLSPEC_NORETURN
+CODE_SEG("INIT")
+VOID
+NTAPI
+KiSystemStartup(
+    IN PLOADER_PARAMETER_BLOCK LoaderBlock
+);

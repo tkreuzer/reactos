@@ -11,6 +11,7 @@
 #include <hal.h>
 #include <apic.h>
 #include <smp.h>
+
 #define NDEBUG
 #include <debug.h>
 
@@ -22,7 +23,7 @@ extern PVOID APBoot;
 extern PVOID APEnd;
 extern PVOID APProtectedModeEnd;
 extern PVOID APProtectedMode;
-
+//extern PVOID KiApplicationProcessorSpinupLoc;
 /* Tiny bit of a hack to limit the cpu count until we progress further */
 ULONG MAXAPCount = 2;
 ULONG APCountStarted = 1;
@@ -33,22 +34,22 @@ PLOADER_PARAMETER_BLOCK APLoaderBlock;
 PKPROCESSOR_STATE ProcessorState;
 PVOID HalpAPProtected;
 PVOID HalpAfterProtected;
-//#define PHYSICAL_ADDRESS  LARGE_INTEGER
-PHYSICAL_ADDRESS APCFunctionsTesting;
-PVOID APsCFunctions;
-SIZE_T APInfo;
+
+USHORT BSPGDTLimit;
+PVOID BSPGDTBase;
+PVOID KiApplicationProcessorSpinupLoc;
+USHORT SegSS;
+USHORT SegDS;
+USHORT SegES;
+USHORT SegGS;
+USHORT SegFS;
 /* Private Functions **********************************************************/
 
 BOOLEAN
 HalpStartNextProcessor(PLOADER_PARAMETER_BLOCK APLoaderBlock, PKPROCESSOR_STATE APProcessorState)
 {   
-    APInfo = 0x68D0;
-    APCFunctionsTesting.LowPart = 0x80000;
-    HalpAfterProtected = (PVOID)((ULONG_PTR)HalpLowStub + ((ULONG_PTR)&APEnd - (ULONG_PTR)&APBoot) + ((ULONG_PTR)&APProtectedModeEnd - (ULONG_PTR)&APProtectedMode) + 0x500);
-    APsCFunctions = MmAllocateContiguousMemory(APInfo, APCFunctionsTesting);
-    RtlCopyMemory(APsCFunctions, &HaliAPBootSpinup, ((ULONG_PTR)HaliAPBootSpinup - (ULONG_PTR)HaliAPBootSpinupEnd));
-    DPRINT1("The memory address of APBoootCFunctiosn is %X\n", APsCFunctions);
 
+    
     if(MAXAPCount > APCountStarted)
     {       
         APLoaderBlock = (PLOADER_PARAMETER_BLOCK)APLoaderBlock;
@@ -61,13 +62,29 @@ HalpStartNextProcessor(PLOADER_PARAMETER_BLOCK APLoaderBlock, PKPROCESSOR_STATE 
         EcxValue = ProcessorState->ContextFrame.Ecx;
         EipValue = ProcessorState->ContextFrame.Eip;
         PageTable = ProcessorState->SpecialRegisters.Cr3;
+        BSPGDTLimit = ProcessorState->SpecialRegisters.Gdtr.Limit;
+        BSPGDTBase = (PVOID)ProcessorState->SpecialRegisters.Gdtr.Base;
+        SegSS = ProcessorState->ContextFrame.SegSs;
+        SegDS = ProcessorState->ContextFrame.SegDs;
+        SegES = ProcessorState->ContextFrame.SegEs;
+        SegGS = ProcessorState->ContextFrame.SegGs;
+        SegFS = ProcessorState->ContextFrame.SegFs;
     #endif
+        DPRINT1("the value of segment SegSS %X\n",SegSS);
+        DPRINT1("the value of segment SegDS %X\n",SegDS);
+        DPRINT1("the value of segment SegES %X\n",SegES);
+        DPRINT1("the value of segment SegGS %X\n",SegGS);
+        DPRINT1("the value of segment SegFS %X\n",SegFS);
 
         /* Copy the APBoot files to proper location */
         HalpAPProtected = (PVOID)((ULONG_PTR)HalpLowStub + ((ULONG_PTR)&APEnd - (ULONG_PTR)&APBoot));
         RtlCopyMemory(HalpLowStub, &APBoot,  ((ULONG_PTR)&APEnd - (ULONG_PTR)&APBoot));
-        RtlCopyMemory(HalpAPProtected, &APProtectedMode,  ((ULONG_PTR)&APProtectedModeEnd - (ULONG_PTR)&APProtectedMode) + 0x500);
-
+        RtlCopyMemory(HalpAPProtected, &APProtectedMode,  ((ULONG_PTR)&APProtectedModeEnd - (ULONG_PTR)&APProtectedMode));
+        #if 0
+        KiApplicationProcessorSpinupLoc = (PVOID)0x8054F230;
+        HalpAfterProtected = (PVOID)((ULONG_PTR)HalpLowStub + ((ULONG_PTR)&APEnd - (ULONG_PTR)&APBoot) + ((ULONG_PTR)&APProtectedModeEnd - (ULONG_PTR)&APProtectedMode));
+        RtlCopyMemory(HalpAfterProtected, &HaliAPBootSpinup, 0x2000 + 0x500);
+#endif
         if(!HaliStartApplicationProcessor(APCountStarted))
         {
             return FALSE;
@@ -88,18 +105,28 @@ HalpStartNextProcessor(PLOADER_PARAMETER_BLOCK APLoaderBlock, PKPROCESSOR_STATE 
 
 VOID __cdecl HaliAPBootSpinup(VOID)
 {   
+ //  PLOADER_PARAMETER_BLOCK KeLoaderBlock = APLoaderBlock;
+    USHORT dstest = 0x30;
+   // ULONG_PTR EcxTest = ProcessorState->ContextFrame.Ecx;
  #if defined(__GNUC__) && (defined(__i386__))
      __asm__ volatile ("hlt");
  #elif defined(_MSC_VER) && defined(__i386__)
     __asm
     {
         sti
+        cli
+          
+        mov   ds, dstest
+        //mov   gs, 0
+    
+        mov ecx, 0xB8ED4000
         hlt
     }
  #else
     /* This should be impossible */
     for(;;){}
  #endif
+   // KiSystemStartup(KeLoaderBlock);
     for(;;){}
 }
 VOID __cdecl HaliAPBootSpinupEnd(VOID){/* Mostly a dummmy function */}

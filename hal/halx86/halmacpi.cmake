@@ -5,7 +5,8 @@ list(APPEND HAL_HALMACPI_SOURCE
     apic/halinit.c
     apic/processor.c
     apic/rtctimer.c
-    apic/tsc.c)
+    apic/tsc.c
+    acpi/madt.c)
 
 list(APPEND HAL_HALMACPI_ASM_SOURCE
     apic/apictrap.S
@@ -14,4 +15,5 @@ list(APPEND HAL_HALMACPI_ASM_SOURCE
 add_asm_files(lib_hal_halmacpi_asm ${HAL_HALMACPI_ASM_SOURCE})
 add_library(lib_hal_halmacpi OBJECT ${HAL_HALMACPI_SOURCE} ${lib_hal_halmacpi_asm})
 target_compile_definitions(lib_hal_halmacpi PRIVATE CONFIG_SMP)
+target_include_directories(lib_hal_halmacpi PRIVATE ${REACTOS_SOURCE_DIR}/drivers/bus/acpi/acpica/include)
 add_dependencies(lib_hal_halmacpi asm)

@@ -38,4 +38,10 @@ HalAcpiGetTable(
     IN ULONG Signature
 );
 
+PVOID
+NTAPI
+HalAcpiParseMadt(
+    IN PLOADER_PARAMETER_BLOCK LoaderBlock
+);
+
 /* EOF */

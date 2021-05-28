@@ -16,6 +16,9 @@
 
 #define PHYSICAL_ADDRESS  LARGE_INTEGER
 PHYSICAL_ADDRESS HighestPhysicalAddress;
+PLOADER_PARAMETER_BLOCK KeLoaderBlock;
+ /* Prep some values for SMP mode */
+KPROCESSOR_STATE ProcessorState;
 
 /* FUNCTIONS *****************************************************************/
 
@@ -44,8 +47,6 @@ KeStartAllProcessors()
         RtlCopyMemory((PVOID)((ULONG_PTR)PAPInfo + sizeof(KPCR) + sizeof(KTSS)), (PVOID)GdtDesc.Base, GdtDesc.Limit + 1);
         RtlCopyMemory((PVOID)((ULONG_PTR)PAPInfo + sizeof(KPCR) + sizeof(KTSS) + GdtDesc.Limit + 1), (PVOID)IdtDesc.Base, IdtDesc.Limit + 1);
 
-        /* Prep some values for SMP mode */
-        KPROCESSOR_STATE ProcessorState;
 
         PKPCR pKPcr = (PKPCR)PAPInfo;
         PKTSS pKTss = (PKTSS)((ULONG_PTR)PAPInfo + sizeof(KPCR));
@@ -116,7 +117,6 @@ KeStartAllProcessors()
         ProcessorState.ContextFrame.Eip = (ULONG_PTR)KiSystemStartup;
         DPRINT1("The value of EIP is %X\n", ProcessorState.ContextFrame.Eip);
         DPRINT1("The value of ECX is %X\n", ProcessorState.ContextFrame.Ecx);
-
         Ki386InitializeTss(pKTss, pIdt, pGdt);
 
         /* Actually Start the AP */

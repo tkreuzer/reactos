@@ -21,9 +21,9 @@
 void __cdecl HackEoi(void);
 
 #ifndef _M_AMD64 
-//#ifndef CONFIG_SMP
+#ifndef CONFIG_SMP
 #define APIC_LAZY_IRQL
-//#endif
+#endif
 #endif
 
 /* GLOBALS ********************************************************************/
@@ -283,6 +283,7 @@ HalpInitializeMADT(_In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
     ULONG PhysicalProcessorCount = 0;
     ULONG idx;
     PFN_COUNT PageCount;
+    ULONG MadtIndex;
     /* We only support legacy APIC for now, this will be updated in the future */
     HalpApicInfoTable.ApicMode = 0x10;
     MadtTable = HalAcpiGetTable(LoaderBlock, 'CIPA');
@@ -328,20 +329,23 @@ HalpInitializeMADT(_In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     for (ULONG i = 0; ((ULONG_PTR)AcpiHeader < TableEnd); )
     {
-        if(AcpiHeader->Type == ACPI_MADT_TYPE_LOCAL_APIC &&
-        AcpiHeader->Length == sizeof(ACPI_MADT_LOCAL_APIC))
+        /* Switch statement to parse the madt dependent on case of header type */
+        switch(AcpiHeader->Length)
         {
-            LAPIC = (PACPI_MADT_LOCAL_APIC)AcpiHeader;
-            idx = HalpApicInfoTable.ProcessorCount;
-            HalpProcessorIdentity[idx].LapicId = LAPIC->Id;
-            HalpProcessorIdentity[idx].ProcessorId = LAPIC->ProcessorId;
-            HalpApicInfoTable.ProcessorCount++;
-            i++;
-            AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + AcpiHeader->Length);
-        }
-        else if(AcpiHeader->Type == ACPI_MADT_TYPE_IO_APIC &&
-                AcpiHeader->Length == sizeof(ACPI_MADT_IO_APIC))
-            {
+            case sizeof(ACPI_MADT_LOCAL_APIC): {
+                LAPIC = (PACPI_MADT_LOCAL_APIC)AcpiHeader;
+
+                MadtIndex = HalpApicInfoTable.ProcessorCount;
+
+                HalpProcessorIdentity[MadtIndex].LapicId = LAPIC->Id;
+                HalpProcessorIdentity[MadtIndex].ProcessorId = LAPIC->ProcessorId;
+
+                HalpApicInfoTable.ProcessorCount++;
+
+                i++;
+                AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + AcpiHeader->Length);
+            } break;
+            case sizeof(ACPI_MADT_IO_APIC):{
                 idx = HalpApicInfoTable.IOAPICCount;
 
                 if(idx < MAX_IOAPICS)
@@ -378,9 +382,12 @@ HalpInitializeMADT(_In_ PLOADER_PARAMETER_BLOCK LoaderBlock)
                     ASSERT(HalpApicInfoTable.IoApicPA[idx] == IoApic->Address);
                 }
                 AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + AcpiHeader->Length);
-            }
-            /* add another else if here to continue to parse MADT */
-    } 
+            } break;
+            default: {
+                AcpiHeader = (PACPI_SUBTABLE_HEADER)((ULONG_PTR)AcpiHeader + 1);
+            } break;
+        }
+    }
 }
 
 VOID
