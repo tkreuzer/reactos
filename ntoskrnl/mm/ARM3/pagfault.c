@@ -2168,6 +2168,7 @@ UserFault:
 
         /* We should come back with a valid PPE */
         ASSERT(PointerPpe->u.Hard.Valid == 1);
+        ASSERT(MiIsUserPde(PointerPde));
         MiIncrementPageTableReferences(PointerPde);
     }
 #endif
@@ -2209,6 +2210,7 @@ UserFault:
                                  CurrentProcess,
                                  MM_NOIRQL);
 #if _MI_PAGING_LEVELS >= 3
+        ASSERT(MiIsUserPde(PointerPde));
         MiIncrementPageTableReferences(PointerPte);
 #endif
 
