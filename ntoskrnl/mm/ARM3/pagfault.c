@@ -2349,8 +2349,7 @@ UserFault:
         }
 
         /*
-         * Check if this is a real user-mode address or actually a kernel-mode
-         * page table for a user mode address
+         * Check if this is a user-mode address or page table
          */
         if (Address <= MM_HIGHEST_USER_ADDRESS
 #if _MI_PAGING_LEVELS >= 3
@@ -2360,6 +2359,9 @@ UserFault:
 #endif
 #endif
         )
+#else
+        if (MiIsUserAddressOrPageTable(Address)) // What about hyperspace?
+#endif
         {
             /* Add an additional page table reference */
             MiIncrementPageTableReferences(Address);

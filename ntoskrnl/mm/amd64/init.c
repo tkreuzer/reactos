@@ -698,6 +698,7 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
     NTSTATUS Status;
     ULONG Flags;
+    PMMPFN Pfn;
 
     ASSERT(MxPfnAllocation != 0);
 
@@ -725,9 +726,12 @@ MiInitMachineDependent(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     MiBuildPfnDatabase(LoaderBlock);
 
     /* Reset the ref/share count so that MmInitializeProcessAddressSpace works */
-    PMMPFN Pfn = MiGetPfnEntry(PFN_FROM_PTE((PMMPTE)PXE_SELFMAP));
+    Pfn = MiGetPfnEntry(PFN_FROM_PTE((PMMPTE)PXE_SELFMAP));
     Pfn->u2.ShareCount = 0;
     Pfn->u3.e2.ReferenceCount = 0;
+
+    /* Make sure we don't delete the PML4 */
+    Pfn->OriginalPte.u.Soft.UsedPageTableEntries = 1;
 
     Pfn = MiGetPfnEntry(PFN_FROM_PDE(MiAddressToPde((PVOID)HYPER_SPACE)));
     Pfn->u2.ShareCount = 0;

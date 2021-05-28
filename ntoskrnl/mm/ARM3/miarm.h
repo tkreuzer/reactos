@@ -733,6 +733,22 @@ MiIsUserPte(PVOID Address)
 }
 #endif
 
+FORCEINLINE
+BOOLEAN
+MiIsUserAddressOrPageTable(PVOID Address)
+{
+    return ((Address <= MmHighestUserAddress) // MM_HIGHEST_USER_ADDRESS
+            || MiIsUserPte(Address)
+            || MiIsUserPde(Address)
+#if (_MI_PAGING_LEVELS >= 3)
+            || MiIsUserPpe(Address)
+#endif
+#if (_MI_PAGING_LEVELS >= 4)
+            || MiIsUserPxe(Address)
+#endif
+            );
+}
+
 //
 // Figures out the hardware bits for a PTE
 //
@@ -2481,7 +2497,7 @@ MiIncrementPageTableReferences(IN PVOID Address)
     PMMPFN Pfn;
 
     /* We should not tinker with this one. */
-    ASSERT(PointerPde != (PMMPDE)PXE_SELFMAP);
+    //ASSERT(PointerPde != (PMMPDE)PXE_SELFMAP);
     DPRINT("Incrementing %p from %p\n", Address, _ReturnAddress());
 
     /* Make sure we're locked */
