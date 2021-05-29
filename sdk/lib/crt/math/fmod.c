@@ -26,6 +26,6 @@ fmod(double x, double y)
 #pragma STDC FENV_ACCESS ON
 #endif
     double result = remainder(fabs(x), (y = fabs(y)));
-    if (result < 0) result += y;
-    return _copysign(result, x);
+    if (signbit(result)) result += y;
+    return copysign(result, x);
 }

@@ -8,6 +8,13 @@
 
 #include <math.h>
 
+#ifdef _MSC_VER
+#pragma warning(suppress:4164) /* intrinsic not declared */
+#pragma function(remainder)
+#endif /* _MSC_VER */
+
+double __cdecl floor(double x);
+
 // See https://en.cppreference.com/w/c/numeric/math/remainder
 double
 __cdecl

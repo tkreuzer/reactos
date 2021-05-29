@@ -33,12 +33,12 @@ ceil(double x)
     if ((u64 & (1ULL << 63)) == 0)
     {
         /* Check if it fits into an int64 */
-        if (x < (double)_I64_MAX)
+        if (x <= (double)_I64_MAX)
         {
-            /* Cast to int64 to truncate towards 0. If this matches the
-               input, return it as is, otherwise add 1 */
-            double y = (double)(long long)x;
-            return (x > y) ? y + 1 : y;
+            /* Here we need to first offset the value into the negative
+               range, so that we truncate down towards 0. Then we offset
+               the result back accordingly. */
+            return (double)((long long)(x - _I64_MAX)) + _I64_MAX);
         }
         else
         {
@@ -55,11 +55,10 @@ ceil(double x)
             return -0.;
         }
         /* Check if it fits into an int64 */
-        if (x > (double)_I64_MIN)
+        if (x >= (double)_I64_MIN)
         {
             /* Cast to int64 to truncate towards 0. */
-            x = (double)(long long)x;
-            return (x == 0.) ? -0.0 : x;
+            return (double)(long long)x;
         }
         else
         {
