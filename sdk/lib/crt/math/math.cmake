@@ -53,14 +53,8 @@ if(ARCH STREQUAL "i386")
         math/i386/fmodf_asm.s
     )
 elseif(ARCH STREQUAL "amd64")
-    list(APPEND LIBCNTPR_MATH_SOURCE
-        math/ceil.c
-        math/cos.c
-        math/sin.c
-    )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/amd64/atan.S
-        # math/amd64/ceil.S
         math/amd64/exp.S
         math/amd64/fabsf.S
         math/amd64/floor.S
@@ -74,11 +68,9 @@ elseif(ARCH STREQUAL "amd64")
     )
 elseif(ARCH STREQUAL "arm")
     list(APPEND LIBCNTPR_MATH_SOURCE
-        math/cos.c
         math/fabs.c
         math/fabsf.c
         math/floorf.c
-        math/sin.c
         math/sqrt.c
         math/arm/__rt_sdiv.c
         math/arm/__rt_sdiv64_worker.c
@@ -123,26 +115,30 @@ endif()
 if(NOT ARCH STREQUAL "i386")
     list(APPEND LIBCNTPR_MATH_SOURCE
         math/atan2.c
+        # math/ceil.c
+        math/cos.c
         math/fabs.c
+        math/fmod.c
+        math/sin.c
     )
     list(APPEND CRT_MATH_SOURCE
         math/_chgsignf.c
         math/_copysignf.c
+        math/_ftol.c
         math/_hypotf.c
         math/acosf.c
         math/asinf.c
         math/atan2f.c
         math/atanf.c
         math/ceilf.c
-        math/cos.c
         math/coshf.c
         math/expf.c
         math/fabsf.c
-        math/fmod.c
+        # math/floor.c
         math/fmodf.c
         math/log10f.c
         math/modff.c
-        math/sin.c
+        math/remainder.c
         math/sinhf.c
         math/sqrtf.c
         math/tanf.c
@@ -190,15 +186,11 @@ list(APPEND LIBCNTPR_MATH_SOURCE
 
 if(ARCH STREQUAL "i386")
     list(APPEND ATAN2_ASM_SOURCE math/i386/atan2_asm.s)
-elseif(ARCH STREQUAL "amd64")
+    add_asm_files(atan2_asm ${ATAN2_ASM_SOURCE})
+else()
     list(APPEND ATAN2_SOURCE math/atan2.c)
-elseif(ARCH STREQUAL "arm")
-    list(APPEND ATAN2_SOURCE math/atan2.c)
-elseif(ARCH STREQUAL "arm64")
-    list(APPEND ATAN2_ASM_SOURCE math/arm64/atan2.s)
 endif()
 
-add_asm_files(atan2_asm ${ATAN2_ASM_SOURCE})
-add_library(atan2 ${ATAN2_SOURCE} ${atan2_asm})
+add_library(atan2 ${atan2_asm} ${ATAN2_SOURCE})
 set_target_properties(atan2 PROPERTIES LINKER_LANGUAGE "C")
 add_dependencies(atan2 asm)

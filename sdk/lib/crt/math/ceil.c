@@ -1,8 +1,9 @@
 /*
- * PROJECT:     ReactOS CRT library
+ * PROJECT:     ReactOS CRT
  * LICENSE:     MIT (https://spdx.org/licenses/MIT)
- * PURPOSE:     Portable implementation of ceil
- * COPYRIGHT:   Copyright 2021 Timo Kreuzer <timo.kreuzer@reactos.org>
+ * FILE:        sdk/lib/crt/math/ceil.c
+ * PURPOSE:     Implementation of ceil
+ * PROGRAMMERS: Copyright 2021 Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
 #define _USE_MATH_DEFINES
@@ -19,13 +20,15 @@ __cdecl
 ceil(double x)
 {
     /* Check if x is positive */
-    if ((*(unsigned long long*)&x & (1ULL << 63)) == 0)
+    if (x >= 0)
     {
         /* Check if it fits into an int64 */
-        if (x < (double)_I64_MAX)
+        if (x <= (double)_I64_MAX)
         {
-            long long ll = (long long)x;
-            return (x > (double)ll) ? (double)ll + 1 : (double)ll;
+            /* Here we need to first offset the value into the negative
+               range, so that we truncate down towards 0. Then we offset
+               the result back accordingly. */
+            return (double)((long long)(x - _I64_MAX)) + _I64_MAX;
         }
         else
         {
@@ -36,18 +39,12 @@ ceil(double x)
     }
     else
     {
-        /* Check if it is up to 1. */
-        if (x > -1.)
-        {
-            return -0.;
-        }
         /* Check if it fits into an int64 */
-        if (x > (double)_I64_MIN)
+        if (x >= (double)_I64_MIN)
         {
             /* Just cast to int64, which will truncate towards 0,
                which is what we want here .*/
-            x = (double)(long long)x;
-            return (x == 0.) ? -0.0 : x;
+            return (double)(long long)x;
         }
         else
         {

@@ -172,6 +172,7 @@ _Check_return_ __CRT_INLINE long double __CRTDECL tanl(_In_ long double x) { ret
 #if defined(_CRTBLD)
 _Check_return_ float __cdecl fabsf(_In_ float x);
 #elif defined(__ia64__) || defined(_M_IA64) || \
+    defined(__x86_64__) || defined(_M_AMD64)  || \
     defined(__arm__) || defined(_M_ARM)  || \
     defined(__arm64__) || defined(_M_ARM64)
 _Check_return_ _CRT_JIT_INTRINSIC _CRTIMP float __cdecl fabsf(_In_ float x);
