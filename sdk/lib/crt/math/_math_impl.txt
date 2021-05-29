@@ -1,0 +1,87 @@
+
+
+See implementations in https://git.musl-libc.org/cgit/musl/tree/src/math
+https://math.stackexchange.com/questions/18445/fastest-way-to-calculate-ex-up-to-arbitrary-number-of-decimals
+https://functions.wolfram.com/ElementaryFunctions/Exp/10/ShowAll.html
+https://stackoverflow.com/questions/25936031/pow-for-sse-types
+http://gruntthepeon.free.fr/ssemath/
+https://stackoverflow.com/questions/47025373/fastest-implementation-of-the-natural-exponential-function-using-sse
+https://bitbucket.org/eschnett/vecmathlib/src/master/
+https://stackoverflow.com/questions/15723995/simd-math-libraries-for-sse-and-avx
+https://github.com/to-miz/sse_mathfun_extension
+https://handmade.network/forums/wip/t/1439-sse2_implementations_of_tan,_cot,_atan,_atan2
+https://github.com/michael-quinlan/ut-sse
+https://stackoverflow.com/questions/46210708/atan2-approximation-with-11bits-in-mantissa-on-x86with-sse2-and-armwith-vfpv4
+
+Function | Generic	| x86	| SSE	| arm	|
+-------------------------------------------------
+abs      | +		|	|	|	|
+acos     | ->atan2/sqrt	|	|	|	|
+acosf    | ->acos	|	|	|	|
+adjust   | +		|	|	|	|
+asin     | ->atan2/sqrt	|	|	|	|
+asinf    | ->asin	|	|	|	|
+atan     |		| +	| !!	|	|
+atan2    | ->atan	| +	|	|	|
+atan2f   | ->atan2	|	|	|	|
+cabs     | ->sqrt	|	|	|	|
+ceil     | +		| +	|	|	|
+ceilf    | -> ceil	| +	|	|	|
+cos      | +		| +	|	|	|
+cosf     | ->cos	|	|	|	|
+cosh     | ->exp/fabs	|	|	|	|
+coshf    | -> cosh	|	|	|	|
+div      | +		|	|	|	|
+exp      |		| +	| !!	|	|
+exp2     | ->pow	|	|	|	|
+exp2f    | ->powf	|	|	|	|
+expf     | ->exp	|	|	|	|
+fabs     | +		| +	|	|	|
+fabsf    | ->fabs	|	|	|	|
+floor    | +		| +	|	|	|
+floorf   | ->floor	| +	|	|	|
+fmod     |?->remainder	| +	|	|	|
+fmodf    | ->fmod	| +	|	|	|
+frexp    | +		|	|	|	|
+ftol     | +		| +	|	|	|
+ftol2    |		| ->ftol|	|	|
+hypot    | +		|	|	|	|
+j0_y0    | +		|	|	|	|
+j1_y1    | +		|	|	|	|
+jn_yn    | +		|	|	|	|
+labs     | +		|	|	|	|
+ldexp    |		| +	| !!	|	|
+ldiv     | +		|	|	|	|
+log      |		| +	| !!	|	|
+log10    | ->log	| +	|	|	|
+log10f   | ->log10	|	|	|	|
+logf     | ->log	|	|	|	|
+(a_)modf | +		|	|	|	|
+modf(l)  | +		|	|	|	|
+modff    | ->modf	|	|	|	|
+pow      |		| +	| !!	|	|
+powf     | ->pow	|	|	|	|
+powl     | ?->pow	|	|	|	|
+remainder| +		|	|	|	|
+sin      | +		| +	|	|	|
+sinf     | ->sin	|	|	|	|
+sinh     | ->exp	|	|	|	|
+sinhf    | ->sinh	|	|	|	|
+sqrt     | +		| +	| +	|	|
+sqrtf    | ->sqrt	| +	|	|	|
+tan      |?->sin/cos	| +	|	|	|
+tanf     | ->tan	|	|	|	|
+tanh     | ->exp	|	|	|	|
+tanhf    | ->tanh	|	|	|	|
+
+
+Relationships:
+
+atan2: https://en.wikipedia.org/wiki/Atan2#Definition (->atan)
+
+
+Series:
+asin: https://en.wikipedia.org/wiki/Inverse_trigonometric_functions#Infinite_series
+atan: https://en.wikipedia.org/wiki/Inverse_trigonometric_functions#Infinite_series (Euler series)
+pow: https://stackoverflow.com/questions/9782103/c-or-c-pow-giving-wrong-result/9782325#9782325 (taylor series, slow convergence on high numbers)
+
