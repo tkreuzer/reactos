@@ -3,6 +3,7 @@ list(APPEND LIBCNTPR_MATH_SOURCE
     math/abs.c
     math/div.c
     math/labs.c
+    math/remainder.c
     math/usermatherr.c
 )
 
@@ -53,19 +54,17 @@ if(ARCH STREQUAL "i386")
     )
 elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_SOURCE
+        math/ceil.c
         math/cos.c
         math/sin.c
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/amd64/atan.S
-        math/amd64/atan2.S
-        math/amd64/ceil.S
+        # math/amd64/ceil.S
         math/amd64/exp.S
-        math/amd64/fabs.S
         math/amd64/fabsf.S
         math/amd64/floor.S
         math/amd64/floorf.S
-        math/amd64/fmod.S
         math/amd64/ldexp.S
         math/amd64/log.S
         math/amd64/log10.S
@@ -99,10 +98,8 @@ elseif(ARCH STREQUAL "arm")
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/arm/atan.s
-        math/arm/atan2.s
         math/arm/ceil.s
         math/arm/exp.s
-        math/arm/fmod.s
         math/arm/floor.s
         math/arm/ldexp.s
         math/arm/log.s
@@ -116,9 +113,18 @@ elseif(ARCH STREQUAL "arm")
     list(APPEND CRT_MATH_ASM_SOURCE
         math/arm/_logb.s
     )
+else()
+    list(APPEND CRT_MATH_SOURCE
+        math/ceil.c
+        math/floor.c
+    )
 endif()
 
 if(NOT ARCH STREQUAL "i386")
+    list(APPEND LIBCNTPR_MATH_SOURCE
+        math/atan2.c
+        math/fabs.c
+    )
     list(APPEND CRT_MATH_SOURCE
         math/_chgsignf.c
         math/_copysignf.c
@@ -131,6 +137,8 @@ if(NOT ARCH STREQUAL "i386")
         math/cos.c
         math/coshf.c
         math/expf.c
+        math/fabsf.c
+        math/fmod.c
         math/fmodf.c
         math/log10f.c
         math/modff.c
@@ -183,14 +191,14 @@ list(APPEND LIBCNTPR_MATH_SOURCE
 if(ARCH STREQUAL "i386")
     list(APPEND ATAN2_ASM_SOURCE math/i386/atan2_asm.s)
 elseif(ARCH STREQUAL "amd64")
-    list(APPEND ATAN2_ASM_SOURCE math/amd64/atan2.S)
+    list(APPEND ATAN2_SOURCE math/atan2.c)
 elseif(ARCH STREQUAL "arm")
-    list(APPEND ATAN2_ASM_SOURCE math/arm/atan2.s)
+    list(APPEND ATAN2_SOURCE math/atan2.c)
 elseif(ARCH STREQUAL "arm64")
     list(APPEND ATAN2_ASM_SOURCE math/arm64/atan2.s)
 endif()
 
 add_asm_files(atan2_asm ${ATAN2_ASM_SOURCE})
-add_library(atan2 ${atan2_asm})
+add_library(atan2 ${ATAN2_SOURCE} ${atan2_asm})
 set_target_properties(atan2 PROPERTIES LINKER_LANGUAGE "C")
 add_dependencies(atan2 asm)
