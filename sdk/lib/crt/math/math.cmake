@@ -12,6 +12,7 @@ list(APPEND LIBCNTPR_MATH_SOURCE
     math/labs.c
     math/sincos.c
     math/log10f.c
+    math/remainder.c
     math/sqrtf.c
     math/tanf.c
     math/usermatherr.c
@@ -125,6 +126,8 @@ elseif(ARCH STREQUAL "amd64")
         math/libm_sse2/tanhf.c
         math/libm_sse2/two_to_jby64_head_tail_table.c
         math/libm_sse2/two_to_jby64_table.c
+        math/floor.c
+        math/floorf.c
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/libm_sse2/fm.inc
@@ -132,7 +135,6 @@ elseif(ARCH STREQUAL "amd64")
         math/libm_sse2/cosf.asm
         math/libm_sse2/exp.asm
         math/libm_sse2/expf.asm
-        math/amd64/fabs.S
         math/amd64/fabsf.S
         math/libm_sse2/fmod.asm
         math/libm_sse2/fmodf.asm
@@ -190,10 +192,8 @@ elseif(ARCH STREQUAL "arm")
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/arm/atan.s
-        math/arm/atan2.s
         math/arm/ceil.s
         math/arm/exp.s
-        math/arm/fmod.s
         math/arm/floor.s
         math/arm/ldexp.s
         math/arm/log.s
@@ -207,12 +207,22 @@ elseif(ARCH STREQUAL "arm")
     list(APPEND CRT_MATH_ASM_SOURCE
         math/arm/_logb.s
     )
+else()
+    list(APPEND CRT_MATH_SOURCE
+        math/ceil.c
+        math/floor.c
+    )
 endif()
 
 if(NOT ARCH STREQUAL "i386")
+    list(APPEND LIBCNTPR_MATH_SOURCE
+        math/atan2.c
+        math/fabs.c
+    )
     list(APPEND CRT_MATH_SOURCE
         math/_chgsignf.c
         math/_copysignf.c
+        math/fmod.c
         math/stubs.c
     )
 endif()
@@ -263,7 +273,7 @@ if(ARCH STREQUAL "i386")
 elseif(ARCH STREQUAL "amd64")
     list(APPEND ATAN2_SOURCE math/_invoke_matherr.c math/amd64/_set_statfp.c math/libm_sse2/_handle_error.c math/libm_sse2/atan2.c)
 elseif(ARCH STREQUAL "arm")
-    list(APPEND ATAN2_ASM_SOURCE math/arm/atan2.s)
+    list(APPEND ATAN2_SOURCE math/atan2.c)
 elseif(ARCH STREQUAL "arm64")
     list(APPEND ATAN2_ASM_SOURCE math/arm64/atan2.s)
 endif()

@@ -1,8 +1,9 @@
 /*
  * PROJECT:     ReactOS CRT library
  * LICENSE:     MIT (https://spdx.org/licenses/MIT)
+ * FILE:        sdk/lib/crt/math/floor.c
  * PURPOSE:     Implementation of floor
- * COPYRIGHT:   Copyright 2021 Timo Kreuzer <timo.kreuzer@reactos.org>
+ * PROGRAMMERS: Copyright 2021 Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
 #define _USE_MATH_DEFINES
@@ -10,6 +11,7 @@
 #include <limits.h>
 
 #ifdef _MSC_VER
+#pragma warning(disable: 4164)
 #pragma function(floor)
 #endif
 
@@ -32,10 +34,10 @@ floor(double x)
     if ((u64 & (1ULL << 63)) == 0)
     {
         /* Check if it fits into an int64 */
-        if (x < (double)_I64_MAX)
+        if (x <= (double)_I64_MAX)
         {
             /* Just cast to int64, which will truncate towards 0,
-               which is what we want here.*/
+               which is what we want here .*/
             return (double)(long long)x;
         }
         else
@@ -48,18 +50,12 @@ floor(double x)
     else
     {
         /* Check if it fits into an int64 */
-        if (x > (double)_I64_MIN)
+        if (x >= (double)_I64_MIN)
         {
-            /* Check if it is -0 */
-            if (x == -0.)
-            {
-                return -0.;
-            }
-
-            /* Cast to int64 to truncate towards 0. If this matches the
-               input, return it as is, otherwise subtract 1 */
-            double y = (double)(long long)x;
-            return (x == y) ? y : y - 1;
+            /* Here we need to first offset the value into the positive
+               range, so that we truncate down towards 0. Then we offset
+               the result back accordingly. */
+            return (double)((long long)(x - _I64_MIN)) + _I64_MIN;
         }
         else
         {

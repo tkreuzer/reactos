@@ -10,6 +10,7 @@
 #include <limits.h>
 
 #ifdef _MSC_VER
+#pragma warning(disable: 4164)
 #pragma function(ceil)
 #endif
 
@@ -48,6 +49,11 @@ ceil(double x)
     }
     else
     {
+        /* Check if it is up to 1. */
+        if (x > -1.)
+        {
+            return -0.;
+        }
         /* Check if it fits into an int64 */
         if (x > (double)_I64_MIN)
         {
