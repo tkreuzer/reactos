@@ -407,11 +407,6 @@ Author:
 //
 #define KF_RDTSC                                HEX(00000002)
 
-//
-// Kernel Stack Size
-//
-#define KERNEL_STACK_SIZE                       HEX(6000)
-
 #endif // __ASM__
 
 #endif // !_ASM_AMD64_H
