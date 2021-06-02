@@ -433,7 +433,7 @@ HalpGetRootInterruptVector(
                 if (HalpVectorToIrq(Vector) == APIC_FREE_VECTOR)
                 {
                     /* Found one, allocate the interrupt */
-                    Vector = HalpAllocateSystemInterrupt(BusInterruptLevel, Vector);
+                    Vector = HalpAllocateSystemInterrupt(BusInterruptLevel, Irql); // CHECKME!
                     *OutIrql = Irql;
                     goto Exit;
                 }
