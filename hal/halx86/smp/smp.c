@@ -106,7 +106,7 @@ HalpStartNextProcessor(PLOADER_PARAMETER_BLOCK APLoaderBlock, PKPROCESSOR_STATE 
 VOID __cdecl HaliAPBootSpinup(VOID)
 {   
  //  PLOADER_PARAMETER_BLOCK KeLoaderBlock = APLoaderBlock;
-    USHORT dstest = 0x30;
+    //USHORT dstest = 0x30;
    // ULONG_PTR EcxTest = ProcessorState->ContextFrame.Ecx;
  #if defined(__GNUC__) && (defined(__i386__))
      __asm__ volatile ("hlt");

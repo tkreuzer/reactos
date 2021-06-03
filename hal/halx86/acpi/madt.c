@@ -9,7 +9,7 @@
 /* INCLUDES *******************************************************************/
 
 #include <hal.h>
-#include <acpi.h>
+//#include <acpi.h>
 #define NDEBUG
 #include <debug.h>
 
@@ -21,5 +21,5 @@ PVOID
 NTAPI
 HalAcpiParseMadt(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 {
-
+    return NULL;
 }
