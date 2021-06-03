@@ -518,6 +518,8 @@ HalpInitializePICs(IN BOOLEAN EnableInterrupts)
     EFlags = __readeflags();
     _disable();
 
+    // why don't we initialize the local APIC here?
+
     /* Initialize and mask the PIC */
     HalpInitializeLegacyPICs();
 
@@ -691,7 +693,7 @@ HalEnableSystemInterrupt(
     ReDirReg = ApicReadIORedirectionEntry(Index);
 
     /* Check if the interrupt was unused */
-    if (ReDirReg.Vector != Vector)
+    if (ReDirReg.Vector != Vector) // This looks fishy == 0?
     {
         ReDirReg.Vector = Vector;
         ReDirReg.DeliveryMode = APIC_MT_LowestPriority;
