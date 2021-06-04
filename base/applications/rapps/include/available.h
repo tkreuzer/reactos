@@ -56,6 +56,7 @@ public:
     ATL::CSimpleArray<ATL::CStringW> m_szScrnshotLocation;
     ATL::CStringW m_szIconLocation;
     ATL::CStringW m_szPkgName; // software's package name.
+    ATL::CStringW m_Architecture;
 
     ULONG m_SizeBytes;
 

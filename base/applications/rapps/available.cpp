@@ -59,6 +59,7 @@ VOID CAvailableApplicationInfo::RetrieveGeneralInfo(AvailableStrings& AvlbString
     GetString(L"Description", m_szDesc);
     GetString(L"URLSite", m_szUrlSite);
     GetString(L"SHA1", m_szSHA1);
+    GetString(L"Architecture", m_Architecture);
 
     static_assert(MAX_SCRNSHOT_NUM < 10000, "MAX_SCRNSHOT_NUM is too big");
     for (int i = 0; i < MAX_SCRNSHOT_NUM; i++)
@@ -513,8 +514,12 @@ BOOL CAvailableApps::Enum(INT EnumType, AVAILENUMPROC lpEnumProc, PVOID param)
             // set a timestamp for the next time
             Info->SetLastWriteTime(&FindFileData.ftLastWriteTime);
 
-            /* Check if we have the download URL */
-            if (Info->m_szUrlDownload.IsEmpty())
+            /* Check if we have the correct architecture */
+            if (
+#ifdef _M_IX86
+                (Info->m_Architecture.GetLength() != 0) &&
+#endif
+                (Info->m_Architecture.Compare(CurrentArchitecture) != 0))
             {
                 /* Can't use it, delete it */
                 delete Info;
