@@ -50,6 +50,13 @@ DoLinearRegression(
     return (SumXY + (SumXX/2)) / SumXX;
 }
 
+// Possibly better method from linux: https://elixir.bootlin.com/linux/latest/source/arch/x86/kernel/tsc.c
+// PIT: https://wiki.osdev.org/Programmable_Interval_Timer
+// Maybe a mix of that and linear regression? Calculate error? Do 10 times, select 5 best?
+// errors could be SMI / VM exits?
+// figure out if TSC is stable. Is it base frequency? Or current CPU freq?
+// -> For StallExecutionProcessor we might need something else if it's unstable.
+
 VOID
 NTAPI
 HalpInitializeTsc(VOID)
