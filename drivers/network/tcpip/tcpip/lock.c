@@ -9,6 +9,45 @@
 
 #include "precomp.h"
 
+DBG_SPINLOCK_ENTRY DbgSpinLockTable[DBG_TABLE_SIZE];
+ULONG64 DbgSpinLockAcquireCount;
+ULONG64 DbgSpinLockSpinCount;
+
+void
+DbgLockObject(PKSPIN_LOCK SpinLock)
+{
+    ULONG i;
+    DbgSpinLockAcquireCount++;
+    if (*SpinLock != 0) __debugbreak();
+
+    for (i = 0; i < DBG_TABLE_SIZE; i++)
+    {
+        if (DbgSpinLockTable[i].SpinLock == NULL)
+        {
+            DbgSpinLockTable[i].SpinLock = SpinLock;
+            DbgSpinLockTable[i].LockThread = PsGetCurrentThread();
+            RtlCaptureStackBackTrace(1, 5, DbgSpinLockTable[i].LockCaller, NULL);
+            return;
+        }
+    }
+    __debugbreak();
+}
+
+void
+DbgUnlockObject(PKSPIN_LOCK SpinLock)
+{
+    ULONG i;
+    for (i = 0; i < DBG_TABLE_SIZE; i++)
+    {
+        if (DbgSpinLockTable[i].SpinLock == SpinLock)
+        {
+            RtlZeroMemory(&DbgSpinLockTable[i], sizeof(DbgSpinLockTable[i]));
+            return;
+        }
+    }
+    __debugbreak();
+}
+
 KIRQL TcpipGetCurrentIrql() { return KeGetCurrentIrql(); }
 
 VOID TcpipInitializeSpinLock( PKSPIN_LOCK SpinLock ) {
