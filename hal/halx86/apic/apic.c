@@ -25,6 +25,7 @@
 /* GLOBALS ********************************************************************/
 
 ULONG ApicVersion;
+BOOLEAN g_X2ApicEnabled = FALSE;
 UCHAR HalpVectorToIndex[256];
 
 #ifndef _M_AMD64
@@ -90,6 +91,22 @@ HalVectorToIRQL[16] =
 /* PRIVATE FUNCTIONS **********************************************************/
 
 FORCEINLINE
+VOID
+ApicWriteICR(APIC_COMMAND_REGISTER CommandRegister)
+{
+    if (g_X2ApicEnabled)
+    {
+        __writemsr(X2APIC_BASE_MSR + APIC_ICR0, CommandRegister.LongLong);
+    }
+    else
+    {
+        /* Second ULONG is written first */
+        ApicWrite(APIC_ICR1, CommandRegister.Long1);
+        ApicWrite(APIC_ICR0, CommandRegister.Long0);
+    }
+}
+
+FORCEINLINE
 ULONG
 IOApicRead(UCHAR Register)
 {
@@ -152,7 +169,7 @@ ApicRequestSelfInterrupt(IN UCHAR Vector, UCHAR TriggerMode)
     ULONG IrrBit = 1UL << VectorLow;
 
     /* Setup the command register */
-    Icr.Long0 = 0;
+    Icr.LongLong = 0;
     Icr.Vector = Vector;
     Icr.MessageType = APIC_MT_Fixed;
     Icr.TriggerMode = TriggerMode;
@@ -169,7 +186,7 @@ ApicRequestSelfInterrupt(IN UCHAR Vector, UCHAR TriggerMode)
     } while (IcrStatus.DeliveryStatus);
 
     /* Write the low dword to send the interrupt */
-    ApicWrite(APIC_ICR0, Icr.Long0);
+    ApicWriteICR(Icr);
 
     /* Wait until we see the interrupt request.
      * It will stay in requested state until we re-enable interrupts.
@@ -293,12 +310,44 @@ ApicInitializeLocalApic(ULONG Cpu)
     APIC_BASE_ADRESS_REGISTER BaseRegister;
     APIC_SPURIOUS_INERRUPT_REGISTER SpIntRegister;
     LVT_REGISTER LvtEntry;
+    CPU_INFO CpuInfo;
+    BOOLEAN X2ApicEnabled = FALSE;
+
+    /* Make sure APIC is supported */
+    __cpuid((int*)&CpuInfo.AsUINT32, 1);
+    if ((CpuInfo.Edx & (1 << 9)) == 0)
+    {
+        KeBugCheck(HAL_INITIALIZATION_FAILED);
+    }
 
     /* Enable the APIC if it wasn't yet */
     BaseRegister.LongLong = __readmsr(MSR_APIC_BASE);
     BaseRegister.Enable = 1;
     BaseRegister.BootStrapCPUCore = (Cpu == 0);
     __writemsr(MSR_APIC_BASE, BaseRegister.LongLong);
+
+    /* Check if we have an x2APIC */
+    if ((CpuInfo.Ecx & (1 << 21)) != 0)
+    {
+        /* Enable it */
+        BaseRegister.X2ApicEnable = 1;
+        __writemsr(MSR_APIC_BASE, BaseRegister.LongLong);
+        X2ApicEnabled = TRUE;
+    }
+
+    if (Cpu == 0)
+    {
+        g_X2ApicEnabled = X2ApicEnabled;
+    }
+    else
+    {
+        if (g_X2ApicEnabled != X2ApicEnabled)
+        {
+            KeBugCheck(HAL_INITIALIZATION_FAILED);
+        }
+    }
+
+    // set limits as globals (type, ID bits, ?)
 
     /* Set spurious vector and SoftwareEnable to 1 */
     SpIntRegister.Long = ApicRead(APIC_SIVR);

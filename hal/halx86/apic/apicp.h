@@ -190,7 +190,8 @@ typedef union _APIC_BASE_ADRESS_REGISTER
     {
         UINT64 Reserved1:8;
         UINT64 BootStrapCPUCore:1;
-        UINT64 Reserved2:2;
+        UINT64 Reserved2:1;
+        UINT64 X2ApicEnable : 1;
         UINT64 Enable:1;
         UINT64 BaseAddress:40;
         UINT64 ReservedMBZ:12;
@@ -310,18 +311,34 @@ typedef union _IOAPIC_REDIRECTION_REGISTER
 } IOAPIC_REDIRECTION_REGISTER;
 #include <poppack.h>
 
+extern BOOLEAN g_X2ApicEnabled;
+
 FORCEINLINE
 ULONG
 ApicRead(APIC_REGISTER Register)
 {
-    return READ_REGISTER_ULONG((PULONG)(APIC_BASE + Register));
+    if (g_X2ApicEnabled)
+    {
+        return __readmsr(X2APIC_BASE_MSR + Register);
+    }
+    else
+    {
+        return READ_REGISTER_ULONG((PULONG)(APIC_BASE + Register));
+    }
 }
 
 FORCEINLINE
 VOID
 ApicWrite(APIC_REGISTER Register, ULONG Value)
 {
-    WRITE_REGISTER_ULONG((PULONG)(APIC_BASE + Register), Value);
+    if (g_X2ApicEnabled)
+    {
+        __writemsr(X2APIC_BASE_MSR + Register, Value);
+    }
+    else
+    {
+        WRITE_REGISTER_ULONG((PULONG)(APIC_BASE + Register), Value);
+    }
 }
 
 VOID
