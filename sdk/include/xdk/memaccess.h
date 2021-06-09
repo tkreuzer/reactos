@@ -60,6 +60,17 @@ MemoryBarrier (
 #error Unsupported architecture
 #endif /* _M_ARM */
 
+#if defined(_M_IX86) || defined(_M_AMD64)
+#define __iso_volatile_load8(p) (*(volatile char*)(p))
+#define __iso_volatile_load16(p) (*(volatile short*)(p))
+#define __iso_volatile_load32(p) (*(volatile int*)(p))
+#define __iso_volatile_load64(p) (*(volatile __int64*)(p))
+#define __iso_volatile_store8(p,v) (*(volatile char*)(p) = (v))
+#define __iso_volatile_store16(p,v) (*(volatile short*)(p) = (v))
+#define __iso_volatile_store32(p,v) (*(volatile int*)(p) = (v))
+#define __iso_volatile_store64(p,v) (*(volatile __int64*)(p) = (v))
+#endif
+
 __forceinline
 char
 ReadRaw8 (
@@ -127,78 +138,6 @@ WriteRaw64 (
 {
     *(__int64 *)Destination = Value;
 }
-
-#if defined(_M_IX86) || defined(_M_AMD64)
-
-__forceinline
-char
-ReadNoFence8 (
-    _In_ _Interlocked_operand_ char const volatile *Source)
-{
-    return *Source;
-}
-
-__forceinline
-void
-WriteNoFence8 (
-    _Out_ _Interlocked_operand_ char volatile *Destination,
-    _In_ char Value)
-{
-    *Destination = Value;
-}
-
-__forceinline
-short
-ReadNoFence16 (
-    _In_ _Interlocked_operand_ short const volatile *Source)
-{
-    return *Source;
-}
-
-__forceinline
-void
-WriteNoFence16 (
-    _Out_ _Interlocked_operand_ short volatile *Destination,
-    _In_ short Value)
-{
-    *Destination = Value;
-}
-
-__forceinline
-long
-ReadNoFence (
-    _In_ _Interlocked_operand_ long const volatile *Source)
-{
-    return *Source;
-}
-
-__forceinline
-void
-WriteNoFence (
-    _Out_ _Interlocked_operand_ long volatile *Destination,
-    _In_ long Value)
-{
-    *Destination = Value;
-}
-
-__forceinline
-__int64
-ReadNoFence64 (
-    _In_ _Interlocked_operand_ __int64 const volatile *Source)
-{
-    return *Source;
-}
-
-__forceinline
-void
-WriteNoFence64 (
-    _Out_ _Interlocked_operand_ __int64 volatile *Destination,
-    _In_ __int64 Value)
-{
-    *Destination = Value;
-}
-
-#elif defined(_M_ARM) || defined(_M_ARM64)
 
 __forceinline
 char
@@ -268,17 +207,13 @@ WriteNoFence64 (
     __iso_volatile_store64(Destination, Value);
 }
 
-#else
-#error Unknown architecture
-#endif // defined
-
 
 __forceinline
 char
 ReadAcquire8 (
     _In_ _Interlocked_operand_ char const volatile *Source)
 {
-    char Value = ReadNoFence8(Source);
+    char Value = __iso_volatile_load8(Source);
     _AcquireBarrier();
     return Value;
 }
@@ -290,7 +225,7 @@ WriteRelease8 (
     _In_ char Value)
 {
     _ReleaseBarrier();
-    WriteNoFence8(Destination, Value);
+    __iso_volatile_store8(Destination, Value);
 }
 
 __forceinline
@@ -298,7 +233,7 @@ short
 ReadAcquire16 (
     _In_ _Interlocked_operand_ short const volatile *Source)
 {
-    short Value = ReadNoFence16(Source);
+    short Value = __iso_volatile_load16(Source);
     _AcquireBarrier();
     return Value;
 }
@@ -310,7 +245,7 @@ WriteRelease16 (
     _In_ short Value)
 {
     _ReleaseBarrier();
-    WriteNoFence16(Destination, Value);
+    __iso_volatile_store16(Destination, Value);
 }
 
 __forceinline
@@ -318,7 +253,7 @@ long
 ReadAcquire (
     _In_ _Interlocked_operand_ long const volatile *Source)
 {
-    long Value = ReadNoFence(Source);
+    long Value = __iso_volatile_load32(Source);
     _AcquireBarrier();
     return Value;
 }
@@ -330,7 +265,7 @@ WriteRelease (
     _In_ long Value)
 {
     _ReleaseBarrier();
-    WriteNoFence(Destination, Value);
+    __iso_volatile_store32(Destination, Value);
 }
 
 __forceinline
@@ -338,7 +273,7 @@ __int64
 ReadAcquire64 (
     _In_ _Interlocked_operand_ __int64 const volatile *Source)
 {
-    __int64 Value = ReadNoFence64(Source);
+    __int64 Value = __iso_volatile_load64(Source);
     _AcquireBarrier();
     return Value;
 }
@@ -350,7 +285,7 @@ WriteRelease64 (
     _In_ __int64 Value)
 {
     _ReleaseBarrier();
-    WriteNoFence64(Destination, Value);
+    __iso_volatile_store64(Destination, Value);
 }
 
 
