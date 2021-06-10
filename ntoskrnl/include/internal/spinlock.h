@@ -88,11 +88,7 @@ KxReleaseSpinLock(
 
 #if defined(CONFIG_SMP) || DBG
     /* Clear the lock  */
-#ifdef _WIN64
-    InterlockedAnd64((PLONG64)SpinLock, 0);
-#else
-    InterlockedAnd((PLONG)SpinLock, 0);
-#endif
+    WriteULongPtrRelease(SpinLock, 0);
 #endif
 
     /* Add an explicit memory barrier to prevent the compiler from reordering
