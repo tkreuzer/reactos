@@ -55,6 +55,39 @@ ULONG64 MxFreePageCount = 0;
 
 BOOLEAN MiPfnsInitialized = FALSE;
 
+static const PCSTR MemTypeDesc[] = {
+    "LoaderExceptionBlock = 0n0",
+    "LoaderSystemBlock = 0n1",
+    "LoaderFree = 0n2",
+    "LoaderBad = 0n3",
+    "LoaderLoadedProgram = 0n4",
+    "LoaderFirmwareTemporary = 0n5",
+    "LoaderFirmwarePermanent = 0n6",
+    "LoaderOsloaderHeap = 0n7",
+    "LoaderOsloaderStack = 0n8",
+    "LoaderSystemCode = 0n9",
+    "LoaderHalCode = 0n10",
+    "LoaderBootDriver = 0n11",
+    "LoaderConsoleInDriver = 0n12",
+    "LoaderConsoleOutDriver = 0n13",
+    "LoaderStartupDpcStack = 0n14",
+    "LoaderStartupKernelStack = 0n15",
+    "LoaderStartupPanicStack = 0n16",
+    "LoaderStartupPcrPage = 0n17",
+    "LoaderStartupPdrPage = 0n18",
+    "LoaderRegistryData = 0n19",
+    "LoaderMemoryData = 0n20",
+    "LoaderNlsData = 0n21",
+    "LoaderSpecialMemory = 0n22",
+    "LoaderBBTMemory = 0n23",
+    "LoaderReserve = 0n24",
+    "LoaderXIPRom = 0n25",
+    "LoaderHALCachedMemory = 0n26",
+    "LoaderLargePageFiller = 0n27",
+    "LoaderErrorLogMemory = 0n28",
+    "LoaderMaximum = 0n29"
+};
+
 /* FUNCTIONS *****************************************************************/
 
 CODE_SEG("INIT")
@@ -633,6 +666,9 @@ MiBuildPfnDatabase(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     /* First initialize the color tables */
     MiInitializeColorTables();
 
+    DbgPrint("\nMemory map from descriptors:\n");
+    DbgPrint("----------------------------\n");
+
     /* Loop the memory descriptors */
     for (ListEntry = LoaderBlock->MemoryDescriptorListHead.Flink;
          ListEntry != &LoaderBlock->MemoryDescriptorListHead;
@@ -642,6 +678,11 @@ MiBuildPfnDatabase(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         Descriptor = CONTAINING_RECORD(ListEntry,
                                        MEMORY_ALLOCATION_DESCRIPTOR,
                                        ListEntry);
+
+        DbgPrint("- 0x%08Ix000 - 0x%08Ixfff: %s\n",
+                 Descriptor->BasePage,
+                 Descriptor->BasePage + Descriptor->PageCount - 1,
+                 MemTypeDesc[Descriptor->MemoryType]);
 
         /* Skip invisible memory */
         if (MiIsMemoryTypeInvisible(Descriptor->MemoryType)) continue;
