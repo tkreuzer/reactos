@@ -310,7 +310,7 @@ VOID AddrFileFree(
   PADDRESS_FILE AddrFile = Object;
   KIRQL OldIrql;
   PDATAGRAM_RECEIVE_REQUEST ReceiveRequest;
-  // PDATAGRAM_SEND_REQUEST SendRequest; See WTF below
+  PDATAGRAM_SEND_REQUEST SendRequest;
   PLIST_ENTRY CurrentEntry;
 
   TI_DbgPrint(MID_TRACE, ("Called.\n"));
@@ -330,26 +330,20 @@ VOID AddrFileFree(
   TI_DbgPrint(DEBUG_ADDRFILE, ("Aborting receive requests on AddrFile at (0x%X).\n", AddrFile));
 
   /* Go through pending receive request list and cancel them all */
-  while (!IsListEmpty(&AddrFile->ReceiveQueue))
-  {
-    CurrentEntry = RemoveHeadList(&AddrFile->ReceiveQueue);
+  while ((CurrentEntry = ExInterlockedRemoveHeadList(&AddrFile->ReceiveQueue, &AddrFile->Lock))) {
     ReceiveRequest = CONTAINING_RECORD(CurrentEntry, DATAGRAM_RECEIVE_REQUEST, ListEntry);
     (*ReceiveRequest->Complete)(ReceiveRequest->Context, STATUS_CANCELLED, 0);
-    ExFreePoolWithTag(ReceiveRequest, DATAGRAM_RECV_TAG);
+    /* ExFreePoolWithTag(ReceiveRequest, DATAGRAM_RECV_TAG); FIXME: WTF? */
   }
 
   TI_DbgPrint(DEBUG_ADDRFILE, ("Aborting send requests on address file at (0x%X).\n", AddrFile));
 
-#if 0 /* Biggest WTF. All of this was taken care of above as DATAGRAM_RECEIVE_REQUEST. */
   /* Go through pending send request list and cancel them all */
-  while (!IsListEmpty(&AddrFile->ReceiveQueue))
-  {
-    CurrentEntry = RemoveHeadList(&AddrFile->ReceiveQueue);
+  while ((CurrentEntry = ExInterlockedRemoveHeadList(&AddrFile->ReceiveQueue, &AddrFile->Lock))) {
     SendRequest = CONTAINING_RECORD(CurrentEntry, DATAGRAM_SEND_REQUEST, ListEntry);
     (*SendRequest->Complete)(SendRequest->Context, STATUS_CANCELLED, 0);
     ExFreePoolWithTag(SendRequest, DATAGRAM_SEND_TAG);
   }
-#endif
 
   /* Protocol specific handling */
   switch (AddrFile->Protocol) {
@@ -366,8 +360,6 @@ VOID AddrFileFree(
   }
 
   RemoveEntityByContext(AddrFile);
-
-  ExDeleteResourceLite(&AddrFile->Resource);
 
   ExFreePoolWithTag(Object, ADDR_FILE_TAG);
 }
@@ -561,7 +553,7 @@ NTSTATUS FileOpenAddress(
   InitializeListHead(&AddrFile->TransmitQueue);
 
   /* Initialize spin lock that protects the address file object */
-  ExInitializeResourceLite(&AddrFile->Resource);
+  KeInitializeSpinLock(&AddrFile->Lock);
 
   /* Return address file object */
   Request->Handle.AddressHandle = AddrFile;
@@ -589,26 +581,26 @@ NTSTATUS FileCloseAddress(
   PTDI_REQUEST Request)
 {
   PADDRESS_FILE AddrFile = Request->Handle.AddressHandle;
-  PCONNECTION_ENDPOINT Listener;
+  KIRQL OldIrql;
 
   if (!Request->Handle.AddressHandle) return STATUS_INVALID_PARAMETER;
 
-  LockObject(AddrFile);
+  LockObject(AddrFile, &OldIrql);
 
   if (InterlockedDecrement(&AddrFile->Sharers) != 0)
   {
       /* Still other guys have open handles to this, so keep it around */
-      UnlockObject(AddrFile);
+      UnlockObject(AddrFile, OldIrql);
       return STATUS_SUCCESS;
   }
 
   /* We have to close this listener because we started it */
-  Listener = AddrFile->Listener;
-  UnlockObject(AddrFile);
-  if( Listener )
+  if( AddrFile->Listener )
   {
-      TCPClose( Listener );
+      TCPClose( AddrFile->Listener );
   }
+
+  UnlockObject(AddrFile, OldIrql);
 
   DereferenceObject(AddrFile);
 

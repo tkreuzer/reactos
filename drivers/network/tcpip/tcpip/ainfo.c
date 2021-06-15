@@ -13,15 +13,17 @@ TDI_STATUS SetAddressFileInfo(TDIObjectID *ID,
                               PVOID Buffer,
                               UINT BufferSize)
 {
+    KIRQL OldIrql;
+
     switch (ID->toi_id)
     {
       case AO_OPTION_TTL:
          if (BufferSize < sizeof(UINT))
              return TDI_INVALID_PARAMETER;
 
-         LockObject(AddrFile);
+         LockObject(AddrFile, &OldIrql);
          AddrFile->TTL = *((PUCHAR)Buffer);
-         UnlockObject(AddrFile);
+         UnlockObject(AddrFile, OldIrql);
 
          return TDI_SUCCESS;
 
@@ -29,9 +31,9 @@ TDI_STATUS SetAddressFileInfo(TDIObjectID *ID,
          if (BufferSize < sizeof(UINT))
              return TDI_INVALID_PARAMETER;
 
-         LockObject(AddrFile);
+         LockObject(AddrFile, &OldIrql);
          AddrFile->DF = *((PUINT)Buffer);
-         UnlockObject(AddrFile);
+         UnlockObject(AddrFile, OldIrql);
 
          return TDI_SUCCESS;
 
@@ -39,9 +41,9 @@ TDI_STATUS SetAddressFileInfo(TDIObjectID *ID,
          if (BufferSize < sizeof(UINT))
              return TDI_INVALID_PARAMETER;
 
-         LockObject(AddrFile);
+         LockObject(AddrFile, &OldIrql);
          AddrFile->BCast = *((PUINT)Buffer);
-         UnlockObject(AddrFile);
+         UnlockObject(AddrFile, OldIrql);
 
          return TDI_SUCCESS;
 
@@ -49,9 +51,9 @@ TDI_STATUS SetAddressFileInfo(TDIObjectID *ID,
          if (BufferSize < sizeof(UINT))
              return TDI_INVALID_PARAMETER;
 
-         LockObject(AddrFile);
+         LockObject(AddrFile, &OldIrql);
          AddrFile->HeaderIncl = *((PUINT)Buffer);
-         UnlockObject(AddrFile);
+         UnlockObject(AddrFile, OldIrql);
 
          return TDI_SUCCESS;
 

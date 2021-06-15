@@ -81,9 +81,7 @@ void LibTCPEnqueuePacket(PCONNECTION_ENDPOINT Connection, struct pbuf *p)
     qp->p = p;
     qp->Offset = 0;
 
-    LockObject(Connection);
-    InsertTailList(&Connection->PacketQueue, &qp->ListEntry);
-    UnlockObject(Connection);
+    ExInterlockedInsertTailList(&Connection->PacketQueue, &qp->ListEntry, &Connection->Lock);
 }
 
 PQUEUE_ENTRY LibTCPDequeuePacket(PCONNECTION_ENDPOINT Connection)
@@ -106,10 +104,11 @@ NTSTATUS LibTCPGetDataFromConnectionQueue(PCONNECTION_ENDPOINT Connection, PUCHA
     struct pbuf* p;
     NTSTATUS Status;
     UINT ReadLength, PayloadLength, Offset, Copied;
+    KIRQL OldIrql;
 
     (*Received) = 0;
 
-    LockObject(Connection);
+    LockObject(Connection, &OldIrql);
 
     if (!IsListEmpty(&Connection->PacketQueue))
     {
@@ -133,8 +132,12 @@ NTSTATUS LibTCPGetDataFromConnectionQueue(PCONNECTION_ENDPOINT Connection, PUCHA
                 qp = NULL;
             }
 
+            UnlockObject(Connection, OldIrql);
+
             Copied = pbuf_copy_partial(p, RecvBuffer, ReadLength, Offset);
             ASSERT(Copied == ReadLength);
+
+            LockObject(Connection, &OldIrql);
 
             /* Update trackers */
             RecvLen -= ReadLength;
@@ -169,7 +172,7 @@ NTSTATUS LibTCPGetDataFromConnectionQueue(PCONNECTION_ENDPOINT Connection, PUCHA
             Status = STATUS_PENDING;
     }
 
-    UnlockObject(Connection);
+    UnlockObject(Connection, OldIrql);
 
     return Status;
 }
@@ -360,33 +363,6 @@ LibTCPSocket(void *arg)
 
     return NULL;
 }
-
-static
-void
-LibTCPFreeSocketCallback(void *arg)
-{
-    struct lwip_callback_msg *msg = arg;
-
-    ASSERT(msg);
-
-    /* Calling tcp_close will free it */
-    tcp_close(msg->Input.FreeSocket.pcb);
-
-    KeSetEvent(&msg->Event, IO_NO_INCREMENT, FALSE);
-}
-
-void LibTCPFreeSocket(PTCP_PCB pcb)
-{
-    struct lwip_callback_msg msg;
-
-    KeInitializeEvent(&msg.Event, NotificationEvent, FALSE);
-    msg.Input.FreeSocket.pcb = pcb;
-
-    tcpip_callback_with_block(LibTCPFreeSocketCallback, &msg, 1);
-
-    WaitForEventSafely(&msg.Event);
-}
-
 
 static
 void
