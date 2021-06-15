@@ -824,16 +824,159 @@ NtSetInformationJobObject (
     KeEnterGuardedRegionThread(CurrentThread);
     switch (JobInformationClass)
     {
-        case JobObjectExtendedLimitInformation:
-            DPRINT1("Class JobObjectExtendedLimitInformation not implemented\n");
-            Status = STATUS_SUCCESS;
+        case JobObjectBasicUIRestrictions:
+            DPRINT1("Class JobObjectBasicUIRestrictions not implemented\n");
+            Status = STATUS_NOT_IMPLEMENTED;
             break;
 
-        default:
+            /* Limits information */
+        case JobObjectBasicLimitInformation:
+        case JobObjectExtendedLimitInformation:
+        {
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION ExtendedLimit;
+            const ULONG AllowedBasicFlags = JOB_OBJECT_LIMIT_WORKINGSET |
+                JOB_OBJECT_LIMIT_PROCESS_TIME |
+                JOB_OBJECT_LIMIT_JOB_TIME |
+                JOB_OBJECT_LIMIT_ACTIVE_PROCESS |
+                JOB_OBJECT_LIMIT_AFFINITY |
+                JOB_OBJECT_LIMIT_PRIORITY_CLASS |
+                JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME |
+                JOB_OBJECT_LIMIT_SCHEDULING_CLASS |
+                JOB_OBJECT_LIMIT_JOB_MEMORY;
+            const ULONG AllowedExtendedFlags = AllowedBasicFlags |
+                JOB_OBJECT_LIMIT_BREAKAWAY_OK |
+                JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION |
+                JOB_OBJECT_LIMIT_PROCESS_MEMORY |
+                JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK |
+                JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            ULONG AllowedFlags;
+
+            _SEH2_TRY
+            {
+                /* If asking for extending limits */
+                if (JobInformationClass == JobObjectExtendedLimitInformation)
+                {
+                    ExtendedLimit = *(PJOBOBJECT_EXTENDED_LIMIT_INFORMATION)JobInformation;
+                    AllowedFlags = AllowedExtendedFlags;
+                }
+                else
+                {
+                    RtlZeroMemory(&ExtendedLimit, sizeof(ExtendedLimit));
+                    ExtendedLimit.BasicLimitInformation = *(PJOBOBJECT_BASIC_LIMIT_INFORMATION)JobInformation;
+                    AllowedFlags = AllowedBasicFlags;
+                }
+            }
+            _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+            {
+                Status = _SEH2_GetExceptionCode();
+                goto Exit;
+            }
+            _SEH2_END;
+
+            /* Validate flags */
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & ~AllowedFlags)
+            {
+                DPRINT1("Invalid LimitFlags specified\n");
+                Status = STATUS_INVALID_PARAMETER;
+                goto Exit;
+            }
+
+            if ((ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME) &&
+                (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_JOB_TIME))
+            {
+                DPRINT1("Invalid LimitFlags combination specified\n");
+                Status = STATUS_INVALID_PARAMETER;
+                goto Exit;
+            }
+
+            /* Acquire the job lock */
+            ExAcquireResourceSharedLite(&Job->JobLock, TRUE);
+
+            /* Copy basic information */
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_WORKINGSET)
+            {
+                Job->MinimumWorkingSetSize = ExtendedLimit.BasicLimitInformation.MinimumWorkingSetSize;
+                Job->MaximumWorkingSetSize = ExtendedLimit.BasicLimitInformation.MaximumWorkingSetSize;
+            }
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_PROCESS_TIME)
+            {
+                Job->PerProcessUserTimeLimit.QuadPart = ExtendedLimit.BasicLimitInformation.PerProcessUserTimeLimit.QuadPart;
+            }
+
+            // CHECKME
+            if ((ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_JOB_TIME) &&
+                !(Job->LimitFlags & JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME))
+            {
+                Job->PerJobUserTimeLimit.QuadPart = ExtendedLimit.BasicLimitInformation.PerJobUserTimeLimit.QuadPart;
+            }
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_ACTIVE_PROCESS)
+            {
+                Job->ActiveProcessLimit = ExtendedLimit.BasicLimitInformation.ActiveProcessLimit;
+            }
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_AFFINITY)
+            {
+                Job->Affinity = ExtendedLimit.BasicLimitInformation.Affinity;
+            }
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_PRIORITY_CLASS)
+            {
+                Job->PriorityClass = ExtendedLimit.BasicLimitInformation.PriorityClass;
+            }
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_SCHEDULING_CLASS)
+            {
+                Job->SchedulingClass = ExtendedLimit.BasicLimitInformation.SchedulingClass;
+            }
+
+            /* Acquire the memory limits lock */
+            KeAcquireGuardedMutexUnsafe(&Job->MemoryLimitsLock);
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_PROCESS_MEMORY)
+            {
+                Job->ProcessMemoryLimit = ExtendedLimit.ProcessMemoryLimit >> PAGE_SHIFT;
+            }
+
+            if (ExtendedLimit.BasicLimitInformation.LimitFlags & JOB_OBJECT_LIMIT_JOB_MEMORY)
+            {
+                Job->JobMemoryLimit = ExtendedLimit.JobMemoryLimit >> PAGE_SHIFT;
+            }
+
+            Job->LimitFlags = ExtendedLimit.BasicLimitInformation.LimitFlags;
+
+            /* Release locks */
+            KeReleaseGuardedMutexUnsafe(&Job->MemoryLimitsLock);
+            ExReleaseResourceLite(&Job->JobLock);
+
+            Status = STATUS_SUCCESS;
+            break;
+        }
+
+        case JobObjectSecurityLimitInformation:
+        case JobObjectEndOfJobTimeInformation:
+        case JobObjectAssociateCompletionPortInformation:
+#if 0 // Vista?
+        case JobObjectCpuRateControlInformation:
+        case JobObjectGroupInformation:
+        case JobObjectGroupInformationEx:
+        case JobObjectLimitViolationInformation2:
+        case JobObjectNetRateControlInformation:
+        case JobObjectNotificationLimitInformation:
+        case JobObjectNotificationLimitInformation2:
+#endif
             DPRINT1("Class %d not implemented\n", JobInformationClass);
             Status = STATUS_NOT_IMPLEMENTED;
             break;
+
+        default:
+            DPRINT1("Invalid class %d\n", JobInformationClass);
+            Status = STATUS_INVALID_PARAMETER;
+            break;
     }
+
+Exit:
     KeLeaveGuardedRegionThread(CurrentThread);
 
     ObDereferenceObject(Job);
