@@ -3692,6 +3692,55 @@ FileCopyCallback(PVOID Context,
 }
 
 
+static
+NTSTATUS
+CreateSystem32Link(VOID)
+{
+    OBJECT_ATTRIBUTES ObjectAttributes;
+    UNICODE_STRING ReactosDir = RTL_CONSTANT_STRING(L"\\SystemRoot");
+    UNICODE_STRING SymLinkName = RTL_CONSTANT_STRING(L"system32");
+    UNICODE_STRING SymLinkTarget = RTL_CONSTANT_STRING(L"$system32$");
+    HANDLE DirectoryHandle;
+    NTSTATUS Status;
+    __debugbreak();
+    /* Initialize the attributes for the ReactOS directory */
+    InitializeObjectAttributes(&ObjectAttributes,
+                               &ReactosDir,
+                               OBJ_CASE_INSENSITIVE,
+                               NULL,
+                               NULL);
+
+    /* Open the ReactOS directory */
+    Status = NtOpenDirectoryObject(&DirectoryHandle,
+                                   DIRECTORY_ALL_ACCESS,
+                                   &ObjectAttributes);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("NtOpenDirectoryObject(%wZ) failed, Status 0x%08lx\n", &ReactosDir, Status);
+        return Status;
+    }
+
+    /* Initialize the attributes for the symbolic link */
+    InitializeObjectAttributes(&ObjectAttributes,
+                               &SymLinkName,
+                               OBJ_CASE_INSENSITIVE | OBJ_OPENIF | OBJ_PERMANENT,
+                               DirectoryHandle,
+                               NULL);
+
+    /* Create the system32 symlink */
+    Status = NtCreateSymbolicLinkObject(&DirectoryHandle,
+                                        SYMBOLIC_LINK_ALL_ACCESS,
+                                        &ObjectAttributes,
+                                        &SymLinkTarget);
+    if (!NT_SUCCESS(Status))
+    {
+        DPRINT1("NtOpenDirectoryObject(%wZ) failed, Status 0x%08lx\n", &SymLinkName, Status);
+        return Status;
+    }
+
+    return Status;
+}
+
 /*
  * Displays the FileCopyPage.
  *
@@ -3772,10 +3821,13 @@ FileCopyPage(PINPUT_RECORD Ir)
     /* Create the $winnt$.inf file */
     InstallSetupInfFile(&USetupData);
 
+    /* Create system32 symlink */
+    NTSTATUS Status = CreateSystem32Link();
+    ASSERT(NT_SUCCESS(Status));
+
     /* Go display the next page */
     return REGISTRY_PAGE;
 }
-
 
 static VOID
 __cdecl

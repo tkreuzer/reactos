@@ -476,6 +476,16 @@ ObpLookupObjectName(IN HANDLE RootHandle OPTIONAL,
             __FUNCTION__,
             ObjectName,
             InsertObject);
+    static UNICODE_STRING System32 = RTL_CONSTANT_STRING(L"system32");
+    UNICODE_STRING CompareString;
+
+    if (ObjectName->Length >= System32.Length)
+    {
+        CompareString = *ObjectName;
+        CompareString.Buffer += (CompareString.Length - System32.Length) / sizeof(WCHAR);
+        CompareString.Length = System32.Length;
+        if (RtlEqualUnicodeString(&CompareString, &System32, TRUE)) __debugbreak();
+    }
 
     /* Initialize starting state */
     ObpInitializeLookupContext(LookupContext);
@@ -541,6 +551,7 @@ ObpLookupObjectName(IN HANDLE RootHandle OPTIONAL,
             /* Now parse */
             while (TRUE)
             {
+
                 /* Start with the full name */
                 RemainingName = *ObjectName;
 

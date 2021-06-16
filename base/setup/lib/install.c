@@ -237,6 +237,14 @@ BuildFullDirectoryPath(
     IN SIZE_T cchFullPathSize)
 {
     NTSTATUS Status;
+    PWSTR FoundSystem32;
+
+    FoundSystem32 = wcsstr(RelativePath, L"system32");
+    if (FoundSystem32 != NULL)
+    {
+        FoundSystem32[6] = L'$';
+        FoundSystem32[7] = L'$';
+    }
 
     if ((RelativePath[0] == UNICODE_NULL) || (RelativePath[0] == L'\\' && RelativePath[1] == UNICODE_NULL))
     {
