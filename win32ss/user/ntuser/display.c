@@ -146,47 +146,69 @@ InitDisplayDriver(
     return pGraphicsDevice;
 }
 
-NTSTATUS
-NTAPI
-InitVideo(VOID)
+static
+VOID
+GdiUpdateGraphicsDeviceList(VOID)
 {
-    NTSTATUS Status;
+    PGRAPHICS_DEVICE pGraphicsDevice;
+    ULONG iDevNum;
     HKEY hkey;
+    NTSTATUS Status;
+    ULONG ulMaxObjectNumber = 0;
+    ULONG cbValue;
+    WCHAR awcDeviceName[20];
+    WCHAR awcBuffer[256];
 
-    TRACE("----------------------------- InitVideo() -------------------------------\n");
-
-    /* Check if VGA mode is requested, by finding the special volatile key created by VIDEOPRT */
-    Status = RegOpenKey(L"\\Registry\\Machine\\System\\CurrentControlSet\\Control\\GraphicsDrivers\\BaseVideo", &hkey);
-    if (NT_SUCCESS(Status))
-        ZwClose(hkey);
-    gbBaseVideo = NT_SUCCESS(Status);
-    if (gbBaseVideo)
-        ERR("VGA mode requested.\n");
-
-    /* Initialize all display devices */
-    Status = EngpUpdateGraphicsDeviceList();
+    /* Initialize all devices */
+    Status = RegOpenKey(KEY_VIDEO, &hkey);
     if (!NT_SUCCESS(Status))
-        return Status;
+        return;
 
-    /* Check if we had any success */
-    if (!gpPrimaryGraphicsDevice)
+    /* Get the maximum mumber of adapters */
+    if (!RegReadDWORD(hkey, L"MaxObjectNumber", &ulMaxObjectNumber))
     {
-        /* Check if there is a VGA device we skipped */
-        if (gpVgaGraphicsDevice)
+        ERR("Could not read MaxObjectNumber, defaulting to 0.\n");
+    }
+
+    TRACE("Found %lu devices\n", ulMaxObjectNumber + 1);
+
+    /* Loop through all adapters */
+    for (iDevNum = 0; iDevNum <= ulMaxObjectNumber; iDevNum++)
+    {
+        /* Create the adapter's key name */
+        swprintf(awcDeviceName, L"\\Device\\Video%lu", iDevNum);
+
+        /* Read the reg key name */
+        cbValue = sizeof(awcBuffer);
+        Status = RegQueryValue(hkey, awcDeviceName, REG_SZ, awcBuffer, &cbValue);
+        if (!NT_SUCCESS(Status))
         {
-            /* There is, use the VGA device */
-            gpPrimaryGraphicsDevice = gpVgaGraphicsDevice;
+            ERR("failed to query the registry path:0x%lx\n", Status);
+            continue;
+        }
+
+        /* Initialize the driver for this device */
+        pGraphicsDevice = InitDisplayDriver(awcDeviceName, awcBuffer);
+        if (!pGraphicsDevice) continue;
+
+        /* Check if this is a VGA compatible adapter */
+        if (pGraphicsDevice->StateFlags & DISPLAY_DEVICE_VGA_COMPATIBLE)
+        {
+            /* Save this as the VGA adapter */
+            if (!gpVgaGraphicsDevice)
+                gpVgaGraphicsDevice = pGraphicsDevice;
+            TRACE("gpVgaGraphicsDevice = %p\n", gpVgaGraphicsDevice);
         }
         else
         {
-            ERR("No usable display driver was found.\n");
-            return STATUS_UNSUCCESSFUL;
+            /* Set the first one as primary device */
+            if (!gpPrimaryGraphicsDevice)
+                gpPrimaryGraphicsDevice = pGraphicsDevice;
+            TRACE("gpPrimaryGraphicsDevice = %p\n", gpPrimaryGraphicsDevice);
         }
     }
 
-    InitSysParams();
-
-    return STATUS_SUCCESS;
+    ZwClose(hkey);
 }
 
 VOID
@@ -244,7 +266,7 @@ UserEnumDisplayDevices(
     if (!pustrDevice)
     {
         /* Check if some devices have been added since last time */
-        EngpUpdateGraphicsDeviceList();
+        GdiUpdateGraphicsDeviceList();
     }
 
     /* Ask gdi for the GRAPHICS_DEVICE */
@@ -971,4 +993,43 @@ NtUserChangeDisplaySettings(
     UserLeave();
 
     return lRet;
+}
+
+NTSTATUS
+NTAPI
+InitVideo(VOID)
+{
+    NTSTATUS Status;
+    HKEY hkey;
+
+    /* Check if VGA mode is requested, by finding the special volatile key created by VIDEOPRT */
+    Status = RegOpenKey(L"\\Registry\\Machine\\System\\CurrentControlSet\\Control\\GraphicsDrivers\\BaseVideo", &hkey);
+    if (NT_SUCCESS(Status))
+        ZwClose(hkey);
+    gbBaseVideo = NT_SUCCESS(Status);
+    if (gbBaseVideo)
+        ERR("VGA mode requested.\n");
+
+    /* Initialize all display devices */
+    GdiUpdateGraphicsDeviceList();
+
+    /* Check if we had any success */
+    if (!gpPrimaryGraphicsDevice)
+    {
+        /* Check if there is a VGA device we skipped */
+        if (gpVgaGraphicsDevice)
+        {
+            /* There is, use the VGA device */
+            gpPrimaryGraphicsDevice = gpVgaGraphicsDevice;
+        }
+        else
+        {
+            ERR("No usable display driver was found.\n");
+            return STATUS_UNSUCCESSFUL;
+        }
+    }
+
+    InitSysParams();
+
+    return STATUS_SUCCESS;
 }
