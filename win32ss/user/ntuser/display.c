@@ -146,6 +146,7 @@ InitDisplayDriver(
     return pGraphicsDevice;
 }
 
+
 NTSTATUS
 NTAPI
 InitVideo(VOID)
@@ -164,9 +165,7 @@ InitVideo(VOID)
         ERR("VGA mode requested.\n");
 
     /* Initialize all display devices */
-    Status = EngpUpdateGraphicsDeviceList();
-    if (!NT_SUCCESS(Status))
-        return Status;
+    GdiUpdateGraphicsDeviceList();
 
     /* Check if we had any success */
     if (!gpPrimaryGraphicsDevice)
@@ -244,7 +243,7 @@ UserEnumDisplayDevices(
     if (!pustrDevice)
     {
         /* Check if some devices have been added since last time */
-        EngpUpdateGraphicsDeviceList();
+        GdiUpdateGraphicsDeviceList();
     }
 
     /* Ask gdi for the GRAPHICS_DEVICE */
@@ -972,3 +971,4 @@ NtUserChangeDisplaySettings(
 
     return lRet;
 }
+

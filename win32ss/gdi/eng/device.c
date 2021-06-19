@@ -33,9 +33,10 @@ InitDeviceImpl(VOID)
 }
 
 NTSTATUS
-EngpUpdateGraphicsDeviceList(VOID)
+GdiUpdateGraphicsDeviceList(VOID)
 {
-    ULONG iDevNum, iVGACompatible = -1, ulMaxObjectNumber = 0;
+    ULONG iDevNum;
+    ULONG ulMaxObjectNumber = 0;
     WCHAR awcDeviceName[20], awcWinDeviceName[20];
     UNICODE_STRING ustrDeviceName;
     WCHAR awcBuffer[256];
@@ -45,20 +46,11 @@ EngpUpdateGraphicsDeviceList(VOID)
     HKEY hkey;
 
     /* Open the key for the adapters */
-    Status = RegOpenKey(L"\\Registry\\Machine\\HARDWARE\\DEVICEMAP\\VIDEO", &hkey);
+    Status = RegOpenKey(KEY_VIDEO, &hkey);
     if (!NT_SUCCESS(Status))
     {
         ERR("Could not open HARDWARE\\DEVICEMAP\\VIDEO registry key:0x%lx\n", Status);
         return Status;
-    }
-
-    /* Read the name of the VGA adapter */
-    cbValue = sizeof(awcDeviceName);
-    Status = RegQueryValue(hkey, L"VgaCompatible", REG_SZ, awcDeviceName, &cbValue);
-    if (NT_SUCCESS(Status))
-    {
-        iVGACompatible = _wtoi(&awcDeviceName[sizeof("\\Device\\Video")-1]);
-        ERR("VGA adapter = %lu\n", iVGACompatible);
     }
 
     /* Get the maximum mumber of adapters */
