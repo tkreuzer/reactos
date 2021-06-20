@@ -134,11 +134,21 @@ enum DIRECTION
     Dir_Unknown_
 };
 
+struct ANNOTATION
+{
+    DIRECTION Direction;
+    string PreSizeParameter;
+    string PostSizeParameter;
+    bool ByteSize;
+    bool DerefPreSizeParameter;
+    bool DerefPostSizeParameter;
+};
+
 struct PARAMETER
 {
     string Name;
     string Type;
-    DIRECTION Direction;
+    ANNOTATION Annotation;
 };
 
 struct FUNCTION
@@ -148,40 +158,238 @@ struct FUNCTION
 };
 
 bool
-ParseNtParameter(vector<string>& Tokens, int& Index, PARAMETER& Parameter)
+ParseAnnotation(
+    string& FunctionName,
+    vector<string>& Tokens,
+    int& Index,
+    ANNOTATION& Annotation)
 {
-    Parameter.Direction = Dir_Unknown_;
+    int indexP1, indexP2, indexEnd = Index;
+
+    fprintf(stderr, "Parsing annotation: %s\n", Tokens[Index].c_str());
+
+    Annotation.PreSizeParameter.clear();
+    Annotation.PostSizeParameter.clear();
+    Annotation.ByteSize = false;
+    Annotation.DerefPreSizeParameter = false;
+
+    if (Tokens[Index].substr(0, 4) == "_In_")
+    {
+        Annotation.Direction = Dir_In_;
+
+        /* Check for the _reads_ variant */
+        if (Tokens[Index].substr(4, 6) == "reads_")
+        {
+            /* These require 1 parameter */
+            if (Tokens[Index + 1] != "(")
+            {
+                fprintf(stderr, "Annotation %s without parameters\n", Tokens[Index].c_str());
+                return false;
+            }
+
+            /* Check if the size is in bytes */
+            if (Tokens[Index].substr(12, 6) == "bytes_")
+            {
+                Annotation.ByteSize = true;
+            }
+
+            indexP1 = Index + 2;
+
+            /* Check if the parameter is dereferenced */
+            if (Tokens[indexP1] == "*")
+            {
+                Annotation.DerefPreSizeParameter = true;
+                indexP1++;
+            }
+
+            Annotation.PreSizeParameter = Tokens[indexP1];
+            indexEnd = indexP1 + 1;
+
+            /* Validate closing ')' */
+            if (Tokens[indexEnd] != ")")
+            {
+                fprintf(stderr, "Expected ')' got ''\n",
+                        Tokens[indexEnd].c_str());
+                return false;
+            }
+        }
+    }
+    else if (Tokens[Index].substr(0, 5) == "_Out_")
+    {
+        Annotation.Direction = Dir_Out_;
+
+        /* Check for the _writes_ variant */
+        if (Tokens[Index].substr(5, 7) == "writes_")
+        {
+            /* These require 1 or 2 parameters */
+            if (Tokens[Index + 1] != "(")
+            {
+                fprintf(stderr, "Annotation %s without parameters\n", Tokens[Index].c_str());
+                return false;
+            }
+
+            /* Check if the size is in bytes */
+            if (Tokens[Index].substr(12, 6) == "bytes_")
+            {
+                Annotation.ByteSize = true;
+            }
+
+            indexP1 = Index + 2;
+
+            /* Check if the first parameter is dereferenced */
+            if (Tokens[indexP1] == "*")
+            {
+                Annotation.DerefPreSizeParameter = true;
+                indexP1++;
+            }
+
+            Annotation.PreSizeParameter = Tokens[indexP1];
+            indexEnd = indexP1 + 1;
+
+            /* Check whether this is the 2-parameter *_to_ version */
+            if (Tokens[Index].substr(Tokens[Index].size() - 3, 3) == "to_")
+            {
+                indexP2 = indexP1 + 2;
+
+                /* Check whether we have a ',' */
+                if (Tokens[indexP1 + 1] != ",")
+                {
+                    fprintf(stderr, "Expected ',' got '%s'\n",
+                            Tokens[indexP1 + 1].c_str());
+                    return false;
+                }
+
+                /* Check if the first parameter is dereferenced */
+                if (Tokens[indexP2] == "*")
+                {
+                    Annotation.DerefPostSizeParameter = true;
+                    indexP2++;
+                }
+
+                Annotation.PostSizeParameter = Tokens[indexP2];
+                indexEnd = indexP2 + 1;
+            }
+
+            /* Validate closing ')' */
+            if (Tokens[indexEnd] != ")")
+            {
+                fprintf(stderr, "Expected ')' got '%s'\n",
+                        Tokens[indexEnd].c_str());
+                return false;
+            }
+        }
+    }
+    else if (Tokens[Index].substr(0, 7) == "_Inout_")
+    {
+        Annotation.Direction = Dir_Inout_;
+
+        /* Check for the _updates_ variant */
+        if (Tokens[Index].substr(5, 7) == "updates_")
+        {
+            /* These require 1 or 2 parameters */
+            if (Tokens[Index + 1] != "(")
+            {
+                fprintf(stderr, "Annotation %s without parameters\n", Tokens[Index].c_str());
+                return false;
+            }
+
+            /* Check if the size is in bytes */
+            if (Tokens[Index].substr(12, 6) == "bytes_")
+            {
+                Annotation.ByteSize = true;
+            }
+
+            indexP1 = Index + 2;
+
+            /* Check if the first parameter is dereferenced */
+            if (Tokens[indexP1] == "*")
+            {
+                Annotation.DerefPreSizeParameter = true;
+                indexP1++;
+            }
+
+            Annotation.PreSizeParameter = Tokens[indexP1];
+            indexEnd = indexP1 + 1;
+
+            /* Check whether this is the 2-parameter *_to_ version */
+            if (Tokens[Index].substr(Tokens[Index].size() - 3, 3) == "to_")
+            {
+                indexP2 = indexP1 + 2;
+
+                /* Check whether we have a ',' */
+                if (Tokens[indexP1 + 1] != ",")
+                {
+                    fprintf(stderr, "Expected ',' got '%s'\n",
+                            Tokens[indexP1 + 1].c_str());
+                    return false;
+                }
+
+                /* Check if the first parameter is dereferenced */
+                if (Tokens[indexP2] == "*")
+                {
+                    Annotation.DerefPostSizeParameter = true;
+                    indexP2++;
+                }
+
+                Annotation.PostSizeParameter = Tokens[indexP2];
+                indexEnd = indexP2 + 1;
+            }
+
+            /* Validate closing ')' */
+            if (Tokens[indexEnd] != ")")
+            {
+                fprintf(stderr, "Expected ')' got '%s'\n",
+                        Tokens[indexEnd].c_str());
+                return false;
+            }
+        }
+    }
+    else
+    {
+        fprintf(stderr, "Unknown annotaton!\n");
+        return false;
+    }
+
+    Index = indexEnd + 1;
+    return true;
+}
+
+bool
+ParseParameter(string& FunctionName, vector<string>& Tokens, int& Index, PARAMETER& Parameter)
+{
+    Parameter.Annotation.Direction = Dir_Unknown_;
 
     TracePrint("Checking parameter: '%s', '%s', '%s'\n", Tokens[Index].c_str(), Tokens[Index+1].c_str(), Tokens[Index+2].c_str());
 
+    fprintf(stderr, "Check annotation: %s\n", Tokens[Index].c_str());
     // Check up to 5 annotations
     for (int i = 0; i < 5; i++)
     {
-        if (Tokens[Index] == "_In_")
+        string& anno = Tokens[Index];
+
+        // If it doesn't look like an annotation, stop here
+        if ((anno[0] != '_') ||
+            (anno.back() != '_'))
         {
-            Parameter.Direction = Dir_In_;
-        }
-        else if (Tokens[Index] == "_Out_")
-        {
-            Parameter.Direction = Dir_Out_;
-        }
-        else if (Tokens[Index] == "_Out_")
-        {
-            Parameter.Direction = Dir_Out_;
-        }
-        else if ((Tokens[Index][0] != '_') ||
-                 (Tokens[Index].back() != '_'))
-        {
-            // FIXME: need to handle all annotations
             break;
         }
-        Index++;
+
+        // Get the direction, if we have none yet
+        ANNOTATION annotation;
+        if (ParseAnnotation(FunctionName, Tokens, Index, annotation))
+        {
+            Parameter.Annotation = annotation;
+        }
     }
 
-    if (Parameter.Direction == Dir_Unknown_)
+    if (Parameter.Annotation.Direction == Dir_Unknown_)
     {
+        fprintf(stderr, "unction '%s': Failed to get direction\n",
+                FunctionName.c_str());
         return false;
     }
+
+    fprintf(stderr, "Check type: %s\n", Tokens[Index].c_str());
 
     // Type should be all upper case
     Parameter.Type = Tokens[Index];
@@ -189,22 +397,34 @@ ParseNtParameter(vector<string>& Tokens, int& Index, PARAMETER& Parameter)
     {
         if (!isalpha(Parameter.Type[i]) || !isupper(Parameter.Type[i]))
         {
+            fprintf(stderr, "Function '%s':Parameter type %s is not all uppercase\n",
+                    FunctionName.c_str(),
+                    Parameter.Type.c_str());
             return false;
         }
     }
     Index++;
 
+    fprintf(stderr, "Check name: %s\n", Tokens[Index].c_str());
+
     // Now the Name should be all letters and start with
     Parameter.Name = Tokens[Index];
-    for (int i = 0; i < Parameter.Type.size(); i++)
+    for (int i = 0; i < Parameter.Name.size(); i++)
     {
-        if (!isalpha(Parameter.Type[i]) || !isupper(Parameter.Type[i]))
+        if (!isalnum(Parameter.Name[i]))
         {
+            fprintf(stderr, "Function '%s':Parameter name %s has invalid characters\n",
+                    FunctionName.c_str(),
+                    Parameter.Name.c_str());
             return false;
         }
     }
-    if (!isupper(Parameter.Type[0]))
+
+    if (!isalpha( Parameter.Name[0]) || !isupper( Parameter.Name[0]))
     {
+        fprintf(stderr, "Function '%s':Parameter name %s Does not start with uppercase letter\n",
+                FunctionName.c_str(),
+                Parameter.Name.c_str());
         return false;
     }
     Index++;
@@ -244,9 +464,9 @@ ParseNtPrototype(vector<string>& Tokens, int& Index, FUNCTION& Function)
 
         TracePrint("Checking parameter %u...\n", param);
 
-        if (!ParseNtParameter(Tokens, Index, parameter))
+        if (!ParseParameter(Function.Name, Tokens, Index, parameter))
         {
-            TracePrint("  Failed to parse parameter.\n");
+            fprintf(stderr, "  Failed to parse parameters for %s.\n", Function.Name.c_str());
             return false;
         }
 
@@ -293,9 +513,6 @@ GenerateFunctions(
     {
         FUNCTION& function = Functions[i];
 
-       // if (function.Name != "NtCompressKey") continue;
-        fprintf(stderr, "Genratinng stub for %s\n", function.Name.c_str());
-
         /* First generate the Parameters */
         fprintf(File, "struct PARAMS32_%s\n{\n", function.Name.c_str());
         for (PARAMETER& param: function.Parameters)
@@ -319,7 +536,7 @@ GenerateFunctions(
 
             fprintf(File,
                     "    PARAM64<%s, %s> %s(Params32->%s);\n",
-                    GetDirectionString(param.Direction),
+                    GetDirectionString(param.Annotation.Direction),
                     param.Type.c_str(),
                     param.Name.c_str(),
                     param.Name.c_str());
