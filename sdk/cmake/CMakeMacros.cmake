@@ -704,16 +704,18 @@ function(end_module_group)
 endfunction()
 
 function(preprocess_file __in __out)
+    get_defines(_defines)
+    get_includes(_includes)
     set(__arg ${__in})
     foreach(__def ${ARGN})
-        list(APPEND __arg -D${__def})
+        list(APPEND __arg ${__def})
     endforeach()
     if(MSVC)
-        add_custom_command(OUTPUT ${_out}
-            COMMAND ${CMAKE_C_COMPILER} /EP ${__arg}
+        add_custom_command(OUTPUT ${__out}
+            COMMAND ${CMAKE_C_COMPILER} ${_includes} ${_defines} /EP ${__arg} > ${__out}
             DEPENDS ${__in})
     else()
-        add_custom_command(OUTPUT ${_out}
+        add_custom_command(OUTPUT ${__out}
             COMMAND ${CMAKE_C_COMPILER} -E ${__arg}
             DEPENDS ${__in})
     endif()
