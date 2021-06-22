@@ -81,6 +81,34 @@ ApicRequestGlobalInterrupt(
     ApicWrite(APIC_ICR0, Icr.Long0);
 }
 
+FORCEINLINE
+ULONG
+ApicReadRemoteRegister(
+    _In_ UCHAR DestinationProcessor,
+    _In_ APIC_REGISTER ApicRegister)
+{
+    APIC_INTERRUPT_COMMAND_REGISTER Icr;
+
+    /* Request a remote read */
+    ApicRequestGlobalInterrupt(DestinationProcessor,
+                               (UCHAR)ApicRegister,
+                               APIC_MT_RemoteRead,
+                               APIC_TGM_Edge,
+                               APIC_DSH_Destination);
+
+    /* Wait until remote read is finished */
+    do
+    {
+        _mm_pause();
+        Icr.Long0 = ApicRead(APIC_ICR0);
+    } while (Icr.RemoteReadStatus == APIC_RRS_Pending);
+
+    ASSERT(Icr.RemoteReadStatus == APIC_RRS_Done);
+
+    /* Return the value from the Remote Read Register */
+    return ApicRead(APIC_RRR);
+}
+
 
 /* SMP SUPPORT FUNCTIONS ******************************************************/
 
