@@ -112,9 +112,6 @@ IntVideoPortAddDeviceMapLink(
         return Status;
     }
 
-    /* Update MaxObjectNumber */
-    VideoPortMaxObjectNumber = DeviceNumber;
-
     return STATUS_SUCCESS;
 }
 
@@ -323,6 +320,9 @@ IntVideoPortCreateAdapterDeviceObject(
 
     /* Remove the initailizing flag */
     (*DeviceObject)->Flags &= ~DO_DEVICE_INITIALIZING;
+
+    /* Update MaxObjectNumber */
+    VideoPortMaxObjectNumber = DeviceNumber;
 
     /* Set up the VIDEO/DEVICEMAP registry keys */
     Status = IntVideoPortAddDeviceMapLink(DeviceExtension);
