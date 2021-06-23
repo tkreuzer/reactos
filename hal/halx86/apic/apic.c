@@ -293,6 +293,14 @@ ApicInitializeLocalApic(ULONG Cpu)
     APIC_BASE_ADRESS_REGISTER BaseRegister;
     APIC_SPURIOUS_INERRUPT_REGISTER SpIntRegister;
     LVT_REGISTER LvtEntry;
+    CPU_INFO CpuInfo;
+
+    /* Make sure APIC is supported */
+    __cpuid((int*)&CpuInfo.AsUINT32, 1);
+    if ((CpuInfo.Edx & (1 << 9)) == 0)
+    {
+        KeBugCheck(HAL_INITIALIZATION_FAILED);
+    }
 
     /* Enable the APIC if it wasn't yet */
     BaseRegister.LongLong = __readmsr(MSR_APIC_BASE);
