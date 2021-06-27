@@ -72,35 +72,35 @@
 #undef __drv_useCancelIRQL
 #undef __drv_isCancelIRQL
 
-#define _IRQL_always_function_max_(irql)    _Pre_ _SA_annotes1(SAL_maxFunctionIrql,irql)
-#define _IRQL_always_function_min_(irql)    _Pre_ _SA_annotes1(SAL_minFunctionIrql,irql)
+#define _IRQL_always_function_max_(irql)    _SAL2_Source_(_IRQL_always_function_max_, (irql), _Pre_ _SA_annotes1(SAL_maxFunctionIrql,irql))
+#define _IRQL_always_function_min_(irql)    _SAL2_Source_(_IRQL_always_function_min_, (irql), _Pre_ _SA_annotes1(SAL_minFunctionIrql,irql))
 #define _IRQL_inout_                        _IRQL_saves_ _IRQL_restores_
-#define _IRQL_raises_(irql)                 _Post_ _SA_annotes1(SAL_raiseIRQL,irql)
-#define _IRQL_requires_(irql)               _Pre_ _SA_annotes1(SAL_IRQL,irql)
-#define _IRQL_requires_max_(irql)           _Pre_ _SA_annotes1(SAL_maxIRQL,irql)
-#define _IRQL_requires_min_(irql)           _Pre_ _SA_annotes1(SAL_minIRQL,irql)
-#define _IRQL_requires_same_                _Post_ _SA_annotes0(SAL_sameIRQL)
-#define _IRQL_restores_                     _Post_ _SA_annotes0(SAL_restoreIRQL)
-#define _IRQL_restores_global_(kind,param)  _Post_ _SA_annotes2(SAL_restoreIRQLGlobal, #kind, param\t)
-#define _IRQL_saves_                        _Post_ _SA_annotes0(SAL_saveIRQL)
-#define _IRQL_saves_global_(kind,param)     _Post_ _SA_annotes2(SAL_saveIRQLGlobal,#kind, param\t)
-#define _IRQL_uses_cancel_                  _Post_ _SA_annotes0(SAL_UseCancelIrql)
-#define _IRQL_is_cancel_                    _IRQL_uses_cancel_ _Releases_nonreentrant_lock_(_Global_cancel_spin_lock_) \
-                                                _At_(return, _IRQL_always_function_min_(DISPATCH_LEVEL) _IRQL_requires_(DISPATCH_LEVEL))
-#define __drv_setsIRQL(irql)                _Post_ _SA_annotes1(SAL_IRQL,irql)
-#define __drv_raisesIRQL(irql)              _IRQL_raises_(irql)
-#define __drv_requiresIRQL(irql)            _IRQL_requires_(irql)
-#define __drv_maxIRQL(irql)                 _IRQL_requires_max_(irql)
-#define __drv_minIRQL(irql)                 _IRQL_requires_min_(irql)
-#define __drv_savesIRQL                     _IRQL_saves_
-#define __drv_savesIRQLGlobal(kind,param)   _IRQL_saves_global_(kind,param)
-#define __drv_restoresIRQL                  _IRQL_restores_
-#define __drv_restoresIRQLGlobal(kind,param) _IRQL_restores_global_(kind,param)
-#define __drv_minFunctionIRQL(irql)         _IRQL_always_function_min_(irql)
-#define __drv_maxFunctionIRQL(irql)         _IRQL_always_function_max_(irql)
-#define __drv_sameIRQL                      _IRQL_requires_same_
-#define __drv_useCancelIRQL                 _IRQL_uses_cancel_
-#define __drv_isCancelIRQL                  _IRQL_is_cancel_
+#define _IRQL_raises_(irql)                 _SAL2_Source_(_IRQL_raises_, (), _Post_ _SA_annotes1(SAL_raiseIRQL,irql))
+#define _IRQL_requires_(irql)               _SAL2_Source_(_IRQL_requires_, (irql), _Pre_ _SA_annotes1(SAL_IRQL,irql))
+#define _IRQL_requires_max_(irql)           _SAL2_Source_(_IRQL_requires_max_, (irql), _Pre_ _SA_annotes1(SAL_maxIRQL,irql))
+#define _IRQL_requires_min_(irql)           _SAL2_Source_(_IRQL_requires_min_, (irql), _Pre_ _SA_annotes1(SAL_minIRQL,irql))
+#define _IRQL_requires_same_                _SAL2_Source_(_IRQL_requires_same_, (), _Post_ _SA_annotes0(SAL_sameIRQL))
+#define _IRQL_restores_                     _SAL2_Source_(_IRQL_restores_, (), _Post_ _SA_annotes0(SAL_restoreIRQL))
+#define _IRQL_restores_global_(kind,param)  _SAL2_Source_(_IRQL_restores_global_, (kind, param), _Post_ _SA_annotes2(SAL_restoreIRQLGlobal, #kind, param\t))
+#define _IRQL_saves_                        _SAL2_Source_(_IRQL_saves_, (), _Post_ _SA_annotes0(SAL_saveIRQL))
+#define _IRQL_saves_global_(kind,param)     _SAL2_Source_(_IRQL_saves_global_, (kind, param), _Post_ _SA_annotes2(SAL_saveIRQLGlobal,#kind, param\t))
+#define _IRQL_uses_cancel_                  _SAL2_Source_(_IRQL_uses_cancel_, (), _Post_ _SA_annotes0(SAL_UseCancelIrql))
+#define _IRQL_is_cancel_                    _SAL2_Source_(_IRQL_is_cancel_, (), _IRQL_uses_cancel_ _Releases_nonreentrant_lock_(_Global_cancel_spin_lock_) \
+                                                _At_(return, _IRQL_always_function_min_(DISPATCH_LEVEL) _IRQL_requires_(DISPATCH_LEVEL)))
+#define __drv_setsIRQL(irql)                _SAL1_Source_(__drv_setsIRQL, (), _Post_ _SA_annotes1(SAL_IRQL,irql))
+#define __drv_raisesIRQL(irql)              _SAL1_Source_(__drv_raisesIRQL, (), _IRQL_raises_(irql))
+#define __drv_requiresIRQL(irql)            _SAL1_Source_(__drv_requiresIRQL, (), _IRQL_requires_(irql))
+#define __drv_maxIRQL(irql)                 _SAL1_Source_(__drv_maxIRQL, (), _IRQL_requires_max_(irql))
+#define __drv_minIRQL(irql)                 _SAL1_Source_(__drv_minIRQL, (), _IRQL_requires_min_(irql))
+#define __drv_savesIRQL                     _SAL1_Source_(__drv_savesIRQL, (), _IRQL_saves_)
+#define __drv_savesIRQLGlobal(kind,param)   _SAL1_Source_(__drv_savesIRQLGlobal, (), _IRQL_saves_global_(kind, param))
+#define __drv_restoresIRQL                  _SAL1_Source_(__drv_restoresIRQL, (), _IRQL_restores_)
+#define __drv_restoresIRQLGlobal(kind,param) _SAL1_Source_(__drv_restoresIRQLGlobal, (), _IRQL_restores_global_(kind, param))
+#define __drv_minFunctionIRQL(irql)         _SAL1_Source_(__drv_minFunctionIRQL, (), _IRQL_always_function_min_(irql))
+#define __drv_maxFunctionIRQL(irql)         _SAL1_Source_(__drv_maxFunctionIRQL, (), _IRQL_always_function_max_(irql))
+#define __drv_sameIRQL                      _SAL1_Source_(__drv_sameIRQL, (), _IRQL_requires_same_)
+#define __drv_useCancelIRQL                 _SAL1_Source_(__drv_useCancelIRQL, (), _IRQL_uses_cancel_)
+#define __drv_isCancelIRQL                  _SAL1_Source_(__drv_isCancelIRQL, (), _IRQL_is_cancel_)
 
 #ifdef __cplusplus
 extern "C" {
