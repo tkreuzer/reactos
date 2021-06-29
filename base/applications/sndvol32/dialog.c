@@ -373,7 +373,7 @@ LoadDialog(
     Offset++;
 
     /* calculate font length */
-    Length = wcslen((LPWSTR)Offset) + 1;
+    Length = (WORD)wcslen((LPWSTR)Offset) + 1;
     assert(Length < (sizeof(FontName) / sizeof(WCHAR)));
 
     /* copy font */
