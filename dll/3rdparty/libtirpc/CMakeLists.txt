@@ -95,8 +95,7 @@ add_library(libtirpc MODULE
 
 if(MSVC)
     # Disable warning C4273: 'strtok_s': inconsistent dll linkage
-    # Disable warning C4313: 'fprintf': '%x' in format string conflicts with argument 2 of type 'HANDLE'
-    target_compile_options(libtirpc PRIVATE /wd4273 /wd4313)
+    target_compile_options(libtirpc PRIVATE /wd4273)
     if (NOT USE_CLANG_CL)
         target_compile_options(libtirpc PRIVATE /wd4101 /wd4133 /wd4473 /wd4477)
     endif()

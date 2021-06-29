@@ -82,7 +82,6 @@ else()
 
     if(MSVC)
         # Disable warning C4146: unary minus operator applied to unsigned type, result still unsigned
-        # Disable warning C4477 (printf format warnings)
-        target_compile_options(dbghelp PRIVATE /wd4146 /wd4477)
-    endif()
+        target_compile_options(dbghelp PRIVATE /wd4146)
+   endif()
 endif()

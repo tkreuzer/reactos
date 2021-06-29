@@ -76,8 +76,7 @@ if(MSVC)
     # Disable warning C4090: 'function': different 'const' qualifiers
     # Disable warning C4133: 'function': incompatible types - from 'UINT *' to 'MSIINSTALLCONTEXT *'
     # Disable warning C4146: unary minus operator applied to unsigned type, result still unsigned
-    # Disable warning C4312: 'type cast': conversion from 'unsigned int' to 'HANDLE' of greater size
-    target_compile_options(msi PRIVATE /wd4090 /wd4133 /wd4146 /wd4312)
+    target_compile_options(msi PRIVATE /wd4090 /wd4133 /wd4146)
 endif()
 
 add_idl_headers(msi_idlheader msiserver.idl winemsi.idl)
