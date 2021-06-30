@@ -3081,7 +3081,7 @@ static BOOL  pev_binop(struct pevaluator* pev, char op)
     case '%': c = v1 % v2; break;
     default: return PEV_ERROR1(pev, "binop: unknown op (%c)", op);
     }
-    snprintf(res, sizeof(res), "%ld", c);
+    snprintf(res, sizeof(res), "%zd", c);
     pev_push(pev, res);
     return TRUE;
 }
@@ -3094,8 +3094,8 @@ static BOOL  pev_deref(struct pevaluator* pev)
 
     if (!pev_pop_val(pev, &v1)) return FALSE;
     if (!sw_read_mem(pev->csw, v1, &v2, pev->csw->cpu->word_size))
-        return PEV_ERROR1(pev, "deref: cannot read mem at %lx\n", v1);
-    snprintf(res, sizeof(res), "%ld", v2);
+        return PEV_ERROR1(pev, "deref: cannot read mem at %zx\n", v1);
+    snprintf(res, sizeof(res), "%zd", v2);
     pev_push(pev, res);
     return TRUE;
 }
