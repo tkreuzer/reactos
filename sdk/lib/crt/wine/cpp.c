@@ -33,6 +33,10 @@
 #include "mtdll.h"
 #include "cxx.h"
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'int', possible loss of data
+#endif // _MSC_VER
+
 WINE_DEFAULT_DEBUG_CHANNEL(msvcrt);
 
 struct __type_info_node
@@ -126,7 +130,7 @@ static void EXCEPTION_ctor(exception *_this, const char** name)
   _this->vtable = &MSVCRT_exception_vtable;
   if (*name)
   {
-    unsigned int name_len = strlen(*name) + 1;
+    size_t name_len = strlen(*name) + 1;
     _this->name = MSVCRT_malloc(name_len);
     memcpy(_this->name, *name, name_len);
     _this->do_free = TRUE;

@@ -249,7 +249,7 @@ streamout_char(FILE *stream, int chr)
 
 static
 int
-streamout_astring(FILE *stream, const char *string, size_t count)
+streamout_astring(FILE *stream, const char *string, int count)
 {
     TCHAR chr;
     int written = 0;
@@ -277,7 +277,7 @@ streamout_astring(FILE *stream, const char *string, size_t count)
 
 static
 int
-streamout_wstring(FILE *stream, const wchar_t *string, size_t count)
+streamout_wstring(FILE *stream, const wchar_t *string, int count)
 {
     wchar_t chr;
     int written = 0;
@@ -332,8 +332,8 @@ streamout(FILE *stream, const TCHAR *format, va_list argptr)
     TCHAR chr, *string;
     STRING *nt_string;
     const TCHAR *digits, *prefix;
-    int base, fieldwidth, precision, padding;
-    size_t prefixlen, len;
+    int base, fieldwidth, precision, padding, prefixlen;
+    size_t len;
     int written = 1, written_all = 0;
     unsigned int flags;
     unsigned __int64 val64;
@@ -636,9 +636,9 @@ streamout(FILE *stream, const TCHAR *format, va_list argptr)
         }
 
         /* Calculate padding */
-        prefixlen = prefix ? _tcslen(prefix) : 0;
+        prefixlen = prefix ? (int)_tcslen(prefix) : 0;
         if (precision < 0) precision = 0;
-        padding = (int)(fieldwidth - len - prefixlen - precision);
+        padding = (fieldwidth - (int)len - prefixlen - precision);
         if (padding < 0) padding = 0;
 
         /* Optional left space padding */
@@ -669,9 +669,9 @@ streamout(FILE *stream, const TCHAR *format, va_list argptr)
 
         /* Output the string */
         if (flags & FLAG_WIDECHAR)
-            written = streamout_wstring(stream, (wchar_t*)string, len);
+            written = streamout_wstring(stream, (wchar_t*)string, (int)len);
         else
-            written = streamout_astring(stream, (char*)string, len);
+            written = streamout_astring(stream, (char*)string, (int)len);
         if (written == -1) return -1;
         written_all += written;
 

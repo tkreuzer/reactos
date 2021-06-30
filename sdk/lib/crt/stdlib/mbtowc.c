@@ -18,6 +18,11 @@ int CDECL _mbtowc_l(wchar_t *dst, const char* str, size_t n, _locale_t locale)
     MSVCRT_pthreadlocinfo locinfo;
     wchar_t tmpdst = '\0';
 
+    if (n > ULONG_MAX)
+    {
+        return 0;
+    }
+
     if (!locale)
         locinfo = get_locinfo();
     else

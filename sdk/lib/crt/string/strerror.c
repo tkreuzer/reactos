@@ -148,15 +148,19 @@ char* CDECL _strerror(const char* str)
  */
 void CDECL perror(const char* str)
 {
+    size_t len;
     int err = *_errno();
     if (err < 0 || err > _sys_nerr) err = _sys_nerr;
 
     if (str && *str)
     {
-        _write( 2, str, strlen(str) );
+        len = strlen(str);
+        len = min(len, UINT_MAX);
+
+        _write( 2, str, (unsigned int)len);
         _write( 2, ": ", 2 );
     }
-    _write( 2, _sys_errlist[err], strlen(_sys_errlist[err]) );
+    _write( 2, _sys_errlist[err], (unsigned int)strlen(_sys_errlist[err]) );
     _write( 2, "\n", 1 );
 }
 
@@ -171,7 +175,7 @@ int CDECL _wcserror_s(wchar_t* buffer, size_t nc, int err)
         return EINVAL;
     }
     if (err < 0 || err > _sys_nerr) err = _sys_nerr;
-    MultiByteToWideChar(CP_ACP, 0, _sys_errlist[err], -1, buffer, nc);
+    MultiByteToWideChar(CP_ACP, 0, _sys_errlist[err], -1, buffer, (int)nc);
     return 0;
 }
 
@@ -196,7 +200,7 @@ int CDECL __wcserror_s(wchar_t* buffer, size_t nc, const wchar_t* str)
     int err;
     static const WCHAR colonW[] = {':', ' ', '\0'};
     static const WCHAR nlW[] = {'\n', '\0'};
-    size_t len;
+    int len;
 
     err = *_errno();
     if (err < 0 || err > _sys_nerr) err = _sys_nerr;

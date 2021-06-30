@@ -26,6 +26,10 @@
 #include <internal/wine/msvcrt.h>
 #include <internal/wine/cppexcept.h>
 
+#ifdef _MSC_VER
+#pragma warning(disable:4267) // conversion from 'size_t' to 'int', possible loss of data
+#endif // _MSC_VER
+
 WINE_DEFAULT_DEBUG_CHANNEL(msvcrt);
 
 /* TODO:
