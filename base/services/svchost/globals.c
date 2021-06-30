@@ -163,7 +163,7 @@ SvchostCharLowerW (
     _In_ LPCWSTR lpSrcStr
     )
 {
-    DWORD cchSrc;
+    SIZE_T cchSrc;
 
     /* If there's nothing to do, bail out */
     if (lpSrcStr == NULL) return;

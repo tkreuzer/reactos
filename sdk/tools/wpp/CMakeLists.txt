@@ -44,3 +44,13 @@ else()
     add_library(wpphost ${SOURCE} ${FLEX_pp_scanner_OUTPUTS} ${BISON_pp_parser_OUTPUTS})
     target_link_libraries(wpphost PRIVATE host_includes)
 endif()
+
+if(MSVC AND ARCH STREQUAL "amd64")
+    # Disable warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+    # Disable warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+    if(CMAKE_CROSSCOMPILING)
+        target_compile_options(wpp PRIVATE /wd4267 /wd4267)
+    else()
+        target_compile_options(wpphost PRIVATE /wd4267 /wd4267)
+    endif()
+endif()

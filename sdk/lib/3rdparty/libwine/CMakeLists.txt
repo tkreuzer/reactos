@@ -18,6 +18,11 @@ add_library(wine ${SOURCE})
 add_dependencies(wine psdk)
 target_compile_definitions(wine PRIVATE __WINESRC__ _WINE)
 
+if(MSVC AND ARCH STREQUAL "amd64")
+    # Disable warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+    target_compile_options(wine PRIVATE /wd4267)
+endif()
+
 add_library(wineldr loader.c)
 add_dependencies(wineldr xdk)
 target_compile_definitions(wineldr PRIVATE __WINESRC__)
