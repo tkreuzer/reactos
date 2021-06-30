@@ -604,7 +604,7 @@ IntLoadFontSubstList(PLIST_ENTRY pHead)
         {
             /* truncate */
             *pch = UNICODE_NULL;
-            FromW.Length = (pch - FromW.Buffer) * sizeof(WCHAR);
+            FromW.Length = (USHORT)(pch - FromW.Buffer) * sizeof(WCHAR);
             /* parse charset number */
             CharSets[FONTSUBST_FROM] = (BYTE)_wtoi(pch + 1);
         }
@@ -616,7 +616,7 @@ IntLoadFontSubstList(PLIST_ENTRY pHead)
         {
             /* truncate */
             *pch = UNICODE_NULL;
-            ToW.Length = (pch - ToW.Buffer) * sizeof(WCHAR);
+            ToW.Length = (USHORT)(pch - ToW.Buffer) * sizeof(WCHAR);
             /* parse charset number */
             CharSets[FONTSUBST_TO] = (BYTE)_wtoi(pch + 1);
         }
@@ -2760,7 +2760,7 @@ IntGetFontLocalizedName(PUNICODE_STRING pNameW, PSHARED_FACE SharedFace,
             Tmp.Length = Tmp.MaximumLength = Name.string_len;
 
             pNameW->Length = 0;
-            pNameW->MaximumLength = Name.string_len + sizeof(WCHAR);
+            pNameW->MaximumLength = (USHORT)(Name.string_len + sizeof(WCHAR));
             pNameW->Buffer = ExAllocatePoolWithTag(PagedPool, pNameW->MaximumLength, TAG_USTR);
 
             if (pNameW->Buffer)
@@ -5520,11 +5520,11 @@ IntGdiGetFontResourceInfo(
         {
             if (i > 0)
                 Size += 3;  /* " & " */
-            Size += wcslen(FamInfo[i].EnumLogFontEx.elfLogFont.lfFaceName);
+            Size += (USHORT)wcslen(FamInfo[i].EnumLogFontEx.elfLogFont.lfFaceName);
             if (FamInfo[i].EnumLogFontEx.elfStyle[0] &&
                 _wcsicmp(FamInfo[i].EnumLogFontEx.elfStyle, L"Regular") != 0)
             {
-                Size += 1 + wcslen(FamInfo[i].EnumLogFontEx.elfStyle);
+                Size += 1 + (USHORT)wcslen(FamInfo[i].EnumLogFontEx.elfStyle);
             }
         }
         Size += 2;  /* "\0\0" */

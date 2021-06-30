@@ -397,11 +397,13 @@ static
 VOID
 SpiStoreSz(PCWSTR pwszKey, PCWSTR pwszValue, PCWSTR pwsz)
 {
+    SIZE_T cjLength = (wcslen(pwsz) + 1) * sizeof(WCHAR);
+    ASSERT(cjLength <= MAXULONG);
     RegWriteUserSetting(pwszKey,
                         pwszValue,
                         REG_SZ,
                         pwsz,
-                        (wcslen(pwsz) + 1) * sizeof(WCHAR));
+                        (ULONG)cjLength);
 }
 
 static
@@ -409,13 +411,15 @@ VOID
 SpiStoreSzInt(PCWSTR pwszKey, PCWSTR pwszValue, INT iValue)
 {
     WCHAR awcBuffer[15];
+    SIZE_T cjLength;
 
     _itow(iValue, awcBuffer, 10);
+    cjLength = (wcslen(awcBuffer) + 1) * sizeof(WCHAR);
     RegWriteUserSetting(pwszKey,
                         pwszValue,
                         REG_SZ,
                         awcBuffer,
-                        (wcslen(awcBuffer) + 1) * sizeof(WCHAR));
+                        (ULONG)cjLength);
 }
 
 static

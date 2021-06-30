@@ -1146,7 +1146,7 @@ INT WINAPI DrawTextExWorker( HDC hdc,
     if (count == -1)
     {
 #ifdef _WIN32K_
-        count = wcslen(str);
+        count = (int)wcslen(str);
 #else
         count = strlenW(str);
 #endif

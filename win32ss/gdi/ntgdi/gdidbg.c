@@ -616,13 +616,13 @@ QueryEnvironmentVariable(PUNICODE_STRING Name,
       }
       if (*wcs)
       {
-         var.Length = var.MaximumLength = (wcs - var.Buffer) * sizeof(WCHAR);
+         var.Length = var.MaximumLength = (USHORT)((wcs - var.Buffer) * sizeof(WCHAR));
          val = ++wcs;
          wcs += wcslen(wcs);
 
          if (RtlEqualUnicodeString(&var, Name, TRUE))
          {
-            Value->Length = (wcs - val) * sizeof(WCHAR);
+            Value->Length = (USHORT)((wcs - val) * sizeof(WCHAR));
             if (Value->Length <= Value->MaximumLength)
             {
                memcpy(Value->Buffer, val,
