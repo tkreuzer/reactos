@@ -79,7 +79,7 @@ PINICACHEKEY
 IniCacheFindKey(
      PINICACHESECTION Section,
      PWCHAR Name,
-     ULONG NameLength)
+     SIZE_T NameLength)
 {
     PINICACHEKEY Key;
 
@@ -952,7 +952,7 @@ IniCacheSaveByHandle(
     NTSTATUS Status;
     PINICACHESECTION Section;
     PINICACHEKEY Key;
-    ULONG BufferSize;
+    SIZE_T BufferSize;
     PCHAR Buffer;
     PCHAR Ptr;
     ULONG Len;

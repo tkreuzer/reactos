@@ -262,7 +262,7 @@ PopupError(PCCH Text,
     SHORT xLeft;
     COORD coPos;
     DWORD Written;
-    ULONG Length;
+    SIZE_T Length;
     ULONG MaxLength;
     ULONG Lines;
     PCHAR p;
@@ -398,7 +398,7 @@ PopupError(PCCH Text,
         coPos.X = xLeft + 2;
         WriteConsoleOutputCharacterA(StdOutput,
                                      Status,
-                                     min(strlen(Status), (SIZE_T)Width - 4),
+                                     (ULONG)min(strlen(Status), (SIZE_T)Width - 4),
                                      coPos,
                                      &Written);
     }
@@ -1912,7 +1912,7 @@ ShowPartitionSizeInputBox(SHORT Left,
 
     WriteConsoleOutputCharacterA(StdOutput,
                                  Buffer,
-                                 strlen(Buffer),
+                                 (ULONG)strlen(Buffer),
                                  coPos,
                                  &Written);
 
@@ -1921,12 +1921,12 @@ ShowPartitionSizeInputBox(SHORT Left,
     coPos.Y = iTop;
     WriteConsoleOutputCharacterA(StdOutput,
                                  Buffer,
-                                 strlen(Buffer),
+                                 (ULONG)strlen(Buffer),
                                  coPos,
                                  &Written);
 
     swprintf(InputBuffer, L"%lu", MaxSize);
-    Length = wcslen(InputBuffer);
+    Length = (ULONG)wcslen(InputBuffer);
     Pos = Length;
     CONSOLE_SetInputTextXY(iLeft,
                            iTop,
@@ -3240,7 +3240,7 @@ IsValidPath(
 {
     UINT i, Length;
 
-    Length = wcslen(InstallDir);
+    Length = (UINT)wcslen(InstallDir);
 
     // TODO: Add check for 8.3 too.
 
@@ -3346,7 +3346,7 @@ InstallDirectoryPage(PINPUT_RECORD Ir)
         return PREPARE_COPY_PAGE;
     }
 
-    Length = wcslen(InstallDir);
+    Length = (ULONG)wcslen(InstallDir);
     Pos = Length;
 
     MUIDisplayPage(INSTALL_DIRECTORY_PAGE);

@@ -466,8 +466,9 @@ WriteConsoleOutputCharacterW(
     OEM_STRING OemString;
     ULONG OemLength;
 
-    UnicodeString.Length = nLength * sizeof(WCHAR);
-    UnicodeString.MaximumLength = nLength * sizeof(WCHAR);
+    ASSERT(nLength <= UNICODE_STRING_MAX_CHARS);
+    UnicodeString.Length = (USHORT)nLength * sizeof(WCHAR);
+    UnicodeString.MaximumLength = UnicodeString.Length;
     UnicodeString.Buffer = (PWSTR)lpCharacter;
 
     OemLength = RtlUnicodeStringToOemSize(&UnicodeString);

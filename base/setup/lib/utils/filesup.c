@@ -88,7 +88,7 @@ SetupCreateDirectory(
     PWCHAR PathBuffer = NULL;
     PWCHAR Ptr, EndPtr;
     ULONG BackslashCount;
-    ULONG Size;
+    SIZE_T Size;
 
     Size = (wcslen(PathName) + 1) * sizeof(WCHAR);
     PathBuffer = RtlAllocateHeap(RtlGetProcessHeap(), HEAP_ZERO_MEMORY, Size);

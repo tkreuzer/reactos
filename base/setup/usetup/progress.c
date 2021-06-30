@@ -244,7 +244,7 @@ DrawProgressBar(
         coPos.Y = Bar->Top;
         WriteConsoleOutputCharacterA(StdOutput,
                                      TextBuffer,
-                                     strlen(TextBuffer),
+                                     (ULONG)strlen(TextBuffer),
                                      coPos,
                                      &Written);
     }
@@ -387,7 +387,7 @@ ProgressSetStep(
         coPos.Y = Bar->Top;
         WriteConsoleOutputCharacterA(StdOutput,
                                      TextBuffer,
-                                     strlen(TextBuffer),
+                                     (ULONG)strlen(TextBuffer),
                                      coPos,
                                      &Written);
     }

@@ -2,7 +2,7 @@
  * COPYRIGHT:       See COPYING in the top level directory
  * PROJECT:         ReactOS text-mode setup
  * PURPOSE:         Device installation
- * PROGRAMMER:      Hervé Poussineau (hpoussin@reactos.org)
+ * PROGRAMMER:      HervÃ© Poussineau (hpoussin@reactos.org)
  *                  Hermes Belusca-Maito
  */
 
@@ -175,7 +175,7 @@ InstallDriver(
                       0,
                       REG_MULTI_SZ,
                       keyboardClass,
-                      (wcslen(keyboardClass) + 2) * sizeof(WCHAR));
+                      ((ULONG)wcslen(keyboardClass) + 2) * sizeof(WCHAR));
     }
     else if (ClassGuid && _wcsicmp(ClassGuid, L"{4D36E967-E325-11CE-BFC1-08002BE10318}") == 0)
     {
@@ -185,7 +185,7 @@ InstallDriver(
                       0,
                       REG_MULTI_SZ,
                       partMgr,
-                      (wcslen(partMgr) + 2) * sizeof(WCHAR));
+                      ((ULONG)wcslen(partMgr) + 2) * sizeof(WCHAR));
     }
 
     INF_FreeData(ClassGuid);
@@ -196,7 +196,7 @@ InstallDriver(
                            0,
                            REG_SZ,
                            (PVOID)Driver,
-                           (wcslen(Driver) + 1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(Driver) + 1) * sizeof(WCHAR));
     if (NT_SUCCESS(Status))
     {
         /* We've registered the driver, time to start a device */
@@ -453,7 +453,7 @@ PnpEventThread(IN PVOID Parameter)
         {
             DeviceInstallParams* Params;
             ULONG len;
-            ULONG DeviceIdLength;
+            SIZE_T DeviceIdLength;
 
             DPRINT("Device enumerated: %S\n", PnpEvent->TargetDevice.DeviceIds);
 
