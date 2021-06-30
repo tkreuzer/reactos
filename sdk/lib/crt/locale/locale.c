@@ -123,7 +123,7 @@ typedef struct {
 /* INTERNAL: Get and compare locale info with a given string */
 static int compare_info(LCID lcid, DWORD flags, char* buff, const char* cmp, BOOL exact)
 {
-  int len;
+  size_t len;
 
   if(!cmp[0])
       return 0;
@@ -294,7 +294,7 @@ static BOOL update_threadlocinfo_category(LCID lcid, unsigned short cp,
         MSVCRT__locale_t loc, int category)
 {
     char buf[256], *p;
-    int len;
+    size_t len;
 
     if(GetLocaleInfoA(lcid, LOCALE_ILANGUAGE|LOCALE_NOUSEROVERRIDE, buf, 256)) {
         p = buf;
@@ -421,7 +421,7 @@ wchar_t* CDECL _wsetlocale(int category, const wchar_t* locale)
 char* CDECL _Getdays(void)
 {
     MSVCRT___lc_time_data *cur = get_locinfo()->lc_time_curr;
-    int i, len, size;
+    size_t i, len, size;
     char *out;
 
     TRACE("\n");
@@ -454,7 +454,7 @@ char* CDECL _Getdays(void)
 char* CDECL _Getmonths(void)
 {
     MSVCRT___lc_time_data *cur = get_locinfo()->lc_time_curr;
-    int i, len, size;
+    size_t i, len, size;
     char *out;
 
     TRACE("\n");
@@ -487,7 +487,7 @@ char* CDECL _Getmonths(void)
 void* CDECL _Gettnames(void)
 {
     MSVCRT___lc_time_data *ret, *cur = get_locinfo()->lc_time_curr;
-    unsigned int i, size = sizeof(MSVCRT___lc_time_data);
+    size_t i, size = sizeof(MSVCRT___lc_time_data);
 
     TRACE("\n");
 
