@@ -424,7 +424,7 @@ unsigned create_io_inherit_block(WORD *size, BYTE **block)
       break;
   last_fd++;
 
-  *size = sizeof(unsigned) + (sizeof(char) + sizeof(HANDLE)) * last_fd;
+  *size = (WORD)(sizeof(unsigned) + (sizeof(char) + sizeof(HANDLE)) * last_fd);
   *block = calloc(1, *size);
   if (!*block)
   {
@@ -672,7 +672,7 @@ static int msvcrt_int_to_base32_w(int num, wchar_t *str)
 /* INTERNAL: Create a wide string from an ascii string */
 wchar_t *msvcrt_wstrdupa(const char *str)
 {
-  const unsigned int len = strlen(str) + 1 ;
+  const unsigned int len = (unsigned int)strlen(str) + 1 ;
   wchar_t *wstr = malloc(len* sizeof (wchar_t));
   if (!wstr)
     return NULL;
@@ -3094,7 +3094,7 @@ size_t CDECL fwrite(const void *ptr, size_t size, size_t nmemb, FILE* file)
         } else
 #endif
         if(file->_cnt) {
-            int pcnt=(file->_cnt>wrcnt)? wrcnt: file->_cnt;
+            int pcnt=(int)((file->_cnt>wrcnt)? wrcnt: file->_cnt);
             memcpy(file->_ptr, ptr, pcnt);
             file->_cnt -= pcnt;
             file->_ptr += pcnt;
@@ -3119,11 +3119,11 @@ size_t CDECL fwrite(const void *ptr, size_t size, size_t nmemb, FILE* file)
             if(msvcrt_flush_buffer(file) == EOF)
                 break;
 
-            if(_write(file->_file, ptr, pcnt) <= 0) {
+            if(_write(file->_file, ptr, (unsigned int)pcnt) <= 0) {
                 file->_flag |= _IOERR;
                 break;
             }
-            written += pcnt;
+            written += (int)pcnt;
             wrcnt -= pcnt;
             ptr = (const char*)ptr + pcnt;
         } else {
@@ -3352,7 +3352,7 @@ size_t CDECL fread(void *ptr, size_t size, size_t nmemb, FILE* file)
 
   /* first buffered data */
   if(file->_cnt>0) {
-	int pcnt= (rcnt>file->_cnt)? file->_cnt:rcnt;
+	int pcnt= (int)((rcnt>file->_cnt)? file->_cnt:rcnt);
 	memcpy(ptr, file->_ptr, pcnt);
 	file->_cnt -= pcnt;
 	file->_ptr += pcnt;
@@ -3377,7 +3377,7 @@ size_t CDECL fread(void *ptr, size_t size, size_t nmemb, FILE* file)
     if (!file->_cnt && rcnt<BUFSIZ && (file->_flag & (_IOMYBUF | _USERBUF))) {
       file->_cnt = _read(file->_file, file->_base, file->_bufsiz);
       file->_ptr = file->_base;
-      i = (file->_cnt<rcnt) ? file->_cnt : rcnt;
+      i = (file->_cnt<rcnt) ? file->_cnt : (int)rcnt;
       /* If the buffer fill reaches eof but fread wouldn't, clear eof. */
       if (i > 0 && i < file->_cnt) {
         get_ioinfo_nolock(file->_file)->wxflag &= ~WX_ATEOF;
@@ -3391,9 +3391,9 @@ size_t CDECL fread(void *ptr, size_t size, size_t nmemb, FILE* file)
     } else if (rcnt > INT_MAX) {
       i = _read(file->_file, ptr, INT_MAX);
     } else if (rcnt < BUFSIZ) {
-      i = _read(file->_file, ptr, rcnt);
+      i = _read(file->_file, ptr, (unsigned int)rcnt);
     } else {
-      i = _read(file->_file, ptr, rcnt - BUFSIZ/2);
+      i = _read(file->_file, ptr, (unsigned int)(rcnt - BUFSIZ/2));
     }
     pread += i;
     rcnt -= i;
@@ -3822,7 +3822,7 @@ int CDECL setvbuf(FILE* file, char *buf, int mode, size_t size)
     }else if(buf) {
         file->_base = file->_ptr = buf;
         file->_flag |= _USERBUF;
-        file->_bufsiz = size;
+        file->_bufsiz = (int)size;
     }else {
         file->_base = file->_ptr = malloc(size);
         if(!file->_base) {
@@ -3832,7 +3832,7 @@ int CDECL setvbuf(FILE* file, char *buf, int mode, size_t size)
         }
 
         file->_flag |= _IOMYBUF;
-        file->_bufsiz = size;
+        file->_bufsiz = (int)size;
     }
     _unlock_file(file);
     return 0;

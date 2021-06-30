@@ -219,7 +219,7 @@ int CDECL __wcserror_s(wchar_t* buffer, size_t nc, const wchar_t* str)
     }
     else buffer[0] = '\0';
     len = lstrlenW(buffer);
-    MultiByteToWideChar(CP_ACP, 0, _sys_errlist[err], -1, buffer + len, 256 - len);
+    MultiByteToWideChar(CP_ACP, 0, _sys_errlist[err], -1, buffer + len, (int)(256 - len));
     lstrcatW(buffer, nlW);
 
     return 0;
