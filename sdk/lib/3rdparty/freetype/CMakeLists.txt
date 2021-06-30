@@ -5,6 +5,12 @@ add_definitions(
 
 include_directories(include)
 
+if(MSVC)
+    # error C4312: 'type cast': conversion from 'unsigned long' to 'void *' of greater size
+    replace_compile_flags("/we4312" "/wd4312")
+    add_compile_flags("/wd4267")
+endif()
+
 list(APPEND SOURCE
     src/autofit/autofit.c
     src/base/ftadvanc.c
@@ -58,6 +64,10 @@ add_library(freetype ${SOURCE})
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC" AND ARCH STREQUAL "amd64")
     # error C4312: 'type cast': conversion from 'unsigned long' to 'void *' of greater size
     remove_target_compile_option(freetype "/we4312")
+
+    target_compile_options(freetype PRIVATE "/wd4312")
+
+    target_compile_options(freetype PRIVATE "/wd4267")
 elseif(GCC)
     target_compile_options(freetype PRIVATE -fno-builtin-malloc)
 endif()

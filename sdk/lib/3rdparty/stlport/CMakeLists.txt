@@ -2,6 +2,7 @@
 #uncomment this if you want to test c++ compilation
 #add_subdirectory(test)
 
+
 list(APPEND SOURCE
     src/allocators.cpp
     src/bitset.cpp
@@ -39,6 +40,11 @@ add_library(stlport
     ${SOURCE}
     src/cxa.c
     src/c_locale.c)
+
+if(MSVC)
+    # Disable warning C4146: unary minus operator applied to unsigned type, result still unsigned
+    target_compile_options(stlport PRIVATE /wd4146)
+endif()
 
 if(USE_CLANG_CL)
     target_compile_options(stlport PRIVATE -Wno-missing-braces -Wno-unused-local-typedef)
