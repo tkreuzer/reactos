@@ -95,7 +95,7 @@ endif()
 # Bison and Flex support
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
-
+add_compile_flags("/WX")
 if(MSVC_IDE)
     # Bison needs M4 and BISON_PKGDATADIR set at build time,
     # but visual studio is hardly ever opened from the configure-time environment.
@@ -303,6 +303,7 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
     # Compiler specific definitions and macros
     if(MSVC)
         include(sdk/cmake/msvc.cmake)
+        add_compile_flags("/wd4267")
     else()
         include(sdk/cmake/gcc.cmake)
     endif()
