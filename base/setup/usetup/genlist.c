@@ -198,7 +198,7 @@ DrawListEntries(
         coPos.X++;
         WriteConsoleOutputCharacterA(StdOutput,
                                      ListUi->CurrentItemText,
-                                     min(strlen(ListUi->CurrentItemText), (SIZE_T)Width - 2),
+                                     (ULONG)min(strlen(ListUi->CurrentItemText), (SIZE_T)Width - 2),
                                      coPos,
                                      &Written);
         coPos.X--;

@@ -311,7 +311,7 @@ AddKbLayoutsToRegistry(
                                    0,
                                    REG_SZ,
                                    (PVOID)MuiLayouts[uIndex].LayoutID,
-                                   (wcslen(MuiLayouts[uIndex].LayoutID)+1) * sizeof(WCHAR));
+                                   ((ULONG)wcslen(MuiLayouts[uIndex].LayoutID)+1) * sizeof(WCHAR));
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("NtSetValueKey() failed (Status = %lx, uIndex = %d)\n", Status, uIndex);
@@ -328,7 +328,7 @@ AddKbLayoutsToRegistry(
                                    0,
                                    REG_SZ,
                                    (PVOID)szLangID,
-                                   (wcslen(szLangID)+1) * sizeof(WCHAR));
+                                   ((ULONG)wcslen(szLangID)+1) * sizeof(WCHAR));
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("NtSetValueKey() failed (Status = %lx, uIndex = %d)\n", Status, uIndex);
@@ -344,7 +344,7 @@ AddKbLayoutsToRegistry(
                                    0,
                                    REG_SZ,
                                    (PVOID)MuiLayouts[uIndex].LayoutID,
-                                   (wcslen(MuiLayouts[uIndex].LayoutID)+1) * sizeof(WCHAR));
+                                   ((ULONG)wcslen(MuiLayouts[uIndex].LayoutID)+1) * sizeof(WCHAR));
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("NtSetValueKey() failed (Status = %lx, uIndex = %u)\n", Status, uIndex);
@@ -425,7 +425,7 @@ AddCodepageToRegistry(
                            0,
                            REG_SZ,
                            (PVOID)ACPage,
-                           (wcslen(ACPage)+1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(ACPage)+1) * sizeof(WCHAR));
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("NtSetValueKey() failed (Status %lx)\n", Status);
@@ -440,7 +440,7 @@ AddCodepageToRegistry(
                            0,
                            REG_SZ,
                            (PVOID)OEMCPage,
-                           (wcslen(OEMCPage)+1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(OEMCPage)+1) * sizeof(WCHAR));
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("NtSetValueKey() failed (Status %lx)\n", Status);
@@ -455,7 +455,7 @@ AddCodepageToRegistry(
                            0,
                            REG_SZ,
                            (PVOID)MACCPage,
-                           (wcslen(MACCPage)+1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(MACCPage)+1) * sizeof(WCHAR));
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("NtSetValueKey() failed (Status %lx)\n", Status);
@@ -506,7 +506,7 @@ AddFontsSettingsToRegistry(
                                    0,
                                    REG_SZ,
                                    (PVOID)MuiSubFonts[uIndex].SubFontName,
-                                   (wcslen(MuiSubFonts[uIndex].SubFontName)+1) * sizeof(WCHAR));
+                                   ((ULONG)wcslen(MuiSubFonts[uIndex].SubFontName)+1) * sizeof(WCHAR));
             if (!NT_SUCCESS(Status))
             {
                 DPRINT1("NtSetValueKey() failed (Status = %lx, uIndex = %d)\n", Status, uIndex);

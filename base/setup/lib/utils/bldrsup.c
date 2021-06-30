@@ -888,7 +888,7 @@ AddBootStoreEntry(
     {
         PNTOS_OPTIONS Options = (PNTOS_OPTIONS)&BootEntry->OsOptions;
         PWCHAR Buffer;
-        ULONG BufferLength;
+        SIZE_T BufferLength;
         PCWSTR InstallName, OsOptions;
         // ULONG InstallNameLength, OsOptionsLength;
         BOOLEAN IsNameNotQuoted;
@@ -1193,7 +1193,7 @@ FreeLdrEnumerateBootEntries(
     do
     {
         PWCHAR InstallName;
-        ULONG InstallNameLength;
+        SIZE_T InstallNameLength;
 
         /* Poor-man quotes removal (improvement over bootsup.c:UpdateFreeLoaderIni) */
         if (*KeyData == L'"')
@@ -1370,7 +1370,7 @@ NtLdrEnumerateBootEntries(
     do
     {
         PWCHAR InstallName, OsOptions;
-        ULONG InstallNameLength, OsOptionsLength;
+        SIZE_T InstallNameLength, OsOptionsLength;
 
         /* Poor-man quotes removal (improvement over bootsup.c:UpdateFreeLoaderIni) */
         if (*KeyData == L'"')

@@ -219,7 +219,8 @@ GetComputerIdentifier(
     LPCWSTR ComputerIdentifier;
     HANDLE ProcessorsKey;
     PKEY_FULL_INFORMATION pFullInfo;
-    ULONG Size, SizeNeeded;
+    ULONG Size;
+    SIZE_T SizeNeeded;
     NTSTATUS Status;
 
     DPRINT("GetComputerIdentifier() called\n");
@@ -1020,7 +1021,7 @@ ProcessLocaleRegistry(
                            0,
                            REG_SZ,
                            (PVOID)LanguageId,
-                           (wcslen(LanguageId) + 1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(LanguageId) + 1) * sizeof(WCHAR));
     NtClose(KeyHandle);
     if (!NT_SUCCESS(Status))
     {
@@ -1058,7 +1059,7 @@ ProcessLocaleRegistry(
                            0,
                            REG_SZ,
                            (PVOID)LanguageId,
-                           (wcslen(LanguageId) + 1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(LanguageId) + 1) * sizeof(WCHAR));
     if (!NT_SUCCESS(Status))
     {
         DPRINT1("NtSetValueKey() failed (Status %lx)\n", Status);
@@ -1073,7 +1074,7 @@ ProcessLocaleRegistry(
                            0,
                            REG_SZ,
                            (PVOID)LanguageId,
-                           (wcslen(LanguageId) + 1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(LanguageId) + 1) * sizeof(WCHAR));
     NtClose(KeyHandle);
     if (!NT_SUCCESS(Status))
     {
@@ -1367,7 +1368,7 @@ SetGeoID(
                            0,
                            REG_SZ,
                            (PVOID)Id,
-                           (wcslen(Id) + 1) * sizeof(WCHAR));
+                           ((ULONG)wcslen(Id) + 1) * sizeof(WCHAR));
     NtClose(KeyHandle);
     if (!NT_SUCCESS(Status))
     {

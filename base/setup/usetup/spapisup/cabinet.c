@@ -544,7 +544,7 @@ static BOOL
 CabinetNormalizePath(PWCHAR Path,
                      ULONG Length)
 {
-    ULONG n;
+    SIZE_T n;
     BOOL Ok;
 
     n = wcslen(Path);

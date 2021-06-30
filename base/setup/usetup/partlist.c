@@ -488,7 +488,7 @@ PrintPartitionData(
     {
         WriteConsoleOutputCharacterA(StdOutput,
                                      LineBuffer,
-                                     min(strlen(LineBuffer), Width),
+                                     (ULONG)min(strlen(LineBuffer), Width),
                                      coPos,
                                      &Written);
     }

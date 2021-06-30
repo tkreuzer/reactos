@@ -273,7 +273,7 @@ SetupQueueCopyWithCab(
 {
     PFILEQUEUEHEADER QueueHeader;
     PQUEUEENTRY Entry;
-    ULONG Length;
+    SIZE_T Length;
 
     if (QueueHandle == NULL ||
         SourceRootPath == NULL ||
@@ -437,7 +437,7 @@ SetupQueueDeleteW(
 {
     PFILEQUEUEHEADER QueueHeader;
     PQUEUEENTRY Entry;
-    ULONG Length;
+    SIZE_T Length;
 
     if (QueueHandle == NULL || PathPart1 == NULL)
     {
@@ -509,7 +509,7 @@ SetupQueueRenameW(
 {
     PFILEQUEUEHEADER QueueHeader;
     PQUEUEENTRY Entry;
-    ULONG Length;
+    SIZE_T Length;
 
     if (QueueHandle == NULL ||
         SourcePath  == NULL ||
