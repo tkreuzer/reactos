@@ -155,7 +155,7 @@ ReceiveDatagram(
 {
     PICMP_PACKET_CONTEXT Context = TdiEventContext;
     PIPv4_HEADER IpHeader = Tsdu;
-    UINT16 IpHeaderSize = sizeof(IPv4_HEADER) + OptionsLength;
+    UINT16 IpHeaderSize = (UINT16)(sizeof(IPv4_HEADER) + OptionsLength);
     PICMP_HEADER IcmpHeader = (PICMP_HEADER)((PUCHAR)Tsdu + IpHeaderSize);
 
     PVOID DataBuffer = (PUCHAR)Tsdu + IpHeaderSize + sizeof(ICMP_HEADER);

@@ -88,7 +88,7 @@ TDI_STATUS InfoTdiQueryGetInterfaceMIB(TDIEntityID ID,
     GetInterfaceName( Interface, IFDescr, MAX_ADAPTER_DESCRIPTION_LENGTH );
 
     TI_DbgPrint(DEBUG_INFO, ("Copied in name %s\n", IFDescr));
-    OutData->if_descrlen = strlen(IFDescr);
+    OutData->if_descrlen = (ULONG)strlen(IFDescr);
     Size = FIELD_OFFSET(IFEntry, if_descr[OutData->if_descrlen + 1]);
 
     TI_DbgPrint(DEBUG_INFO, ("Finished IFEntry MIB (%04x:%d) size %d\n",

@@ -1102,22 +1102,29 @@ static NTSTATUS ReadStringFromRegistry( HANDLE RegHandle,
     PKEY_VALUE_PARTIAL_INFORMATION Information = (PKEY_VALUE_PARTIAL_INFORMATION)buf;
 
     RtlInitUnicodeString(&ValueName, RegistryValue);
-    Status =
-	ZwQueryValueKey(RegHandle,
-			&ValueName,
-			KeyValuePartialInformation,
-			Information,
-			sizeof(buf),
-			&ResultLength);
+    Status = ZwQueryValueKey(RegHandle,
+                             &ValueName,
+                             KeyValuePartialInformation,
+                             Information,
+                             sizeof(buf),
+                             &ResultLength);
 
     if (!NT_SUCCESS(Status))
-	return Status;
+        return Status;
+
+    if ((Information->Type != REG_SZ) ||
+        (Information->DataLength < sizeof(WCHAR)) ||
+        (Information->DataLength > UNICODE_STRING_MAX_BYTES))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
     /* IP address is stored as a REG_MULTI_SZ - we only pay attention to the first one though */
     TI_DbgPrint(MIN_TRACE, ("Information DataLength: 0x%x\n", Information->DataLength));
 
     UnicodeString.Buffer = (PWCHAR)&Information->Data;
-    UnicodeString.Length = Information->DataLength - sizeof(WCHAR);
-    UnicodeString.MaximumLength = Information->DataLength;
+    UnicodeString.Length = (USHORT)Information->DataLength - sizeof(WCHAR);
+    UnicodeString.MaximumLength = (USHORT)Information->DataLength;
 
     String->Buffer =
 	(PWCHAR)ExAllocatePoolWithTag( NonPagedPool,
@@ -1303,7 +1310,7 @@ VOID GetName( PUNICODE_STRING RegistryKey,
         Ptr++;
 
     PartialRegistryKey.Length = PartialRegistryKey.MaximumLength =
-        (Ptr - PartialRegistryKey.Buffer) * sizeof(WCHAR);
+        (USHORT)(Ptr - PartialRegistryKey.Buffer) * sizeof(WCHAR);
 
     RtlInitUnicodeString( OutName, L"" );
     AppendUnicodeString( OutName, &PartialRegistryKey, FALSE );

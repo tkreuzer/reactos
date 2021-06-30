@@ -51,8 +51,8 @@ VOID TiWriteErrorLog(
  */
 {
     PIO_ERROR_LOG_PACKET LogEntry;
-    UCHAR EntrySize;
-    ULONG StringSize;
+    SIZE_T EntrySize;
+    SIZE_T StringSize;
     PUCHAR pString;
     static WCHAR DriverName[] = L"TCP/IP";
 
@@ -61,6 +61,7 @@ VOID TiWriteErrorLog(
 
     if (String) {
         StringSize = (wcslen(String) * sizeof(WCHAR)) + sizeof(UNICODE_NULL);
+        ASSERT((StringSize + EntrySize) <= MAXUCHAR);
         EntrySize += (UCHAR)StringSize;
     }
 
@@ -76,7 +77,7 @@ VOID TiWriteErrorLog(
     LogEntry->RetryCount        = -1;
     LogEntry->DumpDataSize      = (USHORT)(DumpDataCount * sizeof(ULONG));
     LogEntry->NumberOfStrings   = (String == NULL) ? 1 : 2;
-    LogEntry->StringOffset      = sizeof(IO_ERROR_LOG_PACKET) + (DumpDataCount * sizeof(ULONG));
+    LogEntry->StringOffset      = (USHORT)(sizeof(IO_ERROR_LOG_PACKET) + (DumpDataCount * sizeof(ULONG)));
     LogEntry->EventCategory     = 0;
     LogEntry->ErrorCode         = ErrorCode;
     LogEntry->UniqueErrorValue  = UniqueErrorValue;
