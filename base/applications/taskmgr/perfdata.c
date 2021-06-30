@@ -144,14 +144,14 @@ CachedGetUserFromSid(
         if (EqualSid((PSID)&pEntry->Data, pSid))
         {
             wcsncpy(pUserName, pEntry->pszName, cwcUserName);
-            *pcwcUserName = wcslen(pUserName);
+            *pcwcUserName = (ULONG)wcslen(pUserName);
             return;
         }
     }
 
     /* We didn't find the SID in the list, get the name conventional */
     SidToUserName(pSid, pUserName, cwcUserName);
-    *pcwcUserName = wcslen(pUserName);
+    *pcwcUserName = (ULONG)wcslen(pUserName);
 
     /* Allocate a new entry */
     cwcUserName = *pcwcUserName + 1;
