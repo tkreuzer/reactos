@@ -14,6 +14,7 @@ if(MSVC)
 
     # Disable warnings
     add_compile_options(
+        /wd4702  # "unreachable code""
         /wd4146  # "unary minus operator applied to unsigned type, result still unsigned"
         /wd4244) # "'=': conversion from 'a' to 'b', possible loss of data"
 

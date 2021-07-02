@@ -241,7 +241,7 @@ HMODULE __mingw_get_msvcrt_handle(void)
         const char *lib_name;
         int i = 0;
 
-        while ((lib_name = __mingw_enum_import_library_names (i++))) {
+        while ((lib_name = __mingw_enum_import_library_names (i++)), lib_name) {
             if((lib_name[0] == 'm' || lib_name[0] == 'M')
                && (lib_name[1] == 's' || lib_name[1] == 'S')
                && (lib_name[2] == 'v' || lib_name[2] == 'V')

@@ -58,6 +58,9 @@ add_library(freetype ${SOURCE})
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC" AND ARCH STREQUAL "amd64")
     # error C4312: 'type cast': conversion from 'unsigned long' to 'void *' of greater size
     remove_target_compile_option(freetype "/we4312")
+
+    # Disable warning C4701: potentially uninitialized local variable 'fvar_head' used
+    target_compile_options(freetype PRIVATE /wd4701)
 elseif(GCC)
     target_compile_options(freetype PRIVATE -fno-builtin-malloc)
 endif()

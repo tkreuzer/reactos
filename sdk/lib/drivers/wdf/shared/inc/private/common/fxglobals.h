@@ -167,14 +167,14 @@ public:
     ULONG
     __inline
     AddRef(
-        __in_opt   PVOID Tag = NULL,
+        __in_opt   PVOID _Tag = NULL,
         __in       LONG Line = 0,
         __in_opt   PSTR File = NULL
         )
     {
         ULONG c;
 
-        UNREFERENCED_PARAMETER(Tag);
+        UNREFERENCED_PARAMETER(_Tag);
         UNREFERENCED_PARAMETER(Line);
         UNREFERENCED_PARAMETER(File);
 

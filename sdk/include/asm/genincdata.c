@@ -30,7 +30,7 @@ enum
 typedef struct
 {
     char Type;
-    char Name[55];
+    char Name[155];
     ULONGLONG Value;
 } ASMGENDATA;
 

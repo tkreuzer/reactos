@@ -73,7 +73,7 @@ if(ARCH STREQUAL "amd64" AND MSVC_VERSION GREATER 1922)
 endif()
 
 # Generate Warnings Level 3
-add_compile_options(/W3)
+add_compile_options(/W4)
 
 #if (NOT ARCH STREQUAL "amd64")
     add_compile_options(/WX)
@@ -81,12 +81,20 @@ add_compile_options(/W3)
 
 # Disable overly sensitive warnings as well as those that generally aren't
 # useful to us.
+# - C4100: unreferenced formal parameter
+# - C4127: conditional expression is constant
+# - C4131: uses old-style declarator
 # - C4244: implicit integer truncation
+# - C4245: '=': conversion from 'int' to 'unsigned int', signed/unsigned mismatch
+# - C4152: nonstandard extension, function/data pointer conversion in expression
 # - C4290: C++ exception specification ignored
+# - C4324: structure was padded due to alignment specifier
 # - C4800: forcing value to bool 'true' or 'false' (performance warning)
 # - C4200: nonstandard extension used : zero-sized array in struct/union
+# - C4201: nonstandard extension used: nameless struct/union
+# - C4210: nonstandard extension used: function given file scope
 # - C4214: nonstandard extension used : bit field types other than int
-add_compile_options(/wd4244 /wd4290 /wd4800 /wd4200 /wd4214)
+add_compile_options(/wd4100 /wd4127 /wd4131 /wd4244 /wd4245 /wd4152 /wd4290 /wd4324 /wd4800 /wd4200 /wd4201 /wd4210 /wd4214)
 
 # FIXME: Temporarily disable C4018 until we fix more of the others. CORE-10113
 add_compile_options(/wd4018)

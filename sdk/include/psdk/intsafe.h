@@ -336,7 +336,8 @@ INTSAFE_NAME(_Name)( \
         return INTSAFE_E_ARITHMETIC_OVERFLOW; \
     } \
 }
-
+#pragma warning(push)
+#pragma warning(disable:4310)
 DEFINE_SAFE_CONVERT_STOU(Int8ToUChar, INT8, UINT8)
 DEFINE_SAFE_CONVERT_STOU(Int8ToUInt8, INT8, UINT8)
 DEFINE_SAFE_CONVERT_STOU(Int8ToUShort, INT8, USHORT)
@@ -390,7 +391,7 @@ DEFINE_SAFE_CONVERT_STOU(LongLongToULongPtr, LONGLONG, ULONG_PTR)
 DEFINE_SAFE_CONVERT_STOU(ShortToChar, SHORT, UINT8)
 DEFINE_SAFE_CONVERT_STOU(LongPtrToChar, LONG_PTR, UINT8)
 #endif
-
+#pragma warning(pop)
 
 /* Convert signed to signed */
 #define DEFINE_SAFE_CONVERT_STOS(_Name, _TypeFrom, _TypeTo) \
