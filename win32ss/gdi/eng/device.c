@@ -68,11 +68,10 @@ GdiUpdateGraphicsDeviceList(VOID)
         swprintf(awcDeviceName, L"\\Device\\Video%lu", iDevNum);
 
         /* Create the display device name */
-        swprintf(awcWinDeviceName, L"\\\\.\\DISPLAY%lu", iDevNum + 1);
-        RtlInitUnicodeString(&ustrDeviceName, awcWinDeviceName);
+        RtlInitUnicodeString(&ustrDeviceName, awcDeviceName);
 
         /* Check if the device exists already */
-        pGraphicsDevice = EngpFindGraphicsDevice(&ustrDeviceName, iDevNum);
+        pGraphicsDevice = EngpFindGraphicsDevice(&ustrDeviceName, iDevNum, 0);
         if (pGraphicsDevice != NULL)
         {
             continue;
