@@ -15,11 +15,30 @@ DBG_DEFAULT_CHANNEL(EngLDev);
 #define RVA_TO_ADDR(Base,Rva) ((PVOID)(((ULONG_PTR)(Base)) + (Rva)))
 #endif
 
+static
+PLDEVOBJ
+LDEVOBJ_AllocLDEV(
+    _In_ LDEVTYPE ldevtype);
+
+static
+BOOL
+LDEVOBJ_bEnableDriverEx(
+    _Inout_ PLDEVOBJ pldev,
+    _In_ PFN_DrvEnableDriver pfnEnableDriver);
+
+BOOL
+APIENTRY
+MultiEnableDriver(
+    _In_ ULONG iEngineVersion,
+    _In_ ULONG cj,
+    _Inout_bytecount_(cj) PDRVENABLEDATA pded);
+
 /** Globals *******************************************************************/
 
 static HSEMAPHORE ghsemLDEVList;
 static LIST_ENTRY gleLdevListHead;
 static LDEVOBJ *gpldevWin32k = NULL;
+LDEVOBJ *gpldevMulti = NULL;
 
 
 /** Private functions *********************************************************/
@@ -29,8 +48,9 @@ NTSTATUS
 NTAPI
 InitLDEVImpl(VOID)
 {
+    PSYSTEM_GDI_DRIVER_INFORMATION pGdiDriverInfo;
     ULONG cbSize;
-
+    //__debugbreak();
     /* Initialize the LDEV list head */
     InitializeListHead(&gleLdevListHead);
 
@@ -42,34 +62,51 @@ InitLDEVImpl(VOID)
         return STATUS_INSUFFICIENT_RESOURCES;
     }
 
-    /* Allocate a LDEVOBJ for win32k */
-    gpldevWin32k = ExAllocatePoolWithTag(PagedPool,
-                                         sizeof(LDEVOBJ) +
-                                         sizeof(SYSTEM_GDI_DRIVER_INFORMATION),
-                                         GDITAG_LDEV);
-    if (!gpldevWin32k)
+    /* Allocate a SYSTEM_GDI_DRIVER_INFORMATION */
+    pGdiDriverInfo = ExAllocatePoolWithTag(PagedPool,
+                                           sizeof(SYSTEM_GDI_DRIVER_INFORMATION),
+                                           GDITAG_LDEV);
+    if (!pGdiDriverInfo)
     {
         return STATUS_NO_MEMORY;
     }
 
-    /* Initialize the LDEVOBJ for win32k */
-    gpldevWin32k->leLink.Flink = NULL;
-    gpldevWin32k->leLink.Blink = NULL;
-    gpldevWin32k->ldevtype = LDEV_DEVICE_DISPLAY;
-    gpldevWin32k->cRefs = 1;
-    gpldevWin32k->ulDriverVersion = GDI_ENGINE_VERSION;
-    gpldevWin32k->pGdiDriverInfo = (PVOID)(gpldevWin32k + 1);
-    RtlInitUnicodeString(&gpldevWin32k->pGdiDriverInfo->DriverName,
+    /* Initialize it */
+    RtlInitUnicodeString(&pGdiDriverInfo->DriverName,
                          L"\\SystemRoot\\System32\\win32k.sys");
-    gpldevWin32k->pGdiDriverInfo->ImageAddress = &__ImageBase;
-    gpldevWin32k->pGdiDriverInfo->SectionPointer = NULL;
-    gpldevWin32k->pGdiDriverInfo->EntryPoint = (PVOID)DriverEntry;
-    gpldevWin32k->pGdiDriverInfo->ExportSectionPointer =
+    pGdiDriverInfo->ImageAddress = &__ImageBase;
+    pGdiDriverInfo->SectionPointer = NULL;
+    pGdiDriverInfo->EntryPoint = (PVOID)DriverEntry;
+    pGdiDriverInfo->ExportSectionPointer =
         RtlImageDirectoryEntryToData(&__ImageBase,
                                      TRUE,
                                      IMAGE_DIRECTORY_ENTRY_EXPORT,
                                      &cbSize);
-    gpldevWin32k->pGdiDriverInfo->ImageLength = 0; // FIXME
+    pGdiDriverInfo->ImageLength = 0; // FIXME
+
+    /* Allocate an LDEVOBJ for the multi display driver */
+    gpldevWin32k = LDEVOBJ_AllocLDEV(LDEV_IMAGE);
+    if (!gpldevWin32k)
+    {
+        ExFreePool(pGdiDriverInfo);
+        return STATUS_NO_MEMORY;
+    }
+
+    /* Initialize the LDEVOBJ for win32k */
+    gpldevWin32k->pGdiDriverInfo = pGdiDriverInfo;
+
+    /* Allocate an LDEVOBJ for the multi display driver */
+    gpldevMulti = LDEVOBJ_AllocLDEV(LDEV_DEVICE_META);
+    if (!gpldevMulti)
+    {
+        return STATUS_NO_MEMORY;
+    }
+
+    /* Enable the driver */
+    if (!LDEVOBJ_bEnableDriverEx(gpldevMulti, MultiEnableDriver))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
 
     return STATUS_SUCCESS;
 }
@@ -91,6 +128,9 @@ LDEVOBJ_AllocLDEV(
 
     /* Zero out the structure */
     RtlZeroMemory(pldev, sizeof(LDEVOBJ));
+    InitializeListHead(&pldev->leLink);
+    pldev->cRefs = 1;
+    pldev->ulDriverVersion = GDI_ENGINE_VERSION;
 
     /* Set the ldevtype */
     pldev->ldevtype = ldevtype;
@@ -193,19 +233,18 @@ LDEVOBJ_vUnloadImage(
 
 static
 BOOL
-LDEVOBJ_bEnableDriver(
-    _Inout_ PLDEVOBJ pldev)
+LDEVOBJ_bEnableDriverEx(
+    _Inout_ PLDEVOBJ pldev,
+    _In_ PFN_DrvEnableDriver pfnEnableDriver)
 {
-    PFN_DrvEnableDriver pfnEnableDriver;
     DRVENABLEDATA ded;
     ULONG i;
 
     /* Make sure we have a driver info */
-    ASSERT(pldev && pldev->pGdiDriverInfo != NULL);
+    ASSERT((pldev != NULL) && (pfnEnableDriver != NULL));
 
     /* Call the drivers DrvEnableDriver function */
     RtlZeroMemory(&ded, sizeof(ded));
-    pfnEnableDriver = pldev->pGdiDriverInfo->EntryPoint;
     if (!pfnEnableDriver(GDI_ENGINE_VERSION, sizeof(ded), &ded))
     {
         ERR("DrvEnableDriver failed\n");
@@ -277,6 +316,16 @@ cleanup:
 
     *ppdm = pdm;
     return cbSize;
+}
+
+static
+BOOL
+LDEVOBJ_bEnableDriver(
+    _Inout_ PLDEVOBJ pldev)
+{
+    /* Make sure we have a driver info */
+    ASSERT((pldev != NULL) && (pldev->pGdiDriverInfo != NULL));
+    return LDEVOBJ_bEnableDriverEx(pldev, pldev->pGdiDriverInfo->EntryPoint);
 }
 
 static

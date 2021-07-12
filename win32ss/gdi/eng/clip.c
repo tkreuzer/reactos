@@ -323,7 +323,7 @@ CLIPOBJ_bEnum(
 {
     const RECTL* src;
     XCLIPOBJ* Clip = (XCLIPOBJ *)pco;
-    ULONG nCopy;
+    ULONG nCopy, i;
     ENUMRECTS* pERects = (ENUMRECTS*)pulEnumRects;
 
     // Calculate how many rectangles we should copy
@@ -340,11 +340,31 @@ CLIPOBJ_bEnum(
     src = &Clip->Rects[Clip->EnumPos];
     RtlCopyMemory(pERects->arcl, src, nCopy * sizeof(RECTL));
 
+    if (Clip->ptOffset.x || Clip->ptOffset.y)
+    {
+        /* Apply offset */
+        for (i = 0; i < nCopy; i++)
+        {
+            RECTL_vOffsetRect(&pERects->arcl[i], Clip->ptOffset.x, Clip->ptOffset.y);
+        }
+    }
+
     pERects->c = nCopy;
 
     Clip->EnumPos+=nCopy;
 
     return Clip->EnumPos < Clip->RectCount;
+}
+
+VOID
+APIENTRY
+CLIPOBJ_vSetOffset(
+    _Inout_ CLIPOBJ* pco,
+    _In_ const POINTL *pptOffset)
+{
+    XCLIPOBJ* Clip = (XCLIPOBJ *)pco;
+
+    Clip->ptOffset = *pptOffset;
 }
 
 /* EOF */

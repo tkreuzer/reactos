@@ -163,10 +163,23 @@ PDEVOBJ_bEnablePDEV(
     PDEVMODEW pdevmode,
     PWSTR pwszLogAddress)
 {
+    PWSTR pwszDescription;
+    HANDLE hDevice;
     PFN_DrvEnablePDEV pfnEnablePDEV;
     ULONG i;
 
     DPRINT("PDEVOBJ_bEnablePDEV()\n");
+
+    if (ppdev->pGraphicsDevice != NULL)
+    {
+        pwszDescription = ppdev->pGraphicsDevice->pwszDescription;
+        hDevice = ppdev->pGraphicsDevice->DeviceObject;
+    }
+    else
+    {
+        pwszDescription = NULL;
+        hDevice = NULL;
+    }
 
     /* Get the DrvEnablePDEV function */
     pfnEnablePDEV = ppdev->pldev->pfn.EnablePDEV;
@@ -181,8 +194,8 @@ PDEVOBJ_bEnablePDEV(
                                   sizeof(DEVINFO),
                                   &ppdev->devinfo,
                                   (HDEV)ppdev,
-                                  ppdev->pGraphicsDevice->pwszDescription,
-                                  ppdev->pGraphicsDevice->DeviceObject);
+                                  pwszDescription,
+                                  hDevice);
     if (ppdev->dhpdev == NULL)
     {
         DPRINT1("Failed to enable PDEV\n");
@@ -314,6 +327,10 @@ PDEVOBJ_pdmMatchDevMode(
     DWORD dwFields;
 
     pGraphicsDevice = ppdev->pGraphicsDevice;
+    if (pGraphicsDevice == NULL)
+    {
+        return NULL;
+    }
 
     for (i = 0; i < pGraphicsDevice->cDevModes; i++)
     {
@@ -343,31 +360,13 @@ PDEVOBJ_pdmMatchDevMode(
 
 static
 PPDEVOBJ
-EngpCreatePDEV(
-    PUNICODE_STRING pustrDeviceName,
-    PDEVMODEW pdm)
+EngpCreatePDEVInternal(
+    _In_ PLDEVOBJ pldev,
+    _In_opt_ PGRAPHICS_DEVICE pGraphicsDevice,
+    _In_opt_ PDEVMODEW pdm
+)
 {
-    PGRAPHICS_DEVICE pGraphicsDevice;
     PPDEVOBJ ppdev;
-
-    DPRINT("EngpCreatePDEV(%wZ, %p)\n", pustrDeviceName, pdm);
-
-    /* Try to find the GRAPHICS_DEVICE */
-    if (pustrDeviceName)
-    {
-        pGraphicsDevice = EngpFindGraphicsDevice(pustrDeviceName, 0, 0);
-        if (!pGraphicsDevice)
-        {
-            DPRINT1("No GRAPHICS_DEVICE found for %ls!\n",
-                    pustrDeviceName ? pustrDeviceName->Buffer : 0);
-            return NULL;
-        }
-    }
-    else
-    {
-        ASSERT(gpPrimaryGraphicsDevice);
-        pGraphicsDevice = gpPrimaryGraphicsDevice;
-    }
 
     /* Allocate a new PDEVOBJ */
     ppdev = PDEVOBJ_AllocPDEV();
@@ -377,24 +376,8 @@ EngpCreatePDEV(
         return NULL;
     }
 
-    /* If no DEVMODEW is given, ... */
-    if (!pdm)
-    {
-        /* ... use the device's default one */
-        pdm = pGraphicsDevice->pDevModeList[pGraphicsDevice->iDefaultMode].pdm;
-        DPRINT("Using iDefaultMode = %lu\n", pGraphicsDevice->iDefaultMode);
-    }
-
-    /* Try to get a diplay driver */
-    ppdev->pldev = LDEVOBJ_pLoadDriver(pdm->dmDeviceName, LDEV_DEVICE_DISPLAY);
-    if (!ppdev->pldev)
-    {
-        DPRINT1("Could not load display driver '%ls', '%ls'\n",
-                pGraphicsDevice->pDiplayDrivers,
-                pdm->dmDeviceName);
-        PDEVOBJ_vRelease(ppdev);
-        return NULL;
-    }
+    /* Set the ldev */
+    ppdev->pldev = pldev;
 
     /* Copy the function table */
     ppdev->pfn = ppdev->pldev->pfn;
@@ -405,12 +388,17 @@ EngpCreatePDEV(
         ppdev->pfnMovePointer = EngMovePointer;
 
     ppdev->pGraphicsDevice = pGraphicsDevice;
+    if (pGraphicsDevice != NULL)
+    {
+        // DxEngGetHdevData asks for Graphics DeviceObject in hSpooler field
+        ppdev->hSpooler = ppdev->pGraphicsDevice->DeviceObject;
+    }
 
-    // DxEngGetHdevData asks for Graphics DeviceObject in hSpooler field
-    ppdev->hSpooler = ppdev->pGraphicsDevice->DeviceObject;
-
-    // Should we change the ative mode of pGraphicsDevice ?
-    ppdev->pdmwDev = PDEVOBJ_pdmMatchDevMode(ppdev, pdm);
+    if (pdm)
+    {
+        // Should we change the ative mode of pGraphicsDevice ?
+        ppdev->pdmwDev = PDEVOBJ_pdmMatchDevMode(ppdev, pdm);
+    }
 
     /* FIXME! */
     ppdev->flFlags = PDEV_DISPLAY;
@@ -431,6 +419,63 @@ EngpCreatePDEV(
 
     /* Tell the driver that the PDEV is ready */
     PDEVOBJ_vCompletePDEV(ppdev);
+
+    return ppdev;
+}
+
+static
+PPDEVOBJ
+EngpCreatePDEV(
+    PUNICODE_STRING pustrDeviceName,
+    PDEVMODEW pdm)
+{
+    PGRAPHICS_DEVICE pGraphicsDevice;
+    PLDEVOBJ pldev;
+    PPDEVOBJ ppdev;
+    __debugbreak();
+    DPRINT("EngpCreatePDEV(%wZ, %p)\n", pustrDeviceName, pdm);
+
+    /* Try to find the GRAPHICS_DEVICE */
+    if (pustrDeviceName)
+    {
+        pGraphicsDevice = EngpFindGraphicsDevice(pustrDeviceName, 0, 0);
+        if (!pGraphicsDevice)
+        {
+            DPRINT1("No GRAPHICS_DEVICE found for %ls!\n",
+                    pustrDeviceName ? pustrDeviceName->Buffer : 0);
+            return NULL;
+        }
+    }
+    else
+    {
+        ASSERT(gpPrimaryGraphicsDevice);
+        pGraphicsDevice = gpPrimaryGraphicsDevice;
+    }
+
+    /* If no DEVMODEW is given, ... */
+    if (!pdm)
+    {
+        /* ... use the device's default one */
+        pdm = pGraphicsDevice->pDevModeList[pGraphicsDevice->iDefaultMode].pdm;
+        DPRINT("Using iDefaultMode = %lu\n", pGraphicsDevice->iDefaultMode);
+    }
+
+    /* Try to get a diplay driver */
+    pldev = LDEVOBJ_pLoadDriver(pdm->dmDeviceName, LDEV_DEVICE_DISPLAY);
+    if (!pldev)
+    {
+        DPRINT1("Could not load display driver '%ls', '%ls'\n",
+                pGraphicsDevice->pDiplayDrivers,
+                pdm->dmDeviceName);
+        return NULL;
+    }
+
+    ppdev = EngpCreatePDEVInternal(pldev, pGraphicsDevice, pdm);
+    if (ppdev == NULL)
+    {
+        DPRINT1("Failed to allocate PDEV!\n");
+        return NULL;
+    }
 
     /* Return the PDEV */
     return ppdev;
@@ -590,6 +635,51 @@ leave:
     return retval;
 }
 
+extern ULONG gcNumDisplayDevices;
+extern LDEVOBJ *gpldevMulti;
+
+VOID
+EngpPrepareMultiPDEV()
+{
+    PGRAPHICS_DEVICE pGraphicsDevice;
+    UNICODE_STRING ustrWinDeviceName;
+    ULONG iDevNum;
+    PPDEVOBJ ppdev;
+    PSURFACE pSurface;
+    SIZEL sizMulti = { {0} };
+
+    __debugbreak();
+    for (iDevNum = 0; iDevNum < gcNumDisplayDevices; iDevNum++)
+    {
+        pGraphicsDevice = EngpFindGraphicsDevice(NULL, iDevNum, 0);
+        if (!pGraphicsDevice) continue;
+
+        RtlInitUnicodeString(&ustrWinDeviceName, pGraphicsDevice->szWinDeviceName);
+        ppdev = EngpCreatePDEV(&ustrWinDeviceName, NULL);
+        if (!ppdev) continue;
+
+        // By default we place each display right next to the previous
+        ppdev->ptlOrigion.x = sizMulti.cx;
+        ppdev->ptlOrigion.y = 0;
+
+        pSurface = PDEVOBJ_pSurface(ppdev);
+        ASSERT(pSurface);
+
+        sizMulti.cx += pSurface->SurfObj.sizlBitmap.cx;
+        sizMulti.cy = max(sizMulti.cy, pSurface->SurfObj.sizlBitmap.cx);
+    }
+
+    ASSERT(gpldevMulti != NULL);
+
+    ppdev = EngpCreatePDEVInternal(gpldevMulti, NULL, NULL);
+    if (ppdev == NULL)
+    {
+        DPRINT1("Failed to allocate PDEV!\n");
+        return;
+    }
+
+    gppdevPrimary = ppdev;
+}
 
 PPDEVOBJ
 NTAPI
@@ -611,13 +701,15 @@ EngpGetPDEV(
         {
             /* Get a pointer to the GRAPHICS_DEVICE */
             pGraphicsDevice = ppdev->pGraphicsDevice;
-
-            /* Compare the name */
-            RtlInitUnicodeString(&ustrCurrent, pGraphicsDevice->szWinDeviceName);
-            if (RtlEqualUnicodeString(pustrDeviceName, &ustrCurrent, FALSE))
+            if (pGraphicsDevice != NULL)
             {
-                /* Found! */
-                break;
+                /* Compare the name */
+                RtlInitUnicodeString(&ustrCurrent, pGraphicsDevice->szWinDeviceName);
+                if (RtlEqualUnicodeString(pustrDeviceName, &ustrCurrent, FALSE))
+                {
+                    /* Found! */
+                    break;
+                }
             }
         }
     }
@@ -635,6 +727,12 @@ EngpGetPDEV(
     }
     else
     {
+        /* Check if we have multiple devices */
+        if (gcNumDisplayDevices > 1)
+        {
+            EngpPrepareMultiPDEV();
+        }
+
         /* No, create a new PDEV for the given device */
         ppdev = EngpCreatePDEV(pustrDeviceName, NULL);
         if (ppdev)

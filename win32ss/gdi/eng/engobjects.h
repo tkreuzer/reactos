@@ -74,6 +74,7 @@ typedef struct _XCLIPOBJ
   //
   DWORD   RectCount;   /* count/mode based on # of rect in regions scan. */
   PVOID   pDDA;        /* Pointer to a large drawing structure. */
+  POINTL  ptOffset;
 } XCLIPOBJ, *PXCLIPOBJ;
 
 /*

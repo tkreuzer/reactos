@@ -1,0 +1,189 @@
+GreOpenDCW
+-> EngpGetPDEV -> return gppdevPrimary or create new one
+-> DC_AllocDcWithHandle
+-> DC_vInitDc
+
+EngpCreatePDEV(devicename, pdm)
+
+PDEV must have ppdev->pGraphicsDevice set
+
+There is no registry key for a virtual device in 
+HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\{23A77BF7-ED96-40EC-AF06-9B1F4867732A}\0000
+There is only: 3 primary devices + vga + netmeeting + RDPDD
+
+//*e12e8298 size:   88 previous size:   30  (Allocated) *Ggdv
+//		Pooltag Ggdv : Gdi GDITAG_GDEVICE
+struct tagGRAPHICS_DEVICE
+{
+  /* 00 */ WCHAR szNtDeviceName[16];
+  /* 20 */ WCHAR szWinDeviceName[16];
+  /* 40 */ struct tagGRAPHICS_DEVICE *pNextGraphicsDevice;
+  /* 44 */ struct tagGRAPHICS_DEVICE *pVgaDevice;
+  /* 48 */ struct _DEVICE_OBJECT *DeviceObject;
+  /* 4C */ HANDLE pDeviceHandle;
+  /* 50 */ DWORD hkClassDriverConfig;
+  /* 54 */ DWORD StateFlags;
+  /* 58 */ DWORD cbdevmodeInfo;
+  /* 5C */ PVOID devmodeInfo;
+  /* 60 */ DWORD cDevModes;
+  /* 64 */ struct tagGRAPHICS_DEVICE::_DEVMODEENTRY *pDevModeList;
+  /* 68 */ PWCHAR pDiplayDrivers;
+  /* 6C */ LPWSTR pwszDescription;
+  /* 70 */ DWORD dwUnknown;
+  /* 74 */ PVOID pUnknown; // Pooltag Ggdv : Gdi GDITAG_GDEVICE
+  /* 78 */ PFILE_OBJECT FileObject;
+  /* 7C */ USHORT ProtocolType;
+};
+
+Devices on Win 2003
+gpGraphicsDeviceList:
+e13753e0 { "\Device\Video0", "\\.\DISPLAY1" }
+e12e82a0 { "\Device\Video1", "\\.\DISPLAY2" }
+e12e81b8 { "\Device\Video2", "\\.\DISPLAY3" }
+e15f41e0 { "\Device\Video4", "\\.\DISPLAYV1" }
+e13625b0 { "\Device\Video5", "\\.\DISPLAYV2" }
+e163f510 { "\Device\Disc", "WinDisc" }
+
+Locking:
+PDEVOBJ::vUseParentDevLock - assigns parents hSemDevLock to itself
+Parent is Multi driver
+
+Multidisplay driver:
+gadrvfnMulti
+
+?gpszHmgrType@@3PAPADA 
+?dclevelDefault@@3VDCLEVEL@@A  ; class DCLEVEL dclevelDefault
+?ef16@@3VEFLOAT@@A ; class EFLOAT ef16
+?glaSimpleStroke@@3TLA@@A ; union LA glaSimpleStroke
+?galeCosmeticDash@@3PATLONG_FLOAT@@A  ; union LONG_FLOAT * galeCosmeticDash
+?gmxIdentity_FxToL@@3VMATRIX@@A  ; class MATRIX gmxIdentity_FxToL
+; NTSTATUS NtStatus
+; PVOID P
+struct tagMDEVRECORD * gMDEVTrace
+
+?gppdevList@@3PAVPDEV@@A ; class PDEV * gppdevList
+
+kd> dd gppdevList
+bf9b998c  e12e7008 e14b12d8 e16572d8 8997c588
+
+kd> dd e12e7008
+e12e7008  00000000 00000000 00000000 00000000
+e12e7018  e12db008 00000097 00000001 e12e7008
+e12e7028  00060041 00000000 89a780b0 897d6e90
+e12e7038  00000433 00000196 00000000 00000000
+e12e7048  e12e7008 00000000 00000000 00000000
+e12e7058  e14b2450 00000000 00000000 00000715
+e12e7068  0000053f 00000000 00000003 e1858378
+e12e7078  e16326a0 00000000 902385eb 00000001
+
+struct _PDEV e12e7008
+{
+00000000 field00         dd 00000000 
+
+00000010 ppdevNext       dd e12db008
+00000014 dword14         dd ?
+00000018 dword18         dd ?
+0000001C dhpdevParent    dd e12e7008
+00000020 flags           dd 00000433 
+00000024 dword24         dd ?
+00000028 hsemDevLock     dd ?
+0000002C hsemLock2       dd ?
+00000030 gap30           dd ?
+...
+000001F8 pfnStrokePath   dd MulStrokePath
+000001FC pfnFillPath     dd ?
+00000200 field_200       dd ?
+00000204 pfnBitBlt       dd ?
+00000208 pfnCopyBits     dd ?
+0000020C pfnStretchBlt   dd ?
+00000210 pfnTextOut      dd ?
+00000214 pfnLineTo       dd ?
+00000218 pfnTransparentBlt dd ?
+0000021C pfnAlphaBlend   dd ?
+00000220 pfnPlgBlt       dd ?
+00000224 pfnGradientFill dd ?
+00000228 pfnSaveScreenBits dd ?
+0000022C pfnStretchBltROP dd ?
+00000230 pfnReserved9    dd MulDrawStream
+00000234 dword234        dd ?
+00000238 dword238        dd ?
+0000023C dword23C        dd ?
+00000240 ahbmPattern     dd 24 dup(?)            ; offset
+...
+000002D0 pvoid2D0        dd ?                    ; offset
+000002D4 prton           dd ?                    ; offset
+000002D8 sizl            SIZEL { 00000715 , 0000053f  }
+000002E0 dword2E0        dd ?
+000002E4 dword2E4        dd ?
+000002E8 dword2E8        dd ?
+000002EC dword2EC        dd ?
+000002F0 dword2F0        dd ?
+000002F4 dword2F4        dd ?
+000002F8 dword2F8        dd ?
+000002FC ulTag           dd 'Pdev'
+00000300 pldev           dd e107ccf0
+00000304 pfnEnablePDEV   dd ?
+00000308 ppalSurf        dd ?                    ; offset
+0000030C devinfo         DEVINFO ?
+00000438 gdiinfo         GDIINFO ?
+00000568 pSurface        dd e14b2440
+0000056C _hSpooler       dd 00000000 
+00000570 _pDesktopId     dd 00000001 
+00000574 _pGraphicsDevice dd fffffffc
+00000578 _ptlOrigin      POINTL { 00000000 , 00000000 }
+00000580 pvoid580        dd ?                    ; offset
+00000584 dword584        dd ?
+00000588 dword588        dd ?
+0000058C dword58C        dd ?
+00000590 gap590          db 4 dup(?)
+00000594 dword594        dd ?
+00000598 pfn             dd 93 dup(?)            ; offset
+}
+
+ptlOrigin:
+0: { 0,0}
+1: { 0x480, 0x35F }
+2: { 0x480, 0xA0 }
+
+
+struct _LDEV e107ccf0
+{
+  LIST_ENTRY leLink; { e14e7cf0, e14e7cf0 }
+  struct _LDEV::_LDEVOBJ::_SYSTEM_GDI_DRIVER_INFORMATION *pGdiDriverInfo; 00000000 
+  LDEVTYPE ldevtype; 00000003
+  ULONG cRefs; 00000001
+  ULONG ulDriverVersion; 00000000 
+  PVOID pfnEnablePDEV; 00000000 
+  ULONG a; 00000000 
+  ULONG b; 00030000 
+  PVOID apfn[93]; MulEnablePDEV
+};
+
+
+typedef struct _SYSTEM_GDI_DRIVER_INFORMATION e146b4e0
+{
+    UNICODE_STRING DriverName;
+    PVOID ImageAddress;
+    PVOID SectionPointer;
+    PVOID EntryPoint;
+    PIMAGE_EXPORT_DIRECTORY ExportSectionPointer;
+    ULONG ImageLength;
+} SYSTEM_GDI_DRIVER_INFORMATION, *PSYSTEM_GDI_DRIVER_INFORMATION;
+
+------------
+
+DHPDEV
+APIENTRY
+MulEnablePDEV(
+    _In_ DEVMODEW* pdm, = e15926a8
+    _In_ LPWSTR pwszLogAddress, = 00000000
+    _In_ ULONG cPat, = 6
+    _In_reads_opt_(cPat) HSURF* phsurfPatterns, = e12ee248
+    _In_ ULONG cjCaps, = 0x130
+    _Out_writes_bytes_(cjCaps) ULONG* pdevcaps, = e12ee440
+    _In_ ULONG cjDevInfo, = 0x12C
+    _Out_writes_bytes_(cjDevInfo) DEVINFO* pdi, = e12ee314
+    _In_ HDEV hdev, = e12ee008
+    _In_ LPWSTR pwszDeviceName, = bf95e08c
+    _In_ HANDLE hDriver) = 00000000 
+

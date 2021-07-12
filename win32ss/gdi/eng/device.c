@@ -20,6 +20,8 @@ static PGRAPHICS_DEVICE gpGraphicsDeviceLast = NULL;
 static HSEMAPHORE ghsemGraphicsDeviceList;
 static ULONG giDevNum = 1;
 
+ULONG gcNumDisplayDevices;
+
 CODE_SEG("INIT")
 NTSTATUS
 NTAPI
@@ -120,6 +122,9 @@ EngpUpdateGraphicsDeviceList(VOID)
 
     /* Close the device map registry key */
     ZwClose(hkey);
+
+    gcNumDisplayDevices = ulMaxObjectNumber + 1;
+    //if (ulMaxObjectNumber > 0)
 
     return STATUS_SUCCESS;
 }
