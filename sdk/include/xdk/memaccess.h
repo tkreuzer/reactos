@@ -4,11 +4,6 @@ $if(0)
 #include <intrin.h>
 $endif()
 
-// not defined here!
-#ifndef CFORCEINLINE
-#define CFORCEINLINE __forceinline
-#endif // CFORCEINLINE
-
 #define KeMemoryBarrierWithoutFence() _ReadWriteBarrier()
 
 #if defined(_M_IX86) || defined(_M_AMD64)
@@ -258,7 +253,7 @@ ReadAcquire (
     return Value;
 }
 
-CFORCEINLINE // C__forceinline
+__forceinline
 void
 WriteRelease (
     _Out_ _Interlocked_operand_ long volatile *Destination,
