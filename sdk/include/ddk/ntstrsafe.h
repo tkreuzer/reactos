@@ -3316,6 +3316,50 @@ RtlUnicodeStringPrintfEx(
     return Status;
 }
 
+NTSTRSAFEVAPI
+RtlUnicodeStringCbCopyStringN(
+    _Inout_ PUNICODE_STRING DestinationString,
+    _In_ NTSTRSAFE_PCWSTR pszSrc,
+    _In_ size_t cbToCopy)
+{
+    NTSTATUS Status;
+    PWCHAR pszDestEnd;
+    size_t cchRemaining;
+
+    Status = RtlpUnicodeStringValidate(DestinationString, 0);
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    if (cbToCopy > DestinationString->MaximumLength)
+    {
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    cchRemaining = cbToCopy / sizeof(WCHAR);
+    while (cchRemaining && (*pszSrc != L'\0'))
+    {
+        *pszDestEnd++ = *pszSrc++;
+        cchRemaining--;
+    }
+
+    Status = RtlStringCopyExWorkerW(DestinationString->Buffer,
+                                    cbToCopy / sizeof(WCHAR),
+                                    cbToCopy,
+                                    pszSrc,
+                                    &pszDestEnd,
+                                    NULL,
+                                    0);
+    if (Status == STATUS_BUFFER_OVERFLOW)
+    if (!NT_SUCCESS(Status))
+    {
+        return Status;
+    }
+
+    DestinationString->Length = (USHORT)(cchNewDestLength * sizeof(wchar_t));
+}
+
 #define RtlStringCopyWorkerA RtlStringCopyWorkerA_instead_use_StringCchCopyA_or_StringCchCopyExA;
 #define RtlStringCopyWorkerW RtlStringCopyWorkerW_instead_use_StringCchCopyW_or_StringCchCopyExW;
 #define RtlStringCopyExWorkerA RtlStringCopyExWorkerA_instead_use_StringCchCopyA_or_StringCchCopyExA;
