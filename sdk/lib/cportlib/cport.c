@@ -226,6 +226,21 @@ CpDoesPortExist(IN PUCHAR Address)
     return ( ComPortTest1(Address) || ComPortTest2(Address) );
 }
 
+extern void _mm_monitor(void const *p, unsigned extensions, unsigned hints);
+extern void _mm_mwait(unsigned extensions, unsigned hints);
+
+static
+VOID
+CpWaitLsr(IN PCPPORT Port)
+{
+    PUCHAR Lsr;
+
+    /* Read the LSR and check if the expected value is present */
+    Lsr = (PUCHAR)(Port->Address + LINE_STATUS_REGISTER);
+    //_mm_monitor(Lsr, 0, 0);
+    //_mm_mwait(0, 0);
+}
+
 UCHAR
 NTAPI
 CpReadLsr(IN PCPPORT Port,
@@ -291,6 +306,8 @@ CpGetByte(IN  PCPPORT Port,
             /* Byte was read */
             return CP_GET_SUCCESS;
         }
+
+        CpWaitLsr(Port);
     }
 
     /* Reset LSR, no data was found */
