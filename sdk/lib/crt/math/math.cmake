@@ -59,7 +59,11 @@ elseif(ARCH STREQUAL "amd64")
         math/amd64/floor.S
         math/amd64/floorf.S
         math/amd64/ldexp.S
+        # math/amd64/log.S
+        # math/amd64/log10.S
+        # math/amd64/pow.S
         math/amd64/sqrt.S
+        math/amd64/sqrtf.S
         math/amd64/tan.S
     )
 elseif(ARCH STREQUAL "arm")
@@ -115,6 +119,9 @@ if(NOT ARCH STREQUAL "i386")
         math/cos.c
         math/fabs.c
         math/fmod.c
+        math/log.c
+        math/log_data.c
+        math/log10.c
         math/sin.c
         math/fabsf.c
         math/exp.c
@@ -136,12 +143,19 @@ if(NOT ARCH STREQUAL "i386")
         math/atanf.c
         math/ceilf.c
         math/coshf.c
+        math/exp.c
+        math/exp_data.c
         math/expf.c
         # math/floor.c
         math/fmodf.c
+        math/log.c
+        math/log_data.c
+        math/log10.c
         math/log10f.c
         math/modff.c
         math/remainder.c
+        math/pow.c
+        math/pow_data.c
         math/sinhf.c
         math/sqrtf.c
         math/tanf.c

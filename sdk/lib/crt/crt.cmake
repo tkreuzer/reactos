@@ -1,4 +1,6 @@
 
+include_directories(include/internal)
+
 list(APPEND CRT_SOURCE
     ${CRT_CONIO_SOURCE}
     ${CRT_DIRECT_SOURCE}
