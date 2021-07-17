@@ -78,6 +78,15 @@ START_TEST(sprintf)
     ok_str(Buffer, "8");
     ok_int(Length, 1);
 
+    Length = sprintf(Buffer, "%e", 123.456);
+#if TEST_NTDLL || TEST_USER32
+    ok_str(Buffer, "e");
+    ok_int(Length, 1);
+#else
+    ok_str(Buffer, "1.234560e+002");
+    ok_int(Length, 13);
+#endif
+
     Length = sprintf(Buffer, "%s", "hello");
     ok_str(Buffer, "hello");
     ok_int(Length, 5);

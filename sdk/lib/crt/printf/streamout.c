@@ -71,7 +71,7 @@ enum
 #define get_exp(f) (int)floor(f == 0 ? 0 : (f >= 0 ? log10(f) : log10(-f)))
 #define round(x) floor((x) + 0.5)
 
-#ifndef _USER32_WSPRINTF
+#if !defined(_USER32_WSPRINTF) && !defined(_LIBCNT_)
 
 void
 #ifdef _LIBCNT_
@@ -545,7 +545,7 @@ streamout(FILE *stream, const TCHAR *format, va_list argptr)
                 precision = 0;
                 break;
 
-#ifndef _USER32_WSPRINTF
+#if !defined(_USER32_WSPRINTF) && !defined(_LIBCNT_)
             case _T('G'):
             case _T('E'):
             case _T('A'):
