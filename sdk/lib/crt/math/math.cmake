@@ -55,14 +55,10 @@ if(ARCH STREQUAL "i386")
 elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/amd64/atan.S
-        math/amd64/exp.S
         math/amd64/fabsf.S
         math/amd64/floor.S
         math/amd64/floorf.S
         math/amd64/ldexp.S
-        math/amd64/log.S
-        math/amd64/log10.S
-        math/amd64/pow.S
         math/amd64/sqrt.S
         math/amd64/tan.S
     )
@@ -120,6 +116,14 @@ if(NOT ARCH STREQUAL "i386")
         math/fabs.c
         math/fmod.c
         math/sin.c
+        math/fabsf.c
+        math/exp.c
+        math/exp_data.c
+        math/log.c
+        math/log10.c
+        math/log_data.c
+        math/pow.c
+        math/pow_data.c
     )
     list(APPEND CRT_MATH_SOURCE
         math/_chgsignf.c
@@ -133,7 +137,6 @@ if(NOT ARCH STREQUAL "i386")
         math/ceilf.c
         math/coshf.c
         math/expf.c
-        math/fabsf.c
         # math/floor.c
         math/fmodf.c
         math/log10f.c
