@@ -218,6 +218,14 @@ if(NOT ARCH STREQUAL "i386")
     list(APPEND LIBCNTPR_MATH_SOURCE
         math/atan2.c
         math/fabs.c
+        math/fabsf.c
+        math/exp.c
+        math/exp_data.c
+        math/log.c
+        math/log10.c
+        math/log_data.c
+        math/pow.c
+        math/pow_data.c
     )
     list(APPEND CRT_MATH_SOURCE
         math/_chgsignf.c
