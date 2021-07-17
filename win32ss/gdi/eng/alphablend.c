@@ -121,7 +121,7 @@ EngAlphaBlend(
 
     ASSERT(InputRect.left <= InputRect.right && InputRect.top <= InputRect.bottom);
 
-    Ret = FALSE;
+    Ret = TRUE;
     ClippingType = (ClipRegion == NULL) ? DC_TRIVIAL : ClipRegion->iDComplexity;
     switch (ClippingType)
     {
@@ -150,7 +150,6 @@ EngAlphaBlend(
             break;
 
         case DC_COMPLEX:
-            Ret = TRUE;
             CLIPOBJ_cEnumStart(ClipRegion, FALSE, CT_RECTANGLES, CD_ANY, 0);
             do
             {

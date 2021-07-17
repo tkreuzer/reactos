@@ -260,8 +260,8 @@ static void UpdateNumberIntl(void)
         _tcscpy(calc.sThousand, _T(","));
 
     /* get the string lengths */
-    calc.sDecimal_len = _tcslen(calc.sDecimal);
-    calc.sThousand_len = _tcslen(calc.sThousand);
+    calc.sDecimal_len = (UINT)_tcslen(calc.sDecimal);
+    calc.sThousand_len = (UINT)_tcslen(calc.sThousand);
 }
 
 static int LoadRegInt(LPCTSTR lpszApp, LPCTSTR lpszKey, int iDefault)
@@ -1632,6 +1632,7 @@ static INT_PTR CALLBACK DlgMainProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
             return TRUE;
         case IDC_BUTTON_PERCENT:
         case IDC_BUTTON_ADD:
+            __debugbreak();
         case IDC_BUTTON_SUB:
         case IDC_BUTTON_MULT:
         case IDC_BUTTON_DIV:
