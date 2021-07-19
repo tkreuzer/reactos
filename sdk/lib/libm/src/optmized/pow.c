@@ -47,15 +47,22 @@
 #define MANTISSA_11_BIT 0x0000020000000000
 
 #if !defined(ENABLE_DEBUG)
-#ifndef __clang__
+#if !defined(__clang__) && !defined(_MSC_VER)
 #pragma GCC push_options
 #pragma GCC optimize ("O3")
 #endif
 #endif  /* !DEBUG */
 
+#if defined(_MSC_VER)
+#define likely(x)   (x)
+#define unlikely(x) (x)
+#define ALIGN(x)    __declspec(align(x))
+double fma(double x, double y, double z);
+#else
 #define likely(x)   __builtin_expect (!!(x), 1)
 #define unlikely(x) __builtin_expect (x, 0)
 #define ALIGN(x)    __attribute__((aligned ((x))))
+#endif
 
 #define EXP_X_NAN 1
 #define EXP_Y_ZERO 2
@@ -352,7 +359,18 @@ static inline double _pow_inexact(double x)
 {
     double_t a = 0x1.0p+0; /* a = 1.0 */
     double_t b = 0x1.4000000000000p+3; /* b = 10.0 */
+#ifdef _MSC_VER
+#ifdef _M_AMD64
+    x = a / b;
+#else
+    __m128d a128 = _mm_load_sd(&a);
+    __m128d b128 = _mm_load_sd(&b);
+    __m128d x128 = _mm_div_sd(__m128d, __m128d);
+    _mm_store_sd(&x, x128);
+#endif
+#else
     __asm __volatile ("divsd %1, %0" :  "+x" (a): "x" (b));
+#endif
     return x;
 }
 
@@ -399,7 +417,13 @@ ALM_PROTO_OPT(pow)(double x, double y)
             }
             if ( 2 * ux == 0 && uy >> 63)
             {
+#ifdef _MSC_VER
+                // FIXME should raise fperror instead?
+                unsigned __int64 inf = 0x7FF0000000000000ULL;
+                x2 = *(double*)&inf;
+#else
                 x2 = 1.0 / 0.0;
+#endif
                 x2 = asdouble(ux | result_sign);
                 return x2;
             }

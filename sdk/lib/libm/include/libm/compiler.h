@@ -116,6 +116,9 @@ To check that this is gcc compiler version 5.1 or greater:
 #define CCALL __cdecl
 #pragma section(".CRT$XCU",read)
 #define INITIALIZER(f)  static void __cdecl f(void); __declspec(allocate(".CRT$XCU")) void (__cdecl*f##_)(void) = f; static void __cdecl f(void)
+#define ALIGN(x)        __declspec(align(x))
+#define likely(x) x
+#define unlikely(x) x
 
 
 #define FALLTHROUGH

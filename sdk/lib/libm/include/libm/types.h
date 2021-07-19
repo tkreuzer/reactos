@@ -43,8 +43,13 @@ typedef    float               f32_t;
 typedef    double              f64_t;
 typedef    long double         f80_t;
 
+#ifdef WINDOWS
+typedef    _Fcomplex     fc32_t;
+typedef    _Dcomplex     fc64_t;
+#else
 typedef    float  _Complex     fc32_t;
 typedef    double _Complex     fc64_t;
+#endif
 
 #ifdef  HAVE_NATIVE_LONG_LONG_DOUBLE
 typedef    long long double    f128_t;
@@ -172,7 +177,21 @@ typedef union {
  * 32/64/80 - width of data
  * x2/x4/x8 - number of elements
  */
+#ifdef WINDOWS
+typedef float    v_f32x4_t[16];
+typedef uint32_t v_u32x4_t[16];
+typedef int32_t  v_i32x4_t[16];
+typedef float    v_f32x8_t[32];
+typedef uint32_t v_u32x8_t[32];
+typedef int32_t  v_i32x8_t[32];
 
+typedef double   v_f64x2_t[16];
+typedef uint64_t v_u64x2_t[16];
+typedef int64_t  v_i64x2_t[16];
+typedef double   v_f64x4_t[32];
+typedef uint64_t v_u64x4_t[32];
+typedef int64_t  v_i64x4_t[32];
+#else
 typedef float    v_f32x4_t VEC(16) MAY_ALIAS;
 typedef uint32_t v_u32x4_t VEC(16) MAY_ALIAS;
 typedef int32_t  v_i32x4_t VEC(16) MAY_ALIAS;
@@ -186,7 +205,7 @@ typedef int64_t  v_i64x2_t VEC(16) MAY_ALIAS;
 typedef double   v_f64x4_t VEC(32) MAY_ALIAS;
 typedef uint64_t v_u64x4_t VEC(32) MAY_ALIAS;
 typedef int64_t  v_i64x4_t VEC(32) MAY_ALIAS;
-
+#endif
 
 /*
  * Generic 32-bit, 4-element types
