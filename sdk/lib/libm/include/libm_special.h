@@ -90,6 +90,13 @@ float __amd_handle_errorf(
         int nargs
         );
 
+#define _DOMAIN     1   /* argument domain error */
+#define _SING       2   /* argument singularity */
+#define _OVERFLOW   3   /* overflow range error */
+#define _UNDERFLOW  4   /* underflow range error */
+#define _TLOSS      5   /* total loss of precision */
+#define _PLOSS      6   /* partial loss of precision */
+#endif
 
 
 typedef enum {
@@ -215,13 +222,6 @@ typedef enum {
     __amd_famax,
 } _AMDLIBM_CODE;
 
-#define _DOMAIN     1   /* argument domain error */
-#define _SING       2   /* argument singularity */
-#define _OVERFLOW   3   /* overflow range error */
-#define _UNDERFLOW  4   /* underflow range error */
-#define _TLOSS      5   /* total loss of precision */
-#define _PLOSS      6   /* partial loss of precision */
-#endif
 
 typedef enum 
 {
