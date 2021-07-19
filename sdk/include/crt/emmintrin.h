@@ -1937,5 +1937,9 @@ void _mm_pause(void);
 #endif /* _MSC_VER */
 
 
+extern __m128d _mm_sqrt_sd(__m128d _A, __m128d _B);
+extern __m128d _mm_setzero_pd(void);
+extern void _mm_store_sd(double *_Dp, __m128d _A);
+
 
 #endif /* _INCLUDED_EMM */
