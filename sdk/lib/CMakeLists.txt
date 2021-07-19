@@ -33,6 +33,7 @@ endif()
 
 add_subdirectory(ioevent)
 add_subdirectory(lsalib)
+add_subdirectory(libm)
 add_subdirectory(nt)
 add_subdirectory(pseh)
 
