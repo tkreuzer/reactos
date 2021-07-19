@@ -23,26 +23,10 @@
  *
  */
 
-#ifndef _COMPLEX_H_
-#define _COMPLEX_H_
+#ifndef _COMPLEX
+#define _COMPLEX
 
 #include <crtdefs.h>
-
-#if (defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) \
-     || !defined __STRICT_ANSI__
-
-/* These macros are specified by C99 standard */
-
-#ifndef __cplusplus
-#define complex _Complex
-#endif
-
-#define _Complex_I  (0.0F +  1.0iF)
-
-/* GCC doesn't support _Imaginary type yet, so we don't
-   define _Imaginary_I */
-
-#define I _Complex_I
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,74 +34,102 @@ extern "C" {
 
 #ifndef RC_INVOKED
 
-double creal (double _Complex);
-double cimag (double _Complex);
-double carg (double _Complex);
-double cabs (double _Complex);
-double _Complex conj (double _Complex);
-double _Complex  cacos (double _Complex);
-double _Complex  casin (double _Complex);
-double _Complex  catan (double _Complex);
-double _Complex  ccos (double _Complex);
-double _Complex  csin (double _Complex);
-double _Complex  ctan (double _Complex);
-double _Complex  cacosh (double _Complex);
-double _Complex  casinh (double _Complex);
-double _Complex  catanh (double _Complex);
-double _Complex  ccosh (double _Complex);
-double _Complex  csinh (double _Complex);
-double _Complex  ctanh (double _Complex);
-double _Complex  cexp (double _Complex);
-double _Complex  clog (double _Complex);
-double _Complex  cpow (double _Complex, double _Complex);
-double _Complex  csqrt (double _Complex);
-double _Complex cproj (double _Complex);
+#ifndef _C_COMPLEX_T
+#define _C_COMPLEX_T
+typedef struct _C_double_complex
+{
+    double _Val[2];
+} _C_double_complex;
 
-float crealf (float _Complex);
-float cimagf (float _Complex);
-float cargf (float _Complex);
-float cabsf (float _Complex);
-float _Complex conjf (float _Complex);
-float _Complex  cacosf (float _Complex);
-float _Complex  casinf (float _Complex);
-float _Complex  catanf (float _Complex);
-float _Complex  ccosf (float _Complex);
-float _Complex  csinf (float _Complex);
-float _Complex  ctanf (float _Complex);
-float _Complex  cacoshf (float _Complex);
-float _Complex  casinhf (float _Complex);
-float _Complex  catanhf (float _Complex);
-float _Complex  ccoshf (float _Complex);
-float _Complex  csinhf (float _Complex);
-float _Complex  ctanhf (float _Complex);
-float _Complex  cexpf (float _Complex);
-float _Complex  clogf (float _Complex);
-float _Complex  cpowf (float _Complex, float _Complex);
-float _Complex  csqrtf (float _Complex);
-float _Complex cprojf (float _Complex);
+typedef struct _C_float_complex
+{
+    float _Val[2];
+} _C_float_complex;
 
-long double creall (long double _Complex);
-long double cimagl (long double _Complex);
-long double cargl (long double _Complex);
-long double cabsl (long double _Complex);
-long double _Complex conjl (long double _Complex);
-long double _Complex  cacosl (long double _Complex);
-long double _Complex  casinl (long double _Complex);
-long double _Complex  catanl (long double _Complex);
-long double _Complex  ccosl (long double _Complex);
-long double _Complex  csinl (long double _Complex);
-long double _Complex  ctanl (long double _Complex);
-long double _Complex  cacoshl (long double _Complex);
-long double _Complex  casinhl (long double _Complex);
-long double _Complex  catanhl (long double _Complex);
-long double _Complex  ccoshl (long double _Complex);
-long double _Complex  csinhl (long double _Complex);
-long double _Complex  ctanhl (long double _Complex);
-long double _Complex  cexpl (long double _Complex);
-long double _Complex  clogl (long double _Complex);
-long double _Complex  cpowl (long double _Complex, long double _Complex);
-long double _Complex  csqrtl (long double _Complex);
-long double _Complex cprojl (long double _Complex);
+typedef struct _C_ldouble_complex
+{
+    long double _Val[2];
+} _C_ldouble_complex;
+#endif
+
+typedef _C_double_complex  _Dcomplex;
+typedef _C_float_complex   _Fcomplex;
+typedef _C_ldouble_complex _Lcomplex;
+
+#define _DCOMPLEX_(re, im)  _Cbuild(re, im)
+#define _FCOMPLEX_(re, im)  _FCbuild(re, im)
+#define _LCOMPLEX_(re, im)  _LCbuild(re, im)
+
+#define _Complex_I _FCbuild(0.0F, 1.0F)
+#define I          _Complex_I
+
+double creal(_Dcomplex z);
+double cimag(_Dcomplex z);
+double carg(_Dcomplex z);
+_Dcomplex conj(_Dcomplex z);
+_Dcomplex cacos(_Dcomplex z);
+_Dcomplex casin(_Dcomplex z);
+_Dcomplex catan(_Dcomplex z);
+_Dcomplex ccos(_Dcomplex z);
+_Dcomplex csin(_Dcomplex z);
+_Dcomplex ctan(_Dcomplex z);
+_Dcomplex cacosh(_Dcomplex z);
+_Dcomplex casinh(_Dcomplex z);
+_Dcomplex catanh(_Dcomplex z);
+_Dcomplex ccosh(_Dcomplex z);
+_Dcomplex csinh(_Dcomplex z);
+_Dcomplex ctanh(_Dcomplex z);
+_Dcomplex cexp(_Dcomplex z);
+_Dcomplex clog(_Dcomplex z);
+_Dcomplex cpow(_Dcomplex x, _Dcomplex y);
+_Dcomplex csqrt(_Dcomplex z);
+_Dcomplex cproj(_Dcomplex z);
+
+float crealf(_Fcomplex z);
+float cimagf(_Fcomplex z);
+float cargf(_Fcomplex z);
+float cabsf(_Fcomplex z);
+_Fcomplex conjf(_Fcomplex z);
+_Fcomplex cacosf(_Fcomplex z);
+_Fcomplex casinf(_Fcomplex z);
+_Fcomplex catanf(_Fcomplex z);
+_Fcomplex ccosf(_Fcomplex z);
+_Fcomplex csinf(_Fcomplex z);
+_Fcomplex ctanf(_Fcomplex z);
+_Fcomplex cacoshf(_Fcomplex z);
+_Fcomplex casinhf(_Fcomplex z);
+_Fcomplex catanhf(_Fcomplex z);
+_Fcomplex ccoshf(_Fcomplex z);
+_Fcomplex csinhf(_Fcomplex z);
+_Fcomplex ctanhf(_Fcomplex z);
+_Fcomplex cexpf(_Fcomplex z);
+_Fcomplex clogf(_Fcomplex z);
+_Fcomplex cpowf(_Fcomplex x, _Fcomplex y);
+_Fcomplex csqrtf(_Fcomplex z);
+_Fcomplex cprojf(_Fcomplex z);
+
+long double creall(_Lcomplex z);
+long double cimagl(_Lcomplex z);
+long double cargl(_Lcomplex z);
+long double cabsl(_Lcomplex z);
+_Lcomplex conjl(_Lcomplex z);
+_Lcomplex  cacosl(_Lcomplex z);
+_Lcomplex  casinl(_Lcomplex z);
+_Lcomplex  catanl(_Lcomplex z);
+_Lcomplex  ccosl(_Lcomplex z);
+_Lcomplex  csinl(_Lcomplex z);
+_Lcomplex  ctanl(_Lcomplex z);
+_Lcomplex  cacoshl(_Lcomplex z);
+_Lcomplex  casinhl(_Lcomplex z);
+_Lcomplex  catanhl(_Lcomplex z);
+_Lcomplex  ccoshl(_Lcomplex z);
+_Lcomplex  csinhl(_Lcomplex z);
+_Lcomplex  ctanhl(_Lcomplex z);
+_Lcomplex  cexpl(_Lcomplex z);
+_Lcomplex  clogl(_Lcomplex z);
+_Lcomplex  cpowl(_Lcomplex x, _Lcomplex y);
+_Lcomplex  csqrtl(_Lcomplex z);
+_Lcomplex cprojl(_Lcomplex z);
 
 #ifdef __GNUC__
 
@@ -147,22 +159,22 @@ __CRT_INLINE  double carg (double _Complex _Z)
 
 
 /* float */
-__CRT_INLINE float crealf (float _Complex _Z)
+__CRT_INLINE float crealf (_Fcomplex _Z)
 {
   return __real__ _Z;
 }
 
-__CRT_INLINE float cimagf (float _Complex _Z)
+__CRT_INLINE float cimagf (_Fcomplex _Z)
 {
   return __imag__ _Z;
 }
 
-__CRT_INLINE float _Complex conjf (float _Complex _Z)
+__CRT_INLINE _Fcomplex conjf (_Fcomplex _Z)
 {
   return __extension__ ~_Z;
 }
 
-__CRT_INLINE  float cargf (float _Complex _Z)
+__CRT_INLINE  float cargf (_Fcomplex _Z)
 {
   float res;
   __asm__  ("fpatan;"
@@ -171,22 +183,22 @@ __CRT_INLINE  float cargf (float _Complex _Z)
 }
 
 /* long double */
-__CRT_INLINE long double creall (long double _Complex _Z)
+__CRT_INLINE long double creall (_Lcomplex _Z)
 {
   return __real__ _Z;
 }
 
-__CRT_INLINE long double cimagl (long double _Complex _Z)
+__CRT_INLINE long double cimagl (_Lcomplex _Z)
 {
   return __imag__ _Z;
 }
 
-__CRT_INLINE long double _Complex conjl (long double _Complex _Z)
+__CRT_INLINE _Lcomplex conjl (_Lcomplex _Z)
 {
   return __extension__ ~_Z;
 }
 
-__CRT_INLINE  long double cargl (long double _Complex _Z)
+__CRT_INLINE  long double cargl (_Lcomplex _Z)
 {
   long double res;
   __asm__  ("fpatan;"
@@ -203,7 +215,4 @@ __CRT_INLINE  long double cargl (long double _Complex _Z)
 }
 #endif
 
-#endif /* __STDC_VERSION__ >= 199901L */
-
-
-#endif /* _COMPLEX_H */
+#endif /* _COMPLEX */
