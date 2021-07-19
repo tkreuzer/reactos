@@ -1,5 +1,6 @@
 
 list(APPEND LIBCNTPR_MATH_SOURCE
+    math/_handle_error.c
     math/abs.c
     math/div.c
     math/labs.c
@@ -55,23 +56,18 @@ elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_SOURCE
         math/cos.c
         math/sin.c
+        math/fma.c
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
-        math/amd64/atan.S
-        math/amd64/atan2.S
         math/amd64/ceil.S
-        math/amd64/exp.S
-        math/amd64/fabs.S
+        math/amd64/fabs.S # unimplemented
         math/amd64/fabsf.S
         math/amd64/floor.S
         math/amd64/floorf.S
-        math/amd64/fmod.S
-        math/amd64/ldexp.S
-        math/amd64/log.S
-        math/amd64/log10.S
-        math/amd64/pow.S
+        #math/amd64/fmod.S # unimplemented
+        math/amd64/log10.S # unimplemented
         math/amd64/sqrt.S
-        math/amd64/tan.S
+        #math/amd64/tan.S # unimplemented
     )
 elseif(ARCH STREQUAL "arm")
     list(APPEND LIBCNTPR_MATH_SOURCE
@@ -183,7 +179,7 @@ list(APPEND LIBCNTPR_MATH_SOURCE
 if(ARCH STREQUAL "i386")
     list(APPEND ATAN2_ASM_SOURCE math/i386/atan2_asm.s)
 elseif(ARCH STREQUAL "amd64")
-    list(APPEND ATAN2_ASM_SOURCE math/amd64/atan2.S)
+    list(APPEND ATAN2_ASM_SOURCE math/amd64/empty.s)
 elseif(ARCH STREQUAL "arm")
     list(APPEND ATAN2_ASM_SOURCE math/arm/atan2.s)
 elseif(ARCH STREQUAL "arm64")
@@ -194,3 +190,6 @@ add_asm_files(atan2_asm ${ATAN2_ASM_SOURCE})
 add_library(atan2 ${atan2_asm})
 set_target_properties(atan2 PROPERTIES LINKER_LANGUAGE "C")
 add_dependencies(atan2 asm)
+if(ARCH STREQUAL "amd64")
+    target_link_libraries(atan2 $<TARGET_OBJECTS:libm_atan2>)
+endif()

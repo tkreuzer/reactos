@@ -34,3 +34,5 @@ target_compile_definitions(libcntpr
     __CRT__NO_INLINE
     CRTDLL)
 add_dependencies(libcntpr psdk asm)
+
+target_link_libraries(libcntpr $<TARGET_OBJECTS:libm_base>)
