@@ -52,6 +52,8 @@ void Test___argv(void)
 #ifdef _M_IX86
     ok_ptr(__p___argv(), p);
 #endif
+
+    // cdecl __getmainargs(ptr ptr ptr long ptr)
 }
 
 void Test___badioinfo(void)
@@ -74,9 +76,10 @@ void Test___initenv(void)
 #endif
 }
 
+_CRTIMP extern unsigned int __lc_codepage;
 void Test___lc_codepage(void)
 {
-    _CRTIMP extern unsigned int __lc_codepage;
+    _CRTIMP unsigned int ___lc_codepage_func(void);
     ok_int(__lc_codepage, 0);
     ok_int(___lc_codepage_func(), 0);
     __lc_codepage++;
@@ -118,8 +121,11 @@ void Test___mb_cur_max(void)
     ok_ptr(&__mb_cur_max, p);
 
     ok_int(___mb_cur_max_func(), 1);
+    __mb_cur_max++;
+    ok_int(___mb_cur_max_func(), 1);
 #ifdef _M_IX86
     _CRTIMP int* __p___mb_cur_max(void);
+    __mb_cur_max++;
     ok_int(*__p___mb_cur_max(), 1);
 #endif
     __mb_cur_max++;
@@ -142,10 +148,14 @@ void Test___mb_cur_max(void)
     __mb_cur_max--;
 }
 
+// cdecl -arch=i386 __p__amblksiz()
+
 void Test___pioinfo(void)
 {
 
 }
+
+// cdecl __pxcptinfoptrs(void)
 
 #ifndef _M_ARM
 void Test___setlc_active(void)
@@ -182,16 +192,18 @@ void Test___wargv(void)
 #ifdef _M_IX86
     ok_ptr(__p___wargv(), p);
 #endif
+    // cdecl __wgetmainargs(ptr ptr ptr long ptr)
 }
 
 #ifndef _M_ARM
 void Test___winitenv(void)
 {
     _CRTIMP extern wchar_t** __winitenv;
-    todo_ros ok(__winitenv == NULL, "__winitenv is not NULL\n");
+    void* p = &__winitenv;
+    test_is_local_symbol(p, FALSE);
 #ifdef _M_IX86
     _CRTIMP wchar_t*** __p___winitenv(void);
-    ok_ptr(__p___winitenv(), &__winitenv);
+    ok_ptr(__p___winitenv(), p);
 #endif
 }
 #endif
@@ -199,11 +211,9 @@ void Test___winitenv(void)
 void Test__acmdln(void)
 {
     _CRTIMP extern char* _acmdln;
-    ok(_acmdln != NULL, "__winitenv is NULL\n");
-#ifdef _M_IX86
-    _CRTIMP char** __p__acmdln(void);
-    ok_ptr(__p__acmdln(), &_acmdln);
-#endif
+    test_is_local_symbol(&_acmdln, FALSE);
+
+    // cdecl -arch=i386 __p__acmdln()
 }
 
 #ifdef _M_IX86
@@ -343,6 +353,14 @@ void Test__fileinfo(void)
 }
 #endif // !_M_ARM
 
+#ifdef _M_AMD64
+void Test__finitef(void)
+{
+
+}
+#endif
+
+
 void Test__fmode(void)
 {
     void* p = &_fmode;
@@ -437,6 +455,12 @@ void Test__osver(void)
 #endif
 }
 
+void Test__pctype(void)
+{
+    // cdecl -arch=i386 __p__pctype()
+    // cdecl __pctype_func()
+}
+
 void Test__pgmptr(void)
 {
     void* p = &_pgmptr;
@@ -452,6 +476,14 @@ void Test__pgmptr(void)
     _CRTIMP char* __cdecl _get_pgmptr(void);
     ok_ptr(_get_pgmptr(), _pgmptr);
 #endif
+}
+
+// extern _pwctype
+void Test__pwctype(void)
+{
+    // cdecl -arch=i386 __p__pwctype()
+    // cdecl __pwctype_func()
+    //# stub _wctype
 }
 
 void Test__sys_errlist(void)
@@ -619,7 +651,9 @@ START_TEST(crtdata)
 #endif
     Test___lc_handle();
     Test___mb_cur_max();
+    // cdecl -arch=i386 __p__amblksiz()
     Test___pioinfo();
+    // cdecl __pxcptinfoptrs()
 #ifndef _M_ARM
     Test___setlc_active();
     Test___unguarded_readlc_active();
@@ -641,6 +675,9 @@ START_TEST(crtdata)
     Test__environ();
     Test__fileinfo();
 #endif
+#ifdef _M_AMD64
+    Test__finitef();
+#endif
     Test__fmode();
     Test__iob();
     Test__mbcasemap();
@@ -649,7 +686,9 @@ START_TEST(crtdata)
     Test__osplatform();
 #endif
     Test__osver();
+    Test__pctype();
     Test__pgmptr();
+    Test__pwctype(); // _wctype??
     Test__sys_errlist();
     Test__sys_nerr();
     Test__timezone();
