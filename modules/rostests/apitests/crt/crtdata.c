@@ -30,6 +30,8 @@ int IsLocalSymbol(void* Address)
 #define test_is_local_symbol(addr, is)
 #endif
 
+// extern _HUGE
+
 void Test___argc(void)
 {
     void* p = &__argc;
@@ -52,14 +54,16 @@ void Test___argv(void)
 #ifdef _M_IX86
     ok_ptr(__p___argv(), p);
 #endif
+
+    // cdecl __getmainargs(ptr ptr ptr long ptr)
 }
 
 void Test___badioinfo(void)
 {
     typedef struct _ioinfo ioinfo;
     _CRTIMP extern ioinfo* __badioinfo[];
-    ok(__badioinfo != NULL, "__badioinfo is NULL\n");
-    ok(__badioinfo[0] != NULL, "__badioinfo is NULL\n");
+    void* p = &__badioinfo;
+    test_is_local_symbol(p, FALSE);
 }
 
 #ifndef _M_ARM
@@ -77,6 +81,7 @@ void Test___initenv(void)
 void Test___lc_codepage(void)
 {
     _CRTIMP extern unsigned int __lc_codepage;
+    _CRTIMP unsigned int ___lc_codepage_func(void);
     ok_int(__lc_codepage, 0);
     ok_int(___lc_codepage_func(), 0);
     __lc_codepage++;
@@ -142,10 +147,14 @@ void Test___mb_cur_max(void)
     __mb_cur_max--;
 }
 
+// cdecl -arch=i386 __p__amblksiz()
+
 void Test___pioinfo(void)
 {
 
 }
+
+// cdecl __pxcptinfoptrs(void)
 
 #ifndef _M_ARM
 void Test___setlc_active(void)
@@ -182,16 +191,18 @@ void Test___wargv(void)
 #ifdef _M_IX86
     ok_ptr(__p___wargv(), p);
 #endif
+    // cdecl __wgetmainargs(ptr ptr ptr long ptr)
 }
 
 #ifndef _M_ARM
 void Test___winitenv(void)
 {
     _CRTIMP extern wchar_t** __winitenv;
-    todo_ros ok(__winitenv == NULL, "__winitenv is not NULL\n");
+    void* p = &__winitenv;
+    test_is_local_symbol(p, FALSE);
 #ifdef _M_IX86
     _CRTIMP wchar_t*** __p___winitenv(void);
-    ok_ptr(__p___winitenv(), &__winitenv);
+    ok_ptr(__p___winitenv(), p);
 #endif
 }
 #endif
@@ -199,11 +210,9 @@ void Test___winitenv(void)
 void Test__acmdln(void)
 {
     _CRTIMP extern char* _acmdln;
-    ok(_acmdln != NULL, "__winitenv is NULL\n");
-#ifdef _M_IX86
-    _CRTIMP char** __p__acmdln(void);
-    ok_ptr(__p__acmdln(), &_acmdln);
-#endif
+    test_is_local_symbol(&_acmdln, FALSE);
+
+    // cdecl -arch=i386 __p__acmdln()
 }
 
 #ifdef _M_IX86
@@ -231,7 +240,7 @@ void Test__commode(void)
     _CRTIMP extern int _commode;
     ok_ptr(&_commode, p);
 #ifdef _M_IX86
-    ok_ptr(__p__commode(), &_commode);
+    ok_ptr(__p__commode(), p);
 #endif
 }
 
@@ -284,6 +293,10 @@ void Test__daylight(void)
 {
     void* p = &_daylight;
     test_is_local_symbol(&_daylight, FALSE);
+#if (WINVER >= 0x600)
+    _CRTIMP int* __cdecl __daylight(void);
+    ok_ptr(&__daylight, p);
+#endif
 
     #undef _daylight
     _CRTIMP extern int _daylight;
@@ -297,6 +310,7 @@ void Test__daylight(void)
     _CRTIMP int* __cdecl __daylight(void);
     ok_ptr(&__daylight, &_daylight);
 #endif
+    // _get_daylight
 }
 
 #ifndef _M_ARM
@@ -304,17 +318,16 @@ void Test__dstbias(void)
 {
     void* p = &_dstbias;
     test_is_local_symbol(&_dstbias, FALSE);
+#if (WINVER >= 0x600)
+    _CRTIMP long* __cdecl __dstbias(void);
+    ok_ptr(&__dstbias, p);
+#endif
 
     #undef _dstbias
-    _CRTIMP extern long _dstbias;
     ok_ptr(&_dstbias, p);
 #ifdef _M_IX86
     _CRTIMP long* __cdecl __p__dstbias(void);
-    ok_ptr(__p__dstbias(), &_dstbias);
-#endif
-#if (WINVER >= 0x600)
-    _CRTIMP long* __cdecl __dstbias(void);
-    ok_ptr(&__dstbias, &_dstbias);
+    ok_ptr(__p__dstbias(), p);
 #endif
 }
 
@@ -342,6 +355,13 @@ void Test__fileinfo(void)
 #endif
 }
 #endif // !_M_ARM
+
+#ifdef _M_AMD64
+void Test__finitef(void)
+{
+
+}
+#endif
 
 void Test__fmode(void)
 {
@@ -619,7 +639,9 @@ START_TEST(crtdata)
 #endif
     Test___lc_handle();
     Test___mb_cur_max();
+    // cdecl -arch=i386 __p__amblksiz()
     Test___pioinfo();
+    // cdecl __pxcptinfoptrs()
 #ifndef _M_ARM
     Test___setlc_active();
     Test___unguarded_readlc_active();
@@ -641,6 +663,9 @@ START_TEST(crtdata)
     Test__environ();
     Test__fileinfo();
 #endif
+#ifdef _M_AMD64
+    Test__finitef();
+#endif
     Test__fmode();
     Test__iob();
     Test__mbcasemap();
@@ -649,7 +674,9 @@ START_TEST(crtdata)
     Test__osplatform();
 #endif
     Test__osver();
+    Test__pctype();
     Test__pgmptr();
+    Test__pwctype(); // _wctype??
     Test__sys_errlist();
     Test__sys_nerr();
     Test__timezone();
@@ -660,7 +687,6 @@ START_TEST(crtdata)
     Test__wenviron();
 #endif
     Test__winmajor();
-    Test__winminor();
 #ifndef _M_ARM
     Test__winver();
 #endif
