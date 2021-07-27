@@ -207,7 +207,7 @@ public:
         lvItem.mask = LVIF_PARAM;
         lvItem.iItem = i;
         BOOL ret = GetItem(&lvItem);
-        return (DWORD_PTR)(ret ? lvItem.lParam : NULL);
+        return (ret ? lvItem.lParam : 0);
     }
 
     BOOL GetSelectedItem(LV_ITEM* pItem)
@@ -588,7 +588,7 @@ public:
         lvItem.hItem = item;
         lvItem.mask = TVIF_PARAM;
         BOOL ret = GetItem(&lvItem);
-        return (DWORD_PTR) (ret ? lvItem.lParam : NULL);
+        return (ret ? lvItem.lParam : 0);
     }
 
     HTREEITEM GetSelection()
@@ -722,7 +722,7 @@ public: // Helpers
 
     VOID TrackDeactivate()
     {
-        SendMessageW(TTM_TRACKACTIVATE, FALSE, NULL);
+        SendMessageW(TTM_TRACKACTIVATE, FALSE, 0);
     }
 
     VOID TrackPosition(IN WORD x, IN WORD y)

@@ -1071,7 +1071,7 @@ HRESULT CMenuToolbarBase::ClearToolbar()
 HRESULT CMenuToolbarBase::GetDataFromId(INT iItem, INT* pIndex, DWORD_PTR* pData)
 {
     if (pData)
-        *pData = NULL;
+        *pData = 0;
 
     if (pIndex)
         *pIndex = -1;

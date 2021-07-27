@@ -449,11 +449,11 @@ LRESULT CDesktopBrowser::OnGetChangeNotifyServer(UINT uMsg, WPARAM wParam, LPARA
     {
         HRESULT hres = CChangeNotifyServer_CreateInstance(IID_PPV_ARG(IOleWindow, &m_ChangeNotifyServer));
         if (FAILED_UNEXPECTEDLY(hres))
-            return NULL;
+            return (LRESULT)NULL;
 
         hres = m_ChangeNotifyServer->GetWindow(&m_hwndChangeNotifyServer);
         if (FAILED_UNEXPECTEDLY(hres))
-            return NULL;
+            return (LRESULT)NULL;
     }
     return (LRESULT)m_hwndChangeNotifyServer;
 }
