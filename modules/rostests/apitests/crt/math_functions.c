@@ -1076,6 +1076,7 @@ START_TEST(math_functions)
 #ifdef _M_IX86
     Test__ftol();
 #endif
+#if 0
     Test_abs();
     Test_acos();
 #if 0
@@ -1085,14 +1086,18 @@ START_TEST(math_functions)
     Test_atan();
     Test_atanf();
     Test_atan2();
+#endif
     Test_ceil();
     Test_ceilf();
+#if 0
     Test_cos();
     Test_cosf();
     Test_exp();
     Test_expf();
+#endif
     Test_fabs();
     Test_fabsf();
+#if 0
     Test_floor();
     Test_floorf();
 #endif
@@ -1106,7 +1111,9 @@ START_TEST(math_functions)
     Test_powf();
     Test_sin();
     Test_sinf();
+#endif
     Test_sqrt();
+#if 0
     Test_sqrtf();
     Test_tan();
     Test_tanf();
