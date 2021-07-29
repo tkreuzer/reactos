@@ -8,6 +8,8 @@
 #include <apitest.h>
 #include <apitest_guard.h>
 
+#define VS_SOLUTION
+
 #define WIN32_NO_STATUS
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,11 +36,13 @@ void Test___argc(void)
 {
     void* p = &__argc;
     test_is_local_symbol(p, FALSE);
-
+#ifndef VS_SOLUTION
     #undef __argc
+    _CRTIMP extern int __argc;
     ok_ptr(&__argc, p);
 #ifdef _M_IX86
     ok_ptr(__p___argc(), p);
+#endif
 #endif
 }
 
@@ -46,27 +50,31 @@ void Test___argv(void)
 {
     void* p = &__argv;
     test_is_local_symbol(p, FALSE);
-
+#ifndef VS_SOLUTION
     #undef __argv
+    _CRTIMP extern char* __argv[];
     ok_ptr(&__argv, p);
 #ifdef _M_IX86
     ok_ptr(__p___argv(), p);
 #endif
-
+#endif
     // cdecl __getmainargs(ptr ptr ptr long ptr)
 }
 
 void Test___badioinfo(void)
 {
+#ifndef VS_SOLUTION
     typedef struct _ioinfo ioinfo;
     _CRTIMP extern ioinfo* __badioinfo[];
     ok(__badioinfo != NULL, "__badioinfo is NULL\n");
     ok(__badioinfo[0] != NULL, "__badioinfo is NULL\n");
+#endif
 }
 
 #ifndef _M_ARM
 void Test___initenv(void)
 {
+#ifndef VS_SOLUTION
     _CRTIMP extern char** __initenv;
     ok(__initenv != NULL, "__initenv is NULL\n");
     ok(*__initenv != NULL, "*__initenv is NULL\n");
@@ -74,21 +82,25 @@ void Test___initenv(void)
     _CRTIMP char*** __p___initenv(void);
     ok_ptr(__p___initenv(), &__initenv);
 #endif
+#endif // VS_SOLUTION
 }
 
 _CRTIMP extern unsigned int __lc_codepage;
 void Test___lc_codepage(void)
 {
+#ifndef VS_SOLUTION
     _CRTIMP unsigned int ___lc_codepage_func(void);
     ok_int(__lc_codepage, 0);
     ok_int(___lc_codepage_func(), 0);
     __lc_codepage++;
     todo_ros ok_int(___lc_codepage_func(), 0);
     __lc_codepage--;
+#endif
 }
 
 void Test___lc_collate_cp(void)
 {
+#ifndef VS_SOLUTION
     _CRTIMP extern int __lc_collate_cp;
     test_is_local_symbol(&__lc_collate_cp, FALSE);
     ok_int(__lc_collate_cp, 0);
@@ -96,11 +108,13 @@ void Test___lc_collate_cp(void)
     __lc_collate_cp++;
     ok_int(___lc_collate_cp_func(), 0);
     __lc_collate_cp--;
+#endif
 }
 #endif // !_M_ARM
 
 void Test___lc_handle(void)
 {
+#ifndef VS_SOLUTION
     _CRTIMP int __lc_handle;
     ok_int(__lc_handle, 0);
     _CRTIMP int* ___lc_handle_func();
@@ -108,21 +122,25 @@ void Test___lc_handle(void)
     __lc_handle++;
     todo_ros ok_int(*___lc_handle_func(), 0);
     __lc_handle--;
+#endif
 }
 
 void Test___mb_cur_max(void)
 {
+#ifndef VS_SOLUTION
     void* p = &__mb_cur_max;
     test_is_local_symbol(&__mb_cur_max, FALSE);
+#endif
     ok_int(__mb_cur_max, 1);
 
     #undef __mb_cur_max
     _CRTIMP extern int __mb_cur_max;
-    ok_ptr(&__mb_cur_max, p);
+   // ok_ptr(&__mb_cur_max, p);
 
     ok_int(___mb_cur_max_func(), 1);
     __mb_cur_max++;
     ok_int(___mb_cur_max_func(), 1);
+#ifndef VS_SOLUTION
 #ifdef _M_IX86
     _CRTIMP int* __p___mb_cur_max(void);
     __mb_cur_max++;
@@ -146,6 +164,7 @@ void Test___mb_cur_max(void)
     }
 
     __mb_cur_max--;
+#endif
 }
 
 // cdecl -arch=i386 __p__amblksiz()
@@ -162,12 +181,13 @@ void Test___setlc_active(void)
 {
     _CRTIMP extern unsigned int __setlc_active;
     ok_int(__setlc_active, 0);
-
+#ifndef VS_SOLUTION
     _CRTIMP unsigned int ___setlc_active_func(void);
     ok_int(___setlc_active_func(), __setlc_active);
     __setlc_active++;
     ok_int(___setlc_active_func(), __setlc_active);
     __setlc_active--;
+#endif
 }
 
 void Test___unguarded_readlc_active(void)
@@ -175,9 +195,10 @@ void Test___unguarded_readlc_active(void)
     _CRTIMP extern unsigned int __unguarded_readlc_active;
     void* p = &__unguarded_readlc_active;
     ok_int(__unguarded_readlc_active, 0);
-
+#ifndef VS_SOLUTION
     _CRTIMP unsigned int* ___unguarded_readlc_active_add_func(void);
     ok_ptr(___unguarded_readlc_active_add_func(), p);
+#endif
 }
 #endif // !_M_ARM
 
@@ -201,9 +222,11 @@ void Test___winitenv(void)
     _CRTIMP extern wchar_t** __winitenv;
     void* p = &__winitenv;
     test_is_local_symbol(p, FALSE);
+#ifndef VS_SOLUTION
 #ifdef _M_IX86
     _CRTIMP wchar_t*** __p___winitenv(void);
     ok_ptr(__p___winitenv(), p);
+#endif
 #endif
 }
 #endif
@@ -299,6 +322,7 @@ void Test__daylight(void)
     _CRTIMP extern int _daylight;
     ok_ptr(&_daylight, p);
 
+#ifndef VS_SOLUTION
 #ifdef _M_IX86
     _CRTIMP void* __p__daylight(void);
     ok_ptr(__p__daylight(), &_daylight);
@@ -306,6 +330,7 @@ void Test__daylight(void)
 #if (WINVER >= 0x600)
     _CRTIMP int* __cdecl __daylight(void);
     ok_ptr(&__daylight, &_daylight);
+#endif
 #endif
 }
 
@@ -318,6 +343,7 @@ void Test__dstbias(void)
     #undef _dstbias
     _CRTIMP extern long _dstbias;
     ok_ptr(&_dstbias, p);
+#ifndef VS_SOLUTION
 #ifdef _M_IX86
     _CRTIMP long* __cdecl __p__dstbias(void);
     ok_ptr(__p__dstbias(), &_dstbias);
@@ -325,6 +351,7 @@ void Test__dstbias(void)
 #if (WINVER >= 0x600)
     _CRTIMP long* __cdecl __dstbias(void);
     ok_ptr(&__dstbias, &_dstbias);
+#endif
 #endif
 }
 
