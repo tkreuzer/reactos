@@ -25,7 +25,7 @@ sqrt(
     }
     else if (x < 0.0)
     {
-        return -NAN;
+        return NAN;
     }
 
     /* Convert into a 64  bit integer */
