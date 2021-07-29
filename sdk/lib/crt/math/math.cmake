@@ -55,6 +55,7 @@ elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_SOURCE
         math/cos.c
         math/sin.c
+        # math/sqrt.c
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/amd64/atan.S

@@ -6,7 +6,13 @@
  */
 
 #include <math.h>
+#include <float.h>
 #include <assert.h>
+
+#include <stdio.h>
+
+#define MARGIN 7.4583407312002067e-155
+#define MARGIN2 (MARGIN * MARGIN)
 
 double
 __cdecl
@@ -26,6 +32,14 @@ sqrt(
     else if (x < 0.0)
     {
         return NAN;
+    }
+
+    int adjust = 0;
+    if (x < MARGIN2)
+    {
+        printf("Have margin\n");
+        x *= (1 / MARGIN2);
+        adjust = 1;
     }
 
     /* Convert into a 64  bit integer */
@@ -51,6 +65,11 @@ sqrt(
        Normally the formula would be: y = (y + (x / y)) * 0.5;
        Instead we use the inverse sqrt directly */
     y = ((1 / inv) + (x * inv)) * 0.5;
+
+    if (adjust)
+    {
+        y *= MARGIN;
+    }
 
     //assert(y == (double)((y + (x / y)) * 0.5));
     /* GCC BUG: While the C-Standard requires that an explicit cast to
