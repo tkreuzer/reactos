@@ -81,6 +81,43 @@ _Check_return_ long __cdecl labs(_In_ long x);
 _Check_return_ long long __cdecl llabs(_In_ long long x);
 #endif
 
+#ifdef _CRTBLD
+#ifdef _MSC_VER
+#pragma function(abs)
+#pragma function(acos)
+#pragma function(asin)
+#pragma function(atan)
+#pragma function(atan2)
+#pragma function(ceil)
+#pragma function(cos)
+#pragma function(exp)
+#pragma function(floor)
+//#pragma function(ldexp)
+#pragma function(log)
+#pragma function(log10)
+#pragma function(pow)
+#pragma function(sin)
+#pragma function(sqrt)
+#pragma function(tan)
+#ifdef _M_AMD64
+#pragma function(acosf)
+#pragma function(asinf)
+#pragma function(atanf)
+#pragma function(ceilf)
+#pragma function(cosf)
+#pragma function(expf)
+#pragma function(floorf)
+#pragma function(log10f)
+#pragma function(logf)
+#pragma function(powf)
+#pragma function(sinf)
+#pragma function(sqrtf)
+#pragma function(tanf)
+#endif
+#endif
+
+#endif
+
 _Check_return_ double __cdecl acos(_In_ double x);
 _Check_return_ double __cdecl asin(_In_ double x);
 _Check_return_ double __cdecl atan(_In_ double x);

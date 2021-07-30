@@ -10,6 +10,8 @@
 #include "libm.h"
 #include "exp_data.h"
 
+#pragma function(exp)
+
 #define N (1 << EXP_TABLE_BITS)
 #define InvLn2N __exp_data.invln2N
 #define NegLn2hiN __exp_data.negln2hiN

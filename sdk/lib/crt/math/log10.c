@@ -20,6 +20,8 @@
 #include <math.h>
 #include <stdint.h>
 
+#pragma function(log10)
+
 static const double
 ivln10hi  = 4.34294481878168880939e-01, /* 0x3fdbcb7b, 0x15200000 */
 ivln10lo  = 2.50829467116452752298e-11, /* 0x3dbb9438, 0xca9aadd5 */

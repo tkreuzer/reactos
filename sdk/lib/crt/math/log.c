@@ -11,6 +11,8 @@
 #include "libm.h"
 #include "log_data.h"
 
+#pragma function(log)
+
 #define T __log_data.tab
 #define T2 __log_data.tab2
 #define B __log_data.poly1

@@ -34,7 +34,7 @@ floor(double x)
     if ((u64 & (1ULL << 63)) == 0)
     {
         /* Check if it fits into an int64 */
-        if (x <= (double)_I64_MAX)
+        if (x < (double)_I64_MAX)
         {
             /* Just cast to int64, which will truncate towards 0,
                which is what we want here .*/
@@ -50,12 +50,14 @@ floor(double x)
     else
     {
         /* Check if it fits into an int64 */
-        if (x >= (double)_I64_MIN)
+        if (x > (double)_I64_MIN)
         {
             /* Here we need to first offset the value into the positive
                range, so that we truncate down towards 0. Then we offset
                the result back accordingly. */
-            return (double)((long long)(x - _I64_MIN)) + _I64_MIN;
+            //return (double)((long long)(x - _I64_MIN)) + _I64_MIN;
+            long long ll = (long long)x;
+            return (x < (double)ll) ? (double)ll - 1 : (double)ll;
         }
         else
         {
