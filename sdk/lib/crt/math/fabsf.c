@@ -7,10 +7,12 @@
 
 #include <math.h>
 
+#include <stdio.h>
+
 _Check_return_
 float
 __cdecl
-fabsf(
+fabsf2(
     _In_ float x)
 {
     /* Load the value as uint */
@@ -29,4 +31,36 @@ fabsf(
 
     /* Convert back to float */
     return *(float*)&u32;
+}
+
+_Check_return_
+float
+__cdecl
+fabsf(
+    _In_ float x)
+{
+    union
+    {
+        float flt;
+        unsigned int u32;
+    } u;
+    unsigned int u32b;
+
+    u.flt = x;
+
+    /* Clear the sign bit */
+    u32b = u.u32 & ~(1 << 31);
+
+    /* Check for NAN */
+    if (u32b > 0x7F800000)
+    {
+        u.u32 |= 0x00400000;
+    }
+    else
+    {
+        u.u32 = u32b;
+    }
+
+    /* Convert back to float */
+    return u.flt;
 }
