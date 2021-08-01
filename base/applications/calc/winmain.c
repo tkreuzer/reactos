@@ -1156,9 +1156,9 @@ static statistic_t *upload_stat_number(int n)
 #ifndef ENABLE_MULTI_PRECISION
     if (calc.base != p->base) {
         if (calc.base == IDC_RADIO_DEC)
-            calc.code.f = (double)p->num.i;
+            rpn_i64_to_f(&calc.code.f, (p->num.i));
         else {
-            calc.code.i = (__int64)p->num.f;
+            calc.code.i = rpn_f_to_i64(p->num.f);
             apply_int_mask(&calc.code);
         }
     } else

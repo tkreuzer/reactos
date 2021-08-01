@@ -20,7 +20,7 @@
 
 #include "calc.h"
 
-static double validate_rad2angle(double a);
+static calc_float_t validate_rad2angle(calc_float_t a);
 static double validate_angle2rad(calc_number_t *c);
 
 void apply_int_mask(calc_number_t *r)
@@ -68,7 +68,7 @@ double atanh(double x)
     return log((1.0+x)/(1.0-x))/2.0;
 }
 
-static double validate_rad2angle(double a)
+static calc_float_t validate_rad2angle(calc_float_t a)
 {
     switch (calc.degr) {
     case IDC_RADIO_DEG:
@@ -92,10 +92,10 @@ static double validate_angle2rad(calc_number_t *c)
     case IDC_RADIO_RAD:
         break;
     case IDC_RADIO_GRAD:
-        c->f = c->f * (CALC_PI/200.0);
+        c->f = c->f* (CALC_PI / 200.0);
         break;
     }
-    return c->f;
+    return 0.;// c->f;
 }
 
 void rpn_sin(calc_number_t *c)
@@ -218,12 +218,12 @@ void rpn_reci(calc_number_t *c)
     if (c->f == 0)
         calc.is_nan = TRUE;
     else
-        c->f = 1./c->f;
+        c->f = __float128(1.)/c->f;
 }
 
 void rpn_fact(calc_number_t *c)
 {
-    double fact, mult, num;
+    calc_float_t fact, mult, num;
 
     if (calc.base == IDC_RADIO_DEC)
         num = c->f;

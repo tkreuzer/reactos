@@ -38,10 +38,29 @@
 #endif
 
 #define LOCAL_EXP_SIZE  100000000L
+
+#elif defined(ENABLE_QPFLOAT)
+
+#if !defined(__cplusplus)
+typedef struct __float128
+{
+    unsigned char storage[16];
+} __float128;
+#endif
+
+typedef __float128 calc_float_t;
+
+#define LOCAL_EXP_SIZE  100000000L
+void rpn_i64_to_f(__float128* pf, __int64 i);
+__int64 rpn_f_to_i64(__float128 f);
+double rpn_f_to_double(__float128 f);
 #else
 
+typedef double calc_float_t;
 #define LOCAL_EXP_SIZE  10000L
-
+#define rpn_i64_to_f(f, i) (*(f) = ((double)(i)))
+#define rpn_i64_to_f(f) ((__int64)(f))
+#define rpn_f_to_double(f) (f)
 #endif
 
 #define CALC_VERSION        _T("1.12")
@@ -122,6 +141,10 @@ enum {
 typedef union {
 #ifdef ENABLE_MULTI_PRECISION
     mpfr_t  mf;
+#elif defined(ENABLE_QPFLOAT)
+    __float128  f;
+    INT64   i;
+    UINT64  u;
 #else
     double  f;
     INT64   i;
