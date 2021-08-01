@@ -4,9 +4,17 @@ include_directories(libm_sse2)
 list(APPEND LIBCNTPR_MATH_SOURCE
     math/_invoke_matherr.c
     math/abs.c
+    math/acosf.c
+    math/asinf.c
+    math/atanf.c
     math/div.c
+    math/expf.c
     math/labs.c
     math/sincos.c
+    math/log10f.c
+    math/sqrtf.c
+    math/tanf.c
+    math/usermatherr.c
 )
 
 if(ARCH STREQUAL "i386")
@@ -205,7 +213,6 @@ if(NOT ARCH STREQUAL "i386")
     list(APPEND CRT_MATH_SOURCE
         math/_chgsignf.c
         math/_copysignf.c
-        math/log10f.c
         math/stubs.c
     )
 endif()
