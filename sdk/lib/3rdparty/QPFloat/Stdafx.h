@@ -4,4 +4,7 @@
 
 #pragma once
 
-
+#include <intrin.h>
+#include <memory.h>
+#include <math.h>
+#include <malloc.h>
