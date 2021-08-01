@@ -31,7 +31,7 @@ class x##ExceptionClass : public std::exception \
 { \
  virtual const char* what() const throw(); \
 } extern _##x##Exception; \
-inline void x##() { if (enable##x##Exception) throw _##x##Exception; }
+inline void x##() { /* if (enable##x##Exception) throw _##x##Exception; */}
 
 FPU_EXCEPTION_DECLARATION(Overflow)
 FPU_EXCEPTION_DECLARATION(Underflow)

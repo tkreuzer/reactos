@@ -561,16 +561,16 @@ int FindHeadAndApplyRounding( ui32* buffer, int headScanBackStart )
 
 #ifdef _MANAGED
 #pragma managed
+#include "ManagedQuadruple.h"
 #endif
 
 #include "__float128.h"
-#include "ManagedQuadruple.h"
 #include <stdio.h>
 
 __float128 factorials[MAX_FACTORIAL + 1];
 __float128 factorialReciprocals[MAX_FACTORIAL + 1];
 
-
+#ifdef _MANAGED
 
 int Initialize()
 {
@@ -622,3 +622,5 @@ int main(void)
 }
 
 #endif
+
+#endif // _MANAGED
