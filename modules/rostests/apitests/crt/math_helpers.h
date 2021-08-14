@@ -75,3 +75,25 @@ typedef struct _TESTENTRY_FLT
            func, x, ux, exp, uexp, z, uz); \
     }
 #define ok_eq_flt_exact(func, ux, z, uexp) ok_eq_flt_exact_(__FILE__, __LINE__, func, ux, z, uexp)
+
+
+#define ok_func_eq_u64(func, ullx, ullexpected) \
+    { \
+        double x = u64_to_dbl(ullx); \
+        double z = func(x); \
+        unsigned long long ullz = dbl_to_u64(z); \
+        double expected = u64_to_dbl(ullexpected); \
+        ok(ullz == ullexpected, "Wrong value for " #func "(%e [0x%016llx]), expected: %e [0x%016llx], got: %f [0x%016llx]\n", \
+           x, ullx, expected, ullexpected, z, ullz); \
+    }
+
+#define ok_func_eq_u32(func, ux, uexpected) \
+    { \
+        float x = u32_to_flt(ux); \
+        float z = func(x); \
+        unsigned int uz = flt_to_u32(z); \
+        float expected = u32_to_flt(uexpected); \
+        ok(uz == uexpected, "Wrong value for " #func "(%e [0x%08x]), expected: %e [0x%08x], got: %f [0x%08x]\n", \
+           x, ux, expected, uexpected, z, uz); \
+    }
+
