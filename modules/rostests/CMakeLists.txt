@@ -15,6 +15,7 @@ add_subdirectory(kmtests)
 #add_subdirectory(regtests)
 add_subdirectory(rosautotest)
 add_subdirectory(tests)
+add_subdirectory(unittests)
 add_subdirectory(win32)
 add_subdirectory(winetests)
 
