@@ -10,8 +10,8 @@ list(APPEND SOURCE
     __float128.cpp
 )
 
-add_library(qpfloat MODULE ${SOURCE})
+add_library(qpfloat ${SOURCE})
 add_dependencies(qpfloat psdk)
-add_importlibs(qpfloat msvcrt kernel32 ntdll)
+#add_importlibs(qpfloat msvcrt kernel32 ntdll)
 target_link_libraries(qpfloat cpprt)
-set_module_type(qpfloat win32dll UNICODE)
+#set_module_type(qpfloat win32dll UNICODE)
