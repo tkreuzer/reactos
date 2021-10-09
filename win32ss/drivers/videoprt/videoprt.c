@@ -352,7 +352,7 @@ IntVideoPortFindAdapter(
 {
     PVIDEO_PORT_DEVICE_EXTENSION DeviceExtension;
     NTSTATUS Status;
-    VP_STATUS vpStatus;
+    VP_STATUS vpStatus = NO_ERROR;
     VIDEO_PORT_CONFIG_INFO ConfigInfo;
     SYSTEM_BASIC_INFORMATION SystemBasicInfo;
     UCHAR Again = FALSE;
