@@ -728,7 +728,7 @@ SetDIBitsToDevice(
         _SEH2_END
     }
 
-    if (!GdiGetHandleUserData(hdc, GDI_OBJECT_TYPE_DC, (PVOID) & pDc_Attr))
+    if (!GdiGetHandleUserData(hdc, GDI_OBJECT_TYPE_DC, (PVOID)&pDc_Attr))
     {
         SetLastError(ERROR_INVALID_HANDLE);
         goto cleanup;

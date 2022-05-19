@@ -68,7 +68,7 @@ BRUSH_bAllocBrushAttr(PBRUSH pbr)
     *pbr->pBrushAttr = pbr->BrushAttr;
 
     /* Default hatch style is -1 */
-    pbr->ulStyle = -1;
+    pbr->iHatch = -1;
 
     pbr->ulBrushUnique = InterlockedIncrementUL(&gulBrushUnique);
 
@@ -177,55 +177,6 @@ BRUSH_bSetBrushOwner(PBRUSH pbr, ULONG ulOwner)
     // FIXME:
     if (pbr->flAttrs & BR_IS_GLOBAL) return TRUE;
 
-    /* Set ownership of the pattern bitmap */
-    if (pbr->hbmPattern)
-        GreSetObjectOwner(pbr->hbmPattern, ulOwner);
-
-    if ((ulOwner == GDI_OBJ_HMGR_PUBLIC) || ulOwner == GDI_OBJ_HMGR_NONE)
-    {
-        /* Free the brush attribute */
-        BRUSH_vFreeBrushAttr(pbr);
-    }
-    else if (ulOwner == GDI_OBJ_HMGR_POWNED)
-    {
-        /* Check if there is no usermode attribute */
-        if (pbr->pBrushAttr == &pbr->BrushAttr)
-        {
-            /* Free the brush attribute */
-            BRUSH_bAllocBrushAttr(pbr);
-        }
-    }
-
-    GDIOBJ_vSetObjectOwner(&pbr->BaseObject, ulOwner);
-
-    return TRUE;
-}
-
-BOOL
-NTAPI
-GreSetBrushOwner(HBRUSH hBrush, ULONG ulOwner)
-{
-    BOOL bResult;
-    PBRUSH pbrush;
-
-    /* Reference the brush */
-    pbrush = BRUSH_ShareLockBrush(hBrush);
-
-    /* Set the brush owner */
-    bResult = BRUSH_bSetBrushOwner(pbrush, ulOwner);
-
-    /* Dereference the brush */
-    BRUSH_ShareUnlockBrush(pbrush);
-    return bResult;
-}
-
-BOOL
-FASTCALL
-IntGdiSetBrushOwner(PBRUSH pbr, ULONG ulOwner)
-{
-    // FIXME:
-    if (pbr->flAttrs & BR_IS_GLOBAL) return TRUE;
-
     if ((ulOwner == GDI_OBJ_HMGR_PUBLIC) || ulOwner == GDI_OBJ_HMGR_NONE)
     {
         /* Free user mode attribute, if any */
@@ -250,7 +201,7 @@ IntGdiSetBrushOwner(PBRUSH pbr, ULONG ulOwner)
 }
 
 BOOL
-FASTCALL
+NTAPI
 GreSetBrushOwner(HBRUSH hBrush, ULONG ulOwner)
 {
     BOOL Ret;

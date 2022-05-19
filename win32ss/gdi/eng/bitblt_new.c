@@ -54,6 +54,7 @@ EngSrcBufferedBitBlt (
                                     iTmpBitmapFormat,
                                     0,
                                     0,
+                                    0,
                                     NULL);
     if (psurfTmp == NULL)
     {
@@ -147,6 +148,7 @@ EngTrgBufferedBitBlt (
                                     rclTmp.right,
                                     rclTmp.bottom,
                                     iTmpBitmapFormat,
+                                    0,
                                     0,
                                     0,
                                     NULL);
