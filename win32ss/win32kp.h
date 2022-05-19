@@ -42,7 +42,7 @@ typedef struct _DC *PDC;
 #include "gdi/ntgdi/bitmaps.h"
 #include "gdi/ntgdi/region.h"
 #include "gdi/ntgdi/dc.h"
-#include "gdi/ntgdi/dib.h"
+#include "gdi/ntgdi/dibitmap.h"
 #include "gdi/ntgdi/cliprgn.h"
 #include "gdi/ntgdi/intgdi.h"
 #include "gdi/ntgdi/paint.h"
