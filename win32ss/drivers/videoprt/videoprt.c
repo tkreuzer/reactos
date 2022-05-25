@@ -170,7 +170,7 @@ IntVideoPortCreateAdapterDeviceObject(
     WCHAR DeviceBuffer[20];
     UNICODE_STRING DeviceName;
     PDEVICE_OBJECT DeviceObject_;
-
+    __debugbreak();
     if (DeviceObject == NULL)
         DeviceObject = &DeviceObject_;
 
