@@ -61,13 +61,12 @@ RegReadDisplaySettings(HKEY hkey, PDEVMODEW pdm)
     READ(dmPosition.y, "Attach.RelativeY", DM_POSITION);
 }
 
-PGRAPHICS_DEVICE
+BOOL
 NTAPI
 InitDisplayDriver(
     IN PWSTR pwszDeviceName,
     IN PWSTR pwszRegKey)
 {
-    PGRAPHICS_DEVICE pGraphicsDevice;
     UNICODE_STRING ustrDeviceName, ustrDisplayDrivers, ustrDescription;
     NTSTATUS Status;
     WCHAR awcBuffer[128];
@@ -83,7 +82,7 @@ InitDisplayDriver(
     if (!NT_SUCCESS(Status))
     {
         ERR("Failed to open registry key: %ls\n", pwszRegKey);
-        return NULL;
+        return FALSE;
     }
 
     /* Query the diplay drivers */
@@ -97,7 +96,7 @@ InitDisplayDriver(
     {
         ERR("Didn't find 'InstalledDisplayDrivers', status = 0x%lx\n", Status);
         ZwClose(hkey);
-        return NULL;
+        return FALSE;
     }
 
     /* Initialize the UNICODE_STRING */
@@ -135,15 +134,10 @@ InitDisplayDriver(
 
     /* Register the device with GDI */
     RtlInitUnicodeString(&ustrDeviceName, pwszDeviceName);
-    pGraphicsDevice = EngpRegisterGraphicsDevice(&ustrDeviceName,
-                                                 &ustrDisplayDrivers,
-                                                 &ustrDescription);
-    if (pGraphicsDevice && dwVga)
-    {
-        pGraphicsDevice->StateFlags |= DISPLAY_DEVICE_VGA_COMPATIBLE;
-    }
-
-    return pGraphicsDevice;
+    return EngpRegisterGraphicsDevice(&ustrDeviceName,
+                                      &ustrDisplayDrivers,
+                                      &ustrDescription,
+                                      dwVga != 0);
 }
 
 NTSTATUS

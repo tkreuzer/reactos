@@ -50,7 +50,7 @@ RegWriteUserSetting(
     _In_reads_bytes_(cjDataSize) const VOID *pvData,
     _In_ ULONG cjDataSize);
 
-PGRAPHICS_DEVICE
+BOOL
 NTAPI
 InitDisplayDriver(
     IN PWSTR pwszDeviceName,

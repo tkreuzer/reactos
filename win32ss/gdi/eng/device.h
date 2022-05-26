@@ -25,12 +25,13 @@ EngpFindGraphicsDevice(
     _In_opt_ PUNICODE_STRING pustrDevice,
     _In_ ULONG iDevNum);
 
-PGRAPHICS_DEVICE
+BOOL
 NTAPI
 EngpRegisterGraphicsDevice(
     _In_ PUNICODE_STRING pustrDeviceName,
     _In_ PUNICODE_STRING pustrDiplayDrivers,
-    _In_ PUNICODE_STRING pustrDescription);
+    _In_ PUNICODE_STRING pustrDescription,
+    _In_ BOOL bIsVgaAdapter);
 
 NTSTATUS
 EngpUpdateGraphicsDeviceList(VOID);

@@ -43,6 +43,7 @@ EngpUpdateGraphicsDeviceList(VOID)
     PGRAPHICS_DEVICE pGraphicsDevice;
     ULONG cbValue;
     HKEY hkey;
+    ULONG cDevices = 0;
 
     /* Open the key for the adapters */
     Status = RegOpenKey(L"\\Registry\\Machine\\HARDWARE\\DEVICEMAP\\VIDEO", &hkey);
@@ -96,32 +97,18 @@ EngpUpdateGraphicsDeviceList(VOID)
         }
 
         /* Initialize the driver for this device */
-        pGraphicsDevice = InitDisplayDriver(awcDeviceName, awcBuffer);
-        if (!pGraphicsDevice) continue;
-
-        /* Check if this is a VGA compatible adapter */
-        if (pGraphicsDevice->StateFlags & DISPLAY_DEVICE_VGA_COMPATIBLE)
+        if (!InitDisplayDriver(awcDeviceName, awcBuffer));
         {
-            /* Save this as the VGA adapter */
-            if (!gpVgaGraphicsDevice)
-            {
-                gpVgaGraphicsDevice = pGraphicsDevice;
-                TRACE("gpVgaGraphicsDevice = %p\n", gpVgaGraphicsDevice);
-            }
+            continue;
         }
 
-        /* Set the first one as primary device */
-        if (!gpPrimaryGraphicsDevice)
-        {
-            gpPrimaryGraphicsDevice = pGraphicsDevice;
-            TRACE("gpPrimaryGraphicsDevice = %p\n", gpPrimaryGraphicsDevice);
-        }
+        cDevices++;
     }
 
     /* Close the device map registry key */
     ZwClose(hkey);
 
-    return STATUS_SUCCESS;
+    return cDevices == 0 ? STATUS_UNSUCCESSFUL : STATUS_SUCCESS;
 }
 
 extern VOID
@@ -188,12 +175,13 @@ VideoPortCallout(
     }
 }
 
-PGRAPHICS_DEVICE
+BOOL
 NTAPI
 EngpRegisterGraphicsDevice(
     _In_ PUNICODE_STRING pustrDeviceName,
     _In_ PUNICODE_STRING pustrDiplayDrivers,
-    _In_ PUNICODE_STRING pustrDescription)
+    _In_ PUNICODE_STRING pustrDescription,
+    _In_ BOOL bIsVgaAdapter)
 {
     PGRAPHICS_DEVICE pGraphicsDevice;
     PDEVICE_OBJECT pDeviceObject;
@@ -213,7 +201,7 @@ EngpRegisterGraphicsDevice(
     if (!pGraphicsDevice)
     {
         ERR("ExAllocatePoolWithTag failed\n");
-        return NULL;
+        return FALSE;
     }
 
     /* Try to open and enable the device */
@@ -225,7 +213,7 @@ EngpRegisterGraphicsDevice(
     {
         ERR("Could not open device %wZ, 0x%lx\n", pustrDeviceName, Status);
         ExFreePoolWithTag(pGraphicsDevice, GDITAG_GDEVICE);
-        return NULL;
+        return FALSE;
     }
 
     /* Copy the device and file object pointers */
@@ -276,7 +264,7 @@ EngpRegisterGraphicsDevice(
         ERR("Could not allocate string buffer\n");
         ASSERT(FALSE); // FIXME
         ExFreePoolWithTag(pGraphicsDevice, GDITAG_GDEVICE);
-        return NULL;
+        return FALSE;
     }
 
     /* Copy the display driver names */
@@ -315,6 +303,25 @@ EngpRegisterGraphicsDevice(
     /* Increment the device number */
     giDevNum++;
 
+    /* Check if this is a VGA compatible adapter */
+    if (bIsVgaAdapter)
+    {
+        /* Save this as the VGA adapter */
+        pGraphicsDevice->StateFlags |= DISPLAY_DEVICE_VGA_COMPATIBLE;
+        if (!gpVgaGraphicsDevice)
+        {
+            gpVgaGraphicsDevice = pGraphicsDevice;
+            TRACE("gpVgaGraphicsDevice = %p\n", gpVgaGraphicsDevice);
+        }
+    }
+
+    /* Set the first one as primary device */
+    if (!gpPrimaryGraphicsDevice)
+    {
+        gpPrimaryGraphicsDevice = pGraphicsDevice;
+        TRACE("gpPrimaryGraphicsDevice = %p\n", gpPrimaryGraphicsDevice);
+    }
+
     /* Unlock loader */
     EngReleaseSemaphore(ghsemGraphicsDeviceList);
     TRACE("Prepared %lu modes for %ls\n", pGraphicsDevice->cDevModes, pGraphicsDevice->pwszDescription);
@@ -330,7 +337,7 @@ EngpRegisterGraphicsDevice(
         IntPaintDesktop(hdc);
     }
 
-    return pGraphicsDevice;
+    return TRUE;
 }
 
 PGRAPHICS_DEVICE
