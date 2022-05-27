@@ -3,6 +3,8 @@
 
 /*
 
+SEE: branch win32/multidisp/driver
+
 TODO:
  + Implement GRAPHICS_DEVICE here!
  * First implement c++ LDEV!
@@ -33,6 +35,8 @@ Affected file list:
             --> call UpdateGraphicsDeviceList(&v7); + DrvEnumDisplayDevices
         - UserEnumDisplaySettings
             - call DrvEnumDisplaySettings
+        - UserChangeDisplaySettings
+            - xxxUserChangeDisplaySettings() -> 
    - win32ss/user/ntuser/ntuser.h -> OOF
    - win32ss/user/ntuser/winsta.c -> contains only the display hack, move this to HackDisplayDevices()
 
@@ -46,6 +50,12 @@ Affected file list:
 
     ?. Handle device cleanup
 
+    Implement C++ demangler in KDBG
+
+    Compile all win32k GDI as C++
+        set_source_files_properties(filename.c PROPERTIES LANGUAGE CXX)
+
+    Make HGDIOBJ an object with cast operators for each HXXX with ASSERTs
 
  Other:
 
@@ -61,7 +71,9 @@ Affected file list:
  * LDEVOBJ_bBuildDevmodeList should be GRAPHICS_DEVICE::bBuildDevmodeList (rewite it to use LDEVOBJ_pdmiGetModes!)
  * Hierachy is PDEVOBJ -> GRAPHICS_DEVICE -> LDEVOBJ not the other way!
 
-
+ "[WIN32SS] Rewrite PDEVOBJ_pdmMatchDevMode to LDEVOBJ_bProbeAndCaptureDevmode"
+ * Yes, it's useful to make a copy for the PDEV, so that it won't point to freed memory
+ * 
 
  "[WIN32K] Move detection of available display devices a new fonction EngpUpdateGraphicsDeviceList"
  * EngpUpdateGraphicsDeviceList calls InitDisplayDriver in USER
