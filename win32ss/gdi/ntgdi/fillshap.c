@@ -480,7 +480,7 @@ NtGdiPolyPolyDraw( IN HDC hDC,
     }
 
     SafeCounts = pTemp;
-    SafePoints = (PVOID)(SafeCounts + Count);
+    SafePoints = (PPOINTL)(SafeCounts + Count);
 
     _SEH2_TRY
     {

@@ -612,8 +612,9 @@ EngBitBlt(
             CLIPOBJ_cEnumStart(pco, FALSE, CT_RECTANGLES, Direction, 0);
             do
             {
-                EnumMore = CLIPOBJ_bEnum(pco, sizeof(RectEnum),
-                                         (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(pco,
+                                         sizeof(RectEnum),
+                                         (PULONG)&RectEnum);
 
                 for (i = 0; i < RectEnum.c; i++)
                 {
@@ -1057,7 +1058,7 @@ EngMaskBitBlt(SURFOBJ *psoDest,
             CLIPOBJ_cEnumStart(ClipRegion, FALSE, CT_RECTANGLES, Direction, 0);
             do
             {
-                EnumMore = CLIPOBJ_bEnum(ClipRegion,(ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(ClipRegion, sizeof(RectEnum), (PULONG)&RectEnum);
 
                 for (i = 0; i < RectEnum.c; i++)
                 {

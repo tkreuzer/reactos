@@ -153,8 +153,9 @@ EngAlphaBlend(
             CLIPOBJ_cEnumStart(ClipRegion, FALSE, CT_RECTANGLES, CD_ANY, 0);
             do
             {
-                EnumMore = CLIPOBJ_bEnum(ClipRegion,(ULONG) sizeof(RectEnum),
-                                         (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(ClipRegion,
+                                         sizeof(RectEnum),
+                                         (PULONG)&RectEnum);
 
                 for (i = 0; i < RectEnum.c; i++)
                 {

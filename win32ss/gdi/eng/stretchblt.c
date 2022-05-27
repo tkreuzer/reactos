@@ -375,8 +375,8 @@ EngStretchBltROP(
             CLIPOBJ_cEnumStart(ClipRegion, FALSE, CT_RECTANGLES, Direction, 0);
             do
             {
-                EnumMore = CLIPOBJ_bEnum(ClipRegion,(ULONG) sizeof(RectEnum),
-                                         (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(ClipRegion,(ULONG)sizeof(RectEnum),
+                                         (PULONG)&RectEnum);
                 for (i = 0; i < RectEnum.c; i++)
                 {
                     ClipRect.left = RectEnum.arcl[i].left + Translate.x;

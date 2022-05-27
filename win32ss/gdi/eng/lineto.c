@@ -108,7 +108,7 @@ NWtoSE(SURFOBJ* OutputObj, CLIPOBJ* Clip,
     lStyleMax = HandleStyles(pbo, Translate, x, y, deltax, deltay, 1, 1, &iStyle);
 
     CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, CD_RIGHTDOWN, 0);
-    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
     TranslateRects(&RectEnum, Translate);
     ClipRect = RectEnum.arcl;
     delta = max(deltax, deltay);
@@ -124,7 +124,7 @@ NWtoSE(SURFOBJ* OutputObj, CLIPOBJ* Clip,
             /* Skip to the next clip rect */
             if (RectEnum.arcl + RectEnum.c <= ClipRect)
             {
-                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
                 TranslateRects(&RectEnum, Translate);
                 ClipRect = RectEnum.arcl;
             }
@@ -195,7 +195,7 @@ SWtoNE(SURFOBJ* OutputObj, CLIPOBJ* Clip,
     lStyleMax = HandleStyles(pbo, Translate, x, y, deltax, deltay, 1, -1, &iStyle);
 
     CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, CD_RIGHTUP, 0);
-    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
     TranslateRects(&RectEnum, Translate);
     ClipRect = RectEnum.arcl;
     delta = max(deltax, deltay);
@@ -210,7 +210,7 @@ SWtoNE(SURFOBJ* OutputObj, CLIPOBJ* Clip,
         {
             if (RectEnum.arcl + RectEnum.c <= ClipRect)
             {
-                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
                 TranslateRects(&RectEnum, Translate);
                 ClipRect = RectEnum.arcl;
             }
@@ -281,7 +281,7 @@ NEtoSW(SURFOBJ* OutputObj, CLIPOBJ* Clip,
     lStyleMax = HandleStyles(pbo, Translate, x, y, deltax, deltay, -1, 1, &iStyle);
 
     CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, CD_LEFTDOWN, 0);
-    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
     TranslateRects(&RectEnum, Translate);
     ClipRect = RectEnum.arcl;
     delta = max(deltax, deltay);
@@ -296,7 +296,7 @@ NEtoSW(SURFOBJ* OutputObj, CLIPOBJ* Clip,
         {
             if (RectEnum.arcl + RectEnum.c <= ClipRect)
             {
-                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
                 TranslateRects(&RectEnum, Translate);
                 ClipRect = RectEnum.arcl;
             }
@@ -367,7 +367,7 @@ SEtoNW(SURFOBJ* OutputObj, CLIPOBJ* Clip,
     lStyleMax = HandleStyles(pbo, Translate, x, y, deltax, deltay, -1, -1, &iStyle);
 
     CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, CD_LEFTUP, 0);
-    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+    EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
     TranslateRects(&RectEnum, Translate);
     ClipRect = RectEnum.arcl;
     delta = max(deltax, deltay);
@@ -382,7 +382,7 @@ SEtoNW(SURFOBJ* OutputObj, CLIPOBJ* Clip,
         {
             if (RectEnum.arcl + RectEnum.c <= ClipRect)
             {
-                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
                 TranslateRects(&RectEnum, Translate);
                 ClipRect = RectEnum.arcl;
             }
@@ -541,7 +541,7 @@ EngLineTo(
         CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, CD_RIGHTDOWN, 0);
         do
         {
-            EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+            EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
             for (i = 0; i < RectEnum.c && RectEnum.arcl[i].top + Translate.y <= y1; i++)
             {
                 if (y1 < RectEnum.arcl[i].bottom + Translate.y &&
@@ -565,7 +565,7 @@ EngLineTo(
         CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, CD_RIGHTDOWN, 0);
         do
         {
-            EnumMore = CLIPOBJ_bEnum(Clip, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+            EnumMore = CLIPOBJ_bEnum(Clip, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
             for (i = 0; i < RectEnum.c; i++)
             {
                 if (RectEnum.arcl[i].left + Translate.x <= x1 &&

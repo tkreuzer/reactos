@@ -95,7 +95,7 @@ IntEngGradientFillRect(
 
             if (Horizontal)
             {
-                EnumMore = CLIPOBJ_bEnum(pco, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+                EnumMore = CLIPOBJ_bEnum(pco, sizeof(RectEnum), (PULONG)&RectEnum);
                 for (i = 0; i < RectEnum.c && RectEnum.arcl[i].top <= rcSG.bottom; i++)
                 {
                     if (RECTL_bIntersectRect(&FillRect, &RectEnum.arcl[i], &rcSG))
@@ -123,7 +123,7 @@ IntEngGradientFillRect(
             }
 
             /* vertical */
-            EnumMore = CLIPOBJ_bEnum(pco, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+            EnumMore = CLIPOBJ_bEnum(pco, sizeof(RectEnum), (PULONG)&RectEnum);
             for (i = 0; i < RectEnum.c && RectEnum.arcl[i].top <= rcSG.bottom; i++)
             {
                 if (RECTL_bIntersectRect(&FillRect, &RectEnum.arcl[i], &rcSG))
@@ -163,7 +163,7 @@ IntEngGradientFillRect(
         RECTL FillRect;
         ULONG Color = XLATEOBJ_iXlate(pxlo, RGB(v1->Red >> 8, v1->Green >> 8, v1->Blue >> 8));
 
-        EnumMore = CLIPOBJ_bEnum(pco, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+        EnumMore = CLIPOBJ_bEnum(pco, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
         for (i = 0; i < RectEnum.c && RectEnum.arcl[i].top <= rcSG.bottom; i++)
         {
             if (RECTL_bIntersectRect(&FillRect, &RectEnum.arcl[i], &rcSG))
@@ -368,7 +368,7 @@ IntEngGradientFillTriangle(
       CLIPOBJ_cEnumStart(pco, FALSE, CT_RECTANGLES, CD_RIGHTDOWN, 0);
       do
       {
-        EnumMore = CLIPOBJ_bEnum(pco, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+        EnumMore = CLIPOBJ_bEnum(pco, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
         for (i = 0; i < RectEnum.c && RectEnum.arcl[i].top <= prclExtents->bottom; i++)
         {
           if (RECTL_bIntersectRect(&FillRect, &RectEnum.arcl[i], prclExtents))
@@ -416,7 +416,7 @@ IntEngGradientFillTriangle(
     CLIPOBJ_cEnumStart(pco, FALSE, CT_RECTANGLES, CD_RIGHTDOWN, 0);
     do
     {
-      EnumMore = CLIPOBJ_bEnum(pco, (ULONG) sizeof(RectEnum), (PVOID) &RectEnum);
+      EnumMore = CLIPOBJ_bEnum(pco, (ULONG)sizeof(RectEnum), (PULONG)&RectEnum);
       for (i = 0; i < RectEnum.c && RectEnum.arcl[i].top <= prclExtents->bottom; i++)
       {
         if (RECTL_bIntersectRect(&FillRect, &RectEnum.arcl[i], prclExtents))

@@ -189,7 +189,7 @@ CreateDIBPalette(
             else
             {
                 /* The masks are the first 3 values in the DIB color table */
-                PDWORD pdwColors = (PVOID)((PCHAR)pbmi + pbmi->bmiHeader.biSize);
+                PDWORD pdwColors = (PDWORD)((PCHAR)pbmi + pbmi->bmiHeader.biSize);
                 flRedMask = pdwColors[0];
                 flGreenMask = pdwColors[1];
                 flBlueMask = pdwColors[2];
