@@ -51,8 +51,8 @@ EngSecureMemForRead(
 VOID
 DecompressBitmap(
     SIZEL Size,
-    BYTE *CompressedBits,
-    BYTE *UncompressedBits,
+    const VOID* pvCompressedBits,
+    PVOID pvUncompressedBits,
     LONG Delta,
     ULONG iFormat,
     ULONG cjSizeImage);
