@@ -226,7 +226,7 @@ PDEVOBJ_Create(
     _In_opt_ PGRAPHICS_DEVICE pGraphicsDevice,
     _In_opt_ PDEVMODEW pdm,
     _In_ ULONG dwAccelerationLevel,
-    _In_ ULONG ldevtype);
+    _In_ LDEVTYPE ldevtype);
 
 /* Change display settings:
  * - pustrDeviceName: name of the device to change settings. Can be NULL to specify whole display surface

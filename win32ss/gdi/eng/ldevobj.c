@@ -302,7 +302,7 @@ LDEVOBJ_bUnloadImage(
 PLDEVOBJ
 LDEVOBJ_pLoadInternal(
     _In_ PFN_DrvEnableDriver pfnEnableDriver,
-    _In_ ULONG ldevtype)
+    _In_ LDEVTYPE ldevtype)
 {
     PLDEVOBJ pldev;
 
@@ -346,7 +346,7 @@ PLDEVOBJ
 NTAPI
 LDEVOBJ_pLoadDriver(
     _In_z_ LPWSTR pwszDriverName,
-    _In_ ULONG ldevtype)
+    _In_ LDEVTYPE ldevtype)
 {
     WCHAR acwBuffer[MAX_PATH];
     PLIST_ENTRY pleLink;
