@@ -15,6 +15,8 @@
 
 /* FUNCTIONS *****************************************************************/
 
+EXTERN_C_START
+
 __drv_preferredFunction("(see documentation)", "Obsolete, always returns false. ")
 BOOL
 APIENTRY
@@ -836,3 +838,4 @@ GreMovePointer(
 
 
 /* EOF */
+EXTERN_C_END

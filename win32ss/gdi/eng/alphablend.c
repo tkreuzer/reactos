@@ -11,6 +11,7 @@
 #define NDEBUG
 #include <debug.h>
 
+EXTERN_C_START
 
 /*
  * @implemented
@@ -276,3 +277,4 @@ NtGdiEngAlphaBlend(IN SURFOBJ *psoDest,
     return EngAlphaBlend(psoDest, psoSource, ClipRegion, ColorTranslation, &DestRect, &SourceRect, BlendObj);
 }
 
+EXTERN_C_END

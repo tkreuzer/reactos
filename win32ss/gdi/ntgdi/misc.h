@@ -81,6 +81,9 @@ GdiPoolFree(
     PGDI_POOL pPool,
     PVOID pvAlloc);
 
+PGDI_POOL
+GetBrushAttrPool(VOID);
+
 FORCEINLINE
 VOID
 ExAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)

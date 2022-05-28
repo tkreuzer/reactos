@@ -11,6 +11,8 @@
 #define NDEBUG
 #include <debug.h>
 
+EXTERN_C_START
+
 #define TAG_PAN 'DnaP'
 #define GETPFN(name) ((PFN_Drv##name)(pandev->apfn[INDEX_Drv##name]))
 
@@ -499,3 +501,5 @@ DRVFN gPanDispDrvFn[] =
 };
 
 ULONG gPanDispDrvCount = RTL_NUMBER_OF(gPanDispDrvFn);
+
+EXTERN_C_END

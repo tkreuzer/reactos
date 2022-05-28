@@ -118,6 +118,5 @@ public:
 };
 
 /* HACK! */
-extern "C"
 PGDI_POOL
 GetBrushAttrPool(VOID);

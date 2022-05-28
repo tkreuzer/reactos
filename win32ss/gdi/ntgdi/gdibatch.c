@@ -4,8 +4,8 @@
 #define NDEBUG
 #include <debug.h>
 
-BOOL FASTCALL IntPatBlt( PDC,INT,INT,INT,INT,DWORD,PEBRUSHOBJ);
-BOOL APIENTRY IntExtTextOutW(IN PDC,IN INT,IN INT,IN UINT,IN OPTIONAL PRECTL,IN LPCWSTR,IN INT,IN OPTIONAL LPINT,IN DWORD);
+extern "C" BOOL FASTCALL IntPatBlt(PDC, INT, INT, INT, INT, DWORD, PEBRUSHOBJ);
+extern "C" BOOL APIENTRY IntExtTextOutW(IN PDC, IN INT, IN INT, IN UINT, IN OPTIONAL PRECTL, IN LPCWSTR, IN INT, IN OPTIONAL LPINT, IN DWORD);
 
 
 //
@@ -248,7 +248,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
         ULONG ulForegroundClr, ulBackgroundClr;
         DWORD flags = 0, flXform = 0, saveflags, saveflXform = 0;
         FLONG flTextAlign = -1;
-        HANDLE hlfntNew;
+        HFONT hlfntNew;
         PRECTL lprc;
         USHORT jBkMode;
         LONG lBkMode;

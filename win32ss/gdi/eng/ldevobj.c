@@ -9,6 +9,9 @@
 #include <win32k.h>
 #define NDEBUG
 #include <debug.h>
+
+EXTERN_C_START
+
 DBG_DEFAULT_CHANNEL(EngLDev);
 
 #ifndef RVA_TO_ADDR
@@ -858,3 +861,4 @@ EngFindImageProcAddress(
 }
 
 /* EOF */
+EXTERN_C_END

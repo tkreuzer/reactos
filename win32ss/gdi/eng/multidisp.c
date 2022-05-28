@@ -12,6 +12,8 @@
 #define NDEBUG
 #include <debug.h>
 
+EXTERN_C_START
+
 BOOL
 APIENTRY
 MultiEnableDriver(
@@ -22,3 +24,5 @@ MultiEnableDriver(
     UNIMPLEMENTED;
     return FALSE;
 }
+
+EXTERN_C_END

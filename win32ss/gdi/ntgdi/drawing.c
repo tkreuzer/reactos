@@ -49,6 +49,7 @@ SUCH DAMAGE.
     Modified for ReactOS
  */
 
+#define _NO_CPP_OBJECTS
 #include <win32k.h>
 
 #define NDEBUG

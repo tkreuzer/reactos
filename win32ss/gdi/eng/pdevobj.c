@@ -9,6 +9,9 @@
 #include <win32k.h>
 #define NDEBUG
 #include <debug.h>
+
+EXTERN_C_START
+
 DBG_DEFAULT_CHANNEL(EngPDev);
 
 static PPDEVOBJ gppdevList = NULL;
@@ -1296,3 +1299,5 @@ PDEVOBJ_sizl(PPDEVOBJ ppdev, PSIZEL psizl)
     }
     return psizl;
 }
+
+EXTERN_C_END

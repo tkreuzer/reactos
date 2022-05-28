@@ -17,7 +17,10 @@
 #define NDEBUG
 #include <debug.h>
 
-XCLIPOBJ gxcoTrivial =
+EXTERN_C_START
+
+XCLIPOBJ gxcoTrivial; // =
+#if 0
 {
     /* CLIPOBJ */
     {
@@ -34,6 +37,7 @@ XCLIPOBJ gxcoTrivial =
 
     0, {0,0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
+#endif
 
 typedef BOOLEAN (APIENTRY *PBLTRECTFUNC)(SURFOBJ* OutputObj,
                                         SURFOBJ* InputObj,
@@ -1243,3 +1247,4 @@ IntEngMaskBlt(
 }
 
 /* EOF */
+EXTERN_C_END

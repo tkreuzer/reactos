@@ -83,11 +83,14 @@ extern "C" {
 #include <ntgdi.h>
 #include <include/ntgdihdl.h>
 #include <include/ntgdibad.h>
+#include <include/ntwin32.h>
 
 #ifndef __cplusplus
 #include <include/ntusrtyp.h>
 #include <include/ntuser.h>
 #include <include/callback.h>
+#else
+//#include <user/ntuser/sysparams.h>
 #endif // __cplusplus
 
 /* Undocumented user definitions */
@@ -105,6 +108,14 @@ extern "C" {
 
 #ifdef __cplusplus
 } /* extern "C" */
+#endif
+
+#ifdef __cplusplus
+#define EXTERN_C_START extern "C" {
+#define EXTERN_C_END }
+#else
+#define EXTERN_C_START
+#define EXTERN_C_END
 #endif
 
 #endif /* __W32K_H */

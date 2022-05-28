@@ -25,6 +25,7 @@ IntGdiUnreferencePdev(PPDEVOBJ ppdev, DWORD CleanUpType)
     UNIMPLEMENTED;
 }
 
+extern "C"
 BOOL FASTCALL
 IntCreatePrimarySurface(VOID)
 {
@@ -40,6 +41,7 @@ IntCreatePrimarySurface(VOID)
     return TRUE;
 }
 
+extern "C"
 VOID FASTCALL
 IntDestroyPrimarySurface(VOID)
 {

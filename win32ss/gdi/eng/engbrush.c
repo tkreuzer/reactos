@@ -7,7 +7,10 @@
  *                    Timo Kreuzer
  */
 
+#define _NO_CPP_OBJECTS
 #include <win32k.h>
+
+EXTERN_C_START
 
 DBG_DEFAULT_CHANNEL(EngBrush);
 
@@ -530,3 +533,4 @@ BRUSHOBJ_ulGetBrushColor(
 }
 
 /* EOF */
+EXTERN_C_END

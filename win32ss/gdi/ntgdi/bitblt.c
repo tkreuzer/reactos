@@ -5,11 +5,13 @@
  * FILE:             win32ss/gdi/ntgdi/bitblt.c
  * PROGRAMER:        Unknown
  */
-
+#define _NO_CPP_OBJECTS
 #include <win32k.h>
 #define NDEBUG
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(GdiBlt);
+
+EXTERN_C_START
 
 BOOL APIENTRY
 NtGdiAlphaBlend(
@@ -1610,3 +1612,4 @@ leave:
     return ulRGBColor;
 }
 
+EXTERN_C_END

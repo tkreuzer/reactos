@@ -1,7 +1,10 @@
+#define _NO_CPP_OBJECTS
 #include <win32k.h>
 
 #define NDEBUG
 #include <debug.h>
+
+EXTERN_C_START
 
 /*
  * A couple of macros to fill a single pixel or a line
@@ -122,8 +125,8 @@ IntArc( DC *dc,
 
     CenterX = (RectBounds.right + RectBounds.left) / 2;
     CenterY = (RectBounds.bottom + RectBounds.top) / 2;
-    AngleEnd   = atan2((RectSEpts.bottom - CenterY), RectSEpts.right - CenterX)*(360.0/(M_PI*2));
-    AngleStart = atan2((RectSEpts.top - CenterY), RectSEpts.left - CenterX)*(360.0/(M_PI*2));
+    AngleEnd   = atan2((double)(RectSEpts.bottom - CenterY), (double)(RectSEpts.right - CenterX))*(360.0/(M_PI*2));
+    AngleStart = atan2((double)(RectSEpts.top - CenterY), (double)(RectSEpts.left - CenterX))*(360.0/(M_PI*2));
 
     /* Edge Case: Check if the start segments overlaps(is equal) the end segment */
     if (AngleEnd == AngleStart)
@@ -407,3 +410,4 @@ NtGdiArcInternal(
   return Ret;
 }
 
+EXTERN_C_END

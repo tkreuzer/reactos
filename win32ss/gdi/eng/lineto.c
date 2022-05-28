@@ -5,11 +5,13 @@
  * FILE:             win32ss/gdi/eng/lineto.c
  * PROGRAMER:        ReactOS Team
  */
-
+#define _NO_CPP_OBJECTS
 #include <win32k.h>
 
 #define NDEBUG
 #include <debug.h>
+
+EXTERN_C_START
 
 static void FASTCALL
 TranslateRects(RECT_ENUM *RectEnum, POINTL* Translate)
@@ -737,3 +739,4 @@ IntEngPolyline(SURFOBJ *psoDest,
 }
 
 /* EOF */
+EXTERN_C_END

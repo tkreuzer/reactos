@@ -11,6 +11,8 @@
 #define NDEBUG
 #include <debug.h>
 
+EXTERN_C_START
+
 HANDLE ghSystem32Directory;
 HANDLE ghRootDirectory;
 
@@ -207,7 +209,7 @@ EngMapSection(
                                     pSection->cjViewSize,
                                     NULL,
                                     &pSection->cjViewSize,
-                                    0,
+                                    ViewUnmap,
                                     0,
                                     PAGE_READWRITE);
         if (!NT_SUCCESS(Status))
@@ -590,3 +592,5 @@ EngUnmapFontFile(
     // www.osr.com/ddk/graphics/gdifncs_09wn.htm
     EngUnmapFontFileFD(iFile);
 }
+
+EXTERN_C_END

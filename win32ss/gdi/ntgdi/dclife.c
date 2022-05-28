@@ -33,6 +33,7 @@ const MATRIX gmxDeviceToWorldDefault =
     0, 0, 0x53
 };
 
+extern "C" // FIXME!
 const MATRIX gmxWorldToPageDefault =
 {
     FLOATOBJ_1, FLOATOBJ_0,
@@ -891,6 +892,9 @@ NtGdiCreateCompatibleDC(HDC hdc)
     /* Call the internal function to create a normal memory DC */
     return GreCreateCompatibleDC(hdc, FALSE);
 }
+
+// FIXME: HACK
+extern "C" INT FASTCALL UserReleaseDC(struct _WND *Window, HDC hDc, BOOL EndPaint);
 
 BOOL
 FASTCALL

@@ -48,7 +48,7 @@ add_custom_command(
     COMMAND native-gendib ${CMAKE_CURRENT_BINARY_DIR}/gdi/dib
     DEPENDS native-gendib)
 
-list(APPEND SOURCE
+list(APPEND DIB_SOURCE
     gdi/dib/alphablend.c
     gdi/dib/dib1bpp.c
     gdi/dib/dib4bpp.c
@@ -58,6 +58,9 @@ list(APPEND SOURCE
     gdi/dib/dib32bpp.c
     gdi/dib/floodfill.c
     gdi/dib/stretchblt.c
+)
+
+list(APPEND ENG_SOURCE
     gdi/eng/alphablend.c
     gdi/eng/bitblt.c
     gdi/eng/engbrush.c
@@ -92,11 +95,12 @@ list(APPEND SOURCE
     gdi/eng/transblt.c
     gdi/eng/engwindow.c
     gdi/eng/xlateobj.c
-    user/ntuser/main.c
-    user/ntuser/misc/file.c
-    user/ntuser/misc/rtlstr.c
-    user/ntuser/misc/copy.c
-    user/ntuser/misc/registry.c
+)
+
+set_source_files_properties(${ENG_SOURCE} PROPERTIES LANGUAGE CXX)
+set_source_files_properties(gdi/eng/engwindow.c gdi/eng/mouse.c PROPERTIES LANGUAGE C)
+
+list(APPEND REACTX_SOURCE
     reactx/ntddraw/ddraw.c
     reactx/ntddraw/dd.c
     reactx/ntddraw/ddsurf.c
@@ -106,6 +110,14 @@ list(APPEND SOURCE
     reactx/ntddraw/mocomp.c
     reactx/ntddraw/eng.c
     reactx/ntddraw/dxeng.c
+)
+
+list(APPEND NTUSER_SOURCE
+    user/ntuser/main.c
+    user/ntuser/misc/file.c
+    user/ntuser/misc/rtlstr.c
+    user/ntuser/misc/copy.c
+    user/ntuser/misc/registry.c
     user/ntuser/accelerator.c
     user/ntuser/callback.c
     user/ntuser/callproc.c
@@ -159,7 +171,9 @@ list(APPEND SOURCE
     user/ntuser/winpos.c
     user/ntuser/winsta.c
     user/ntuser/object.c
-    user/rtl/text.c
+)
+
+list(APPEND NTGDI_SOURCE
     gdi/ntgdi/arc.c
     gdi/ntgdi/bezier.c
     gdi/ntgdi/bitblt.c
@@ -198,6 +212,59 @@ list(APPEND SOURCE
     gdi/ntgdi/xformobj.c
     gdi/eng/stubs.c
     gdi/eng/umpdstubs.c
+)
+
+list(APPEND NTGDI_CPP_SOURCE
+    gdi/ntgdi/arc.c
+    gdi/ntgdi/bezier.c
+    gdi/ntgdi/bitblt.c
+    gdi/ntgdi/bitmaps.c
+    gdi/ntgdi/cliprgn.c
+    gdi/ntgdi/coord.c
+    gdi/ntgdi/dcattr.c
+    gdi/ntgdi/dclife.c
+    gdi/ntgdi/dcobjs.c
+    gdi/ntgdi/dcstate.c
+    gdi/ntgdi/dcutil.c
+    gdi/ntgdi/device.c
+    gdi/ntgdi/dibobj.c
+    gdi/ntgdi/drawing.c
+    gdi/ntgdi/fillshap.c
+    #gdi/ntgdi/font.c
+    #gdi/ntgdi/freetype.c
+    gdi/ntgdi/gdibatch.c
+    gdi/ntgdi/gdidbg.c
+    gdi/ntgdi/gdiobj.c
+    gdi/ntgdi/gdipool.c
+    #gdi/ntgdi/icm.c
+    gdi/ntgdi/init.c
+    #gdi/ntgdi/line.c
+    #gdi/ntgdi/metafile.c
+    #gdi/ntgdi/palette.c
+    #gdi/ntgdi/path.c
+    #gdi/ntgdi/pen.c
+    #gdi/ntgdi/polyfill.c
+    #gdi/ntgdi/print.c
+    #gdi/ntgdi/rect.c
+    #gdi/ntgdi/region.c
+    #gdi/ntgdi/stockobj.c
+    #gdi/ntgdi/text.c
+    #gdi/ntgdi/wingl.c
+    #gdi/ntgdi/xformobj.c
+    #gdi/eng/stubs.c
+    #gdi/eng/umpdstubs.c
+)
+
+set_source_files_properties(${NTGDI_CPP_SOURCE} PROPERTIES LANGUAGE CXX)
+#set_source_files_properties(gdi/eng/engwindow.c gdi/eng/mouse.c PROPERTIES LANGUAGE C)
+
+list(APPEND SOURCE
+    ${DIB_SOURCE}
+    ${ENG_SOURCE}
+    ${REACTX_SOURCE}
+    ${NTUSER_SOURCE}
+    ${NTGDI_SOURCE}
+    user/rtl/text.c
     pch.h)
 
 if(USE_DIBLIB)
@@ -246,8 +313,8 @@ if(USE_DIBLIB)
 endif()
 
 add_importlibs(win32k ntoskrnl hal ftfd)
-add_pch(win32k pch.h SOURCE)
-add_cd_file(TARGET win32k DESTINATION reactos/system32 FOR all)
+#add_pch(win32k pch.h SOURCE)
+#add_cd_file(TARGET win32k DESTINATION reactos/system32 FOR all)
 
 set_source_files_properties(sys-stubs.S PROPERTIES OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/w32ksvc.h)
 add_asm_files(win32ksys_asm sys-stubs.S)

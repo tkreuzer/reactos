@@ -18,6 +18,8 @@
 
 /* PUBLIC FUNCTIONS ***********************************************************/
 
+EXTERN_C_START
+
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOL
@@ -206,3 +208,4 @@ EngWaitForSingleObject(
 }
 
 /* EOF */
+EXTERN_C_END

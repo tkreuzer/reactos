@@ -12,6 +12,22 @@
 
 DBG_DEFAULT_CHANNEL(EngDev);
 
+// HACK: this is from USER and should not be called from here
+extern "C" VOID
+UserRefreshDisplay(IN PPDEVOBJ ppdev);
+
+extern "C"
+PGRAPHICS_DEVICE
+NTAPI
+InitDisplayDriver(
+    IN PWSTR pwszDeviceName,
+    IN PWSTR pwszRegKey);
+
+extern "C"
+BOOL FASTCALL IntPaintDesktop(HDC);
+
+extern "C" HDC ScreenDeviceContext;
+
 PGRAPHICS_DEVICE gpPrimaryGraphicsDevice;
 PGRAPHICS_DEVICE gpVgaGraphicsDevice;
 
@@ -123,9 +139,6 @@ EngpUpdateGraphicsDeviceList(VOID)
 
     return STATUS_SUCCESS;
 }
-
-extern VOID
-UserRefreshDisplay(IN PPDEVOBJ ppdev);
 
 // PVIDEO_WIN32K_CALLOUT
 VOID

@@ -14,6 +14,7 @@
 
 BOOL NTAPI GDI_CleanupForProcess(struct _EPROCESS *Process);
 
+extern "C"
 NTSTATUS
 GdiProcessCreate(PEPROCESS Process)
 {
@@ -43,6 +44,7 @@ GdiProcessCreate(PEPROCESS Process)
     return STATUS_SUCCESS;
 }
 
+extern "C"
 NTSTATUS
 GdiProcessDestroy(PEPROCESS Process)
 {

@@ -6,6 +6,7 @@
  * PROGRAMER:         Timo Kreuzer (timo.kreuzer@rectos.org)
  */
 
+#define _NO_CPP_OBJECTS
 #include <win32k.h>
 
 #define NDEBUG
