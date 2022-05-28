@@ -14,7 +14,7 @@ EngCreateSemaphore(
     VOID)
 {
     // www.osr.com/ddk/graphics/gdifncs_95lz.htm
-    PERESOURCE psem = ExAllocatePoolWithTag(NonPagedPool,
+    PERESOURCE psem = (PERESOURCE)ExAllocatePoolWithTag(NonPagedPool,
                                             sizeof(ERESOURCE),
                                             GDITAG_SEMAPHORE);
     if (!psem)
@@ -51,7 +51,7 @@ EngAcquireSemaphore(
     }
 
     ExEnterCriticalRegionAndAcquireResourceExclusive((PERESOURCE)hsem);
-    W32Thread = PsGetThreadWin32Thread(PsGetCurrentThread());
+    W32Thread = (PTHREADINFO)PsGetThreadWin32Thread(PsGetCurrentThread());
     if (W32Thread) W32Thread->dwEngAcquireCount++;
 }
 
@@ -76,7 +76,7 @@ EngReleaseSemaphore(
         return;
     }
 
-    W32Thread = PsGetThreadWin32Thread(PsGetCurrentThread());
+    W32Thread = (PTHREADINFO)PsGetThreadWin32Thread(PsGetCurrentThread());
     if (W32Thread) --W32Thread->dwEngAcquireCount;
     ExReleaseResourceAndLeaveCriticalRegion((PERESOURCE)hsem);
 }
@@ -93,7 +93,7 @@ EngAcquireSemaphoreShared(
 
     ASSERT(hsem);
     ExEnterCriticalRegionAndAcquireResourceShared((PERESOURCE)hsem);
-    pti = PsGetThreadWin32Thread(PsGetCurrentThread());
+    pti = (PTHREADINFO)PsGetThreadWin32Thread(PsGetCurrentThread());
     if (pti) ++pti->dwEngAcquireCount;
 }
 

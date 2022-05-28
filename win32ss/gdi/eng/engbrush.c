@@ -436,7 +436,7 @@ EBRUSHOBJ_psoPattern(EBRUSHOBJ *pebo)
 {
     PSURFACE psurfPattern;
 
-    psurfPattern = EBRUSHOBJ_pvGetEngBrush(pebo);
+    psurfPattern = (PSURFACE)EBRUSHOBJ_pvGetEngBrush(pebo);
 
     return psurfPattern ? &psurfPattern->SurfObj : NULL;
 }

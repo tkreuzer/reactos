@@ -63,7 +63,7 @@ PDEVOBJ_AllocPDEV(VOID)
 {
     PPDEVOBJ ppdev;
 
-    ppdev = ExAllocatePoolWithTag(PagedPool, sizeof(PDEVOBJ), GDITAG_PDEV);
+    ppdev = (PPDEVOBJ)ExAllocatePoolWithTag(PagedPool, sizeof(PDEVOBJ), GDITAG_PDEV);
     if (!ppdev)
         return NULL;
 
@@ -77,7 +77,7 @@ PDEVOBJ_AllocPDEV(VOID)
     }
 
     /* Allocate EDD_DIRECTDRAW_GLOBAL for our ReactX driver */
-    ppdev->pEDDgpl = ExAllocatePoolWithTag(PagedPool, sizeof(EDD_DIRECTDRAW_GLOBAL), GDITAG_PDEV);
+    ppdev->pEDDgpl = (PEDD_DIRECTDRAW_GLOBAL)ExAllocatePoolWithTag(PagedPool, sizeof(EDD_DIRECTDRAW_GLOBAL), GDITAG_PDEV);
     if (ppdev->pEDDgpl)
         RtlZeroMemory(ppdev->pEDDgpl, sizeof(EDD_DIRECTDRAW_GLOBAL));
 
@@ -486,7 +486,7 @@ PDEVOBJ_Create(
         /* Keep selected resolution */
         if (ppdev->pdmwDev)
             ExFreePoolWithTag(ppdev->pdmwDev, GDITAG_DEVMODE);
-        ppdev->pdmwDev = ExAllocatePoolWithTag(PagedPool, pdm->dmSize + pdm->dmDriverExtra, GDITAG_DEVMODE);
+        ppdev->pdmwDev = (PDEVMODEW)ExAllocatePoolWithTag(PagedPool, pdm->dmSize + pdm->dmDriverExtra, GDITAG_DEVMODE);
         if (ppdev->pdmwDev)
         {
             RtlCopyMemory(ppdev->pdmwDev, pdm, pdm->dmSize + pdm->dmDriverExtra);
@@ -570,8 +570,8 @@ SwitchPointer(
     _Inout_ PVOID pvPointer1,
     _Inout_ PVOID pvPointer2)
 {
-    PVOID *ppvPointer1 = pvPointer1;
-    PVOID *ppvPointer2 = pvPointer2;
+    PVOID *ppvPointer1 = (PVOID*)pvPointer1;
+    PVOID *ppvPointer2 = (PVOID*)pvPointer2;
     PVOID pvTemp;
 
     pvTemp = *ppvPointer1;

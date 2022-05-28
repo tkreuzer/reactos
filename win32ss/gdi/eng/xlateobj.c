@@ -458,7 +458,7 @@ EXLATEOBJ_vInitialize(
         /* Allocate buffer if needed */
         if (cEntries > 6)
         {
-            pexlo->xlo.pulXlate = EngAllocMem(0,
+            pexlo->xlo.pulXlate = (PULONG)EngAllocMem(0,
                                               cEntries * sizeof(ULONG),
                                               GDITAG_PXLATE);
             if (!pexlo->xlo.pulXlate)

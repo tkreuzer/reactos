@@ -58,8 +58,8 @@ NtGdiAlphaBlend(
         EngSetLastError(ERROR_INVALID_HANDLE);
         return FALSE;
     }
-    DCDest = apObj[0];
-    DCSrc = apObj[1];
+    DCDest = (PDC)apObj[0];
+    DCSrc = (PDC)apObj[1];
 
     if (DCDest->dctype == DCTYPE_INFO || DCDest->dctype == DCTYPE_INFO)
     {
@@ -236,8 +236,8 @@ NtGdiTransparentBlt(
         EngSetLastError(ERROR_INVALID_HANDLE);
         return FALSE;
     }
-    DCDest = apObj[0];
-    DCSrc = apObj[1];
+    DCDest = (PDC)apObj[0];
+    DCSrc = (PDC)apObj[1];
 
     if (DCDest->dctype == DCTYPE_INFO || DCDest->dctype == DCTYPE_INFO)
     {
@@ -389,8 +389,8 @@ NtGdiMaskBlt(
         EngSetLastError(ERROR_INVALID_HANDLE);
         return FALSE;
     }
-    DCDest = apObj[0];
-    DCSrc = apObj[1];
+    DCDest = (PDC)apObj[0];
+    DCSrc = (PDC)apObj[1];
 
     ASSERT(DCDest);
     if (NULL == DCDest)
@@ -620,9 +620,9 @@ GreStretchBltMask(
         EngSetLastError(ERROR_INVALID_HANDLE);
         return FALSE;
     }
-    DCDest = apObj[0];
-    DCSrc = apObj[1];
-    DCMask = apObj[2];
+    DCDest = (PDC)apObj[0];
+    DCSrc = (PDC)apObj[1];
+    DCMask = (PDC)apObj[2];
 
     if (DCDest->dctype == DCTYPE_INFO)
     {
@@ -1045,7 +1045,7 @@ NtGdiPolyPatBlt(
 
     if (cRects > 0)
     {
-        rb = ExAllocatePoolWithTag(PagedPool, sizeof(PATRECT) * cRects, GDITAG_PLGBLT_DATA);
+        rb = (PPATRECT)ExAllocatePoolWithTag(PagedPool, sizeof(PATRECT) * cRects, GDITAG_PLGBLT_DATA);
         if (!rb)
         {
             EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);

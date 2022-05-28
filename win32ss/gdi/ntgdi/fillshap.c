@@ -479,7 +479,7 @@ NtGdiPolyPolyDraw( IN HDC hDC,
         return FALSE;
     }
 
-    SafeCounts = pTemp;
+    SafeCounts = (PULONG)pTemp;
     SafePoints = (PPOINTL)(SafeCounts + Count);
 
     _SEH2_TRY
@@ -1099,7 +1099,7 @@ NtGdiGradientFill(
     }
 
     /* Allocate a kernel mode buffer */
-    SafeVertex = ExAllocatePoolWithTag(PagedPool, cbVertex + cbMesh, TAG_SHAPE);
+    SafeVertex = (PTRIVERTEX)ExAllocatePoolWithTag(PagedPool, cbVertex + cbMesh, TAG_SHAPE);
     if(!SafeVertex)
     {
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);

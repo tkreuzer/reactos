@@ -745,7 +745,7 @@ BOOL DbgInitDebugChannels(VOID)
     BOOL ret;
 
     /* Initialize all channels to ERROR */
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = (PPROCESSINFO)PsGetCurrentProcessWin32Process();
     RtlFillMemory( ppi->DbgChannelLevel,
                    sizeof(ppi->DbgChannelLevel),
                    ERR_LEVEL);
@@ -766,7 +766,7 @@ BOOL DbgInitDebugChannels(VOID)
     /* If the buffer in the stack is not enough allocate it */
     if(Status == STATUS_BUFFER_TOO_SMALL)
     {
-        Value.Buffer = ExAllocatePool(PagedPool, Value.MaximumLength);
+        Value.Buffer = (PWCH)ExAllocatePool(PagedPool, Value.MaximumLength);
         if(Value.Buffer == NULL)
         {
             return FALSE;

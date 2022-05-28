@@ -207,7 +207,7 @@ EngpRegisterGraphicsDevice(
     TRACE("EngpRegisterGraphicsDevice(%wZ)\n", pustrDeviceName);
 
     /* Allocate a GRAPHICS_DEVICE structure */
-    pGraphicsDevice = ExAllocatePoolWithTag(PagedPool,
+    pGraphicsDevice = (PGRAPHICS_DEVICE)ExAllocatePoolWithTag(PagedPool,
                                             sizeof(GRAPHICS_DEVICE),
                                             GDITAG_GDEVICE);
     if (!pGraphicsDevice)
@@ -270,7 +270,7 @@ EngpRegisterGraphicsDevice(
 
     /* Allocate a buffer for the strings */
     cj = pustrDiplayDrivers->Length + pustrDescription->Length + sizeof(WCHAR);
-    pwsz = ExAllocatePoolWithTag(PagedPool, cj, GDITAG_DRVSUP);
+    pwsz = (PWSTR)ExAllocatePoolWithTag(PagedPool, cj, GDITAG_DRVSUP);
     if (!pwsz)
     {
         ERR("Could not allocate string buffer\n");

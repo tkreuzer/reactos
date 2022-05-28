@@ -17,7 +17,7 @@ BOOL NTAPI GDI_CleanupForProcess(struct _EPROCESS *Process);
 NTSTATUS
 GdiProcessCreate(PEPROCESS Process)
 {
-    PPROCESSINFO ppiCurrent = PsGetProcessWin32Process(Process);
+    PPROCESSINFO ppiCurrent = (PPROCESSINFO)PsGetProcessWin32Process(Process);
     ASSERT(ppiCurrent);
 
     InitializeListHead(&ppiCurrent->PrivateFontListHead);
@@ -46,7 +46,7 @@ GdiProcessCreate(PEPROCESS Process)
 NTSTATUS
 GdiProcessDestroy(PEPROCESS Process)
 {
-    PPROCESSINFO ppiCurrent = PsGetProcessWin32Process(Process);
+    PPROCESSINFO ppiCurrent = (PPROCESSINFO)PsGetProcessWin32Process(Process);
     ASSERT(ppiCurrent);
     ASSERT(ppiCurrent->peProcess == Process);
 

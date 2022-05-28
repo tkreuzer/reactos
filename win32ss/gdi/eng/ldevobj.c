@@ -43,7 +43,7 @@ InitLDEVImpl(VOID)
     }
 
     /* Allocate a LDEVOBJ for win32k */
-    gpldevWin32k = ExAllocatePoolWithTag(PagedPool,
+    gpldevWin32k = (PLDEVOBJ)ExAllocatePoolWithTag(PagedPool,
                                          sizeof(LDEVOBJ) +
                                          sizeof(SYSTEM_GDI_DRIVER_INFORMATION),
                                          GDITAG_LDEV);
@@ -58,13 +58,14 @@ InitLDEVImpl(VOID)
     gpldevWin32k->ldevtype = LDEV_DEVICE_DISPLAY;
     gpldevWin32k->cRefs = 1;
     gpldevWin32k->ulDriverVersion = GDI_ENGINE_VERSION;
-    gpldevWin32k->pGdiDriverInfo = (PVOID)(gpldevWin32k + 1);
+    gpldevWin32k->pGdiDriverInfo = (PSYSTEM_GDI_DRIVER_INFORMATION)(gpldevWin32k + 1);
     RtlInitUnicodeString(&gpldevWin32k->pGdiDriverInfo->DriverName,
                          L"\\SystemRoot\\System32\\win32k.sys");
     gpldevWin32k->pGdiDriverInfo->ImageAddress = &__ImageBase;
     gpldevWin32k->pGdiDriverInfo->SectionPointer = NULL;
     gpldevWin32k->pGdiDriverInfo->EntryPoint = (PVOID)DriverEntry;
     gpldevWin32k->pGdiDriverInfo->ExportSectionPointer =
+        (PIMAGE_EXPORT_DIRECTORY)
         RtlImageDirectoryEntryToData(&__ImageBase,
                                      TRUE,
                                      IMAGE_DIRECTORY_ENTRY_EXPORT,
@@ -82,7 +83,7 @@ LDEVOBJ_AllocLDEV(
     PLDEVOBJ pldev;
 
     /* Allocate the structure from paged pool */
-    pldev = ExAllocatePoolWithTag(PagedPool, sizeof(LDEVOBJ), GDITAG_LDEV);
+    pldev = (PLDEVOBJ)ExAllocatePoolWithTag(PagedPool, sizeof(LDEVOBJ), GDITAG_LDEV);
     if (!pldev)
     {
         ERR("Failed to allocate LDEVOBJ.\n");
@@ -126,7 +127,7 @@ LDEVOBJ_bLoadImage(
 
     /* Allocate a SYSTEM_GDI_DRIVER_INFORMATION structure */
     cbSize = sizeof(SYSTEM_GDI_DRIVER_INFORMATION) + pustrPathName->Length;
-    pDriverInfo = ExAllocatePoolWithTag(PagedPool, cbSize, GDITAG_LDEV);
+    pDriverInfo = (PSYSTEM_GDI_DRIVER_INFORMATION)ExAllocatePoolWithTag(PagedPool, cbSize, GDITAG_LDEV);
     if (!pDriverInfo)
     {
         ERR("Failed to allocate SYSTEM_GDI_DRIVER_INFORMATION\n");
@@ -244,15 +245,15 @@ LDEVOBJ_pvFindImageProcAddress(
     }
 
     /* Get pointers to some tables */
-    pNames = RVA_TO_ADDR(pvImageBase, pExportDir->AddressOfNames);
-    pOrdinals = RVA_TO_ADDR(pvImageBase, pExportDir->AddressOfNameOrdinals);
-    pAddresses = RVA_TO_ADDR(pvImageBase, pExportDir->AddressOfFunctions);
+    pNames = (PULONG)RVA_TO_ADDR(pvImageBase, pExportDir->AddressOfNames);
+    pOrdinals = (PUSHORT)RVA_TO_ADDR(pvImageBase, pExportDir->AddressOfNameOrdinals);
+    pAddresses = (PULONG)RVA_TO_ADDR(pvImageBase, pExportDir->AddressOfFunctions);
 
     /* Loop the export table */
     for (i = 0; i < pExportDir->NumberOfNames; i++)
     {
         /* Compare the name */
-        if (_stricmp(pszProcName, RVA_TO_ADDR(pvImageBase, pNames[i])) == 0)
+        if (_stricmp(pszProcName, (PCCHAR)RVA_TO_ADDR(pvImageBase, pNames[i])) == 0)
         {
             /* Found! Calculate the procedure address */
             pvProcAdress = RVA_TO_ADDR(pvImageBase, pAddresses[pOrdinals[i]]);
@@ -437,7 +438,7 @@ LDEVOBJ_pLoadDriver(
         }
 
         /* Load the driver */
-        if (!LDEVOBJ_bEnableDriver(pldev, pldev->pGdiDriverInfo->EntryPoint))
+        if (!LDEVOBJ_bEnableDriver(pldev, (PFN_DrvEnableDriver)pldev->pGdiDriverInfo->EntryPoint))
         {
             ERR("LDEVOBJ_bEnableDriver failed\n");
 
@@ -495,7 +496,7 @@ LDEVOBJ_vDereference(
     else
     {
         WARN("Failed to unload driver '%wZ', trying to re-enable it.\n", &pldev->pGdiDriverInfo->DriverName);
-        LDEVOBJ_bEnableDriver(pldev, pldev->pGdiDriverInfo->EntryPoint);
+        LDEVOBJ_bEnableDriver(pldev, (PFN_DrvEnableDriver)pldev->pGdiDriverInfo->EntryPoint);
 
         /* Increment again reference count */
         pldev->cRefs++;
@@ -534,7 +535,7 @@ LDEVOBJ_ulGetDriverModes(
     }
 
     /* Allocate a buffer for the DEVMODE array */
-    pdm = ExAllocatePoolWithTag(PagedPool, cbSize, GDITAG_DEVMODE);
+    pdm = (PDEVMODEW)ExAllocatePoolWithTag(PagedPool, cbSize, GDITAG_DEVMODE);
     if (!pdm)
     {
         ERR("Could not allocate devmodeinfo\n");
@@ -592,7 +593,7 @@ LDEVOBJ_bBuildDevmodeList(
         cbFull = cbSize + FIELD_OFFSET(DEVMODEINFO, adevmode);
 
         /* Allocate a buffer for the DEVMODE array */
-        pdminfo = ExAllocatePoolWithTag(PagedPool, cbFull, GDITAG_DEVMODE);
+        pdminfo = (PDEVMODEINFO)ExAllocatePoolWithTag(PagedPool, cbFull, GDITAG_DEVMODE);
         if (!pdminfo)
         {
             ERR("Could not allocate devmodeinfo\n");
@@ -631,7 +632,7 @@ LDEVOBJ_bBuildDevmodeList(
 
     /* Allocate an index buffer */
     pGraphicsDevice->cDevModes = cModes;
-    pGraphicsDevice->pDevModeList = ExAllocatePoolWithTag(PagedPool,
+    pGraphicsDevice->pDevModeList = (PDEVMODEENTRY)ExAllocatePoolWithTag(PagedPool,
                                                           cModes * sizeof(DEVMODEENTRY),
                                                           GDITAG_GDEVICE);
     if (!pGraphicsDevice->pDevModeList)
@@ -775,7 +776,7 @@ LDEVOBJ_bProbeAndCaptureDevmode(
     }
 
     /* Allocate memory for output */
-    pdm = ExAllocatePoolZero(PagedPool, pdmSelected->dmSize + pdmSelected->dmDriverExtra, GDITAG_DEVMODE);
+    pdm = (PDEVMODEW)ExAllocatePoolZero(PagedPool, pdmSelected->dmSize + pdmSelected->dmDriverExtra, GDITAG_DEVMODE);
     if (!pdm)
         return FALSE;
 

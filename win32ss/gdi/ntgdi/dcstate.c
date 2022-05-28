@@ -148,7 +148,7 @@ DC_vRestoreDC(
     /* Loop the save levels */
     while (pdc->dclevel.lSaveDepth > iSaveLevel)
     {
-        hdcSave = pdc->dclevel.hdcSave;
+        hdcSave = (HDC)pdc->dclevel.hdcSave;
         DPRINT("RestoreDC = %p\n", hdcSave);
 
         /* Set us as the owner */
@@ -280,7 +280,7 @@ NtGdiSaveDC(
         DC_UnlockDc(pdc);
         return 0;
     }
-    hdcSave = pdcSave->BaseObject.hHmgr;
+    hdcSave = (HDC)pdcSave->BaseObject.hHmgr;
 
     PDEVOBJ_vReference(pdc->ppdev);
     DC_vInitDc(pdcSave, DCTYPE_MEMORY, pdc->ppdev);

@@ -56,7 +56,7 @@ GdiPoolAllocateSection(PGDI_POOL pPool)
 
     /* Allocate a section object */
     cjSize = sizeof(GDI_POOL_SECTION) + pPool->cSlotsPerSection / sizeof(ULONG);
-    pSection = EngAllocMem(0, cjSize, pPool->ulTag);
+    pSection = (PGDI_POOL_SECTION)EngAllocMem(0, cjSize, pPool->ulTag);
     if (!pSection)
     {
         return NULL;
@@ -320,7 +320,7 @@ GdiPoolCreate(
     PGDI_POOL pPool;
 
     /* Allocate a pool object */
-    pPool = EngAllocMem(0, sizeof(GDI_POOL), 'lopG');
+    pPool = (PGDI_POOL)EngAllocMem(0, sizeof(GDI_POOL), 'lopG');
     if (!pPool) return NULL;
 
     /* Initialize the object */

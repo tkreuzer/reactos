@@ -85,7 +85,7 @@ PanEnablePDEV(
     ASSERT(pdm->dmPanningWidth <= pdm->dmPelsWidth && pdm->dmPanningHeight <= pdm->dmPelsHeight);
 
     /* Allocate PANDEV */
-    pandev = EngAllocMem(FL_ZERO_MEMORY, sizeof(PANDEV), TAG_PAN);
+    pandev = (PPANDEV)EngAllocMem(FL_ZERO_MEMORY, sizeof(PANDEV), TAG_PAN);
     if (!pandev)
     {
         DPRINT1("Failed to allocate memory\n");

@@ -62,8 +62,8 @@ UnsafeSetBitmapBits(
     nHeight = psurf->SurfObj.sizlBitmap.cy;
     cBitsPixel = BitsPerFormat(psurf->SurfObj.iBitmapFormat);
 
-    pjDst = psurf->SurfObj.pvScan0;
-    pjSrc = pvBits;
+    pjDst = (PUCHAR)psurf->SurfObj.pvScan0;
+    pjSrc = (const UCHAR*)pvBits;
     lDeltaDst = psurf->SurfObj.lDelta;
     lDeltaDstAbs = labs(lDeltaDst);
     lDeltaSrc = WIDTH_BYTES_ALIGN16(nWidth, cBitsPixel);
@@ -283,7 +283,7 @@ IntCreateCompatibleBitmap(
     /* MS doc says if width or height is 0, return 1-by-1 pixel, monochrome bitmap */
     if (0 == Width || 0 == Height)
     {
-        return NtGdiGetStockObject(DEFAULT_BITMAP);
+        return (HBITMAP)NtGdiGetStockObject(DEFAULT_BITMAP);
     }
 
     if (Dc->dctype != DCTYPE_MEMORY)
@@ -513,7 +513,7 @@ UnsafeGetBitmapBits(
     cBitsPixel = BitsPerFormat(psurf->SurfObj.iBitmapFormat);
 
     /* Get pointers */
-    pjSrc = psurf->SurfObj.pvScan0;
+    pjSrc = (PUCHAR)psurf->SurfObj.pvScan0;
     pjDst = pvBits;
     lDeltaSrc = psurf->SurfObj.lDelta;
     lDeltaSrcAbs = labs(lDeltaSrc);
@@ -771,7 +771,7 @@ BITMAP_GetObject(SURFACE *psurf, INT Count, LPVOID buffer)
     if ((UINT)Count < sizeof(BITMAP)) return 0;
 
     /* Always fill a basic BITMAP structure */
-    pBitmap = buffer;
+    pBitmap = (PBITMAP)buffer;
     pBitmap->bmType = 0;
     pBitmap->bmWidth = psurf->SurfObj.sizlBitmap.cx;
     pBitmap->bmHeight = psurf->SurfObj.sizlBitmap.cy;
@@ -790,7 +790,7 @@ BITMAP_GetObject(SURFACE *psurf, INT Count, LPVOID buffer)
         if (Count >= sizeof(DIBSECTION))
         {
             /* Fill rest of DIBSECTION */
-            PDIBSECTION pds = buffer;
+            PDIBSECTION pds = (PDIBSECTION)buffer;
 
             pds->dsBmih.biSize = sizeof(BITMAPINFOHEADER);
             pds->dsBmih.biWidth = pds->dsBm.bmWidth;

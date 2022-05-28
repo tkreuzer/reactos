@@ -35,7 +35,7 @@ DC_vUpdateFillBrush(PDC pdc)
         else
         {
             /* Invalid brush handle, restore old one */
-            pdcattr->hbrush = pdc->dclevel.pbrFill->BaseObject.hHmgr;
+            pdcattr->hbrush = (HBRUSH)pdc->dclevel.pbrFill->BaseObject.hHmgr;
         }
     }
 
@@ -81,7 +81,7 @@ DC_vUpdateLineBrush(PDC pdc)
         else
         {
             /* Invalid pen handle, restore old one */
-            pdcattr->hpen = pdc->dclevel.pbrLine->BaseObject.hHmgr;
+            pdcattr->hpen = (HPEN)pdc->dclevel.pbrLine->BaseObject.hHmgr;
         }
     }
 
@@ -374,12 +374,12 @@ NtGdiSelectBitmap(
     if (psurfOld)
     {
         /* Get the old bitmap's handle */
-        hbmpOld = psurfOld->BaseObject.hHmgr;
+        hbmpOld = (HBITMAP)psurfOld->BaseObject.hHmgr;
     }
     else
     {
         /* Use the default bitmap */
-        hbmpOld = StockObjects[DEFAULT_BITMAP];
+        hbmpOld = (HBITMAP)StockObjects[DEFAULT_BITMAP];
     }
 
     /* Check if the new bitmap is already selected */
@@ -419,7 +419,7 @@ NtGdiSelectBitmap(
         }
 
         /* Set the bitmap's hdc and check if it was set before */
-        hdcOld = InterlockedCompareExchangePointer((PVOID*)&psurfNew->hdc, hdc, 0);
+        hdcOld = (HDC)InterlockedCompareExchangePointer((PVOID*)&psurfNew->hdc, hdc, 0);
         if (hdcOld != NULL)
         {
             /* The bitmap is already selected into a different DC */
@@ -561,7 +561,7 @@ DC_hSelectFont(
     }
 
     /* Get the current selected font */
-    hlfntOld = pdc->dclevel.plfnt->BaseObject.hHmgr;
+    hlfntOld = (HFONT)pdc->dclevel.plfnt->BaseObject.hHmgr;
 
     /* Check if a new font should be selected */
     if (hlfntNew != hlfntOld)

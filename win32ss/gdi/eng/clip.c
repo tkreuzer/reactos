@@ -178,7 +178,7 @@ IntEngUpdateClipRegion(
 {
     if(count > 1)
     {
-        RECTL* NewRects = EngAllocMem(0, FIELD_OFFSET(ENUMRECTS, arcl[count]), GDITAG_CLIPOBJ);
+        RECTL* NewRects = (PRECTL)EngAllocMem(0, FIELD_OFFSET(ENUMRECTS, arcl[count]), GDITAG_CLIPOBJ);
 
         if(NewRects != NULL)
         {
@@ -221,7 +221,7 @@ CLIPOBJ *
 APIENTRY
 EngCreateClip(VOID)
 {
-    XCLIPOBJ *Clip = EngAllocMem(FL_ZERO_MEMORY, sizeof(XCLIPOBJ), GDITAG_CLIPOBJ);
+    XCLIPOBJ *Clip = (XCLIPOBJ*)EngAllocMem(FL_ZERO_MEMORY, sizeof(XCLIPOBJ), GDITAG_CLIPOBJ);
     if(Clip != NULL)
     {
         IntEngInitClipObj(Clip);
