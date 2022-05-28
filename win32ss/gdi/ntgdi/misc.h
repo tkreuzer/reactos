@@ -44,15 +44,15 @@ RegQueryValue(
 
 VOID
 NTAPI
-RegWriteSZ(HKEY hkey, PWSTR pwszValue, PWSTR pwszData);
+RegWriteSZ(HKEY hkey, PCWSTR pwszValue, PCWSTR pwszData);
 
 VOID
 NTAPI
-RegWriteDWORD(HKEY hkey, PWSTR pwszValue, DWORD dwData);
+RegWriteDWORD(HKEY hkey, PCWSTR pwszValue, DWORD dwData);
 
 BOOL
 NTAPI
-RegReadDWORD(HKEY hkey, PWSTR pwszValue, PDWORD pdwData);
+RegReadDWORD(HKEY hkey, PCWSTR pwszValue, PDWORD pdwData);
 
 VOID FASTCALL
 SetLastNtError(

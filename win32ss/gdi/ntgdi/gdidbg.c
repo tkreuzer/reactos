@@ -650,7 +650,7 @@ DbgCompareChannels(const void * a, const void * b)
 }
 
 static BOOL
-DbgAddDebugChannel(PPROCESSINFO ppi, WCHAR* channel, WCHAR* level, WCHAR op)
+DbgAddDebugChannel(PPROCESSINFO ppi, const WCHAR* channel, const WCHAR* level, WCHAR op)
 {
     DBG_CHANNEL *ChannelEntry;
     UINT iLevel, iChannel;
