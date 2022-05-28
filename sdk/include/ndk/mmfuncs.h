@@ -25,6 +25,10 @@ Author:
 #include <umtypes.h>
 #include <mmtypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef NTOS_MODE_USER
 
 //
@@ -494,5 +498,9 @@ ZwWriteVirtualMemory(
     _In_ SIZE_T NumberOfBytesToWrite,
     _Out_opt_ PSIZE_T NumberOfBytesWritten
 );
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
 
 #endif

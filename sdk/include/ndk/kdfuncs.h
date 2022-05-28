@@ -25,6 +25,10 @@ Author:
 #include <umtypes.h>
 #include <kdtypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef NTOS_MODE_USER
 
 //
@@ -110,4 +114,9 @@ ZwSystemDebugControl(
     ULONG OutputBufferLength,
     PULONG ReturnLength
 );
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
 #endif
