@@ -95,7 +95,7 @@ FASTCALL
 PALETTE_GetObject(
     PPALETTE pGdiObject,
     INT cbCount,
-    LPLOGBRUSH lpBuffer);
+    PWORD lpBuffer);
 
 ULONG
 NTAPI

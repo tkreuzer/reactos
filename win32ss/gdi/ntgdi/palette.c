@@ -244,7 +244,7 @@ PALETTE_vCleanup(PVOID ObjectBody)
 
 INT
 FASTCALL
-PALETTE_GetObject(PPALETTE ppal, INT cbCount, LPLOGBRUSH lpBuffer)
+PALETTE_GetObject(PPALETTE ppal, INT cbCount, PWORD lpBuffer)
 {
     if (!lpBuffer)
     {
@@ -252,7 +252,7 @@ PALETTE_GetObject(PPALETTE ppal, INT cbCount, LPLOGBRUSH lpBuffer)
     }
 
     if ((UINT)cbCount < sizeof(WORD)) return 0;
-    *((WORD*)lpBuffer) = (WORD)ppal->NumColors;
+    *lpBuffer = (WORD)ppal->NumColors;
     return sizeof(WORD);
 }
 
