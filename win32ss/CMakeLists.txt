@@ -236,11 +236,11 @@ list(APPEND NTGDI_CPP_SOURCE
     gdi/ntgdi/gdidbg.c
     gdi/ntgdi/gdiobj.c
     gdi/ntgdi/gdipool.c
-    #gdi/ntgdi/icm.c
+    gdi/ntgdi/icm.c
     gdi/ntgdi/init.c
-    #gdi/ntgdi/line.c
+    gdi/ntgdi/line.c
     #gdi/ntgdi/metafile.c
-    #gdi/ntgdi/palette.c
+    gdi/ntgdi/palette.c
     #gdi/ntgdi/path.c
     #gdi/ntgdi/pen.c
     #gdi/ntgdi/polyfill.c
