@@ -1249,39 +1249,71 @@ NtGdiGetSystemPaletteUse(HDC hDC)
 
 BOOL
 APIENTRY
-NtGdiUpdateColors(HDC hDC)
+NtGdiUpdateColors(HDC hdc)
 {
-   PWND Wnd;
-   BOOL calledFromUser, ret;
-   USER_REFERENCE_ENTRY Ref;
+    BOOL bResult = FALSE;
+    PDC pdc;
+    PSURFACE psurfDc;
+    PPDEVOBJ ppdev;
+    EXLATEOBJ exlo;
+    POINTL ptlSrc;
 
-   calledFromUser = UserIsEntered();
+    /* Lock the DC */
+    pdc = DC_LockDc(hdc);
+    if (pdc == NULL)
+    {
+        return FALSE;
+    }
 
-   if (!calledFromUser){
-      UserEnterExclusive();
-   }
+    /* Check if the DC has no surface (empty mem or info DC) */
+    psurfDc = pdc->dclevel.pSurface;
+    if (psurfDc == NULL)
+    {
+        goto Exit;
+    }
 
-   Wnd = UserGetWindowObject(IntWindowFromDC(hDC));
-   if (Wnd == NULL)
-   {
-      EngSetLastError(ERROR_INVALID_WINDOW_HANDLE);
+    /* Get the PDEVOBJ and check if the device supports palette operations */
+    ppdev = pdc->ppdev;
+    if (!FlagOn(ppdev->gdiinfo.flRaster, RC_PALETTE))
+    {
+        goto Exit;
+    }
 
-      if (!calledFromUser){
-         UserLeave();
-      }
+    /* Make sure the DC surface is the PDEVOBJ surface */
+    if (psurfDc != ppdev->pSurface)
+    {
+        goto Exit;
+    }
 
-      return FALSE;
-   }
+    /* Initialize the XLATEOBJ (from SURFACE to DC) */
+    EXLATEOBJ_vInitialize(&exlo,
+                          pdc->dclevel.pSurface->ppal,
+                          pdc->dclevel.ppal,
+                          pdc->pdcattr->crBackgroundClr,
+                          pdc->pdcattr->crBackgroundClr,
+                          pdc->pdcattr->crForegroundClr);
 
-   UserRefObjectCo(Wnd, &Ref);
-   ret = co_UserRedrawWindow(Wnd, NULL, 0, RDW_INVALIDATE);
-   UserDerefObjectCo(Wnd);
+    /* We copy color from the top-left of the clip-rect */
+    ptlSrc.x = pdc->erclClip.left;
+    ptlSrc.y = pdc->erclClip.top;
 
-   if (!calledFromUser){
-      UserLeave();
-   }
+    /* Prepare the DC */
+    DC_vPrepareDCsForBlit(pdc, &pdc->erclClip, NULL, NULL);
 
-   return ret;
+    /* Do CopyBits on the same surface */
+    bResult = IntEngCopyBits(&pdc->dclevel.pSurface->SurfObj,
+                             &pdc->dclevel.pSurface->SurfObj,
+                             (CLIPOBJ*)&pdc->co,
+                             &exlo.xlo,
+                             &pdc->erclWindow,
+                             &ptlSrc);
+
+    DC_vFinishBlit(pdc, NULL);
+
+Exit:
+    DC_UnlockDc(pdc);
+
+    return bResult;
 }
 
 BOOL
