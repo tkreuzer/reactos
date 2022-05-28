@@ -139,8 +139,8 @@ IntArc( DC *dc,
         ret = IntFillArc( dc,
               RectBounds.left,
               RectBounds.top,
-              abs(RectBounds.right-RectBounds.left), // Width
-              abs(RectBounds.bottom-RectBounds.top), // Height
+              labs(RectBounds.right-RectBounds.left), // Width
+              labs(RectBounds.bottom-RectBounds.top), // Height
               AngleStart,
               AngleEnd,
               arctype);
@@ -151,8 +151,8 @@ IntArc( DC *dc,
         ret = IntDrawArc( dc,
                   RectBounds.left,
                   RectBounds.top,
-                  abs(RectBounds.right-RectBounds.left), // Width
-                  abs(RectBounds.bottom-RectBounds.top), // Height
+                  labs(RectBounds.right-RectBounds.left), // Width
+                  labs(RectBounds.bottom-RectBounds.top), // Height
                   AngleStart,
                   AngleEnd,
                   arctype,

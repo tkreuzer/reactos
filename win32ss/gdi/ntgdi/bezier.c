@@ -66,7 +66,7 @@ static BOOL BezierCheck( int level, POINT *Points)
     INT dx, dy;
     dx=Points[3].x-Points[0].x;
     dy=Points[3].y-Points[0].y;
-    if(abs(dy)<=abs(dx)){/* shallow line */
+    if(labs(dy)<=labs(dx)){/* shallow line */
         /* check that control points are between begin and end */
         if(Points[1].x < Points[0].x){
             if(Points[1].x < Points[3].x)
@@ -82,9 +82,9 @@ static BOOL BezierCheck( int level, POINT *Points)
                 return FALSE;
         dx=BEZIERSHIFTDOWN(dx);
         if(!dx) return TRUE;
-        if(abs(Points[1].y-Points[0].y-(dy/dx)*
+        if(labs(Points[1].y-Points[0].y-(dy/dx)*
                 BEZIERSHIFTDOWN(Points[1].x-Points[0].x)) > BEZIERPIXEL ||
-           abs(Points[2].y-Points[0].y-(dy/dx)*
+           labs(Points[2].y-Points[0].y-(dy/dx)*
                    BEZIERSHIFTDOWN(Points[2].x-Points[0].x)) > BEZIERPIXEL )
             return FALSE;
         else
@@ -105,9 +105,9 @@ static BOOL BezierCheck( int level, POINT *Points)
                 return FALSE;
         dy=BEZIERSHIFTDOWN(dy);
         if(!dy) return TRUE;
-        if(abs(Points[1].x-Points[0].x-(dx/dy)*
+        if(labs(Points[1].x-Points[0].x-(dx/dy)*
                 BEZIERSHIFTDOWN(Points[1].y-Points[0].y)) > BEZIERPIXEL ||
-           abs(Points[2].x-Points[0].x-(dx/dy)*
+           labs(Points[2].x-Points[0].x-(dx/dy)*
                    BEZIERSHIFTDOWN(Points[2].y-Points[0].y)) > BEZIERPIXEL )
             return FALSE;
         else

@@ -513,7 +513,7 @@ NtGdiSetDIBitsToDeviceInternal(
     }
     _SEH2_END;
 
-    ScanLines = min(ScanLines, abs(bmi->bmiHeader.biHeight) - StartScan);
+    ScanLines = min(ScanLines, labs(bmi->bmiHeader.biHeight) - StartScan);
     if (ScanLines == 0)
     {
         DPRINT1("ScanLines == 0\n");
@@ -971,19 +971,19 @@ GreGetDIBitsInternal(
         BOOL ret ;
         int newLines = -1;
 
-        if (StartScan >= abs(Info->bmiHeader.biHeight))
+        if (StartScan >= labs(Info->bmiHeader.biHeight))
         {
             ScanLines = 1;
             goto done;
         }
         else
         {
-            ScanLines = min(ScanLines, abs(Info->bmiHeader.biHeight) - StartScan);
+            ScanLines = min(ScanLines, labs(Info->bmiHeader.biHeight) - StartScan);
         }
 
-        if (abs(Info->bmiHeader.biHeight) < psurf->SurfObj.sizlBitmap.cy)
+        if (labs(Info->bmiHeader.biHeight) < psurf->SurfObj.sizlBitmap.cy)
         {
-            StartScan += psurf->SurfObj.sizlBitmap.cy - abs(Info->bmiHeader.biHeight);
+            StartScan += psurf->SurfObj.sizlBitmap.cy - labs(Info->bmiHeader.biHeight);
         }
         /* Fixup values */
         Info->bmiHeader.biHeight = (height < 0) ?
@@ -1007,7 +1007,7 @@ GreGetDIBitsInternal(
         Info->bmiHeader.biWidth = width;
         srcPoint.x = 0;
 
-        if (abs(Info->bmiHeader.biHeight) <= psurf->SurfObj.sizlBitmap.cy)
+        if (labs(Info->bmiHeader.biHeight) <= psurf->SurfObj.sizlBitmap.cy)
         {
             srcPoint.y = psurf->SurfObj.sizlBitmap.cy - StartScan - ScanLines;
         }
@@ -1015,7 +1015,7 @@ GreGetDIBitsInternal(
         {
             /*  Determine the actual number of lines copied from the  */
             /*  original bitmap. It might be different from ScanLines. */
-            newLines = abs(Info->bmiHeader.biHeight) - psurf->SurfObj.sizlBitmap.cy;
+            newLines = labs(Info->bmiHeader.biHeight) - psurf->SurfObj.sizlBitmap.cy;
             newLines = min((int)(StartScan + ScanLines - newLines), psurf->SurfObj.sizlBitmap.cy);
             if (newLines > 0)
             {
@@ -1339,8 +1339,8 @@ NtGdiStretchDIBitsInternal(
         }
 
         hBitmap = NtGdiCreateCompatibleBitmap(hdc,
-                                              abs(pbmiSafe->bmiHeader.biWidth),
-                                              abs(pbmiSafe->bmiHeader.biHeight));
+                                              labs(pbmiSafe->bmiHeader.biWidth),
+                                              labs(pbmiSafe->bmiHeader.biHeight));
         if (hBitmap == NULL)
         {
             DPRINT1("NtGdiCreateCompatibleBitmap failed to create bitmap.\n");
@@ -1363,7 +1363,7 @@ NtGdiStretchDIBitsInternal(
         pdc = DC_LockDc(hdcMem);
         if (pdc != NULL)
         {
-            IntSetDIBits(pdc, hBitmap, 0, abs(pbmiSafe->bmiHeader.biHeight), pvBits,
+            IntSetDIBits(pdc, hBitmap, 0, labs(pbmiSafe->bmiHeader.biHeight), pvBits,
                          cjMaxBits, pbmiSafe, dwUsage);
             DC_UnlockDc(pdc);
         }
@@ -1373,13 +1373,13 @@ NtGdiStretchDIBitsInternal(
         if (cxSrc == cxDst && cySrc == cyDst)
         {
             NtGdiBitBlt(hdc, xDst, yDst, cxDst, cyDst,
-                        hdcMem, xSrc, abs(pbmiSafe->bmiHeader.biHeight) - cySrc - ySrc,
+                        hdcMem, xSrc, labs(pbmiSafe->bmiHeader.biHeight) - cySrc - ySrc,
                         dwRop, 0, 0);
         }
         else
         {
             NtGdiStretchBlt(hdc, xDst, yDst, cxDst, cyDst,
-                            hdcMem, xSrc, abs(pbmiSafe->bmiHeader.biHeight) - cySrc - ySrc,
+                            hdcMem, xSrc, labs(pbmiSafe->bmiHeader.biHeight) - cySrc - ySrc,
                             cxSrc, cySrc, dwRop, 0);
         }
 
@@ -1407,8 +1407,8 @@ NtGdiStretchDIBitsInternal(
         /* Calculate source and destination rect */
         rcSrc.left = xSrc;
         rcSrc.top = ySrc;
-        rcSrc.right = xSrc + abs(cxSrc);
-        rcSrc.bottom = ySrc + abs(cySrc);
+        rcSrc.right = xSrc + labs(cxSrc);
+        rcSrc.bottom = ySrc + labs(cySrc);
         rcDst.left = xDst;
         rcDst.top = yDst;
         rcDst.right = rcDst.left + cxDst;
@@ -1425,7 +1425,7 @@ NtGdiStretchDIBitsInternal(
                                  pbmiSafe->bmiHeader.biCompression);
 
         hbmTmp = GreCreateBitmapEx(pbmiSafe->bmiHeader.biWidth,
-                                   abs(pbmiSafe->bmiHeader.biHeight),
+                                   labs(pbmiSafe->bmiHeader.biHeight),
                                    0,
                                    BmpFormat,
                                    pbmiSafe->bmiHeader.biHeight < 0 ? BMF_TOPDOWN : 0,
@@ -1496,7 +1496,7 @@ NtGdiStretchDIBitsInternal(
      * and it fixes over 100 gdi32:dib regression tests. */
     if (dwRop == SRCCOPY)
     {
-        LinesCopied = abs(pbmiSafe->bmiHeader.biHeight);
+        LinesCopied = labs(pbmiSafe->bmiHeader.biHeight);
     }
     else
     {
@@ -1588,7 +1588,7 @@ IntCreateDIBitmap(
     else
     {
         handle = GreCreateBitmap(width,
-                                 abs(height),
+                                 labs(height),
                                  1,
                                  1,
                                  NULL);
@@ -1796,7 +1796,7 @@ GreCreateDIBitmapFromPackedDIB(
 
     hbm = GreCreateDIBitmapInternal(NULL,
                                     pbmi->bmiHeader.biWidth,
-                                    abs(pbmi->bmiHeader.biHeight),
+                                    labs(pbmi->bmiHeader.biHeight),
                                     CBM_INIT | CBM_CREATDIB,
                                     pjBits,
                                     pbmi,
@@ -1987,9 +1987,9 @@ DIB_CreateDIBSection(
 
     // Create Device Dependent Bitmap and add DIB pointer
     //Size.cx = bm.bmWidth;
-    //Size.cy = abs(bm.bmHeight);
+    //Size.cy = labs(bm.bmHeight);
     res = GreCreateBitmapEx(bm.bmWidth,
-                            abs(bm.bmHeight),
+                            labs(bm.bmHeight),
                             bm.bmWidthBytes,
                             BitmapFormat(bi->biBitCount * bi->biPlanes, bi->biCompression),
                             BMF_DONTCACHE | BMF_USERMEM | BMF_NOZEROINIT |
