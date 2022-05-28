@@ -386,7 +386,7 @@ EngCreatePalette(
     ppal = PALETTE_AllocPalette(iMode, cColors, (PPALETTEENTRY)pulColors, flRed, flGreen, flBlue);
     if (!ppal) return NULL;
 
-    hpal = GDIOBJ_hInsertObject(&ppal->BaseObject, GDI_OBJ_HMGR_PUBLIC);
+    hpal = (HPALETTE)GDIOBJ_hInsertObject(&ppal->BaseObject, GDI_OBJ_HMGR_PUBLIC);
     if (!hpal)
     {
         DPRINT1("Could not insert palette into handle table.\n");
@@ -462,7 +462,7 @@ GreCreatePaletteInternal(
     {
         PALETTE_ValidateFlags(ppal->IndexedColors, ppal->NumColors);
 
-        hpal = ppal->BaseObject.hHmgr;
+        hpal = (HPALETTE)ppal->BaseObject.hHmgr;
         PALETTE_UnlockPalette(ppal);
     }
 
@@ -507,7 +507,7 @@ NtGdiCreatePaletteInternal(
     _SEH2_END;
 
     PALETTE_ValidateFlags(ppal->IndexedColors, cEntries);
-    hpal = ppal->BaseObject.hHmgr;
+    hpal = (HPALETTE)ppal->BaseObject.hHmgr;
     PALETTE_UnlockPalette(ppal);
 
     return hpal;
@@ -583,7 +583,7 @@ NtGdiCreateHalftonePalette(HDC  hDC)
     ppal = PALETTE_AllocPalWithHandle(PAL_INDEXED, 256, PalEntries, 0, 0, 0);
     if (ppal)
     {
-        hpal = ppal->BaseObject.hHmgr;
+        hpal = (HPALETTE)ppal->BaseObject.hHmgr;
         PALETTE_UnlockPalette(ppal);
     }
 
@@ -1283,7 +1283,7 @@ NtGdiEngCreatePalette(
     }
     else
     {
-        pulcSafe = ExAllocatePoolWithTag(PagedPool, cColors * sizeof(ULONG), GDITAG_UMPD );
+        pulcSafe = (PULONG)ExAllocatePoolWithTag(PagedPool, cColors * sizeof(ULONG), GDITAG_UMPD );
     }
 
         _SEH2_TRY
