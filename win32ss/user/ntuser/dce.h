@@ -1,12 +1,5 @@
 #pragma once
 
-/* DC hook codes */
-#define DCHC_INVALIDVISRGN      0x0001
-#define DCHC_DELETEDC           0x0002
-
-#define DCHF_INVALIDATEVISRGN   0x0001
-#define DCHF_VALIDATEVISRGN     0x0002
-
 typedef enum
 {
     DCE_CACHE_DC,   /* This is a cached DC (allocated by USER) */
