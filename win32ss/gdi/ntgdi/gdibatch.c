@@ -159,7 +159,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
         EBRUSHOBJ eboFill;
         PBRUSH pbrush;
         PPATRECT pRects;
-        INT i;
+        ULONG i;
         DWORD dwRop, flags;
         COLORREF crColor, crBkColor, crBrushClr;
         ULONG ulForegroundClr, ulBackgroundClr, ulBrushClr;
@@ -329,7 +329,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
             dc->pdcattr->flXform |= saveflXform|flXform;
         }
 
-        if (flags & DIRTY_TEXT && crColor != -1)
+        if ((flags & DIRTY_TEXT) && (crColor != (COLORREF)-1))
         {
             dc->pdcattr->crForegroundClr = crColor;
             dc->pdcattr->ulForegroundClr = ulForegroundClr;
@@ -339,7 +339,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
             dc->pdcattr->crBackgroundClr = crBkColor;
             dc->pdcattr->ulBackgroundClr = ulBackgroundClr;
         }
-        if (flTextAlign != -1)
+        if (flTextAlign != (FLONG)-1)
         {
             dc->pdcattr->flTextAlign = flTextAlign;
         }

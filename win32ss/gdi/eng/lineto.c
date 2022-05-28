@@ -44,8 +44,8 @@ HandleStyles(
 {
     PEBRUSHOBJ pebo = (PEBRUSHOBJ)pbo;
     PULONG pulStyles = pebo->pbrush->pStyle;
-    ULONG iStyle, cStyles = pebo->pbrush->dwStyleCount;
-    LONG diStyle, offStyle, lStyleMax;
+    ULONG cStyles = pebo->pbrush->dwStyleCount;
+    LONG iStyle, diStyle, offStyle, lStyleMax;
 
     if (cStyles > 0)
     {
@@ -63,7 +63,7 @@ HandleStyles(
         }
 
         /* Now loop until we have found the style index */
-        for (iStyle = 0; offStyle >= pulStyles[iStyle]; iStyle++)
+        for (iStyle = 0; offStyle >= (LONG)pulStyles[iStyle]; iStyle++)
         {
             offStyle -= pulStyles[iStyle];
         }

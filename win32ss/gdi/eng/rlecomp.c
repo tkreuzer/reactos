@@ -37,7 +37,7 @@ VOID DecompressBitmap(SIZEL Size, const VOID *pvCompressedBits, PVOID pvUncompre
 
     _SEH2_TRY
     {
-        while (y >= 0 && (bits - begin) <= cjSizeImage)
+        while ((y >= 0) && ((ULONG)(bits - begin) <= cjSizeImage))
         {
             length = *bits++;
             if (length)

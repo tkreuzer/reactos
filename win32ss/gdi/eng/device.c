@@ -470,6 +470,7 @@ EngFileWrite(
     }
 }
 
+extern "C"
 _Success_(return>=0)
 NTSTATUS
 APIENTRY
