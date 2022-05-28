@@ -297,7 +297,7 @@ IntGdiPolyBezierTo(DC      *dc,
     else /* We'll do it using PolyBezier */
     {
         POINT *npt;
-        npt = ExAllocatePoolWithTag(PagedPool,
+        npt = (PPOINT)ExAllocatePoolWithTag(PagedPool,
                                     sizeof(POINT) * (Count + 1),
                                     TAG_BEZIER);
         if ( npt )
@@ -348,7 +348,7 @@ IntGdiPolyline(DC      *dc,
 
     if (!(pbrLine->flAttrs & BR_IS_NULL))
     {
-        Points = EngAllocMem(0, Count * sizeof(POINT), GDITAG_TEMP);
+        Points = (PPOINT)EngAllocMem(0, Count * sizeof(POINT), GDITAG_TEMP);
         if (Points != NULL)
         {
             RtlCopyMemory(Points, pt, Count * sizeof(POINT));
@@ -433,7 +433,7 @@ IntGdiPolylineTo(DC      *dc,
     }
     else /* Do it using Polyline */
     {
-        POINT *pts = ExAllocatePoolWithTag(PagedPool,
+        POINT *pts = (PPOINT)ExAllocatePoolWithTag(PagedPool,
                                            sizeof(POINT) * (Count + 1),
                                            TAG_SHAPE);
         if ( pts )
@@ -600,7 +600,7 @@ NtGdiPolyDraw(
         }
 
         space = cCount + 300;
-        line_pts = ExAllocatePoolWithTag(PagedPool, space * sizeof(POINT), TAG_SHAPE);
+        line_pts = (PPOINT)ExAllocatePoolWithTag(PagedPool, space * sizeof(POINT), TAG_SHAPE);
         if (line_pts == NULL)
         {
             result = FALSE;
@@ -638,7 +638,7 @@ NtGdiPolyDraw(
                       space_old = space;
                       space = size * 2;
                       line_pts_old = line_pts;
-                      line_pts = ExAllocatePoolWithTag(PagedPool, space * sizeof(POINT), TAG_SHAPE);
+                      line_pts = (PPOINT)ExAllocatePoolWithTag(PagedPool, space * sizeof(POINT), TAG_SHAPE);
                       if (!line_pts) _SEH2_LEAVE;
                       RtlCopyMemory(line_pts, line_pts_old, space_old * sizeof(POINT));
                       ExFreePoolWithTag(line_pts_old, TAG_SHAPE);
