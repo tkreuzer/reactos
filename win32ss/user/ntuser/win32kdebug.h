@@ -35,7 +35,7 @@
 
     typedef struct
     {
-        PWCHAR Name;
+        const WCHAR *Name;
         ULONG Id;
     } DBG_CHANNEL;
 

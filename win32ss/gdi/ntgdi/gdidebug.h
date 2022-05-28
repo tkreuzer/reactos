@@ -125,9 +125,8 @@ GdiDbgPostServiceHook(ULONG ulSyscallId, ULONG_PTR ulResult);
 #define ID_Win32PreServiceHook 'WSH0'
 #define ID_Win32PostServiceHook 'WSH1'
 
-#ifndef __cplusplus
 FORCEINLINE void
-GdiDbgAssertNoLocks(char * pszFile, ULONG nLine)
+GdiDbgAssertNoLocks(const char * pszFile, ULONG nLine)
 {
     PTHREADINFO pti = (PTHREADINFO)PsGetCurrentThreadWin32Thread();
     if (pti && pti->cExclusiveLocks != 0)
@@ -140,7 +139,7 @@ GdiDbgAssertNoLocks(char * pszFile, ULONG nLine)
         ASSERT(FALSE);
     }
 }
-#endif // __cplusplus
+
 #endif
 
 

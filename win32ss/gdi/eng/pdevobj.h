@@ -136,7 +136,7 @@ typedef struct _PDEVOBJ
     {
       DRIVER_FUNCTIONS        DriverFunctions;
       DRIVER_FUNCTIONS        pfn;
-      PVOID                   apfn[INDEX_LAST];         // B8C 0x0598
+      PFN                     apfn[INDEX_LAST];         // B8C 0x0598
     };
 
     /* ros specific */

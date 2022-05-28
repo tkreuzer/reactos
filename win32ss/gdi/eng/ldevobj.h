@@ -23,7 +23,7 @@ typedef struct _LDEVOBJ
 
     union
     {
-        PVOID apfn[INDEX_LAST];
+        PFN apfn[INDEX_LAST];
         DRIVER_FUNCTIONS pfn;
     };
 
