@@ -422,7 +422,7 @@ EBRUSHOBJ_pvGetEngBrush(EBRUSHOBJ *pebo)
         if (!bResult)
         {
             if (pebo->pengbrush)
-                EngDeleteSurface(pebo->pengbrush);
+                GDIOBJ_vDeleteObject(&((PSURFACE)pebo->pengbrush)->BaseObject);
             pebo->pengbrush = NULL;
         }
     }
