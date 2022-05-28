@@ -124,8 +124,6 @@ RtlLargeStringToUnicodeString(
     PUNICODE_STRING,
     PLARGE_STRING);
 
-#define NB_HOOKS (WH_MAXHOOK - WH_MINHOOK + 1)
-
 typedef struct _DESKTOPINFO
 {
     PVOID pvDesktopBase;
@@ -153,20 +151,6 @@ typedef struct _DESKTOPINFO
 
     WCHAR szDesktopName[1];
 } DESKTOPINFO, *PDESKTOPINFO;
-
-#define CTI_THREADSYSLOCK 0x0001
-#define CTI_INSENDMESSAGE 0x0002
-
-typedef struct _CLIENTTHREADINFO
-{
-    DWORD CTI_flags;
-    WORD fsChangeBits;
-    WORD fsWakeBits;
-    WORD fsWakeBitsJournal;
-    WORD fsWakeMask;
-    ULONG timeLastRead; // Last time the message queue was read.
-    DWORD dwcPumpHook;
-} CLIENTTHREADINFO, *PCLIENTTHREADINFO;
 
 typedef struct _HEAD
 {
