@@ -63,7 +63,7 @@ ULONG
 KdRosRegisterCliCallback(
     PKDBG_CLI_ROUTINE Callback)
 {
-    return KdSystemDebugControl((SYSDBG_COMMAND)'RbdK', Callback, FALSE, 0, 0, 0, 0);
+    return KdSystemDebugControl((SYSDBG_COMMAND)'RbdK', (PVOID)Callback, FALSE, 0, 0, 0, 0);
 }
 
 FORCEINLINE
@@ -71,7 +71,7 @@ VOID
 KdRosDeregisterCliCallback(
     PKDBG_CLI_ROUTINE Callback)
 {
-    KdSystemDebugControl((SYSDBG_COMMAND)'RbdK', Callback, TRUE, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)'RbdK', (PVOID)Callback, TRUE, 0, 0, 0, 0);
 }
 #endif
 
