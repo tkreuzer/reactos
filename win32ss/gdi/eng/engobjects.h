@@ -39,22 +39,35 @@
 
 ---------------------------------------------------------------------------*/
 
+#define _RWNDOBJ_ \
+    PVOID   pvConsumer; \
+    RECTL   rclClient; \
+    SURFOBJ *psoOwner;
+
 typedef struct _RWNDOBJ {
-  PVOID   pvConsumer;
-  RECTL   rclClient;
-  SURFOBJ *psoOwner;
+    _RWNDOBJ_
 } RWNDOBJ;
 
+#define _CLIPOBJ_ \
+   ULONG  iUniq; \
+   RECTL  rclBounds; \
+   BYTE  iDComplexity; \
+   BYTE  iFComplexity; \
+   BYTE  iMode; \
+   BYTE  fjOptions;
+
 /* EXtended CLip and Window Region Objects */
-#ifdef __cplusplus
-typedef struct _XCLIPOBJ : _CLIPOBJ, _RWNDOBJ
-{
-#else
 typedef struct _XCLIPOBJ
 {
-  CLIPOBJ;
-  RWNDOBJ;
-#endif
+  struct
+  {
+     _CLIPOBJ_
+  };
+  struct
+  {
+    _RWNDOBJ_
+  };
+
   struct _REGION *pClipRgn;    /* prgnRao_ or (prgnVis_ if (prgnRao_ == z)) */
   //
   RECTL   rclClipRgn;

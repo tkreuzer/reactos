@@ -11,55 +11,58 @@
  * DON'T MODIFY THIS STRUCTURE UNLESS REALLY NEEDED AND EVEN THEN ASK ON
  * A MAILING LIST FIRST.
  */
-typedef struct _BRUSHBODY
-{
-    ULONG iHatch;           // This is not the brush style, but the hatch style!
-    HBITMAP hbmPattern;
-    HBITMAP hbmClient;
-    ULONG flAttrs;
+#define _BRUSHBODY_ \
+    ULONG iHatch;           /* This is not the brush style, but the hatch style! */ \
+    HBITMAP hbmPattern; \
+    HBITMAP hbmClient; \
+    ULONG flAttrs; \
+\
+    ULONG ulBrushUnique; \
+    BRUSH_ATTR *pBrushAttr; /* Pointer to the currently active brush attribute */ \
+    BRUSH_ATTR BrushAttr;   /* Internal brush attribute for global brushes */ \
+    POINT ptOrigin; \
+    ULONG bCacheGrabbed; \
+    COLORREF crBack; \
+    COLORREF crFore; \
+    ULONG ulPalTime; \
+    ULONG ulSurfTime; \
+    PVOID pvRBrush; \
+    HDEV hdev; \
+    /* DWORD unk054; */ \
+\
+    /* The following members are for PENs only */ \
+    LONG lWidth; \
+    FLOATOBJ eWidth; \
+    ULONG ulPenStyle; \
+    DWORD *pStyle; \
+    ULONG dwStyleCount; \
+    BYTE jJoin;             /* 0x06c Join styles for geometric wide lines */ \
+    BYTE jEndCap;           /*       end cap style for a geometric wide line */ \
+    /*WORD unk06e;*/          /* 0x06e */ \
+    INT iBrushStyle;        /* 0x070 */ \
+    /*PREGION prgn;*/           /* 0x074 */ \
+    /*DWORD unk078;*/         /* 0x078 */ \
+    /*DWORD unk07c;*/           /* 0x07c */ \
+    ULONG ulStyleSize; \
+    LIST_ENTRY ListHead;    /* 0x080 */
 
-    ULONG ulBrushUnique;
-    BRUSH_ATTR *pBrushAttr; // Pointer to the currently active brush attribute
-    BRUSH_ATTR BrushAttr;   // Internal brush attribute for global brushes
-    POINT ptOrigin;
-    ULONG bCacheGrabbed;
-    COLORREF crBack;
-    COLORREF crFore;
-    ULONG ulPalTime;
-    ULONG ulSurfTime;
-    PVOID pvRBrush;
-    HDEV hdev;
-    //DWORD unk054;
-
-    /* The following members are for PENs only */
-    LONG lWidth;
-    FLOATOBJ eWidth;
-    ULONG ulPenStyle;
-    DWORD *pStyle;
-    ULONG dwStyleCount;
-    BYTE jJoin;             // 0x06c Join styles for geometric wide lines
-    BYTE jEndCap;           //       end cap style for a geometric wide line
-    //WORD unk06e;          // 0x06e
-    INT iBrushStyle;        // 0x070
-    //PREGION prgn;           // 0x074
-    //DWORD unk078;         // 0x078
-    //DWORD unk07c;           // 0x07c
-    ULONG ulStyleSize;
-    LIST_ENTRY ListHead;    // 0x080
-} BRUSHBODY;
-
-#ifndef __cplusplus
+#if defined(_NO_CPP_OBJECTS) || !defined(__cplusplus)
 typedef struct _BRUSH
 {
     /* Header for all gdi objects in the handle table.
        Do not (re)move this. */
     BASEOBJECT BaseObject;
 
-    BRUSHBODY;
+   _BRUSHBODY_
 } BRUSH, *PBRUSH;
 #else
+typedef struct _BRUSHBODY
+{
+    _BRUSHBODY_
+} BRUSHBODY;
 class BRUSH;
 typedef class BRUSH *PBRUSH;
+//#include "../eng/brush.hpp"
 #endif
 
 typedef struct _EBRUSHOBJ

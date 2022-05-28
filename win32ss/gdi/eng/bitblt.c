@@ -28,7 +28,10 @@ XCLIPOBJ gxcoTrivial =
         TC_RECTANGLES, /* iMode */
         0              /* fjOptions */
     },
+
+    /* RWNDOBJ */
     { 0, {0,0,0,0}, 0},
+
     0, {0,0,0,0}, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
