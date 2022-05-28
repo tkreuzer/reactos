@@ -288,8 +288,8 @@ typedef struct _DC_ATTR
 {
     PVOID pvLDC;
     ULONG ulDirty_;
-    HANDLE hbrush;
-    HANDLE hpen;
+    HBRUSH hbrush;
+    HPEN hpen;
     COLORREF crBackgroundClr;
     ULONG ulBackgroundClr;
     COLORREF crForegroundClr;
@@ -323,7 +323,7 @@ typedef struct _DC_ATTR
     LONG lRelAbs;
     LONG lBreakExtra;
     LONG cBreak;
-    HANDLE hlfntNew;
+    HFONT hlfntNew;
     MATRIX mxWorldToDevice;
     MATRIX mxDeviceToWorld;
     MATRIX mxWorldToPage;

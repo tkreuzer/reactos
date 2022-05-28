@@ -129,7 +129,7 @@ typedef struct _DC
   PVOID       pClrxFormLnk;
   INT         ipfdDevMax;
   ULONG       ulCopyCount;
-  PVOID       pSurfInfo;
+  PSURFACE    pSurfInfo;
   POINTL      ptlDoBanding;
 } DC;
 // typedef struct _DC *PDC;

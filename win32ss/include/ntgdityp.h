@@ -466,7 +466,7 @@ typedef struct _GDIBSPATBLT
   int nYLeft;
   int nWidth;
   int nHeight;
-  HANDLE hbrush;
+  HBRUSH hbrush;
   DWORD dwRop;
   COLORREF crForegroundClr;
   COLORREF crBackgroundClr;
@@ -521,7 +521,7 @@ typedef struct _GDIBSTEXTOUT
   DWORD iCS_CP;
   UINT cbCount;
   UINT Size;
-  HANDLE hlfntNew;
+  HFONT hlfntNew;
   FLONG flTextAlign;
   POINTL ptlViewportOrg;
   union {
