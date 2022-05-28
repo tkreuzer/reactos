@@ -214,7 +214,7 @@ static PSHARED_FACE
 SharedFace_Create(FT_Face Face, PSHARED_MEM Memory)
 {
     PSHARED_FACE Ptr;
-    Ptr = ExAllocatePoolWithTag(PagedPool, sizeof(SHARED_FACE), TAG_FONT);
+    Ptr = (PSHARED_FACE)ExAllocatePoolWithTag(PagedPool, sizeof(SHARED_FACE), TAG_FONT);
     if (Ptr)
     {
         Ptr->Face = Face;
@@ -233,7 +233,7 @@ static PSHARED_MEM
 SharedMem_Create(PBYTE Buffer, ULONG BufferSize, BOOL IsMapping)
 {
     PSHARED_MEM Ptr;
-    Ptr = ExAllocatePoolWithTag(PagedPool, sizeof(SHARED_MEM), TAG_FONT);
+    Ptr = (PSHARED_MEM)ExAllocatePoolWithTag(PagedPool, sizeof(SHARED_MEM), TAG_FONT);
     if (Ptr)
     {
         Ptr->Buffer = Buffer;
@@ -470,7 +470,7 @@ VOID DumpFontSubstList(VOID)
 
 VOID DumpPrivateFontList(BOOL bDoLock)
 {
-    PPROCESSINFO Win32Process = PsGetCurrentProcessWin32Process();
+    PPROCESSINFO Win32Process = (PPROCESSINFO)PsGetCurrentProcessWin32Process();
 
     if (!Win32Process)
         return;
@@ -631,7 +631,7 @@ IntLoadFontSubstList(PLIST_ENTRY pHead)
         }
 
         /* allocate an entry */
-        pEntry = ExAllocatePoolWithTag(PagedPool, sizeof(FONTSUBST_ENTRY), TAG_FONT);
+        pEntry = (PFONTSUBST_ENTRY)ExAllocatePoolWithTag(PagedPool, sizeof(FONTSUBST_ENTRY), TAG_FONT);
         if (pEntry == NULL)
         {
             DPRINT("ExAllocatePoolWithTag failed\n");
@@ -665,14 +665,14 @@ InitFontSupport(VOID)
     InitializeListHead(&g_FontCacheListHead);
     g_FontCacheNumEntries = 0;
     /* Fast Mutexes must be allocated from non paged pool */
-    g_FontListLock = ExAllocatePoolWithTag(NonPagedPool, sizeof(FAST_MUTEX), TAG_INTERNAL_SYNC);
+    g_FontListLock = (PFAST_MUTEX)ExAllocatePoolWithTag(NonPagedPool, sizeof(FAST_MUTEX), TAG_INTERNAL_SYNC);
     if (g_FontListLock == NULL)
     {
         return FALSE;
     }
 
     ExInitializeFastMutex(g_FontListLock);
-    g_FreeTypeLock = ExAllocatePoolWithTag(NonPagedPool, sizeof(FAST_MUTEX), TAG_INTERNAL_SYNC);
+    g_FreeTypeLock = (PFAST_MUTEX)ExAllocatePoolWithTag(NonPagedPool, sizeof(FAST_MUTEX), TAG_INTERNAL_SYNC);
     if (g_FreeTypeLock == NULL)
     {
         return FALSE;
@@ -883,7 +883,7 @@ DuplicateUnicodeString(PUNICODE_STRING Source, PUNICODE_STRING Destination)
     NTSTATUS Status = STATUS_NO_MEMORY;
     UNICODE_STRING Tmp;
 
-    Tmp.Buffer = ExAllocatePoolWithTag(PagedPool, Source->MaximumLength, TAG_USTR);
+    Tmp.Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool, Source->MaximumLength, TAG_USTR);
     if (Tmp.Buffer)
     {
         Tmp.MaximumLength = Source->MaximumLength;
@@ -987,14 +987,14 @@ IntLoadSystemFonts(VOID)
     {
         for (i = 0; i < _countof(SearchPatterns); ++i)
         {
-            DirInfoBuffer = ExAllocatePoolWithTag(PagedPool, 0x4000, TAG_FONT);
+            DirInfoBuffer = (PBYTE)ExAllocatePoolWithTag(PagedPool, 0x4000, TAG_FONT);
             if (DirInfoBuffer == NULL)
             {
                 ZwClose(hDirectory);
                 return;
             }
 
-            FileName.Buffer = ExAllocatePoolWithTag(PagedPool, MAX_PATH * sizeof(WCHAR), TAG_FONT);
+            FileName.Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool, MAX_PATH * sizeof(WCHAR), TAG_FONT);
             if (FileName.Buffer == NULL)
             {
                 ExFreePoolWithTag(DirInfoBuffer, TAG_FONT);
@@ -1128,7 +1128,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
         IntLockFreeType();
         Error = FT_New_Memory_Face(
                     g_FreeTypeLibrary,
-                    pLoadFont->Memory->Buffer,
+                    (const FT_Byte *)pLoadFont->Memory->Buffer,
                     pLoadFont->Memory->BufferSize,
                     ((FontIndex != -1) ? FontIndex : 0),
                     &Face);
@@ -1162,7 +1162,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
     }
 
     /* allocate a FONT_ENTRY */
-    Entry = ExAllocatePoolWithTag(PagedPool, sizeof(FONT_ENTRY), TAG_FONT);
+    Entry = (PFONT_ENTRY)ExAllocatePoolWithTag(PagedPool, sizeof(FONT_ENTRY), TAG_FONT);
     if (!Entry)
     {
         SharedFace_Release(SharedFace);
@@ -1171,7 +1171,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
     }
 
     /* allocate a FONTGDI */
-    FontGDI = EngAllocMem(FL_ZERO_MEMORY, sizeof(FONTGDI), GDITAG_RFONT);
+    FontGDI = (FONTGDI *)EngAllocMem(FL_ZERO_MEMORY, sizeof(FONTGDI), GDITAG_RFONT);
     if (!FontGDI)
     {
         SharedFace_Release(SharedFace);
@@ -1183,7 +1183,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
     /* set file name */
     if (pFileName)
     {
-        FontGDI->Filename = ExAllocatePoolWithTag(PagedPool,
+        FontGDI->Filename = (LPWSTR)ExAllocatePoolWithTag(PagedPool,
                                                   pFileName->Length + sizeof(UNICODE_NULL),
                                                   GDITAG_PFF);
         if (FontGDI->Filename == NULL)
@@ -1202,7 +1202,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
     {
         FontGDI->Filename = NULL;
 
-        PrivateEntry = ExAllocatePoolWithTag(PagedPool, sizeof(FONT_ENTRY_MEM), TAG_FONT);
+        PrivateEntry = (FONT_ENTRY_MEM *)ExAllocatePoolWithTag(PagedPool, sizeof(FONT_ENTRY_MEM), TAG_FONT);
         if (!PrivateEntry)
         {
             if (FontGDI->Filename)
@@ -1360,7 +1360,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
     if (Characteristics & FR_PRIVATE)
     {
         /* private font */
-        PPROCESSINFO Win32Process = PsGetCurrentProcessWin32Process();
+        PPROCESSINFO Win32Process = (PPROCESSINFO)PsGetCurrentProcessWin32Process();
         IntLockProcessPrivateFonts(Win32Process);
         InsertTailList(&Win32Process->PrivateFontListHead, &Entry->ListEntry);
         IntUnLockProcessPrivateFonts(Win32Process);
@@ -1402,7 +1402,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
         {
             pValueName->Length = 0;
             pValueName->MaximumLength = NameLength + sizeof(WCHAR);
-            pValueName->Buffer = ExAllocatePoolWithTag(PagedPool,
+            pValueName->Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool,
                                                        pValueName->MaximumLength,
                                                        TAG_USTR);
             pValueName->Buffer[0] = UNICODE_NULL;
@@ -1414,7 +1414,7 @@ IntGdiLoadFontsFromMemory(PGDI_LOAD_FONT pLoadFont,
             USHORT Length = pValueName->Length + 3 * sizeof(WCHAR) + NameLength;
             NewString.Length = 0;
             NewString.MaximumLength = Length + sizeof(WCHAR);
-            NewString.Buffer = ExAllocatePoolWithTag(PagedPool,
+            NewString.Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool,
                                                      NewString.MaximumLength,
                                                      TAG_USTR);
             NewString.Buffer[0] = UNICODE_NULL;
@@ -1501,7 +1501,7 @@ IntGdiAddFontResourceEx(PUNICODE_STRING FileName, DWORD Characteristics,
     if (dwFlags & AFRX_DOS_DEVICE_PATH)
     {
         Length = DosPathPrefix.Length + FileName->Length + sizeof(UNICODE_NULL);
-        pszBuffer = ExAllocatePoolWithTag(PagedPool, Length, TAG_USTR);
+        pszBuffer = (PWSTR)ExAllocatePoolWithTag(PagedPool, Length, TAG_USTR);
         if (!pszBuffer)
             return 0;   /* failure */
 
@@ -1569,7 +1569,7 @@ IntGdiAddFontResourceEx(PUNICODE_STRING FileName, DWORD Characteristics,
     }
 
     LoadFont.pFileName          = &PathName;
-    LoadFont.Memory             = SharedMem_Create(Buffer, ViewSize, TRUE);
+    LoadFont.Memory             = SharedMem_Create((PBYTE)Buffer, ViewSize, TRUE);
     LoadFont.Characteristics    = Characteristics;
     RtlInitUnicodeString(&LoadFont.RegValueName, NULL);
     LoadFont.IsTrueType         = FALSE;
@@ -1597,7 +1597,7 @@ IntGdiAddFontResourceEx(PUNICODE_STRING FileName, DWORD Characteristics,
         {
             /* Append " (TrueType)" */
             Length = LoadFont.RegValueName.Length + TrueTypePostfix.Length + sizeof(UNICODE_NULL);
-            pszBuffer = ExAllocatePoolWithTag(PagedPool, Length, TAG_USTR);
+            pszBuffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, Length, TAG_USTR);
             if (pszBuffer)
             {
                 RtlInitEmptyUnicodeString(&NewString, pszBuffer, Length);
@@ -1620,7 +1620,7 @@ IntGdiAddFontResourceEx(PUNICODE_STRING FileName, DWORD Characteristics,
                      (wcslen(CharSetName) + 3) * sizeof(WCHAR) +
                      sizeof(UNICODE_NULL);
 
-            pszBuffer = ExAllocatePoolWithTag(PagedPool, Length, TAG_USTR);
+            pszBuffer = (PWCHAR)ExAllocatePoolWithTag(PagedPool, Length, TAG_USTR);
             if (pszBuffer)
             {
                 RtlInitEmptyUnicodeString(&NewString, pszBuffer, Length);
@@ -1732,7 +1732,7 @@ IntLoadFontsInRegistry(VOID)
 
     /* allocate buffer */
     InfoSize = (MAX_PATH + 256) * sizeof(WCHAR);
-    InfoBuffer = ExAllocatePoolWithTag(PagedPool, InfoSize, TAG_FONT);
+    InfoBuffer = (PBYTE)ExAllocatePoolWithTag(PagedPool, InfoSize, TAG_FONT);
     if (!InfoBuffer)
     {
         DPRINT1("ExAllocatePoolWithTag failed\n");
@@ -1751,7 +1751,7 @@ IntLoadFontsInRegistry(VOID)
             /* too short buffer */
             ExFreePoolWithTag(InfoBuffer, TAG_FONT);
             InfoSize *= 2;
-            InfoBuffer = ExAllocatePoolWithTag(PagedPool, InfoSize, TAG_FONT);
+            InfoBuffer = (PBYTE)ExAllocatePoolWithTag(PagedPool, InfoSize, TAG_FONT);
             if (!InfoBuffer)
             {
                 DPRINT1("ExAllocatePoolWithTag failed\n");
@@ -1787,7 +1787,7 @@ IntLoadFontsInRegistry(VOID)
             /* too short buffer */
             ExFreePoolWithTag(InfoBuffer, TAG_FONT);
             InfoSize *= 2;
-            InfoBuffer = ExAllocatePoolWithTag(PagedPool, InfoSize, TAG_FONT);
+            InfoBuffer = (PBYTE)ExAllocatePoolWithTag(PagedPool, InfoSize, TAG_FONT);
             if (!InfoBuffer)
             {
                 DPRINT1("ExAllocatePoolWithTag failed\n");
@@ -1862,7 +1862,7 @@ IntGdiAddFontMemResource(PVOID Buffer, DWORD dwSize, PDWORD pNumAdded)
     RtlCopyMemory(BufferCopy, Buffer, dwSize);
 
     LoadFont.pFileName          = NULL;
-    LoadFont.Memory             = SharedMem_Create(BufferCopy, dwSize, FALSE);
+    LoadFont.Memory             = SharedMem_Create((PBYTE)BufferCopy, dwSize, FALSE);
     LoadFont.Characteristics    = FR_PRIVATE | FR_NOT_ENUM;
     RtlInitUnicodeString(&LoadFont.RegValueName, NULL);
     LoadFont.IsTrueType         = FALSE;
@@ -1878,10 +1878,10 @@ IntGdiAddFontMemResource(PVOID Buffer, DWORD dwSize, PDWORD pNumAdded)
 
     if (FaceCount > 0)
     {
-        EntryCollection = ExAllocatePoolWithTag(PagedPool, sizeof(FONT_ENTRY_COLL_MEM), TAG_FONT);
+        EntryCollection = (PFONT_ENTRY_COLL_MEM)ExAllocatePoolWithTag(PagedPool, sizeof(FONT_ENTRY_COLL_MEM), TAG_FONT);
         if (EntryCollection)
         {
-            PPROCESSINFO Win32Process = PsGetCurrentProcessWin32Process();
+            PPROCESSINFO Win32Process = (PPROCESSINFO)PsGetCurrentProcessWin32Process();
             EntryCollection->Entry = LoadFont.PrivateEntry;
             IntLockProcessPrivateFonts(Win32Process);
             EntryCollection->Handle = ULongToHandle(++Win32Process->PrivateMemFontHandleCount);
@@ -1939,7 +1939,7 @@ IntGdiRemoveFontMemResource(HANDLE hMMFont)
     PLIST_ENTRY Entry;
     PFONT_ENTRY_COLL_MEM CurrentEntry;
     PFONT_ENTRY_COLL_MEM EntryCollection = NULL;
-    PPROCESSINFO Win32Process = PsGetCurrentProcessWin32Process();
+    PPROCESSINFO Win32Process = (PPROCESSINFO)PsGetCurrentProcessWin32Process();
 
     IntLockProcessPrivateFonts(Win32Process);
     for (Entry = Win32Process->PrivateMemFontListHead.Flink;
@@ -1970,7 +1970,7 @@ IntGdiRemoveFontMemResource(HANDLE hMMFont)
 VOID FASTCALL
 IntGdiCleanupPrivateFontsForProcess(VOID)
 {
-    PPROCESSINFO Win32Process = PsGetCurrentProcessWin32Process();
+    PPROCESSINFO Win32Process = (PPROCESSINFO)PsGetCurrentProcessWin32Process();
     PLIST_ENTRY Entry;
     PFONT_ENTRY_COLL_MEM EntryCollection;
 
