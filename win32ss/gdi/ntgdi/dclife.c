@@ -717,12 +717,17 @@ NtGdiOpenDCW(
 
         _SEH2_TRY
         {
-            /* Probe the UNICODE_STRING and the buffer */
+            UNICODE_STRING ustrTemp;
+
+            /* Probe and capture the UNICODE_STRING structure */
             ProbeForRead(pustrDevice, sizeof(UNICODE_STRING), 1);
-            ProbeForRead(pustrDevice->Buffer, pustrDevice->Length, 1);
+            ustrTemp = *pustrDevice;
+
+            /* Probe the buffer */
+            ProbeForRead(ustrTemp.Buffer, ustrDevice.Length, 1);
 
             /* Copy the string */
-            RtlCopyUnicodeString(&ustrDevice, pustrDevice);
+            RtlCopyUnicodeString(&ustrDevice, &ustrTemp);
 
             /* Allocate and store pdmAllocated if pdmInit is not NULL */
             if (pdmInit)
