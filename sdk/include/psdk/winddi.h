@@ -2964,7 +2964,7 @@ PALOBJ_cGetColors(
     _In_ PALOBJ *ppalo,
     _In_ ULONG iStart,
     _In_ ULONG cColors,
-    _Out_writes_(cColors) ULONG *pulColors);
+    _Out_writes_opt_(cColors) ULONG *pulColors);
 
 ENGAPI
 BOOL

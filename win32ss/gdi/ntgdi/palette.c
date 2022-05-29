@@ -420,24 +420,36 @@ EngDeletePalette(IN HPALETTE hpal)
  */
 ULONG
 APIENTRY
-PALOBJ_cGetColors(PALOBJ *PalObj, ULONG Start, ULONG Colors, ULONG *PaletteEntry)
+PALOBJ_cGetColors(
+    _In_ PALOBJ *ppalo,
+    _In_ ULONG iStart,
+    _In_ ULONG cColors,
+    _Out_writes_opt_(cColors) ULONG *pulColors)
 {
-    PALETTE *PalGDI;
+    PALETTE *ppal;
+    ULONG cMaxColors;
 
-    PalGDI = (PALETTE*)PalObj;
+    /* Get the PALETTE */
+    ppal = CONTAINING_RECORD(ppalo, PALETTE, PalObj);
 
-    if (Start >= PalGDI->NumColors)
+    /* Fail if the start index is out of bounds */
+    if (iStart >= ppal->NumColors)
         return 0;
 
-    Colors = min(Colors, PalGDI->NumColors - Start);
+    /* Calculate how many colors we can get */
+    cMaxColors = min(cColors, ppal->NumColors - iStart);
 
-    /* NOTE: PaletteEntry ULONGs are in the same order as PALETTEENTRY. */
-    RtlCopyMemory(PaletteEntry, PalGDI->IndexedColors + Start, sizeof(ULONG) * Colors);
+    /* Check if the caller provided an output budder */
+    if (pulColors != NULL)
+    {
+        /* NOTE: PaletteEntry ULONGs are in the same order as PALETTEENTRY. */
+        RtlCopyMemory(pulColors, &ppal->IndexedColors[iStart], sizeof(ULONG) * cMaxColors);
 
-    if (PalGDI->flFlags & PAL_GAMMACORRECTION)
-        ColorCorrection(PalGDI, (PPALETTEENTRY)PaletteEntry, Colors);
+        if (ppal->flFlags & PAL_GAMMACORRECTION)
+            ColorCorrection(ppal, (PPALETTEENTRY)pulColors, cMaxColors);
+    }
 
-    return Colors;
+    return cMaxColors;
 }
 
 
