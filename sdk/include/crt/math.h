@@ -136,6 +136,7 @@ _Check_return_ _CRTIMP double __cdecl _y1(_In_ double x);
 _Check_return_ _CRTIMP double __cdecl _yn(_In_ int x, _In_ double y);
 _Check_return_ _CRTIMP double __cdecl ceil(_In_ double x);
 _Check_return_ _CRTIMP double __cdecl floor(_In_ double x);
+_Check_return_ _CRTIMP double __cdecl fma(_In_ double x, _In_ double y, _In_ double z);
 _Check_return_ _CRTIMP double __cdecl frexp(_In_ double x, _Out_ int *y);
 _Check_return_ _CRTIMP double __cdecl ldexp(_In_ double x, _In_ int y);
 _Check_return_ _CRTIMP double __cdecl modf(_In_ double x, _Out_ double *y);

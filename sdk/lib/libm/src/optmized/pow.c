@@ -359,17 +359,14 @@ static inline double _pow_inexact(double x)
 {
     double_t a = 0x1.0p+0; /* a = 1.0 */
     double_t b = 0x1.4000000000000p+3; /* b = 10.0 */
-#ifdef _MSC_VER
+
 #ifdef _M_AMD64
     x = a / b;
 #else
     __m128d a128 = _mm_load_sd(&a);
     __m128d b128 = _mm_load_sd(&b);
-    __m128d x128 = _mm_div_sd(__m128d, __m128d);
+    __m128d x128 = _mm_div_sd(a128, b128);
     _mm_store_sd(&x, x128);
-#endif
-#else
-    __asm __volatile ("divsd %1, %0" :  "+x" (a): "x" (b));
 #endif
     return x;
 }
@@ -481,6 +478,6 @@ ALM_PROTO_OPT(pow)(double x, double y)
 
 #if !defined(ENABLE_DEBUG)
 #ifndef __clang__
-#pragma GCC pop_options
+//#pragma GCC pop_options
 #endif
 #endif

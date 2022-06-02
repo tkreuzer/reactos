@@ -63,6 +63,8 @@ typedef _C_ldouble_complex _Lcomplex;
 #define _Complex_I _FCbuild(0.0F, 1.0F)
 #define I          _Complex_I
 
+#ifdef _MSC_VER2
+
 double creal(_Dcomplex z);
 double cimag(_Dcomplex z);
 double carg(_Dcomplex z);
@@ -131,6 +133,8 @@ _Lcomplex  cpowl(_Lcomplex x, _Lcomplex y);
 _Lcomplex  csqrtl(_Lcomplex z);
 _Lcomplex cprojl(_Lcomplex z);
 
+#endif
+
 #ifdef __GNUC__
 
 /* double */
@@ -159,22 +163,22 @@ __CRT_INLINE  double carg (double _Complex _Z)
 
 
 /* float */
-__CRT_INLINE float crealf (_Fcomplex _Z)
+__CRT_INLINE float crealf (float _Complex _Z)
 {
   return __real__ _Z;
 }
 
-__CRT_INLINE float cimagf (_Fcomplex _Z)
+__CRT_INLINE float cimagf (float _Complex _Z)
 {
   return __imag__ _Z;
 }
 
-__CRT_INLINE _Fcomplex conjf (_Fcomplex _Z)
+__CRT_INLINE float _Complex conjf (float _Complex _Z)
 {
   return __extension__ ~_Z;
 }
 
-__CRT_INLINE  float cargf (_Fcomplex _Z)
+__CRT_INLINE  float cargf (float _Complex _Z)
 {
   float res;
   __asm__  ("fpatan;"
@@ -183,22 +187,22 @@ __CRT_INLINE  float cargf (_Fcomplex _Z)
 }
 
 /* long double */
-__CRT_INLINE long double creall (_Lcomplex _Z)
+__CRT_INLINE long double creall (long double _Complex _Z)
 {
   return __real__ _Z;
 }
 
-__CRT_INLINE long double cimagl (_Lcomplex _Z)
+__CRT_INLINE long double cimagl (long double _Complex _Z)
 {
   return __imag__ _Z;
 }
 
-__CRT_INLINE _Lcomplex conjl (_Lcomplex _Z)
+__CRT_INLINE long double _Complex conjl (long double _Complex _Z)
 {
   return __extension__ ~_Z;
 }
 
-__CRT_INLINE  long double cargl (_Lcomplex _Z)
+__CRT_INLINE  long double cargl (long double _Complex _Z)
 {
   long double res;
   __asm__  ("fpatan;"

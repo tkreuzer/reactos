@@ -5,6 +5,9 @@ add_definitions(-Disinf=!_finite)
 
 if (MSVC)
     add_definitions(-D__MSVC)
+    #add_definitions(-DWINDOWS=1)
+else()
+    add_definitions(-D__GNUC)
 endif()
 
 if(WIN32)
@@ -64,12 +67,20 @@ list(APPEND SOURCES_BASE
     src/optmized/log_tables.c
     src/optmized/pow.c
     src/optmized/pow_data.c
-    src/ref/remainder_piby2.c
+    #src/ref/remainder_piby2.c
     #src/ref/sinpi.c
     #src/optmized/sin.c
     #src/ref/sqrt.c
     src/ref/tan.c
 )
+
+if (MSVC)
+else()
+list(APPEND SOURCES_BASE
+    #src/ref/remainder_piby2.c
+    #src/ref/remainder_piby2d2f.c
+)
+endif()
 
 list(APPEND REF_SOURCES
     src/ref/acos.c
@@ -143,14 +154,29 @@ list(APPEND REF_SOURCES
     #src/ref/vrd4_expm1.c
 )
 
+list(APPEND LIBM_ASM_SOURCES
+    src/isa/avx/remainder_piby2_new.asm
+)
+
 list(APPEND LIBM_SOURCES
     ${REF_SOURCES}
 )
 
-add_library(libm_base OBJECT
+add_library(libm_base
     ${SOURCES_BASE}
+    ${LIBM_ASM_SOURCES}
 )
 
 add_library(libm_atan2 OBJECT
     src/ref/atan2.c
 )
+
+if (MSVC)
+#add_definitions(-D__SSE__)
+
+else()
+    target_compile_options(libm_base PRIVATE -Wno-bool-compare)
+    target_compile_options(libm_base PRIVATE -Wno-logical-not-parentheses)
+    target_compile_options(libm_base PRIVATE -Wno-psabi)
+    target_compile_options(libm_atan2 PRIVATE -Wno-psabi)
+endif()

@@ -14,6 +14,10 @@
 #include <crtdefs.h>
 #include <xmmintrin.h>
 
+#if defined __cplusplus
+extern "C" {
+#endif
+
 #if defined(_MSC_VER) && !defined(__clang__)
 
 typedef union _DECLSPEC_INTRIN_TYPE _CRT_ALIGN(16) __m128i
@@ -1941,5 +1945,33 @@ extern __m128d _mm_sqrt_sd(__m128d _A, __m128d _B);
 extern __m128d _mm_setzero_pd(void);
 extern void _mm_store_sd(double *_Dp, __m128d _A);
 
+extern __m128d _mm_div_sd(__m128d _A, __m128d _B);
+
+#if defined(__GNUC__)
+#ifdef __SSE__
+__INTRIN_INLINE __m128d _mm_div_sd(__m128d __a, __m128d __b)
+{
+    __a[0] /= __b[0];
+    return __a;
+}
+#endif
+#if 0
+__INTRIN_INLINE __m128d _mm_load_sd(double const* Value)
+{
+    __m128d retval;
+    //__asm__ __volatile__("nop" : "=x" (result) : "m" (*x));
+    __asm__ __volatile__("mov %[Value], retval" : [retval] "="(retval) : [Value] "m"(*Value));
+    return retval;
+}
+#endif
+#endif
+
+#if defined __cplusplus
+} // extern "C"
+#endif
+
+//#ifdef __GNUC__
+//#include 
+//#endif
 
 #endif /* _INCLUDED_EMM */

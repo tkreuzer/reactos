@@ -28,15 +28,15 @@
 #ifndef __LIBM_WIN_MACROS_H__
 #define __LIBM_WIN_MACROS_H__
 
-/*
+#if defined(__GNUC)
+    /* On windows compiling with GNU/Mingw compilers */
+#else
+ /*
  * symbol name': attributes not present on previous declaration.
  */
 #pragma warning( disable : 4985 )
 
-#if defined(__GNUC)
-    /* On windows compiling with GNU/Mingw compilers */
-#else
-    #define weak_alias(name, aliasname) /* as nothing */
+#define weak_alias(name, aliasname) /* as nothing */
 #endif
 
 #endif  /* __LIBM_WIN_MACROS_H__ */

@@ -110,7 +110,7 @@ static inline double tan_piby4(double x, double xx, int recip)
     return t1 + t2; 
 } 
  
-#ifdef WINDOWS 
+#ifdef _MSC_VER
 #pragma function(tan) 
 #endif 
  

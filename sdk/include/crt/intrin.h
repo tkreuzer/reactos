@@ -312,7 +312,9 @@ __m128i _mm_cvttps_epi32(__m128);
 int _mm_cvttsd_si32(__m128d);
 __m128d _mm_div_pd(__m128d, __m128d);
 __m128 _mm_div_ps(__m128, __m128);
+#endif
 __m128d _mm_div_sd(__m128d, __m128d);
+#if 0
 __m128 _mm_div_ss(__m128, __m128);
 __m128d _mm_dp_pd(__m128d, __m128d, int);
 __m128 _mm_dp_ps(__m128, __m128, int);
