@@ -1,6 +1,7 @@
 
 list(APPEND LIBCNTPR_FLOAT_SOURCE
     float/isnan.c
+    float/_set_statfp.c
 )
 
 list(APPEND CRT_FLOAT_SOURCE
