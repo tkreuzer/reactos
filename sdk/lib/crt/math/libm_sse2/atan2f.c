@@ -310,7 +310,7 @@ float FN_PROTOTYPE(atan2f)(float fy, float fx)
 
   /* Find properties of arguments x and y. */
 
-  unsigned long ux, aux, xneg, uy, auy, yneg;
+  unsigned __int64 ux, aux, xneg, uy, auy, yneg;
 
   GET_BITS_DP64(x, ux);
   GET_BITS_DP64(y, uy);

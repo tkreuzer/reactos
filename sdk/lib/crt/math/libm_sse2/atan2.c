@@ -558,7 +558,7 @@ double FN_PROTOTYPE(atan2)(double y, double x)
 
   /* Find properties of arguments x and y. */
 
-  unsigned long ux, ui, aux, xneg, uy, auy, yneg;
+  unsigned __int64 ux, ui, aux, xneg, uy, auy, yneg;
 
   GET_BITS_DP64(x, ux);
   GET_BITS_DP64(y, uy);
