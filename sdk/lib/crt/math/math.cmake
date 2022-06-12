@@ -1,9 +1,12 @@
 
+include_directories(libm-sse)
+
 list(APPEND LIBCNTPR_MATH_SOURCE
     math/abs.c
     math/div.c
     math/labs.c
     math/usermatherr.c
+    math/_handle_error.c
 )
 
 if(ARCH STREQUAL "i386")
@@ -51,14 +54,27 @@ if(ARCH STREQUAL "i386")
     )
 elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_SOURCE
-        math/cos.c
-        math/sin.c
+        # math/libm-sse/_chgsign.c
+        # math/libm-sse/_chgsignf.c
+        # math/libm-sse/_copysign.c
+        # math/libm-sse/_copysignf.c
+        math/libm-sse/atan.c
+        math/libm-sse/atan2.c
+        #math/libm-sse/cos.c
+        # FIXME: make these portable
+        math/libm-sse/cos.asm
+        math/libm-sse/cosf.asm
+        math/libm-sse/fma3_available.c
+        math/libm-sse/remainder_piby2_forAsm.asm
+        math/libm-sse/remainder_piby2_forFMA3.asm
+        math/libm-sse/sin.asm
+        math/libm-sse/sinf.asm
+        math/libm-sse/sincos_special.c
+        math/libm-sse/L2_by_pi_bits.asm
+        math/libm-sse/Lsincos_array.asm
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
-        math/amd64/atan.S
-        math/amd64/atan2.S
         math/amd64/ceil.S
-        math/amd64/exp.S
         math/amd64/fabs.S
         math/amd64/floor.S
         math/amd64/floorf.S
@@ -69,6 +85,21 @@ elseif(ARCH STREQUAL "amd64")
         math/amd64/pow.S
         math/amd64/sqrt.S
         math/amd64/tan.S
+    )
+    list(APPEND CRT_MATH_SOURCE
+        math/libm-sse/acos.c
+        math/libm-sse/acosf.c
+        math/libm-sse/asin.c
+        math/libm-sse/asinf.c
+        math/libm-sse/atan2f.c
+        math/libm-sse/atanf.c
+        math/libm-sse/exp.asm
+        math/libm-sse/exp_special.c
+        math/libm-sse/remainder_piby2f_forAsm.asm
+        math/libm-sse/Lsincosf_array.asm
+        math/libm-sse/two_to_jby64_table.asm
+        math/libm-sse/two_to_jby64_head_tail_table.asm
+        math/libm-sse/remainder_piby2f_forC.asm
     )
 elseif(ARCH STREQUAL "arm")
     list(APPEND LIBCNTPR_MATH_SOURCE
@@ -93,7 +124,12 @@ elseif(ARCH STREQUAL "arm")
         math/arm/__64tof.h
     )
     list(APPEND CRT_MATH_SOURCE
+        math/acosf.c
+        math/asinf.c
+        math/atan2f.c
+        math/atanf.c
         math/fabsf.c
+        math/sinf.c
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/arm/atan.s
@@ -122,18 +158,12 @@ if(NOT ARCH STREQUAL "i386")
         math/_chgsignf.c
         math/_copysignf.c
         math/_hypotf.c
-        math/acosf.c
-        math/asinf.c
-        math/atan2f.c
-        math/atanf.c
         math/ceilf.c
-        math/cos.c
         math/coshf.c
         math/expf.c
         math/fmodf.c
         math/log10f.c
         math/modff.c
-        math/sin.c
         math/sinhf.c
         math/sqrtf.c
         math/tanf.c
@@ -144,11 +174,8 @@ endif()
 
 list(APPEND CRT_MATH_SOURCE
     ${LIBCNTPR_MATH_SOURCE}
-    math/acos.c
     math/adjust.c
-    math/asin.c
     math/cabs.c
-    math/cosf.c
     math/cosh.c
     math/fdivbug.c
     math/frexp.c
@@ -166,10 +193,17 @@ list(APPEND CRT_MATH_SOURCE
     math/powf.c
     math/rand.c
     math/s_modf.c
-    math/sinf.c
     math/sinh.c
     math/tanh.c
 )
+
+if(NOT ARCH STREQUAL "amd64")
+    list(APPEND CRT_MATH_SOURCE
+        math/acos.c
+        math/asin.c
+        math/cosf.c
+    )
+endif()
 
 list(APPEND CRT_MATH_ASM_SOURCE
     ${LIBCNTPR_MATH_ASM_SOURCE}
