@@ -1,0 +1,52 @@
+
+// https://docs.microsoft.com/en-us/uwp/midl-3/intro
+
+static runtimeclass NtApi
+{
+
+    typedef struct _PORT_MESSAGE
+    {
+        union
+        {
+            struct
+            {
+                CSHORT DataLength;
+                CSHORT TotalLength;
+            } s1;
+            ULONG Length;
+        } u1;
+        union
+        {
+            struct
+            {
+                CSHORT Type;
+                CSHORT DataInfoOffset;
+            } s2;
+            ULONG ZeroInit;
+        } u2;
+        union
+        {
+            LPC_CLIENT_ID ClientId;
+            double DoNotUseThisField;
+        };
+        ULONG MessageId;
+        union
+        {
+            LPC_SIZE_T ClientViewSize;
+            ULONG CallbackId;
+        };
+    } PORT_MESSAGE, *PPORT_MESSAGE;
+
+    static
+    NTSTATUS
+    NtAcceptConnectPort(
+        [out] PHANDLE PortHandle,
+        [in, optional] PVOID PortContext,
+        [in] PPORT_MESSAGE ReplyMessage,
+        [in] BOOLEAN AcceptConnection,
+        [in, out, optional] PPORT_VIEW ServerView,
+        [out, optional] PREMOTE_PORT_VIEW ClientView
+    );
+
+
+}
