@@ -31,6 +31,8 @@ typedef struct _DECLSPEC_INTRIN_TYPE _CRT_ALIGN(16) __m128d
     double m128d_f64[2];
 } __m128d;
 
+typedef __declspec(unaligned) __m127i __m128i_u;
+
 #define aTTRIBUTE_SSE2__
 
 #else /* _MSC_VER */
@@ -139,16 +141,16 @@ extern __m128d _mm_load1_pd(double const *__dp);
 //#define _mm_load_pd1(dp) _mm_load1_pd(dp)
 extern __m128d _mm_loadr_pd(double const *__dp);
 extern __m128d _mm_loadu_pd(double const *__dp);
-extern __m128i _mm_loadu_si64(void const *a);
-extern __m128i _mm_loadu_si32(void const *a);
-extern __m128i _mm_loadu_si16(void const *a);
+//extern __m128i _mm_loadu_si64(void const *a);
+//extern __m128i _mm_loadu_si32(void const *a);
+//extern __m128i _mm_loadu_si16(void const *a);
 extern __m128d _mm_load_sd(double const *__dp);
 extern __m128d _mm_loadh_pd(__m128d a, double const *__dp);
 extern __m128d _mm_loadl_pd(__m128d a, double const *__dp);
-extern __m128d _mm_undefined_pd(void);
+//extern __m128d _mm_undefined_pd(void);
 extern __m128d _mm_set_sd(double __w);
 extern __m128d _mm_set1_pd(double __w);
-extern __m128d _mm_set_pd1(double __w);
+//extern __m128d _mm_set_pd1(double __w);
 extern __m128d _mm_set_pd(double __w, double __x);
 extern __m128d _mm_setr_pd(double __w, double __x);
 extern __m128d _mm_setzero_pd(void);
@@ -156,7 +158,7 @@ extern __m128d _mm_move_sd(__m128d a, __m128d b);
 extern void _mm_store_sd(double *__dp, __m128d a);
 extern void _mm_store_pd(double *__dp, __m128d a);
 extern void _mm_store1_pd(double *__dp, __m128d a);
-extern void _mm_store_pd1(double *__dp, __m128d a);
+//extern void _mm_store_pd1(double *__dp, __m128d a);
 extern void _mm_storeu_pd(double *__dp, __m128d a);
 extern void _mm_storer_pd(double *__dp, __m128d a);
 extern void _mm_storeh_pd(double *__dp, __m128d a);
@@ -238,7 +240,7 @@ extern __m128i _mm_cvtsi64_si128(long long a);
 extern int _mm_cvtsi128_si32(__m128i a);
 extern long long _mm_cvtsi128_si64(__m128i a);
 extern __m128i _mm_load_si128(__m128i const *__p);
-//extern __m128i _mm_loadu_si128(__m128i_u const *__p);
+extern __m128i _mm_loadu_si128(__m128i_u const *__p);
 //extern __m128i _mm_loadl_epi64(__m128i_u const *__p);
 extern __m128i _mm_undefined_si128(void);
 extern __m128i _mm_set_epi64x(long long q1, long long q0);
@@ -254,6 +256,7 @@ extern __m128i _mm_set1_epi64(__m64 __q);
 extern __m128i _mm_set1_epi32(int __i);
 extern __m128i _mm_set1_epi16(short __w);
 extern __m128i _mm_set1_epi8(char b);
+extern __m128i _mm_setl_epi64(__m128i q); // FIXME
 extern __m128i _mm_setr_epi64(__m64 __q0, __m64 __q1);
 //extern __m128i _mm_setr_epi32(int __i0, int __i2, int __i3);
 extern __m128i _mm_setr_epi32(int i0, int i1, int i2, int i3);
@@ -273,11 +276,11 @@ extern void _mm_stream_pd(double *__p, __m128d a);
 extern void _mm_stream_si128(__m128i *__p, __m128i a);
 extern void _mm_stream_si32(int *__p, int a);
 #ifdef _M_AMD64
-extern void _mm_stream_si64(long long *__p, long long a);
+extern void _mm_stream_si64(long long *__p, long long a); // #define _mm_stream_si64 _mm_stream_si64x
 #endif
-void _mm_clflush(void const *__p);
-void _mm_lfence(void);
-void _mm_mfence(void);
+extern void _mm_clflush(void const *__p);
+extern void _mm_lfence(void);
+extern void _mm_mfence(void);
 extern __m128i _mm_packs_epi16(__m128i a, __m128i b);
 extern __m128i _mm_packs_epi32(__m128i a, __m128i b);
 extern __m128i _mm_packus_epi16(__m128i a, __m128i b);
@@ -510,7 +513,7 @@ void _mm_pause(void);
 #pragma intrinsic(_mm_stream_si128)
 #pragma intrinsic(_mm_stream_si32)
 #ifdef _M_AMD64
-//#pragma intrinsic(_mm_stream_si64)
+//#pragma intrinsic(_mm_stream_si64) // #define _mm_stream_si64 _mm_stream_si64x
 #endif
 #pragma intrinsic(_mm_clflush)
 #pragma intrinsic(_mm_lfence)
