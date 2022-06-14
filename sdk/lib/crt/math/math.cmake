@@ -1,5 +1,5 @@
 
-include_directories(libm-sse)
+include_directories(libm_sse2)
 
 list(APPEND LIBCNTPR_MATH_SOURCE
     math/abs.c
@@ -54,24 +54,24 @@ if(ARCH STREQUAL "i386")
     )
 elseif(ARCH STREQUAL "amd64")
     list(APPEND LIBCNTPR_MATH_SOURCE
-        # math/libm-sse/_chgsign.c
-        # math/libm-sse/_chgsignf.c
-        # math/libm-sse/_copysign.c
-        # math/libm-sse/_copysignf.c
-        math/libm-sse/atan.c
-        math/libm-sse/atan2.c
-        #math/libm-sse/cos.c
+        # math/libm_sse2/_chgsign.c
+        # math/libm_sse2/_chgsignf.c
+        # math/libm_sse2/_copysign.c
+        # math/libm_sse2/_copysignf.c
+        math/libm_sse2/atan.c
+        math/libm_sse2/atan2.c
+        #math/libm_sse2/cos.c
         # FIXME: make these portable
-        math/libm-sse/cos.asm
-        math/libm-sse/cosf.asm
-        math/libm-sse/fma3_available.c
-        math/libm-sse/remainder_piby2_forAsm.asm
-        math/libm-sse/remainder_piby2_forFMA3.asm
-        math/libm-sse/sin.asm
-        math/libm-sse/sinf.asm
-        math/libm-sse/sincos_special.c
-        math/libm-sse/L2_by_pi_bits.asm
-        math/libm-sse/Lsincos_array.asm
+        math/libm_sse2/cos.asm
+        math/libm_sse2/cosf.asm
+        math/libm_sse2/fma3_available.c
+        math/libm_sse2/remainder_piby2_forAsm.asm
+        math/libm_sse2/remainder_piby2_forFMA3.asm
+        math/libm_sse2/sin.asm
+        math/libm_sse2/sinf.asm
+        math/libm_sse2/sincos_special.c
+        math/libm_sse2/L2_by_pi_bits.asm
+        math/libm_sse2/Lsincos_array.asm
     )
     list(APPEND LIBCNTPR_MATH_ASM_SOURCE
         math/amd64/ceil.S
@@ -87,19 +87,19 @@ elseif(ARCH STREQUAL "amd64")
         math/amd64/tan.S
     )
     list(APPEND CRT_MATH_SOURCE
-        math/libm-sse/acos.c
-        math/libm-sse/acosf.c
-        math/libm-sse/asin.c
-        math/libm-sse/asinf.c
-        math/libm-sse/atan2f.c
-        math/libm-sse/atanf.c
-        math/libm-sse/exp.asm
-        math/libm-sse/exp_special.c
-        math/libm-sse/remainder_piby2f_forAsm.asm
-        math/libm-sse/Lsincosf_array.asm
-        math/libm-sse/two_to_jby64_table.asm
-        math/libm-sse/two_to_jby64_head_tail_table.asm
-        math/libm-sse/remainder_piby2f_forC.asm
+        math/libm_sse2/acos.c
+        math/libm_sse2/acosf.c
+        math/libm_sse2/asin.c
+        math/libm_sse2/asinf.c
+        math/libm_sse2/atan2f.c
+        math/libm_sse2/atanf.c
+        math/libm_sse2/exp.asm
+        math/libm_sse2/exp_special.c
+        math/libm_sse2/remainder_piby2f_forAsm.asm
+        math/libm_sse2/Lsincosf_array.asm
+        math/libm_sse2/two_to_jby64_table.asm
+        math/libm_sse2/two_to_jby64_head_tail_table.asm
+        math/libm_sse2/remainder_piby2f_forC.asm
     )
 elseif(ARCH STREQUAL "arm")
     list(APPEND LIBCNTPR_MATH_SOURCE
