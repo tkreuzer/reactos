@@ -32,6 +32,7 @@ THE SOFTWARE.
 #endif /* _MSC_VER */
 #else
 #include <sect_attribs.h>
+#undef _CRTALLOC
 #define _CRTALLOC(x)
 #endif
 
