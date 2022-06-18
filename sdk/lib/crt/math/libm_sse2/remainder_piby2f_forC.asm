@@ -31,7 +31,7 @@ fname TEXTEQU <__remainder_piby2d2f_forC>
 save_rdi        EQU      20h
 save_rsi        EQU      30h
 stack_size      EQU     088h
-include fm.inc
+#include "fm.inc"
 
 .code
 PUBLIC fname

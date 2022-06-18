@@ -85,7 +85,7 @@ region          EQU 000h
 stack_size      EQU 018h
 sstack_size     EQU 000h   ; no stack for fsname
 
-include fm.inc
+#include "fm.inc"
 
 fname TEXTEQU <__remainder_piby2_forAsm>
 fsname TEXTEQU <__remainder_piby2_cw_forAsm>

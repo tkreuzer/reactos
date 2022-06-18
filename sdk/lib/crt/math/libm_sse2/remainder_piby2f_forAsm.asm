@@ -41,7 +41,7 @@ EXTRN __L_2_by_pi_bits:BYTE
 fname TEXTEQU <__remainder_piby2d2f_forAsm>
 
 stack_size      EQU     000h
-include fm.inc
+#include "fm.inc"
 
 .code
 PUBLIC fname
