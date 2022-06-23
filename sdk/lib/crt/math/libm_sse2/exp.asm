@@ -105,7 +105,7 @@ EXTRN __use_fma3_lib:DWORD
 dummy_space     EQU    020h
 stack_size      EQU    038h
 
-#include "fm.inc"
+include fm.inc
 
 fname           TEXTEQU <exp>
 fname_special   TEXTEQU <_exp_special>

@@ -91,7 +91,7 @@ dummy_space         EQU 040h
 
 stack_size          EQU 058h
 
-#include "fm.inc"
+include fm.inc
 
 fname           TEXTEQU <sinf>
 fname_special   TEXTEQU <_sinf_special>

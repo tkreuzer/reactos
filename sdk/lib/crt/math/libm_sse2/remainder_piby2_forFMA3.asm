@@ -65,7 +65,7 @@ EXTRN __L_2_by_pi_bits:BYTE
 region      EQU        020h
 stack_size  EQU        038h
 
-#include "fm.inc"
+include fm.inc
 
 fname TEXTEQU  <__remainder_piby2_fma3>
 fbname TEXTEQU <__remainder_piby2_fma3_bdl>

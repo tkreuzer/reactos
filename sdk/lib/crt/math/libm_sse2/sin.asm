@@ -77,7 +77,7 @@ save_r10        EQU 050h
 dummy_space     EQU 060h
 stack_size      EQU 078h
 
-#include "fm.inc"
+include fm.inc
 
 fname           TEXTEQU <sin>
 fname_special   TEXTEQU <_sin_special>
