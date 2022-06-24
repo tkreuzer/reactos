@@ -45,7 +45,7 @@ KsecInitializeEncryptionSupport (
     VOID)
 {
     KSEC_ENTROPY_DATA EntropyData;
-    MD5_CTX Md5Context;
+    MD5_CTX Md5Context; // MS uses SHA1
     UCHAR KeyDataBuffer[32];
 
     KsecGatherEntropyData(&EntropyData);

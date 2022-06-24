@@ -31,6 +31,10 @@ KsecGenRandom(
     ULONG i, RandomValue;
     PULONG P;
 
+    // MS: gather entropy + hash into 4 SHA1s + use that as RC4 key + rc4 the buffer
+    // RC4 key is max 256 bytes, use them all?
+    // MD5 is fast and uniformly distributed, so it's fine to use.
+
     /// @todo FIXME should use entropy data and run SHA-1 over it
 
     /* Try to generate a more random seed */
@@ -88,11 +92,12 @@ KsecReadMachineSpecificCounters(
 
 /*!
  *  \see http://blogs.msdn.com/b/michael_howard/archive/2005/01/14/353379.aspx
+ * -> https://web.archive.org/web/20180929235240/https://blogs.msdn.microsoft.com/michael_howard/2005/01/14/cryptographically-secure-random-number-on-windows-without-using-cryptoapi/
  */
 NTSTATUS
 NTAPI
 KsecGatherEntropyData(
-    PKSEC_ENTROPY_DATA EntropyData)
+    PKSEC_ENTROPY_DATA EntropyData) // allocate from a lookaside list?
 {
     MD4_CTX Md4Context;
     PTEB Teb;
@@ -212,11 +217,12 @@ KsecGatherEntropyData(
     Status = ZwQuerySystemInformation(SystemProcessInformation,
                                       &EntropyData->SystemProcessInformation,
                                       sizeof(SYSTEM_PROCESS_INFORMATION),
-                                      &ReturnLength);
+                                      &ReturnLength); // this is actually dynamic
     if (!NT_SUCCESS(Status))
     {
         return Status;
     }
 
+    // should we hash it here straight away (into 16 MD5s?)
     return STATUS_SUCCESS;
 }
