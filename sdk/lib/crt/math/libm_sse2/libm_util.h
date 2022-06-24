@@ -37,6 +37,11 @@
    as type double (i.e. we are really on a 64-bit machine) */
 //void check_long_against_double_size(int machine_is_64_bit[(sizeof(long) == sizeof(double))?1:-1]); 
 
+#define MULTIPLIER_DP 53
+
+
+static const double VAL_2PMULTIPLIER_DP = 9007199254740992.0;
+static const double VAL_2PMMULTIPLIER_DP = 1.1102230246251565404236316680908e-16;
 
 /* Definitions for double functions on 64 bit machines */
 #define SIGNBIT_DP64      0x8000000000000000
