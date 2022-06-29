@@ -113,8 +113,8 @@ IntWinStaObjectDelete(
 
     if (WinSta == InputWindowStation)
     {
-        ERR("WARNING: Deleting the interactive window station '%wZ'!\n",
-            &(OBJECT_HEADER_TO_NAME_INFO(OBJECT_TO_OBJECT_HEADER(InputWindowStation))->Name));
+        //ERR("WARNING: Deleting the interactive window station '%wZ'!\n",
+        //    &(OBJECT_HEADER_TO_NAME_INFO(OBJECT_TO_OBJECT_HEADER(InputWindowStation))->Name));
 
         /* Only Winlogon can close and delete the interactive window station */
         ASSERT(gpidLogon == PsGetCurrentProcessId());
@@ -1093,7 +1093,7 @@ NtUserGetObjectInformation(
     PWINSTATION_OBJECT WinStaObject = NULL;
     PDESKTOP DesktopObject = NULL;
     POBJECT_HEADER ObjectHeader;
-    POBJECT_HEADER_NAME_INFO NameInfo;
+    //POBJECT_HEADER_NAME_INFO NameInfo;
     OBJECT_HANDLE_INFORMATION HandleInfo;
     USEROBJECTFLAGS ObjectFlags;
     PUNICODE_STRING pStrNameU = NULL;
@@ -1174,13 +1174,22 @@ NtUserGetObjectInformation(
         {
             if (WinStaObject != NULL)
             {
+#if 0
                 ObjectHeader = OBJECT_TO_OBJECT_HEADER(WinStaObject);
                 NameInfo = OBJECT_HEADER_TO_NAME_INFO(ObjectHeader);
+#endif
+                OBJECT_NAME_INFORMATION LocalNameInfo;
+                ULONG ReturnLength;
 
-                if (NameInfo && (NameInfo->Name.Length > 0))
+                Status = ObQueryNameString(WinStaObject,
+                                           &LocalNameInfo,
+                                           sizeof(LocalNameInfo),
+                                           &ReturnLength);
+
+                if (NT_SUCCESS(Status) && (LocalNameInfo.Name.Length > 0))
                 {
                     /* Named window station */
-                    pStrNameU = &NameInfo->Name;
+                    pStrNameU = &LocalNameInfo.Name;
                     nDataSize = pStrNameU->Length + sizeof(UNICODE_NULL);
                 }
                 else
@@ -1209,14 +1218,14 @@ NtUserGetObjectInformation(
         {
             if (WinStaObject != NULL)
             {
-                ObjectHeader = OBJECT_TO_OBJECT_HEADER(WinStaObject);
+                ObjectHeader = NULL; //OBJECT_TO_OBJECT_HEADER(WinStaObject);
                 pStrNameU = &ObjectHeader->Type->Name;
                 nDataSize = pStrNameU->Length + sizeof(UNICODE_NULL);
                 Status = STATUS_SUCCESS;
             }
             else if (DesktopObject != NULL)
             {
-                ObjectHeader = OBJECT_TO_OBJECT_HEADER(DesktopObject);
+                ObjectHeader = NULL; // OBJECT_TO_OBJECT_HEADER(DesktopObject);
                 pStrNameU = &ObjectHeader->Type->Name;
                 nDataSize = pStrNameU->Length + sizeof(UNICODE_NULL);
                 Status = STATUS_SUCCESS;
