@@ -1173,6 +1173,10 @@ VerifyEventWaitable(IN HANDLE Handle,
                     OUT PVOID *WaitObject,
                     OUT PVOID *ActualWaitObject)
 {
+    // This function is never called amd it's also a huge hack
+    ASSERT(FALSE);
+    return FALSE;
+#if 0
     PVOID Object;
     NTSTATUS Status;
     POBJECT_TYPE ObjectType;
@@ -1205,6 +1209,7 @@ VerifyEventWaitable(IN HANDLE Handle,
     SAC_DBG(SAC_DBG_INIT, "SAC VerifyEventWaitable: event object not waitable!\n");
     ObDereferenceObject(*WaitObject);
     return FALSE;
+#endif
 }
 
 NTSTATUS
