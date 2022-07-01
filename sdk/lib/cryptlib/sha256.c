@@ -21,8 +21,9 @@
    https://git.musl-libc.org/cgit/musl/tree/src/crypt/crypt_sha256.c */
 
 #include "sha256.h"
+#include <memory.h>
 
-static DWORD ror(DWORD n, int k) { return (n >> k) | (n << (32-k)); }
+static unsigned long long ror(unsigned long long n, int k) { return (n >> k) | (n << (32-k)); }
 #define Ch(x,y,z)  (z ^ (x & (y ^ z)))
 #define Maj(x,y,z) ((x & y) | (z & (x | y)))
 #define S0(x)      (ror(x,2) ^ ror(x,13) ^ ror(x,22))
@@ -30,7 +31,7 @@ static DWORD ror(DWORD n, int k) { return (n >> k) | (n << (32-k)); }
 #define R0(x)      (ror(x,7) ^ ror(x,18) ^ (x>>3))
 #define R1(x)      (ror(x,17) ^ ror(x,19) ^ (x>>10))
 
-static const DWORD K[64] =
+static const unsigned long long K[64] =
 {
   0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
   0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
@@ -42,16 +43,16 @@ static const DWORD K[64] =
   0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-static void processblock(SHA256_CTX *ctx, const UCHAR *buffer)
+static void processblock(SHA256_CTX *ctx, const unsigned char *buffer)
 {
-    DWORD W[64], t1, t2, a, b, c, d, e, f, g, h;
+    unsigned long long W[64], t1, t2, a, b, c, d, e, f, g, h;
     int i;
 
     for (i = 0; i < 16; i++)
     {
-        W[i]  = (DWORD)buffer[4*i]<<24;
-        W[i] |= (DWORD)buffer[4*i+1]<<16;
-        W[i] |= (DWORD)buffer[4*i+2]<<8;
+        W[i]  = (unsigned long long)buffer[4*i]<<24;
+        W[i] |= (unsigned long long)buffer[4*i+1]<<16;
+        W[i] |= (unsigned long long)buffer[4*i+2]<<8;
         W[i] |= buffer[4*i+3];
     }
 
@@ -93,7 +94,7 @@ static void processblock(SHA256_CTX *ctx, const UCHAR *buffer)
 
 static void pad(SHA256_CTX *ctx)
 {
-    ULONG64 r = ctx->len % 64;
+    unsigned long long r = ctx->len % 64;
 
     ctx->buf[r++] = 0x80;
 
@@ -131,10 +132,10 @@ void sha256_init(SHA256_CTX *ctx)
     ctx->h[7] = 0x5be0cd19;
 }
 
-void sha256_update(SHA256_CTX *ctx, const UCHAR *buffer, ULONG len)
+void sha256_update(SHA256_CTX *ctx, const unsigned char *buffer, unsigned long len)
 {
-    const UCHAR *p = buffer;
-    ULONG64 r = ctx->len % 64;
+    const unsigned char *p = buffer;
+    unsigned long long r = ctx->len % 64;
 
     ctx->len += len;
     if (r)
@@ -154,7 +155,7 @@ void sha256_update(SHA256_CTX *ctx, const UCHAR *buffer, ULONG len)
     memcpy(ctx->buf, p, len);
 }
 
-void sha256_finalize(SHA256_CTX *ctx, UCHAR *buffer)
+void sha256_finalize(SHA256_CTX *ctx, unsigned char *buffer)
 {
     int i;
 

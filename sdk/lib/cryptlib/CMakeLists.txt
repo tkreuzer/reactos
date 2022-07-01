@@ -7,6 +7,8 @@ list(APPEND SOURCE
     mvAesAlg.c
     rc4.c
     sha1.c
+    sha256.c
+    sha512.c
     util.c)
 
 add_library(cryptlib ${SOURCE})
