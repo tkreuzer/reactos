@@ -9,6 +9,7 @@
 /* INCLUDES *******************************************************************/
 
 #include "ksecdd.h"
+#include "entropy.h"
 
 #define NDEBUG
 #include <debug.h>

@@ -9,6 +9,7 @@
 /* INCLUDES *******************************************************************/
 
 #include "ksecdd.h"
+#include "entropy.h"
 
 #define NDEBUG
 #include <debug.h>
@@ -17,9 +18,17 @@
 /* GLOBALS ********************************************************************/
 
 static ULONG KsecRandomSeed = 0x62b409a1;
-
+HASH2048 Hash2048;
 
 /* FUNCTIONS ******************************************************************/
+
+NTSTATUS
+NTAPI
+KsecInitializePRNG(VOID)
+{
+    __debugbreak();
+    return KsecGatherBootEntropy(&Hash2048);
+}
 
 NTSTATUS
 NTAPI
@@ -60,35 +69,7 @@ KsecGenRandom(
 VOID
 NTAPI
 KsecReadMachineSpecificCounters(
-    _Out_ PKSEC_MACHINE_SPECIFIC_COUNTERS MachineSpecificCounters)
-{
-#if defined(_M_IX86) || defined(_M_AMD64)
-    /* Check if RDTSC is available */
-    if (ExIsProcessorFeaturePresent(PF_RDTSC_INSTRUCTION_AVAILABLE))
-    {
-        /* Read the TSC value */
-        MachineSpecificCounters->Tsc = __rdtsc();
-    }
-#if 0 // FIXME: investigate what the requirements are for these
-    /* Read the CPU event counter MSRs */
-    //MachineSpecificCounters->Ctr0 = __readmsr(0x12);
-    //MachineSpecificCounters->Ctr1 = __readmsr(0x13);
-
-    /* Check if this is an MMX capable CPU */
-    if (ExIsProcessorFeaturePresent(PF_MMX_INSTRUCTIONS_AVAILABLE))
-    {
-        /* Read the CPU performance counters 0 and 1 */
-        MachineSpecificCounters->Pmc0 = __readpmc(0);
-        MachineSpecificCounters->Pmc1 = __readpmc(1);
-    }
-#endif
-#elif defined(_M_ARM)
-    /* Read the Cycle Counter Register */
-    MachineSpecificCounters->Ccr = _MoveFromCoprocessor(CP15_PMCCNTR);
-#else
-    #error Implement me!
-#endif
-}
+    _Out_ PKSEC_MACHINE_SPECIFIC_COUNTERS MachineSpecificCounters);
 
 /*!
  *  \see http://blogs.msdn.com/b/michael_howard/archive/2005/01/14/353379.aspx

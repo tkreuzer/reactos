@@ -10,6 +10,7 @@ list(APPEND SOURCE
     dispatch.c
     crypt.c
     random.c
+    entropy.c
     stubs.c
     ksecdd.rc
     ${CMAKE_CURRENT_BINARY_DIR}/ksecdd.def)

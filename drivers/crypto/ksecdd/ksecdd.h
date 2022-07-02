@@ -6,6 +6,8 @@
  * PROGRAMMERS:     Timo Kreuzer (timo.kreuzer@reactos.org)
  */
 
+#pragma once
+
 #define _NO_KSECDD_IMPORT_
 #include <ntifs.h>
 #include <ndk/exfuncs.h>
