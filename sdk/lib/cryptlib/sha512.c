@@ -21,6 +21,7 @@
    https://git.musl-libc.org/cgit/musl/tree/src/crypt/crypt_sha512.c */
 
 #include "sha512.h"
+#include <memory.h>
 
 static unsigned long long ror(unsigned long long n, int k) { return (n >> k) | (n << (64-k)); }
 #define Ch(x,y,z)  (z ^ (x & (y ^ z)))
