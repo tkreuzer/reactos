@@ -43,6 +43,12 @@ The initialization vector is not secret - it can be passed in plain form along w
 #include "vmpcr.h"
 #include <stdlib.h>
 #include <assert.h>
+#include <memory.h>
+
+#ifndef max
+#define max(a,b) (((a) (b)) ? (a) : (b))
+#define min(a,b) (((a) < (b)) ? (a) : (b))
+#endif
 
 // InitKeyRounds[x] = Ceiling((x+1)*(x+1) / (6*256))
 unsigned char InitKeyRounds[256] =

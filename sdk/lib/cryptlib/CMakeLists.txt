@@ -9,7 +9,8 @@ list(APPEND SOURCE
     sha1.c
     sha256.c
     sha512.c
-    util.c)
+    util.c
+    vmpcr.c)
 
 add_library(cryptlib ${SOURCE})
 add_dependencies(cryptlib xdk)
