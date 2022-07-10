@@ -320,6 +320,12 @@ ENDM
 #define REPEAT .rept
 #define ENDR .endr
 
+/* MASM compatible DB, DW, DD, DQ */
+#define DB .byte
+#define DW .short
+#define DD .long
+#define DQ .quad
+
 .macro ljmp segment, offset
     jmp far ptr \segment:\offset
 .endm
