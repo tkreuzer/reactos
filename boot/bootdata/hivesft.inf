@@ -1836,6 +1836,13 @@ HKLM,"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Windows","USERProcessHandleQu
 ; App Compat -- Enable on ReactOS
 ;HKLM,"SOFTWARE\Policies\Microsoft\Windows\AppCompat","DisableEngine",0x00010003, 0x00000001
 
+; Kernel Security Support Provider Interface Driver (ksecdd)
+;HKLM,"SYSTEM\SOFTWARE\ReactOS",,0x00000012
+;HKLM,"SYSTEM\SOFTWARE\ReactOS\Cryptography",,0x00000012
+;HKLM,"SYSTEM\SOFTWARE\ReactOS\Cryptography\RNG",,0x00000012
+;HKLM,"SYSTEM\SOFTWARE\ReactOS\Cryptography\RNG","Seed",0x000a0001,0x01
+;HKLM,"SYSTEM\SOFTWARE\ReactOS\Cryptography\RNG\Entropy",,0x00000012
+
 ;-------------------------------- STRINGS -------------------------------
 
 [Strings]

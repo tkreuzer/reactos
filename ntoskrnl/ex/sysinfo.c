@@ -1583,13 +1583,14 @@ QSI_DEF(SystemFullMemoryInformation)
 
     PEPROCESS TheIdleProcess;
 
-    *ReqSize = sizeof(ULONG);
+    *ReqSize = sizeof(SYSTEM_MEMORY_INFORMATION);
 
-    if (sizeof(ULONG) != Size)
+    if (Size < sizeof(SYSTEM_MEMORY_INFORMATION))
     {
         return STATUS_INFO_LENGTH_MISMATCH;
     }
 
+#if DBG
     DPRINT("SystemFullMemoryInformation\n");
 
     TheIdleProcess = PsIdleProcess;
@@ -1603,6 +1604,9 @@ QSI_DEF(SystemFullMemoryInformation)
     *Spi = MiMemoryConsumers[MC_USER].PagesUsed;
 
     return STATUS_SUCCESS;
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
 }
 
 /* Class 26 - Load Image */
@@ -2862,15 +2866,15 @@ CallQS[] =
     SI_QS(SystemFileCacheInformation),
     SI_QX(SystemPoolTagInformation),
     SI_QX(SystemInterruptInformation),
-    SI_QS(SystemDpcBehaviourInformation),
+    SI_QS(SystemDpcBehaviourInformation), // SystemDpcBehaviorInformation
     SI_QX(SystemFullMemoryInformation), /* it should be SI_XX */
     SI_XS(SystemLoadGdiDriverInformation),
     SI_XS(SystemUnloadGdiDriverInformation),
     SI_QS(SystemTimeAdjustmentInformation),
     SI_QX(SystemSummaryMemoryInformation), /* it should be SI_XX */
-    SI_QX(SystemNextEventIdInformation), /* it should be SI_XX */
+    SI_QX(SystemNextEventIdInformation), /* it should be SI_XX */ // SystemMirrorMemoryInformation
     SI_QX(SystemPerformanceTraceInformation), /* it should be SI_XX */
-    SI_QX(SystemCrashDumpInformation),
+    SI_QX(SystemCrashDumpInformation), // SystemObsolete0
     SI_QX(SystemExceptionInformation),
     SI_QX(SystemCrashDumpStateInformation),
     SI_QX(SystemKernelDebuggerInformation),
@@ -2912,9 +2916,32 @@ CallQS[] =
     SI_XX(SystemWatchdogTimerHandler), /* FIXME: not implemented */
     SI_XX(SystemWatchdogTimerInformation), /* FIXME: not implemented */
     SI_QX(SystemLogicalProcessorInformation),
-    SI_XX(SystemWow64SharedInformation), /* FIXME: not implemented */
+    SI_XX(SystemWow64SharedInformation), /* FIXME: not implemented */ // SystemWow64SharedInformationObsolete
     SI_XX(SystemRegisterFirmwareTableInformationHandler), /* FIXME: not implemented */
     SI_QX(SystemFirmwareTableInformation),
+#if 0 // TODO
+    SystemModuleInformationEx = 77 /*0x4D*/,
+    SystemVerifierTriageInformation = 78 /*0x4E*/,
+    SystemSuperfetchInformation = 79 /*0x4F*/,
+    SystemMemoryListInformation = 80 /*0x50*/,
+    SystemFileCacheInformationEx = 81 /*0x51*/,
+    SystemThreadPriorityClientIdInformation = 82 /*0x52*/,
+    SystemProcessorIdleCycleTimeInformation = 83 /*0x53*/,
+    SystemVerifierCancellationInformation = 84 /*0x54*/,
+    SystemProcessorPowerInformationEx = 85 /*0x55*/,
+    SystemRefTraceInformation = 86 /*0x56*/,
+    SystemSpecialPoolInformation = 87 /*0x57*/,
+    SystemProcessIdInformation = 88 /*0x58*/,
+    SystemErrorPortInformation = 89 /*0x59*/,
+    SystemBootEnvironmentInformation = 90 /*0x5A*/,
+    SystemHypervisorInformation = 91 /*0x5B*/,
+    SystemVerifierInformationEx = 92 /*0x5C*/,
+    SystemTimeZoneInformation = 93 /*0x5D*/,
+    SystemImageFileExecutionOptionsInformation = 94 /*0x5E*/,
+    SystemCoverageInformation = 95 /*0x5F*/,
+    SystemPrefetchPatchInformation = 96 /*0x60*/,
+    SystemVerifierFaultsInformation = 97 /*0x61*/,
+#endif
 };
 
 C_ASSERT(SystemBasicInformation == 0);

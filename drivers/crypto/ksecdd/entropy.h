@@ -9,16 +9,16 @@ typedef struct _SHA512
     UCHAR Data[64];
 } SHA512;
 
-typedef struct _HASH2048
+typedef struct _HASHKEY
 {
     SHA512 Hashes[4];
-} HASH2048, *PHASH2048;
+} HASHKEY, *PHASHKEY;
 
 // Size is 800 bytes!
-typedef struct _HASH2048_CTX
+typedef struct _HASHKEY_CTX
 {
     SHA512_CTX Sha512Cts[4];
-} HASH2048_CTX, * PHASH2048_CTX;
+} HASHKEY_CTX, *PHASHKEY_CTX;
 
 // Size should be a multiple of 6
 typedef struct _FAST_ENTROPY
@@ -42,4 +42,9 @@ KsecGatherFastEntropy(
 NTSTATUS
 NTAPI
 KsecGatherBootEntropy(
-    _Out_ PHASH2048 Hash2048);
+    _Out_ PHASHKEY HashKey);
+
+VOID
+NTAPI
+KsecSaveEntropy(
+    VOID);

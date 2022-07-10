@@ -310,6 +310,14 @@ InitSecurityInterfaceW(VOID)
     return &SecTable;
 }
 
+VOID
+NTAPI
+KsecUnloadDriver(
+    _In_ struct _DRIVER_OBJECT* DriverObject)
+{
+    __debugbreak();
+}
+
 NTSTATUS
 NTAPI
 DriverEntry(
@@ -341,9 +349,15 @@ DriverEntry(
     DriverObject->MajorFunction[IRP_MJ_QUERY_INFORMATION] = KsecDdDispatch;
     DriverObject->MajorFunction[IRP_MJ_QUERY_VOLUME_INFORMATION] = KsecDdDispatch;
     DriverObject->MajorFunction[IRP_MJ_DEVICE_CONTROL] = KsecDdDispatch;
+    DriverObject->DriverUnload = KsecUnloadDriver;
+
+    //ExInitializeFastMutex(&KsecPRNGLock);
+    //ExInitializeFastMutex(&KsecCryptLock);
+
+    //KsecInitializePRNG();
 
     /* Initialize */
-    KsecInitializeEncryptionSupport();
+    //KsecInitializeEncryptionSupport();
 
     /* Remember the system process */
     KsecSystemProcess = PsGetCurrentProcess();

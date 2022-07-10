@@ -6,3 +6,9 @@ HKLM,"SYSTEM\CurrentControlSet\Services\ksecdd","ImagePath",0x00020000,"system32
 HKLM,"SYSTEM\CurrentControlSet\Services\ksecdd","Start",0x00010001,0x00000000
 HKLM,"SYSTEM\CurrentControlSet\Services\ksecdd","Tag",0x00010001,0x00000001
 HKLM,"SYSTEM\CurrentControlSet\Services\ksecdd","Type",0x00010001,0x00000001
+
+HKLM,"SOFTWARE\ReactOS",,0x00000012
+HKLM,"SOFTWARE\ReactOS\Cryptography",,0x00000012
+HKLM,"SOFTWARE\ReactOS\Cryptography\RNG",,0x00000012
+HKLM,"SOFTWARE\ReactOS\Cryptography\RNG","Seed",0x000a0001,0x01
+HKLM,"SOFTWARE\ReactOS\Cryptography\RNG\Entropy",,0x00000012

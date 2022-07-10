@@ -17,8 +17,12 @@
 
 /* GLOBALS ********************************************************************/
 
+FAST_MUTEX KsecPRNGLock;
+
 static ULONG KsecRandomSeed = 0x62b409a1;
-HASH2048 Hash2048;
+HASHKEY HashKey;
+BOOLEAN KsecPRNGInitialized = FALSE;
+extern BOOLEAN KsecEntropyInitialized;
 
 /* FUNCTIONS ******************************************************************/
 
@@ -26,8 +30,22 @@ NTSTATUS
 NTAPI
 KsecInitializePRNG(VOID)
 {
+    NTSTATUS Status;
+
+    // TODO: Acquire a lock
+    
     __debugbreak();
-    return KsecGatherBootEntropy(&Hash2048);
+    Status = KsecGatherBootEntropy(&HashKey);
+    if (NT_SUCCESS(Status))
+    {
+        KsecPRNGInitialized = TRUE;
+    }
+
+    // TODO: Initialize the VMPC-R context
+
+    // TODO: Release the lock
+
+    return Status;
 }
 
 NTSTATUS
@@ -39,6 +57,15 @@ KsecGenRandom(
     LARGE_INTEGER TickCount;
     ULONG i, RandomValue;
     PULONG P;
+
+    /* Acquire the lock */
+    ExAcquireFastMutex(&KsecPRNGLock);
+
+    /* Check if we are initialized */
+    if (!KsecPRNGInitialized)
+    {
+        KsecInitializePRNG();
+    }
 
     // MS: gather entropy + hash into 4 SHA1s + use that as RC4 key + rc4 the buffer
     // RC4 key is max 256 bytes, use them all?
@@ -62,6 +89,9 @@ KsecGenRandom(
         RandomValue = RtlRandomEx(&KsecRandomSeed);
         RtlCopyMemory(&P[i], &RandomValue, Length);
     }
+
+    // Release the lock
+    ExReleaseFastMutex(&KsecPRNGLock);
 
     return STATUS_SUCCESS;
 }

@@ -79,12 +79,19 @@ typedef struct _KSEC_ENTROPY_DATA
 
 extern PEPROCESS KsecLsaProcess;
 extern HANDLE KsecLsaProcessHandle;
+extern BOOLEAN KsecPRNGInitialized;
+extern EX_PUSH_LOCK KsecPRNGLock;;
+extern EX_PUSH_LOCK KsecCryptLock;
 
 NTSTATUS
 NTAPI
 KsecDdDispatch(
     PDEVICE_OBJECT DeviceObject,
     PIRP Irp);
+
+NTSTATUS
+NTAPI
+KsecInitializePRNG(VOID);
 
 NTSTATUS
 NTAPI

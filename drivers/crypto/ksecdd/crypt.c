@@ -39,6 +39,9 @@ void PrintKeyData(PUCHAR KeyData)
 }
 #endif
 
+EX_PUSH_LOCK KsecCryptLock;
+BOOLEAN KsecEncryptionInitialized = FALSE;
+
 VOID
 NTAPI
 KsecInitializeEncryptionSupport (
@@ -47,6 +50,16 @@ KsecInitializeEncryptionSupport (
     KSEC_ENTROPY_DATA EntropyData;
     MD5_CTX Md5Context; // MS uses SHA1
     UCHAR KeyDataBuffer[32];
+    ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
+
+    ExfAcquirePushLockExclusive(&KsecCryptLock);
+    if (KsecEncryptionInitialized)
+    {
+        ExfReleasePushLock(&KsecCryptLock);
+        return;
+    }
+
+    KsecGenRandom(KeyDataBuffer, sizeof(KeyDataBuffer));
 
     KsecGatherEntropyData(&EntropyData);
     MD5Init(&Md5Context);
@@ -69,6 +82,10 @@ KsecInitializeEncryptionSupport (
     /* Erase the temp data */
     RtlSecureZeroMemory(KeyDataBuffer, sizeof(KeyDataBuffer));
     RtlSecureZeroMemory(&Md5Context, sizeof(Md5Context));
+
+    /* Release the lock */
+    KsecEncryptionInitialized = TRUE;
+    ExReleaseFastMutex(&KsecCryptLock);
 }
 
 static
@@ -301,6 +318,11 @@ KsecEncryptMemory (
         return STATUS_INVALID_PARAMETER;
     }
 
+    if (!KsecEncryptionInitialized)
+    {
+        KsecInitializeEncryptionSupport();
+    }
+
     /* Check if the length is not 16 bytes aligned */
     if (Length & 15)
     {
@@ -334,6 +356,11 @@ KsecDecryptMemory (
     if (OptionFlags > RTL_ENCRYPT_OPTION_SAME_LOGON)
     {
         return STATUS_INVALID_PARAMETER;
+    }
+
+    if (!KsecEncryptionInitialized)
+    {
+        KsecInitializeEncryptionSupport();
     }
 
     /* Check if the length is not 16 bytes aligned */

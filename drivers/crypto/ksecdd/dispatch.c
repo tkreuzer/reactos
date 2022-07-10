@@ -91,6 +91,7 @@ KsecDeviceControl(
     PSIZE_T OutputLength)
 {
     NTSTATUS Status;
+    ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
     if ((IoControlCode == IOCTL_KSEC_RANDOM_FILL_BUFFER) ||
         (IoControlCode == IOCTL_KSEC_ENCRYPT_SAME_PROCESS) ||
@@ -217,6 +218,7 @@ KsecDdDispatch(
     FILE_INFORMATION_CLASS FileInfoClass;
     FS_INFORMATION_CLASS FsInfoClass;
     ULONG IoControlCode;
+    ASSERT(KeGetCurrentIrql() == PASSIVE_LEVEL);
 
     IoStackLocation = IoGetCurrentIrpStackLocation(Irp);
 
