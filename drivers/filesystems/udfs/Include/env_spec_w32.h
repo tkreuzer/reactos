@@ -694,7 +694,7 @@ UDFInterlockedExchangeAdd(PLONG addr, LONG i) {
 #define LOW_LEVEL 0                 // Lowest interrupt level
 #define APC_LEVEL 1                 // APC interrupt level
 #define DISPATCH_LEVEL 2            // Dispatcher level
-
+#if 0
 #define PROFILE_LEVEL 27            // timer used for profiling.
 #define CLOCK1_LEVEL 28             // Interval clock 1 level - Not used on x86
 #define CLOCK2_LEVEL 28             // Interval clock 2 level
@@ -702,7 +702,7 @@ UDFInterlockedExchangeAdd(PLONG addr, LONG i) {
 #define POWER_LEVEL 30              // Power failure level
 #define HIGH_LEVEL 31               // Highest interrupt level
 #define SYNCH_LEVEL (IPI_LEVEL-1)   // synchronization level
-
+#endif
 #define KeGetCurrentIrql()      PASSIVE_LEVEL
 
 #ifndef NT_NATIVE_MODE

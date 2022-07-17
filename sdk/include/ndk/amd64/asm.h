@@ -387,8 +387,8 @@ Author:
 #define CLOCK_LEVEL                               13
 #define IPI_LEVEL                                 14
 #define POWER_LEVEL                               14
-#define PROFILE_LEVEL                             15
-#define HIGH_LEVEL                                15
+//#define PROFILE_LEVEL                             15
+//#define HIGH_LEVEL                                15
 
 //
 // Quantum Decrements
