@@ -176,7 +176,7 @@ MiLoadImageSection(_Inout_ PSECTION *SectionPtr,
     /* New driver base */
     LastPte = PointerPte + PteCount;
     DriverBase = MiPteToAddress(PointerPte);
-
+    //__debugbreak();
     /* The driver is here */
     *ImageBase = DriverBase;
     DPRINT1("Loading: %wZ at %p with %lx pages\n", FileName, DriverBase, PteCount);
