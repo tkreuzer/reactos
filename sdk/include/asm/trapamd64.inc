@@ -111,7 +111,7 @@ MACRO(EnterTrap, Flags)
     jz kernel_mode_entry
 
     /* Set sane segments */
-    mov ax, (KGDT64_R3_DATA or RPL_MASK)
+    mov ax, KGDT64_R0_DATA
     mov ds, ax
     mov es, ax
     swapgs
