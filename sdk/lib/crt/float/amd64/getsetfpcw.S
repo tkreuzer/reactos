@@ -3,8 +3,8 @@
 
 .code64
 
-PUBLIC __getfpcw87
-FUNC __getfpcw87
+PUBLIC __getfpcw87_
+FUNC __getfpcw87_
     sub rsp, 8
     .ENDPROLOG
     stmxcsr [rsp]
@@ -13,8 +13,8 @@ FUNC __getfpcw87
     ret
 ENDFUNC
 
-PUBLIC __setfpcw87
-FUNC __setfpcw87
+PUBLIC __setfpcw87_
+FUNC __setfpcw87_
     mov qword ptr [rsp + 8], rcx
     .ENDPROLOG
     ldmxcsr [rsp + 8]
