@@ -332,7 +332,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
                  (KdIsThisAKdTrap(ExceptionRecord, &Context, PreviousMode)))
             {
                 /* Make sure the debugger can access debug directories */
-                KiPrepareUserDebugData();
+                //KiPrepareUserDebugData();
 
                 /* Call the kernel debugger */
                 if (KiDebugRoutine(TrapFrame,
