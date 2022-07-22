@@ -27,7 +27,7 @@ KeContextToTrapFrame(IN PCONTEXT Context,
     /* Make sure we have an amd64 context, then remove the flag */
     ASSERT(ContextFlags & CONTEXT_AMD64);
     ContextFlags &= ~CONTEXT_AMD64;
-
+    if (Context->MxCsr != _MM_MASK_MASK) __debugbreak();
     /* Do this at APC_LEVEL */
     OldIrql = KeGetCurrentIrql();
     if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);
@@ -172,7 +172,7 @@ KeTrapFrameToContext(IN PKTRAP_FRAME TrapFrame,
 {
     ULONG ContextFlags;
     KIRQL OldIrql;
-
+    if (TrapFrame->MxCsr != _MM_MASK_MASK) __debugbreak();
     /* Do this at APC_LEVEL */
     OldIrql = KeGetCurrentIrql();
     if (OldIrql < APC_LEVEL) KeRaiseIrql(APC_LEVEL, &OldIrql);

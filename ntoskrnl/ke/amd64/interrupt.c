@@ -168,7 +168,11 @@ KeSynchronizeExecution(IN OUT PKINTERRUPT Interrupt,
 {
     BOOLEAN Success;
     KIRQL OldIrql;
-
+    ULONG mxcsr;
+    {
+        mxcsr = _mm_getcsr();
+        if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak();
+    }
     /* Raise IRQL */
     OldIrql = KfRaiseIrql(Interrupt->SynchronizeIrql);
 
@@ -180,7 +184,7 @@ KeSynchronizeExecution(IN OUT PKINTERRUPT Interrupt,
 
     /* Release lock */
     KeReleaseSpinLockFromDpcLevel(Interrupt->ActualLock);
-
+    { mxcsr = _mm_getcsr(); if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak(); }
     /* Lower IRQL */
     KeLowerIrql(OldIrql);
 

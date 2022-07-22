@@ -17,6 +17,7 @@ unsigned int _get_native_fpcw(void)
 
 void _set_native_fpcw(unsigned int value)
 {
+    if (value & _MM_MASK_MASK) __debugbreak();
     _mm_setcsr(value);
 }
 

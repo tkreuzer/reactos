@@ -27,6 +27,7 @@ MmpAccessFault(KPROCESSOR_MODE Mode,
     PMMSUPPORT AddressSpace;
     MEMORY_AREA* MemoryArea;
     NTSTATUS Status;
+    ULONG mxcsr = _mm_getcsr(); if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak();
 
     DPRINT("MmAccessFault(Mode %d, Address %x)\n", Mode, Address);
 
@@ -115,6 +116,7 @@ MmNotPresentFault(KPROCESSOR_MODE Mode,
     PMMSUPPORT AddressSpace;
     MEMORY_AREA* MemoryArea;
     NTSTATUS Status;
+    ULONG mxcsr = _mm_getcsr(); if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak();
 
     DPRINT("MmNotPresentFault(Mode %d, Address %x)\n", Mode, Address);
 
@@ -208,6 +210,7 @@ MmAccessFault(IN ULONG FaultCode,
               IN PVOID TrapInformation)
 {
     PMEMORY_AREA MemoryArea = NULL;
+    ULONG mxcsr = _mm_getcsr(); if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak();
 
     /* Cute little hack for ROS */
     if ((ULONG_PTR)Address >= (ULONG_PTR)MmSystemRangeStart)

@@ -176,6 +176,8 @@ KiPageInDirectory(PVOID ImageBase, USHORT Directory)
     volatile CHAR *Pointer;
     ULONG Size;
 
+    if ((__readeflags() & EFLAGS_IF_MASK) == 0) __debugbreak();
+
    /* Get a pointer to the debug directory */
     Pointer = RtlImageDirectoryEntryToData(ImageBase, 1, Directory, &Size);
     if (!Pointer) return;
@@ -197,6 +199,7 @@ KiPrepareUserDebugData(void)
     PPEB_LDR_DATA PebLdr;
     PLIST_ENTRY ListEntry;
     PTEB Teb;
+    if ((__readeflags() & EFLAGS_IF_MASK) == 0) __debugbreak();
 
     /* Get the Teb for this process */
     Teb = KeGetCurrentThread()->Teb;
@@ -661,7 +664,7 @@ KiXmmExceptionHandler(
     IN PKTRAP_FRAME TrapFrame)
 {
     ULONG ExceptionCode;
-
+    __debugbreak();
     if ((TrapFrame->MxCsr & _MM_EXCEPT_INVALID) &&
         !(TrapFrame->MxCsr & _MM_MASK_INVALID))
     {

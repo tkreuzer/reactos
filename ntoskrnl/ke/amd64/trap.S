@@ -829,6 +829,11 @@ PUBLIC KiSystemCallEntry64
     stmxcsr [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_MxCsr]
     ldmxcsr gs:[PcMxCsr]
 
+    cmp dword ptr [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_MxCsr], INITIAL_MXCSR
+    je mxcsr_ok
+    int 3
+mxcsr_ok:
+
 #if DBG
     /* Check IRQL */
     mov rax, cr8
@@ -870,6 +875,10 @@ no_user_apc_pending:
 
     /* Restore MCXSR */
     ldmxcsr [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_MxCsr]
+    cmp dword ptr [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_MxCsr], INITIAL_MXCSR
+    je mxcsr_ok2
+    int 3
+mxcsr_ok2:
 
     /* Restore old trap frame */
     mov rcx, gs:[PcCurrentThread]

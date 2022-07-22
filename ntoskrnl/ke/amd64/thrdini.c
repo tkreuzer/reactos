@@ -50,7 +50,7 @@ KiInitializeContextThread(IN PKTHREAD Thread,
     if (Context)
     {
         PKUINIT_FRAME InitFrame;
-
+        if (Context->MxCsr != INITIAL_MXCSR) __debugbreak();
         /* Set up the Initial Frame */
         InitFrame = ((PKUINIT_FRAME)Thread->InitialStack) - 1;
         StartFrame = &InitFrame->StartFrame;
@@ -85,6 +85,7 @@ KiInitializeContextThread(IN PKTHREAD Thread,
                              TrapFrame,
                              CONTEXT_AMD64 | ContextFlags,
                              UserMode);
+        if (TrapFrame->MxCsr != INITIAL_MXCSR) __debugbreak();
 
         /* Set SS, DS, ES's RPL Mask properly */
         TrapFrame->SegSs |= RPL_MASK;

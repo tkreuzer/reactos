@@ -1203,6 +1203,8 @@ MmMakeSegmentResident(
     NTSTATUS Status;
     PFILE_OBJECT FileObject = Segment->FileObject;
 
+    ULONG mxcsr = _mm_getcsr(); if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak();
+
     /* Calculate our range, aligned on 64K if possible. */
     Status = RtlLongLongAdd(Offset, Length, &RangeEnd);
     ASSERT(NT_SUCCESS(Status));
@@ -1540,6 +1542,7 @@ MmNotPresentFaultSectionView(PMMSUPPORT AddressSpace,
     PVOID PAddress;
     PEPROCESS Process = MmGetAddressSpaceOwner(AddressSpace);
     SWAPENTRY SwapEntry;
+    ULONG mxcsr = _mm_getcsr(); if ((mxcsr & _MM_MASK_MASK) != _MM_MASK_MASK) __debugbreak();
 
     ASSERT(Locked);
 

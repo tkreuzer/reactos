@@ -30,6 +30,7 @@ TF_CHECKUSERAPC         = HEX(100)
  */
 MACRO(EnterTrap, Flags)
     LOCAL kernel_mode_entry
+    LOCAL mxcsr_ok
 
     /* Save the trap flags for this trap */
     CurrentTrapFlags = VAL(Flags)
@@ -100,6 +101,11 @@ MACRO(EnterTrap, Flags)
     /* Save MCXSR */
     stmxcsr [rbp + KTRAP_FRAME_MxCsr]
 
+    cmp dword ptr [rbp + KTRAP_FRAME_MxCsr], INITIAL_MXCSR
+    je mxcsr_ok
+    int 3
+mxcsr_ok:
+
 #if DBG
     mov ecx, MSR_GS_BASE
     rdmsr
@@ -166,6 +172,7 @@ MACRO(ExitTrap, Flags)
     LOCAL IntsEnabled
     LOCAL NoUserApc
     LOCAL IrqlPassive
+    LOCAL mxcsr_ok
 
 #if DBG
         /* Check previous irql */
@@ -263,6 +270,11 @@ kernel_mode_return:
 
     /* Restore MCXSR */
     ldmxcsr [rbp + KTRAP_FRAME_MxCsr]
+
+    cmp dword ptr [rbp + KTRAP_FRAME_MxCsr], INITIAL_MXCSR
+    je mxcsr_ok
+    int 3
+mxcsr_ok:
 
     /* Restore rbp */
     mov rbp, [rbp + KTRAP_FRAME_Rbp]
