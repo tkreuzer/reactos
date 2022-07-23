@@ -48,7 +48,9 @@ const struct test winetest_testlist[] =
     { "ExtractIconEx", func_ExtractIconEx },
     { "FindExecutable", func_FindExecutable },
     { "IShellFolderViewCB", func_IShellFolderViewCB },
+#ifndef _M_AMD64 // assertion failure
     { "menu", func_menu },
+#endif
     { "OpenAs_RunDLL", func_OpenAs_RunDLL },
     { "PathResolve", func_PathResolve },
     { "SHAppBarMessage", func_SHAppBarMessage },

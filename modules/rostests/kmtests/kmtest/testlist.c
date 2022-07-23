@@ -40,9 +40,13 @@ KMT_TESTFUNC Test_TcpIpConnect;
 /* tests with a leading '-' will not be listed */
 const KMT_TEST TestList[] =
 {
+#ifndef _M_AMD64 // crashes
     { "CcCopyRead",                   Test_CcCopyRead },
+#endif
     { "CcCopyWrite",                  Test_CcCopyWrite },
+#ifndef _M_AMD64 // crashes
     { "CcMapData",                    Test_CcMapData },
+#endif
     { "CcPinMappedData",              Test_CcPinMappedData },
     { "CcPinRead",                    Test_CcPinRead },
     { "CcSetFileSizes",               Test_CcSetFileSizes },

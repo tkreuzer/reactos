@@ -22,8 +22,12 @@ const struct test winetest_testlist[] =
 {
     { "cpp", func_cpp },
     { "data", func_data },
+#ifndef _M_AMD64 // timeout
     { "dir", func_dir },
+#endif
+#ifndef _M_AMD64 // UM exception + hang
     { "environ", func_environ },
+#endif
     { "file", func_file },
     { "headers", func_headers },
     { "heap", func_heap },

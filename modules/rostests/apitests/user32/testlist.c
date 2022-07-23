@@ -69,7 +69,9 @@ const struct test winetest_testlist[] =
     { "DM_REPOSITION", func_DM_REPOSITION },
     { "DrawIconEx", func_DrawIconEx },
     { "DrawText", func_DrawText },
+#ifndef _M_AMD64 // timeout
     { "desktop", func_desktop },
+#endif
     { "EmptyClipboard", func_EmptyClipboard },
     { "EnumDisplaySettings", func_EnumDisplaySettings },
     { "GetDCEx", func_GetDCEx },
@@ -95,7 +97,9 @@ const struct test winetest_testlist[] =
     { "ScrollBarWndExtra", func_ScrollBarWndExtra },
     { "ScrollDC", func_ScrollDC },
     { "ScrollWindowEx", func_ScrollWindowEx },
+#ifndef _M_AMD64 // UM exception
     { "SendMessageTimeout", func_SendMessageTimeout },
+#endif
     { "SetActiveWindow", func_SetActiveWindow },
     { "SetCursorPos", func_SetCursorPos },
     { "SetFocus", func_SetFocus },

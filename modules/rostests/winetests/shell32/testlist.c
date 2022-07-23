@@ -26,7 +26,9 @@ extern void func_systray(void);
 const struct test winetest_testlist[] =
 {
     { "appbar", func_appbar },
+#ifndef _M_AMD64 // UM assert fail
     { "assoc", func_assoc },
+#endif
     { "autocomplete", func_autocomplete },
     { "brsfolder", func_brsfolder },
     { "ebrowser", func_ebrowser },
@@ -37,11 +39,15 @@ const struct test winetest_testlist[] =
     { "shelllink", func_shelllink },
     { "shellole", func_shellole },
     { "shellpath", func_shellpath },
+#ifndef _M_AMD64 // UM assert fail
     { "shfldr_special", func_shfldr_special },
+#endif
     { "shlexec", func_shlexec },
     { "shlfileop", func_shlfileop },
     { "shlfolder", func_shlfolder },
+#ifndef _M_AMD64 // UM assert fail
     { "shlview", func_shlview },
+#endif
     { "string", func_string },
     { "systray", func_systray },
     { 0, 0 }

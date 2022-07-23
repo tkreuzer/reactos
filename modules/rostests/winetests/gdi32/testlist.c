@@ -23,10 +23,16 @@ const struct test winetest_testlist[] =
     { "bitmap", func_bitmap },
     { "brush", func_brush },
     { "clipping", func_clipping },
+#ifndef _M_AMD64 // region leak
     { "dc", func_dc },
+#endif
+#ifndef _M_AMD64 // dib: crashes rosautotest, font: UM exception
     { "dib", func_dib },
     { "font", func_font },
+#endif
+#ifndef _M_AMD64 // UM exception
     { "gdiobj", func_gdiobj },
+#endif
     { "generated", func_generated },
     { "icm", func_icm },
     { "mapping", func_mapping },

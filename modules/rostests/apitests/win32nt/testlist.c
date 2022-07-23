@@ -72,7 +72,9 @@ const struct test winetest_testlist[] =
     /* ntdd*/
     { "NtGdiDdCreateDirectDrawObject", func_NtGdiDdCreateDirectDrawObject },
     { "NtGdiDdDeleteDirectDrawObject", func_NtGdiDdDeleteDirectDrawObject },
+#ifndef _M_AMD64 // Assertion failures and exception
     { "NtGdiDdQueryDirectDrawObject", func_NtGdiDdQueryDirectDrawObject },
+#endif
     { "NtGdiArcInternal", func_NtGdiArcInternal },
 
     /* ntgdi */

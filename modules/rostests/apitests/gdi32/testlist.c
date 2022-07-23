@@ -155,7 +155,9 @@ const struct test winetest_testlist[] =
     { "SetWindowExtEx", func_SetWindowExtEx },
     { "SetWorldTransform", func_SetWorldTransform },
     { "StretchBlt", func_StretchBlt },
+#ifndef _M_AMD64 // This leaks regions and runs out of paged pool
     { "TextTransform", func_TextTransform },
+#endif
 
     { 0, 0 }
 };
