@@ -1,4 +1,5 @@
-#include <ntdll.h>
+#include <rtltests.h>
+#include <pseh/pseh2.h>
 #include <compat_undoc.h>
 #include <compatguid_undoc.h>
 

@@ -10,7 +10,6 @@
 
 .code64
 
-//EXTERN RtlpIncludeThisFile:PROC
 EXTERN RtlCaptureContext:PROC
 EXTERN memset:PROC
 
@@ -173,8 +172,6 @@ ReturnAddress:
     RESTORE_EXCEPTION_STATE
 
     ret
-
-   //call RtlpIncludeThisFile
 
 ENDFUNC
 

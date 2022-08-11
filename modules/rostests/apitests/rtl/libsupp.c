@@ -9,7 +9,8 @@
 
 /* INCLUDES *****************************************************************/
 
-#include <ntdll.h>
+#include <rtltests.h>
+#include <pseh/pseh2.h>
 
 #define NDEBUG
 #include <debug.h>
