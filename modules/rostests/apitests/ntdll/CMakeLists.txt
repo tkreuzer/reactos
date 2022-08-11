@@ -52,52 +52,54 @@ list(APPEND SOURCE
     NtUnloadDriver.c
     NtWriteFile.c
     probelib.c
+    RtlAllocateHeap.c
+    RtlBitmap.c
+    RtlComputePrivatizedDllName_U.c
+    RtlCopyMappedMemory.c
+    RtlDebugInformation.c
+    RtlDeleteAce.c
+    RtlDetermineDosPathNameType.c
+    RtlDoesFileExists.c
+    RtlDosApplyFileIsolationRedirection_Ustr.c
+    RtlDosPathNameToNtPathName_U.c
+    RtlDosSearchPath_U.c
+    RtlDosSearchPath_Ustr.c
+    RtlFirstFreeAce.c
+    RtlGenerate8dot3Name.c
+    RtlGetFullPathName_U.c
+    RtlGetFullPathName_Ustr.c
+    RtlGetFullPathName_UstrEx.c
+    RtlGetLengthWithoutLastFullDosOrNtPathElement.c
+    RtlGetLengthWithoutTrailingPathSeperators.c
+    RtlGetLongestNtPathLength.c
+    RtlGetNtProductType.c
+    RtlGetUnloadEventTrace.c
+    RtlHandle.c
+    RtlImageDirectoryEntryToData.c
+    RtlImageRvaToVa.c
+    RtlIsNameLegalDOS8Dot3.c
+    RtlMemoryStream.c
+    RtlMultipleAllocateHeap.c
+    RtlNtPathNameToDosPathName.c
+    RtlpApplyLengthFunction.c
+    RtlpEnsureBufferSize.c
+    RtlQueryTimeZoneInfo.c
+    RtlReAllocateHeap.c
+    RtlUnicodeStringToAnsiString.c
+    RtlUnicodeStringToCountedOemString.c
+    RtlUnicodeToOemN.c
+    RtlUpcaseUnicodeStringToCountedOemString.c
+    RtlValidateUnicodeString.c
+    RtlxUnicodeStringToAnsiSize.c
+    RtlxUnicodeStringToOemSize.c
     StackOverflow.c
     SystemInfo.c
+    UserModeException.c
     Timer.c
     precomp.h)
 
 list(APPEND RTL_SOURCE
-    ../rtl/RtlAllocateHeap.c
-    ../rtl/RtlBitmap.c
-    ../rtl/RtlComputePrivatizedDllName_U.c
-    ../rtl/RtlCopyMappedMemory.c
-    ../rtl/RtlDebugInformation.c
-    ../rtl/RtlDeleteAce.c
-    ../rtl/RtlDetermineDosPathNameType.c
-    ../rtl/RtlDoesFileExists.c
-    ../rtl/RtlDosApplyFileIsolationRedirection_Ustr.c
-    ../rtl/RtlDosPathNameToNtPathName_U.c
-    ../rtl/RtlDosSearchPath_U.c
-    ../rtl/RtlDosSearchPath_Ustr.c
-    ../rtl/RtlFirstFreeAce.c
-    ../rtl/RtlGenerate8dot3Name.c
-    ../rtl/RtlGetFullPathName_U.c
-    ../rtl/RtlGetFullPathName_Ustr.c
-    ../rtl/RtlGetFullPathName_UstrEx.c
-#    ../rtl/RtlGetLengthWithoutLastFullDosOrNtPathElement.c
-    ../rtl/RtlGetLengthWithoutTrailingPathSeperators.c
-    ../rtl/RtlGetLongestNtPathLength.c
-    ../rtl/RtlGetNtProductType.c
-    ../rtl/RtlGetUnloadEventTrace.c
-    ../rtl/RtlHandle.c
-#    ../rtl/RtlImageDirectoryEntryToData.c
-    ../rtl/RtlImageRvaToVa.c
-    ../rtl/RtlIsNameLegalDOS8Dot3.c
-    ../rtl/RtlMemoryStream.c
-    ../rtl/RtlMultipleAllocateHeap.c
-    ../rtl/RtlNtPathNameToDosPathName.c
-#    ../rtl/RtlpApplyLengthFunction.c
-    ../rtl/RtlpEnsureBufferSize.c
-    ../rtl/RtlQueryTimeZoneInfo.c
-    ../rtl/RtlReAllocateHeap.c
-    ../rtl/RtlUnicodeStringToAnsiString.c
-#    ../rtl/RtlUnicodeStringToCountedOemString.c
-#    ../rtl/RtlUnicodeToOemN.c
-    ../rtl/RtlUpcaseUnicodeStringToCountedOemString.c
-    ../rtl/RtlValidateUnicodeString.c
-#    ../rtl/RtlxUnicodeStringToAnsiSize.c
-#    ../rtl/RtlxUnicodeStringToOemSize.c
+    ../rtl/RtlIntSafe.c
     UserModeException.c
 )
 

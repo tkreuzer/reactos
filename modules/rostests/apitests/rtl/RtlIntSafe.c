@@ -5,8 +5,7 @@
  * PROGRAMMER:      Thomas Faber <thomas.faber@reactos.org>
  */
 
-#define KMT_EMULATE_KERNEL
-#include <kmt_test.h>
+#include <rtltests.h>
 #define ENABLE_INTSAFE_SIGNED_FUNCTIONS
 #include <ntintsafe.h>
 
