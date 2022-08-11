@@ -973,13 +973,6 @@ int main( int argc, char **argv )
     } while (0)
 #define ok_size_t(expression, result)   ok_size_t_(__FILE__, __LINE__, expression, result)
 
-#define ok_int64(expression, result) \
-    do { \
-        __int64 _value = (expression); \
-        ok(_value == (result), "Wrong value for '%s', expected: " #result " (%llx), got: %llx\n", \
-           #expression, (__int64)(result), _value); \
-    } while (0)
-
 #define ok_char(expression, result) ok_hex(expression, result)
 
 #define ok_err_(file, line, error) \
