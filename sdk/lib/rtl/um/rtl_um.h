@@ -6,14 +6,11 @@
  * PROGRAMMER:      Alex Ionescu (alex@relsoft.net)
  */
 
-#ifndef _NTDLL_H
-#define _NTDLL_H
+#pragma once
+#ifndef _RTL_UM_
+#define _RTL_UM_
 
-/* INCLUDES ******************************************************************/
-
-/* We're a core NT DLL, we don't import syscalls */
-//#define _NTSYSTEM_
-#define _NTDLLBUILD_
+ /* INCLUDES ******************************************************************/
 
 /* C Headers */
 #define _CTYPE_DISABLE_MACROS
@@ -40,13 +37,13 @@
 #include <ndk/rtlfuncs.h>
 #include <ndk/umfuncs.h>
 
-/* Internal NTDLL */
-//#include "ntdllp.h"
-
-/* CSRSS Headers */
-//#include <csr/csr.h>
-
 /* PSEH */
 #include <pseh/pseh2.h>
 
-#endif /* _NTDLL_H */
+// FIXME: put this somewhere else?
+BOOLEAN
+NTAPI
+RtlDoesFileExists_UStr(
+    _In_ PUNICODE_STRING FileName);
+
+#endif /* _RTL_UM_ */

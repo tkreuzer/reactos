@@ -124,6 +124,17 @@ add_pch(rtl_vista rtl_vista.h SOURCE_VISTA)
 add_dependencies(rtl_vista psdk)
 target_link_libraries(rtl_vista PRIVATE pseh)
 
+list(APPEND RTL_UM_SOURCE
+    um/libsupp.c
+    um/uilist.c
+    um/version.c
+)
+
+add_library(rtl_um ${RTL_UM_SOURCE})
+target_link_libraries(rtl_um PUBLIC rtl)
+add_dependencies(rtl_um psdk)
+target_link_libraries(rtl_um PRIVATE pseh)
+
 list(APPEND RTL_KM_SOURCE
     km/libsupp.c
     km/misc.c
