@@ -123,3 +123,23 @@ add_library(rtl_vista ${SOURCE_VISTA})
 add_pch(rtl_vista rtl_vista.h SOURCE_VISTA)
 add_dependencies(rtl_vista psdk)
 target_link_libraries(rtl_vista PRIVATE pseh)
+
+list(APPEND RTL_KM_SOURCE
+    km/libsupp.c
+    km/misc.c
+)
+
+if(ARCH STREQUAL "i386")
+    list(APPEND RTL_KM_SOURCE
+        i386/stack.S
+    )
+elseif(ARCH STREQUAL "arm")
+    list(APPEND RTL_KM_SOURCE
+        arm/rtlexcpt.c
+    )
+endif()
+
+add_library(rtl_km ${RTL_KM_SOURCE})
+target_link_libraries(rtl_km PUBLIC rtl)
+add_dependencies(rtl_km psdk)
+target_link_libraries(rtl_km PRIVATE pseh)

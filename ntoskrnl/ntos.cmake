@@ -269,8 +269,6 @@ list(APPEND SOURCE
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ps/state.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ps/thread.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/ps/win32.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/rtl/libsupp.c
-    ${REACTOS_SOURCE_DIR}/ntoskrnl/rtl/misc.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/se/access.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/se/accesschk.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/se/acl.c
@@ -303,8 +301,7 @@ if(ARCH STREQUAL "i386")
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/ctxswitch.S
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/trap.s
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/usercall_asm.S
-        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/zeropage.S
-        ${REACTOS_SOURCE_DIR}/ntoskrnl/rtl/i386/stack.S)
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/i386/zeropage.S)
     list(APPEND SOURCE
         ${REACTOS_SOURCE_DIR}/ntoskrnl/config/i386/cmhardwr.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/kd64/i386/kdx86.c
@@ -373,8 +370,7 @@ elseif(ARCH STREQUAL "arm")
         ${REACTOS_SOURCE_DIR}/ntoskrnl/ke/arm/usercall.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/mm/arm/page.c
         ${REACTOS_SOURCE_DIR}/ntoskrnl/mm/ARM3/arm/init.c
-        ${REACTOS_SOURCE_DIR}/ntoskrnl/ps/arm/psctx.c
-        ${REACTOS_SOURCE_DIR}/ntoskrnl/rtl/arm/rtlexcpt.c)
+        ${REACTOS_SOURCE_DIR}/ntoskrnl/ps/arm/psctx.c)
 endif()
 
 if(NOT _WINKD_)
