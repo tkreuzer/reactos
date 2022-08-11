@@ -1,5 +1,4 @@
 
-#include_directories(${REACTOS_SOURCE_DIR}/modules/rostests/kmtests/include)
 
 list(APPEND SOURCE
     RtlIntSafe.c
@@ -11,10 +10,10 @@ if(ARCH STREQUAL "i386")
     )
 elseif(ARCH STREQUAL "amd64")
     list(APPEND ASM_SOURCE
-        #amd64/RtlCaptureContext-asm.s
+        amd64/RtlCaptureContext-asm.s
     )
     list(APPEND SOURCE
-        #amd64/RtlCaptureContext.c
+        amd64/RtlCaptureContext.c
     )
 elseif(ARCH STREQUAL "arm")
     list(APPEND SOURCE
@@ -22,8 +21,11 @@ elseif(ARCH STREQUAL "arm")
     )
 endif()
 
+add_asm_files(ntdll_apitest_asm ${ASM_SOURCE})
+
 add_library(rtl_apitest_lib
     ${SOURCE}
+    ${ntdll_apitest_asm}
     testlist.c)
 
 if(NOT MSVC)
@@ -34,7 +36,7 @@ if(NOT MSVC)
 endif()
 
 # RTL tests with static linkage
-add_executable(rtl_apitest ${SOURCE} testlist.c ../rtl/libsupp.c ../rtl/rtl_stubs.c)
+add_executable(rtl_apitest ${SOURCE} ${ntdll_apitest_asm} testlist.c ../rtl/libsupp.c ../rtl/rtl_stubs.c)
 target_compile_definitions(rtl_apitest PRIVATE _RTL_TEST _NTSYSTEM_)
 target_link_libraries(rtl_apitest wine uuid ${PSEH_LIB} rtl)
 set_module_type(rtl_apitest win32cui)

@@ -11,7 +11,7 @@ const struct test winetest_testlist[] =
     { "RtlIntSafe",               func_RtlIntSafe },
 
 #ifdef _M_AMD64
-    //{ "RtlCaptureContext",        func_RtlCaptureContext },
+    { "RtlCaptureContext",        func_RtlCaptureContext },
 #endif
 
     { 0, 0 }

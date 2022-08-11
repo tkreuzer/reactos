@@ -100,11 +100,15 @@ list(APPEND SOURCE
 
 list(APPEND RTL_SOURCE
     ../rtl/RtlIntSafe.c
-    UserModeException.c
 )
 
 if(ARCH STREQUAL "i386")
     add_asm_files(ntdll_apitest_asm i386/NtContinue.S)
+elseif(ARCH STREQUAL "amd64")
+    list(APPEND RTL_SOURCE
+        ../rtl/amd64/RtlCaptureContext.c
+    )
+    add_asm_files(ntdll_apitest_asm ../rtl/amd64/RtlCaptureContext-asm.S)
 endif()
 
 list(APPEND PCH_SKIP_SOURCE
