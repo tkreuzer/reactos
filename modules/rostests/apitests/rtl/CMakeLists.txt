@@ -1,48 +1,29 @@
 
 #include_directories(${REACTOS_SOURCE_DIR}/modules/rostests/kmtests/include)
 
-list(APPEND RTL_SOURCE
-    RtlAllocateHeap.c
-    #RtlAvlTree.c
-#    RtlBitmap.c
-    RtlComputePrivatizedDllName_U.c
-    RtlCopyMappedMemory.c
-#    RtlDeleteAce.c
-#    RtlDetermineDosPathNameType.c
-    RtlDoesFileExists.c
-    RtlDosApplyFileIsolationRedirection_Ustr.c
-    RtlDosPathNameToNtPathName_U.c
-    RtlDosSearchPath_U.c
-    RtlDosSearchPath_Ustr.c
-    #RtlException.c
-#    RtlFirstFreeAce.c
-#    RtlGenerate8dot3Name.c
-    RtlGetFullPathName_U.c
-    RtlGetFullPathName_Ustr.c
-    RtlGetFullPathName_UstrEx.c
-    RtlGetLengthWithoutTrailingPathSeperators.c
-    RtlGetLongestNtPathLength.c
-    RtlHandle.c
-#    RtlImageRvaToVa.c
+list(APPEND SOURCE
     RtlIntSafe.c
-    RtlIsNameLegalDOS8Dot3.c
-    RtlIsValidOemCharacter.c
-    #RtlMemory.c
-    RtlMemoryStream.c
-    RtlNtPathNameToDosPathName.c
-    RtlpEnsureBufferSize.c
-    RtlQueryTimeZoneInfo.c
-    RtlReAllocateHeap.c
-    RtlRegistry.c
-    #RtlSplayTree.c
-    RtlStack.c
-    RtlStrSafe.c
-    RtlUnicodeString.c
-    RtlUnicodeStringToAnsiString.c
-    RtlUpcaseUnicodeStringToCountedOemString.c)
+)
+
+if(ARCH STREQUAL "i386")
+    list(APPEND SOURCE
+        # To be filled
+    )
+elseif(ARCH STREQUAL "amd64")
+    list(APPEND ASM_SOURCE
+        #amd64/RtlCaptureContext-asm.s
+    )
+    list(APPEND SOURCE
+        #amd64/RtlCaptureContext.c
+    )
+elseif(ARCH STREQUAL "arm")
+    list(APPEND SOURCE
+        # To be filled
+    )
+endif()
 
 add_library(rtl_apitest_lib
-    ${RTL_SOURCE}
+    ${SOURCE}
     testlist.c)
 
 if(NOT MSVC)
@@ -53,11 +34,11 @@ if(NOT MSVC)
 endif()
 
 # RTL tests with static linkage
-add_executable(rtl_apitest ${RTL_SOURCE} testlist.c ../rtl/libsupp.c ../rtl/rtl_stubs.c)
+add_executable(rtl_apitest ${SOURCE} testlist.c ../rtl/libsupp.c ../rtl/rtl_stubs.c)
 target_compile_definitions(rtl_apitest PRIVATE _RTL_TEST _NTSYSTEM_)
 target_link_libraries(rtl_apitest wine uuid ${PSEH_LIB} rtl)
 set_module_type(rtl_apitest win32cui)
-add_importlibs(rtl_apitest msvcrt advapi32 kernel32 ntdll)
+add_importlibs(rtl_apitest msvcrt advapi32 kernel32 ntdll ntdll_vista)
 target_compile_definitions(rtl_apitest PRIVATE KMT_USER_MODE NTDDI_VERSION=NTDDI_WS03SP1)
 
 add_rostests_file(TARGET rtl_apitest)
