@@ -2,6 +2,7 @@
 #include "precomp.h"
 #include <ntndk.h>
 #include <winreg.h>
+#include <pseh/pseh2.h>
 
 #define ok_eq_hex ok_hex
 #define ok_eq_int ok_int

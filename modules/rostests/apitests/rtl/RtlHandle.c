@@ -25,6 +25,8 @@ START_TEST(RtlHandle)
     BOOLEAN Valid;
     ULONG i;
 
+    RtlCaptureContext(NULL);
+
     /* Initialize handle table */
     RtlFillMemory(&HandleTable, sizeof(HandleTable), 0x55);
     RtlInitializeHandleTable(MaxHandles, sizeof(TEST_HANDLE_ENTRY), &HandleTable);

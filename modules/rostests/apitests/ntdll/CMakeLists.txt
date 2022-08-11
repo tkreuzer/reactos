@@ -75,29 +75,29 @@ list(APPEND RTL_SOURCE
     ../rtl/RtlGetFullPathName_U.c
     ../rtl/RtlGetFullPathName_Ustr.c
     ../rtl/RtlGetFullPathName_UstrEx.c
-    ../rtl/RtlGetLengthWithoutLastFullDosOrNtPathElement.c
+#    ../rtl/RtlGetLengthWithoutLastFullDosOrNtPathElement.c
     ../rtl/RtlGetLengthWithoutTrailingPathSeperators.c
     ../rtl/RtlGetLongestNtPathLength.c
     ../rtl/RtlGetNtProductType.c
     ../rtl/RtlGetUnloadEventTrace.c
     ../rtl/RtlHandle.c
-    ../rtl/RtlImageDirectoryEntryToData.c
+#    ../rtl/RtlImageDirectoryEntryToData.c
     ../rtl/RtlImageRvaToVa.c
     ../rtl/RtlIsNameLegalDOS8Dot3.c
     ../rtl/RtlMemoryStream.c
     ../rtl/RtlMultipleAllocateHeap.c
     ../rtl/RtlNtPathNameToDosPathName.c
-    ../rtl/RtlpApplyLengthFunction.c
+#    ../rtl/RtlpApplyLengthFunction.c
     ../rtl/RtlpEnsureBufferSize.c
     ../rtl/RtlQueryTimeZoneInfo.c
     ../rtl/RtlReAllocateHeap.c
     ../rtl/RtlUnicodeStringToAnsiString.c
-    ../rtl/RtlUnicodeStringToCountedOemString.c
-    ../rtl/RtlUnicodeToOemN.c
+#    ../rtl/RtlUnicodeStringToCountedOemString.c
+#    ../rtl/RtlUnicodeToOemN.c
     ../rtl/RtlUpcaseUnicodeStringToCountedOemString.c
     ../rtl/RtlValidateUnicodeString.c
-    ../rtl/RtlxUnicodeStringToAnsiSize.c
-    ../rtl/RtlxUnicodeStringToOemSize.c
+#    ../rtl/RtlxUnicodeStringToAnsiSize.c
+#    ../rtl/RtlxUnicodeStringToOemSize.c
     UserModeException.c
 )
 

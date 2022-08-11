@@ -2,7 +2,7 @@
  * PROJECT:         ReactOS kernel-mode tests
  * LICENSE:         GPL-2.0-or-later (https://spdx.org/licenses/GPL-2.0-or-later)
  * PURPOSE:         Test for ntstrsafe.h functions
- * COPYRIGHT:       Copyright 2018 Hern·n Di Pietro <hernan.di.pietro@gmail.com>
+ * COPYRIGHT:       Copyright 2018 Hern√°n Di Pietro <hernan.di.pietro@gmail.com>
  *                  Copyright 2019 Colin Finck <colin@reactos.org>
  */
 
@@ -11,6 +11,7 @@
 #include <ntstrsafe.h>
 #include <ntdef.h>
 #include <ndk/rtlfuncs.h>
+#include <pseh/pseh2.h>
 
 #define TESTAPI static void
 
