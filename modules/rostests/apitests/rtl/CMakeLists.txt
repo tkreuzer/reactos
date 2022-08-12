@@ -25,8 +25,7 @@ add_asm_files(ntdll_apitest_asm ${ASM_SOURCE})
 
 add_library(rtl_apitest_lib
     ${SOURCE}
-    ${ntdll_apitest_asm}
-    testlist.c)
+    ${ntdll_apitest_asm})
 
 add_dependencies(rtl_apitest_lib asm)
 
@@ -39,13 +38,11 @@ endif()
 
 # RTL tests with static linkage
 add_executable(rtl_apitest
-    ${SOURCE}
-    ${ntdll_apitest_asm}
     testlist.c
     ${REACTOS_SOURCE_DIR}/sdk/lib/rtl/um/libsupp.c
     ldrstubs.c)
 target_compile_definitions(rtl_apitest PRIVATE _RTL_TEST _NTSYSTEM_)
-target_link_libraries(rtl_apitest wine uuid ${PSEH_LIB} rtl)
+target_link_libraries(rtl_apitest rtl_apitest_lib rtl wine uuid ${PSEH_LIB})
 set_module_type(rtl_apitest win32cui)
 add_importlibs(rtl_apitest msvcrt advapi32 kernel32 ntdll ntdll_vista)
 target_compile_definitions(rtl_apitest PRIVATE KMT_USER_MODE NTDDI_VERSION=NTDDI_WS03SP1)

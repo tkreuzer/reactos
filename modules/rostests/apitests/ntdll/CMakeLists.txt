@@ -98,17 +98,8 @@ list(APPEND SOURCE
     Timer.c
     precomp.h)
 
-list(APPEND RTL_SOURCE
-    ../rtl/RtlIntSafe.c
-)
-
 if(ARCH STREQUAL "i386")
     add_asm_files(ntdll_apitest_asm i386/NtContinue.S)
-elseif(ARCH STREQUAL "amd64")
-    list(APPEND RTL_SOURCE
-        ../rtl/amd64/RtlCaptureContext.c
-    )
-    add_asm_files(ntdll_apitest_asm ../rtl/amd64/RtlCaptureContext-asm.S)
 endif()
 
 list(APPEND PCH_SKIP_SOURCE
@@ -118,7 +109,6 @@ add_rc_deps(testdata.rc ${CMAKE_CURRENT_BINARY_DIR}/load_notifications/load_noti
 
 add_executable(ntdll_apitest
     ${SOURCE}
-    ${RTL_SOURCE}
     ${ntdll_apitest_asm}
     ${PCH_SKIP_SOURCE}
     testdata.rc
@@ -129,7 +119,7 @@ set_target_properties(ntdll_apitest
     ENABLE_EXPORTS TRUE
     DEFINE_SYMBOL "")
 
-target_link_libraries(ntdll_apitest wine uuid ${PSEH_LIB})
+target_link_libraries(ntdll_apitest rtl_apitest_lib wine uuid ${PSEH_LIB})
 set_module_type(ntdll_apitest win32cui)
 add_importlibs(ntdll_apitest msvcrt advapi32 kernel32 ntdll)
 add_pch(ntdll_apitest precomp.h "${PCH_SKIP_SOURCE}")
