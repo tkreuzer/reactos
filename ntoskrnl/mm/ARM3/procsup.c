@@ -1276,6 +1276,7 @@ MmCleanProcessAddressSpace(IN PEPROCESS Process)
     /* Abort early, when the address space wasn't fully initialized */
     if (Process->AddressSpaceInitialized < 2)
     {
+        // FIXME: Do we need to do anything here?
         DPRINT1("Incomplete address space for Process %p. Might leak resources.\n",
                 Process);
         return;
