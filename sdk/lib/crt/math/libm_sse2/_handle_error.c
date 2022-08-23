@@ -7,6 +7,15 @@
 
 #include <math.h>
 
+int
+__cdecl
+_invoke_matherr(
+    int type,
+    char* name,
+    double arg1,
+    double arg2,
+    double retval);
+
 /*!
  * @brief Handles an error condition. 
  * @param fname - The name of the function that caused the error.
@@ -34,17 +43,13 @@ _handle_error(
     int nargs)
 {
     float retval = *(double*)&value;
-    struct _exception excp;
 
-    excp.type = type;
-    excp.name = fname;
-    excp.arg1 = arg1;
-    excp.arg2 = arg2;
-    excp.retval = retval;
-    _matherr(&excp);
+    _invoke_matherr(type, fname, arg1, arg2, retval);
 
     return retval;
 }
+
+
 
 float
 __cdecl
@@ -60,14 +65,8 @@ _handle_errorf(
     int nargs)
 {
     float retval = *(float*)&value;
-    struct _exception excp;
 
-    excp.type = type;
-    excp.name = fname;
-    excp.arg1 = arg1;
-    excp.arg2 = arg2;
-    excp.retval = retval;
-    _matherr(&excp);
+    _invoke_matherr(type, fname, arg1, arg2, retval);
 
     return retval;
 }

@@ -3,7 +3,6 @@ list(APPEND LIBCNTPR_MATH_SOURCE
     math/abs.c
     math/div.c
     math/labs.c
-    math/usermatherr.c
 )
 
 if(ARCH STREQUAL "i386")
@@ -146,6 +145,7 @@ endif()
 
 list(APPEND CRT_MATH_SOURCE
     ${LIBCNTPR_MATH_SOURCE}
+    math/_invoke_matherr.c
     math/acos.c
     math/adjust.c
     math/asin.c
@@ -178,6 +178,7 @@ list(APPEND CRT_MATH_ASM_SOURCE
 )
 
 list(APPEND LIBCNTPR_MATH_SOURCE
+    math/_invoke_matherr_dummy.c
     math/rand_nt.c
 )
 
