@@ -212,6 +212,15 @@ $if (_NTDDK_)
 #define INITIAL_MXCSR                  0x1f80
 #define INITIAL_FPCSR                  0x027f
 
+#ifndef ASSERT_NO_PACKING
+struct __check_paccking__ {
+    char x1; long long x4;
+};
+#define ASSERT_NO_PACKING() typedef char __invalid_paccking__[((sizeof(struct __check_paccking__) == 16))?1:-1];
+#endif // CRT_C_ASSERT
+
+ASSERT_NO_PACKING()
+
 typedef struct DECLSPEC_ALIGN(16) _CONTEXT {
   ULONG64 P1Home;
   ULONG64 P2Home;

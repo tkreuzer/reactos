@@ -6,6 +6,13 @@
 #include <_mingw.h>
 #include <specstrings.h>
 
+#ifndef ASSERT_NO_PACKING
+struct __check_paccking__ { char x1; long long x4; };
+#define ASSERT_NO_PACKING() typedef char __invalid_paccking__[((sizeof(struct __check_paccking__) == 16))?1:-1];
+#endif // CRT_C_ASSERT
+
+ASSERT_NO_PACKING()
+
 #ifndef _INC_CRTDEFS
 #define _INC_CRTDEFS
 
