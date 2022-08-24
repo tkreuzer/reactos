@@ -308,6 +308,29 @@ std::vector<TOKEN_DEF> g_TokenList =
 // FIXME: use context?
 unsigned int g_label_number = 0;
 
+vector<string> g_identifiers;
+
+void
+add_mem_id(Token& tok)
+{
+    g_identifiers.push_back(tok.str());
+    //fprintf(stderr, "Added mem id: '%s'\n", tok.str().c_str());
+}
+
+bool
+is_mem_id(Token& tok)
+{
+    for (auto id : g_identifiers)
+    {
+        if (id == tok.str())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 bool
 iequals(const string &a, const string &b)
 {
@@ -577,6 +600,14 @@ size_t translate_instruction_param(TokenList& tokens, size_t index, const vector
                 if (tok.str() == ",")
                     return index;
 
+            case TOKEN_TYPE::Identifier:
+                index = translate_token(tokens, index, macro_params);
+                if (is_mem_id(tok))
+                {
+                    printf("[rip]");
+                }
+                break;
+
             default:
                 index = translate_expression(tokens, index, macro_params);
         }
@@ -823,6 +854,7 @@ translate_identifier_construct(TokenList& tokens, size_t index, const vector<str
         case TOKEN_TYPE::KW_DD:
         case TOKEN_TYPE::KW_DQ:
             printf("%s:%s", tok.str().c_str(), tok1.str().c_str());
+            add_mem_id(tok);
             return translate_data_def(tokens, index + 2, macro_params);
 
         case TOKEN_TYPE::KW_EQU:
@@ -933,8 +965,13 @@ translate_construct(TokenList& tokens, size_t index, const vector<string> &macro
             break;
 
         case TOKEN_TYPE::KW_EXTERN:
+        {
+            Token tok1 = get_ws_or_nl(tokens[index + 1]);
+            Token tok2 = get_expected_token(tokens[index + 2], TOKEN_TYPE::Identifier);
+            add_mem_id(tok2);
             printf("//");
             return complete_line(tokens, index, macro_params);
+        }
 
         case TOKEN_TYPE::KW_if:
         case TOKEN_TYPE::KW_ifdef:
