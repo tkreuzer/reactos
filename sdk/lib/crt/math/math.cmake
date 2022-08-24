@@ -128,8 +128,8 @@ elseif(ARCH STREQUAL "amd64")
         math/amd64/fabsf.S
         math/amd64/floor.S
         math/amd64/floorf.S
-        math/libm_sse2/fmod.asm
-        math/libm_sse2/fmodf.asm
+        math/amd64/fmod.S
+        math/amd64/fmodf.S
         math/libm_sse2/log.asm
         math/libm_sse2/log10.asm
         math/libm_sse2/pow.asm
