@@ -667,17 +667,34 @@ size_t translate_item(TokenList& tokens, size_t index, const vector<string> &mac
     return -1;
 }
 
-size_t translate_list(TokenList& tokens, size_t index, const vector<string> &macro_params)
+size_t translate_list(uchar size, TokenList& tokens, size_t index, const vector<string> &macro_params)
 {
+    bool need_start = true;
+
     while (index < tokens.size())
     {
+        // Check for string (this needs to be translated to .ascii!)
+        if (tokens[index].type() == TOKEN_TYPE::String)
+        {
+            if (size != 1)
+            {
+                throw "Cannot define string with anything other than DB!";
+            }
+
+            printf(".ascii %s\n", tokens[index].str().c_str());
+        }
+        else
+        {
+            
+        }
+
         // The item itself
         index = translate_item(tokens, index, macro_params);
 
         // Optional white space
         if (tokens[index].type() == TOKEN_TYPE::WhiteSpace)
         {
-            index = translate_token(tokens, index, macro_params);
+            index++;
         }
 
         // End of list?
@@ -691,6 +708,27 @@ size_t translate_list(TokenList& tokens, size_t index, const vector<string> &mac
             (tokens[index].str() != ","))
         {
             throw "Unexpected end of list";
+        }
+
+        if (need_start)
+        {
+            switch (size)
+            {
+            case 1:
+                printf(".byte ");
+                break;
+            case 2:
+                printf(".short ");
+                break;
+            case 4:
+                printf(".long ");
+                break;
+            case 8:
+                printf(".quad ");
+                break;
+            default:
+                throw "Invalid size";
+            }
         }
 
         index = translate_token(tokens, index, macro_params);
@@ -713,23 +751,19 @@ translate_data_def(TokenList& tokens, size_t index, const vector<string>& macro_
     switch (tok.type())
     {
         case TOKEN_TYPE::KW_DB:
-            printf(".byte%s", tok1.str().c_str());
-            break;
+            return translate_list(1, tokens, index + 2, macro_params);
 
         case TOKEN_TYPE::KW_DW:
-            printf(".short%s", tok1.str().c_str());
-            break;
+            return translate_list(2, tokens, index + 2, macro_params);
 
         case TOKEN_TYPE::KW_DD:
-            printf(".long%s", tok1.str().c_str());
-            break;
+            return translate_list(4, tokens, index + 2, macro_params);
 
         case TOKEN_TYPE::KW_DQ:
-            printf(".quad%s", tok1.str().c_str());
-            break;
+            return translate_list(8, tokens, index + 2, macro_params);
     }
 
-    return translate_list(tokens, index + 2, macro_params);
+    throw "Invalid!";
 }
 
 size_t

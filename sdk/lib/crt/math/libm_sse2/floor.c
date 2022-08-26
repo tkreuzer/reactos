@@ -34,6 +34,11 @@ THE SOFTWARE.
 
 #pragma function(floor)
 
+double sincos(double x)
+{
+    return x;
+}
+
 double FN_PROTOTYPE(floor)(double x)
 {
   double r;

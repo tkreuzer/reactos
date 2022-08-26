@@ -60,11 +60,9 @@ X87XAM_BAD	EQU	MASK X87SW_E AND NOT 2
 
 		EXTRN	_handle_error: PROC	; float _handle_error (char *fname, int opcode, unsigned long long value, int type, int flags, int error, double arg1, double arg2, int nargs)
 
-		.const
-
-@fmodz		DB	"fmod", 0
-
 		.CODE
+
+stuff DB "fmod", 1, 2, 3
 
 ; double fmod [double, double] ----------------------------------
 
@@ -91,12 +89,12 @@ fmod		PROC	FRAME
 		fnclex			; clear exception flags
 						; in preparation for fprem
 
-@@:
+@l1:
 		DB	0d9h, 0f8h		; fprem
 
 		DB	09bh, 0dfh, 0e0h 	; fstsw	ax
 		test	ax, 4 SHL X87SW_C
-		jnz	@b			; do it again in case of partial result
+		jnz	@l1			; do it again in case of partial result
 
 		DB	0ddh, 01ch, 024h	; fstp	QWORD PTR [rsp]
 		movlpd	xmm0, QWORD PTR [rsp]		; result
@@ -134,15 +132,14 @@ fmod		PROC	FRAME
 @raise:
 		mov	eax, INVALID		; raise exception
 		mov	r8, FPIND
-		jmp	@f
+		jmp	@l2
 
 @error:
 		xor	eax, eax		; no exception
 		movd	r8, xmm0
-		jmp	@f
+		jmp	@l2
 
-@@:
-		lea	rcx, [@fmodz]		; fname
+@l2:
 		mov	edx, FPCODEFMOD		; opcode
 ;		mov	r8, INDEF		; value
 		mov	r9d, DOMAIN		; type
