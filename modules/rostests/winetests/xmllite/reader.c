@@ -537,7 +537,7 @@ static void test_reader_create(void)
     IXmlResolver *resolver;
     IUnknown *input, *unk;
     IXmlReader *reader;
-    DtdProcessing dtd;
+    ULONG_PTR dtd; // enum DtdProcessing
     XmlNodeType nodetype;
     HRESULT hr;
 
