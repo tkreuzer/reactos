@@ -654,6 +654,7 @@ ObpAllocateObject(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo,
     }
     else
     {
+        //DbgPrint("[%lx] ObpAllocateObject 1: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
         /* Check if we have quota */
         if ((((ObjectCreateInfo->PagedPoolCharge !=
                ObjectType->TypeInfo.DefaultPagedPoolCharge) ||
@@ -711,6 +712,8 @@ ObpAllocateObject(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo,
             /* No info */
             CreatorSize = 0;
         }
+        // == 0
+        // DbgPrint("[%lx] ObpAllocateObject 1: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
     }
 
     /* Set final header size */
@@ -827,14 +830,22 @@ ObpAllocateObject(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo,
 
     /* Remember if we have handle info */
     if (HandleSize) Header->Flags |= OB_FLAG_SINGLE_PROCESS;
+    if (ObjectCreateInfo)
+        DbgPrint("[%lx] ObpAllocateObject 2: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
 
     /* Initialize the object header */
     Header->PointerCount = 1;
+    if (ObjectCreateInfo)
+        DbgPrint("[%lx] ObpAllocateObject 3: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
     Header->HandleCount = 0;
     Header->Type = ObjectType;
     Header->ObjectCreateInfo = ObjectCreateInfo;
     Header->SecurityDescriptor = NULL;
-
+    if (ObjectCreateInfo)
+    {
+        DbgPrint("[%lx] ObpAllocateObject 4: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
+        if (ObjectCreateInfo->Attributes & 1) __debugbreak();
+    }
     /* Check if this is a permanent object */
     if ((ObjectCreateInfo) && (ObjectCreateInfo->Attributes & OBJ_PERMANENT))
     {
@@ -848,6 +859,8 @@ ObpAllocateObject(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo,
         /* Set the needed flag so we can check */
         Header->Flags |= OB_FLAG_EXCLUSIVE;
     }
+    //if (ObjectCreateInfo)
+    //    DbgPrint("[%lx] ObpAllocateObject 4: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
 
     /* Set kernel-mode flag */
     if (PreviousMode == KernelMode) Header->Flags |= OB_FLAG_KERNEL_MODE;
@@ -864,6 +877,9 @@ ObpAllocateObject(IN POBJECT_CREATE_INFORMATION ObjectCreateInfo,
                                                    ObjectType->
                                                    HighWaterNumberOfObjects);
     }
+
+    //if (ObjectCreateInfo)
+    //    DbgPrint("[%lx] ObpAllocateObject 5: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
 
     /* Return Header */
     *ObjectHeader = Header;
@@ -977,6 +993,7 @@ ObCreateObject(IN KPROCESSOR_MODE ProbeMode OPTIONAL,
                                                &ObjectName);
     if (NT_SUCCESS(Status))
     {
+        DbgPrint("[%lx] ObCreateObject 1: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
         /* Validate attributes */
         if (Type->TypeInfo.InvalidAttributes & ObjectCreateInfo->Attributes)
         {
@@ -1027,6 +1044,8 @@ ObCreateObject(IN KPROCESSOR_MODE ProbeMode OPTIONAL,
                         Status = STATUS_PRIVILEGE_NOT_HELD;
                     }
                 }
+                // already 1!
+                //DbgPrint("[%lx] ObCreateObject 2: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
 
                 /* Return status */
                 return Status;
@@ -1036,8 +1055,11 @@ ObCreateObject(IN KPROCESSOR_MODE ProbeMode OPTIONAL,
         /* Release the Capture Info, we don't need it */
         ObpFreeObjectCreateInformation(ObjectCreateInfo);
         if (ObjectName.Buffer) ObpFreeObjectNameBuffer(&ObjectName);
+        DbgPrint("[%lx] ObCreateObject 3: ObjectCreateInfo->Attributes = 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectCreateInfo->Attributes);
         return Status;
+        //__debugbreak();
     }
+    DbgPrint("ObCreateObject 3: ObjectCreateInfo->Attributes = 0x%lx\n", ObjectCreateInfo->Attributes);
 
     /* We failed, so release the Buffer */
     ObpFreeCapturedAttributes(ObjectCreateInfo, LookasideCreateInfoList);

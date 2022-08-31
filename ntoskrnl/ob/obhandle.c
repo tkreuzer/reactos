@@ -1342,6 +1342,8 @@ ObpCreateUnnamedHandle(IN PVOID Object,
     PAGED_CODE();
     DBG_CHECK_OBJECT(Object);
 
+    DbgPrint("HandleAttributes = 0x%lx\n", HandleAttributes);
+
     /* Get the object header and type */
     ObjectHeader = OBJECT_TO_OBJECT_HEADER(Object);
     ObjectType = ObjectHeader->Type;
@@ -1419,6 +1421,7 @@ ObpCreateUnnamedHandle(IN PVOID Object,
             "%s - Handle Properties: [%p-%lx-%lx]\n",
             __FUNCTION__,
             NewEntry.Object, NewEntry.ObAttributes & 3, NewEntry.GrantedAccess);
+    DbgPrint("NewEntry.Object = 0x%p\n", NewEntry.Object);
     Handle = ExCreateHandle(HandleTable, &NewEntry);
 
     /* Make sure we got a handle */
@@ -3008,6 +3011,8 @@ ObInsertObject(IN PVOID Object,
 
     /* Get the create and name info, as well as the object type */
     ObjectCreateInfo = ObjectHeader->ObjectCreateInfo;
+    DbgPrint("ObInsertObject 1: 0x%lx\n", ObjectCreateInfo->Attributes);
+
     ObjectNameInfo = ObpReferenceNameInfo(ObjectHeader);
     ObjectType = ObjectHeader->Type;
     ObjectName = NULL;
@@ -3033,6 +3038,8 @@ ObInsertObject(IN PVOID Object,
         /* Assume failure */
         *Handle = NULL;
         ObjectHeader->ObjectCreateInfo = NULL;
+
+        DbgPrint("ObInsertObject 2: 0x%lx\n", ObjectCreateInfo->Attributes);
 
         /* Create the handle */
         Status = ObpCreateUnnamedHandle(Object,

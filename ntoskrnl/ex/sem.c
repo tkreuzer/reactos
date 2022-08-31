@@ -118,10 +118,15 @@ NtCreateSemaphore(OUT PHANDLE SemaphoreHandle,
     /* Check for Success */
     if (NT_SUCCESS(Status))
     {
+        POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(Semaphore);
+        DbgPrint("[%lx] NtCreateSemaphore 1: ObjectHeader Attrs: 0x%lx\n", HandleToUlong(PsGetCurrentThreadId()), ObjectHeader->ObjectCreateInfo->Attributes);
+
         /* Initialize it */
         KeInitializeSemaphore(Semaphore,
                               InitialCount,
                               MaximumCount);
+
+        //DbgPrint("NtCreateSemaphore 2: ObjectHeader Attrs: 0x%lx\n", ObjectHeader->ObjectCreateInfo->Attributes);
 
         /* Insert it into the Object Tree */
         Status = ObInsertObject((PVOID)Semaphore,

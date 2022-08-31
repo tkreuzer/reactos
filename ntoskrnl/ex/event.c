@@ -138,10 +138,15 @@ NtCreateEvent(OUT PHANDLE EventHandle,
     /* Check for Success */
     if (NT_SUCCESS(Status))
     {
+        //POBJECT_HEADER ObjectHeader = OBJECT_TO_OBJECT_HEADER(Event);
+        //DbgPrint("NtCreateEvent 1: ObjectHeader Attrs: 0x%lx\n", ObjectHeader->ObjectCreateInfo->Attributes);
+
         /* Initialize the Event */
         KeInitializeEvent(Event,
                           EventType,
                           InitialState);
+
+        //DbgPrint("NtCreateEvent 2: ObjectHeader Attrs: 0x%lx\n", ObjectHeader->ObjectCreateInfo->Attributes);
 
         /* Insert it */
         Status = ObInsertObject((PVOID)Event,

@@ -694,6 +694,7 @@ ExpAllocateHandleTableEntry(IN PHANDLE_TABLE HandleTable,
     {
         /* Get the current link */
         OldValue = HandleTable->FirstFree;
+        //DbgPrint("(1) OldValue = HandleTable->FirstFree = 0x%lx\n", OldValue);
         while (!OldValue)
         {
             /* No free entries remain, lock the handle table */
@@ -722,12 +723,12 @@ ExpAllocateHandleTableEntry(IN PHANDLE_TABLE HandleTable,
 
             /* We're the first one through, so do the actual allocation */
             Result = ExpAllocateHandleTableEntrySlow(HandleTable, TRUE);
-
+            //DbgPrint("ExpAllocateHandleTableEntrySlow() -> %d\n", Result);
             /* Unlock the table and get the value now */
             ExReleasePushLockExclusive(&HandleTable->HandleTableLock[0]);
             KeLeaveCriticalRegion();
             OldValue = HandleTable->FirstFree;
-
+            //DbgPrint("(2) OldValue = HandleTable->FirstFree = 0x%lx\n", OldValue);
             /* Check if allocation failed */
             if (!Result)
             {
@@ -746,7 +747,7 @@ ExpAllocateHandleTableEntry(IN PHANDLE_TABLE HandleTable,
 
         /* Lookup the entry for this handle */
         Entry = ExpLookupHandleTableEntry(HandleTable, Handle);
-
+        //DbgPrint("Entry = ExpLookupHandleTableEntry = 0x%p (0x%p)\n", Entry, Entry->Object);
         /* Get an available lock and acquire it */
         OldHandle.Value = OldValue;
         i = OldHandle.Index % 4;
