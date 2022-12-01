@@ -1262,6 +1262,8 @@ MmCreateProcessAddressSpace(IN ULONG MinWs,
     return TRUE;
 }
 
+VOID MiDumpPoolConsumers(BOOLEAN CalledFromDbg, ULONG Tag, ULONG Mask, ULONG Flags);
+
 VOID
 NTAPI
 MmCleanProcessAddressSpace(IN PEPROCESS Process)
@@ -1359,6 +1361,11 @@ MmCleanProcessAddressSpace(IN PEPROCESS Process)
 
     /* Release the address space */
     MmUnlockAddressSpace(&Process->Vm);
+
+    //MiDumpPoolConsumers(TRUE, 'tPmM', 0xFFFFFFFF, 0);
+    //MiDumpPoolConsumers(TRUE, 'PAMR', 0xFFFFFFFF, 0);
+    MiDumpPoolConsumers(TRUE, '4alG', 0xFFFFFFFF, 0);
+    MiDumpPoolConsumers(TRUE, '  MC', 0xFFFFFFFF, 0);
 }
 
 VOID
