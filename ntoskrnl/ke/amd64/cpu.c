@@ -230,6 +230,12 @@ KiGetFeatureBits(VOID)
         }
     }
 
+    if (!FlagOn(FeatureBits, KF_NX_BIT))
+    {
+        DPRINT1("CPU did not report NX feature. Pretending it's there.\n");
+        FeatureBits |= KF_NX_BIT;
+    }
+
     /* Return the Feature Bits */
     return FeatureBits;
 }
