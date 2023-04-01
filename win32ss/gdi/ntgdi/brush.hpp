@@ -12,7 +12,7 @@
 
 __prefast_operator_new_null
 
-class BRUSH : public BASEOBJECT, protected _BRUSHBODY
+class BRUSH : public BASEOBJECT, public _BRUSHBODY
 {
 
 public:
