@@ -1918,15 +1918,15 @@ IntGdiWidenPath(PPATH pPath, UINT penWidth, UINT penStyle, FLOAT eMiterLimit)
                     xo = pStrokes[i]->pPoints[j].x;
                     yo = pStrokes[i]->pPoints[j].y;
                 }
-                theta = atan2(ya - yo, xa - xo);
+                theta = atan2((double)(ya - yo), (double)(xa - xo));
                 switch(endcap)
                 {
                     case PS_ENDCAP_SQUARE :
-                        pt.x = xo + round(sqrt(2) * penWidthOut * cos(M_PI_4 + theta));
-                        pt.y = yo + round(sqrt(2) * penWidthOut * sin(M_PI_4 + theta));
+                        pt.x = xo + round(sqrt(2.) * penWidthOut * cos(M_PI_4 + theta));
+                        pt.y = yo + round(sqrt(2.) * penWidthOut * sin(M_PI_4 + theta));
                         PATH_AddEntry(pUpPath, &pt, (j == 0 ? PT_MOVETO : PT_LINETO));
-                        pt.x = xo + round(sqrt(2) * penWidthIn * cos(- M_PI_4 + theta));
-                        pt.y = yo + round(sqrt(2) * penWidthIn * sin(- M_PI_4 + theta));
+                        pt.x = xo + round(sqrt(2.) * penWidthIn * cos(- M_PI_4 + theta));
+                        pt.y = yo + round(sqrt(2.) * penWidthIn * sin(- M_PI_4 + theta));
                         PATH_AddEntry(pUpPath, &pt, PT_LINETO);
                         break;
                     case PS_ENDCAP_FLAT :
