@@ -3,7 +3,7 @@ extern IMAGE_DOS_HEADER __ImageBase;
 
 static const unsigned GDI_ENGINE_VERSION = DDI_DRIVER_VERSION_NT5_01;
 
-typedef enum
+typedef enum _LDEVTYPE
 {
     LDEV_DEVICE_DISPLAY = 1,
     LDEV_DEVICE_PRINTER = 2,
@@ -49,13 +49,13 @@ LDEVOBJ_ulGetDriverModes(
 PLDEVOBJ
 LDEVOBJ_pLoadInternal(
     _In_ PFN_DrvEnableDriver pfnEnableDriver,
-    _In_ ULONG ldevtype);
+    _In_ LDEVTYPE ldevtype);
 
 PLDEVOBJ
 APIENTRY
 LDEVOBJ_pLoadDriver(
     _In_z_ LPWSTR pwszDriverName,
-    _In_ ULONG ldevtype);
+    _In_ LDEVTYPE ldevtype);
 
 BOOL
 LDEVOBJ_bBuildDevmodeList(
