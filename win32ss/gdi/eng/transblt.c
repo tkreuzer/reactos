@@ -160,7 +160,7 @@ EngTransparentBlt(
             CLIPOBJ_cEnumStart(Clip, FALSE, CT_RECTANGLES, Direction, 0);
             do
             {
-                EnumMore = CLIPOBJ_bEnum(Clip, sizeof(RectEnum), (PVOID)&RectEnum);
+                EnumMore = CLIPOBJ_bEnum(Clip, sizeof(RectEnum), (PULONG)&RectEnum);
                 for (i = 0; i < RectEnum.c; i++)
                 {
                     RECTL ClipRect, CombinedRect;

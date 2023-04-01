@@ -155,7 +155,7 @@ EngAlphaBlend(
             do
             {
                 EnumMore = CLIPOBJ_bEnum(ClipRegion,(ULONG) sizeof(RectEnum),
-                                         (PVOID) &RectEnum);
+                                         (PULONG) &RectEnum);
 
                 for (i = 0; i < RectEnum.c; i++)
                 {
