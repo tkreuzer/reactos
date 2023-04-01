@@ -25,7 +25,7 @@ const LONG LINC[2] = {-1, 1};
 /* Horizontal/Vertical gradients */
 #define HVINITCOL(Col, id) \
   c[id] = v1->Col >> 8; \
-  dc[id] = abs((v2->Col >> 8) - c[id]); \
+  dc[id] = labs((v2->Col >> 8) - c[id]); \
   ec[id] = -(dy >> 1); \
   ic[id] = LINC[(v2->Col >> 8) > c[id]]
 #define HVSTEPCOL(id) \
@@ -73,11 +73,11 @@ IntEngGradientFillRect(
 
     if(Horizontal)
     {
-        dy = abs(rcGradient.right - rcGradient.left);
+        dy = labs(rcGradient.right - rcGradient.left);
     }
     else
     {
-        dy = abs(rcGradient.bottom - rcGradient.top);
+        dy = labs(rcGradient.bottom - rcGradient.top);
     }
 
     if(!IntEngEnter(&EnterLeave, psoDest, &rcSG, FALSE, &Translate, &psoOutput))
@@ -210,8 +210,8 @@ IntEngGradientFillRect(
 #define S_INITLINE(a,b,line) \
   x[line] = a->x; \
   sx[line] =  a->x + pptlDitherOrg->x; \
-  dx[line] = abs(b->x - a->x); \
-  dy[line] = abs(b->y - a->y); \
+  dx[line] = labs(b->x - a->x); \
+  dy[line] = labs(b->y - a->y); \
   incx[line] = LINC[b->x > a->x]; \
   ex[line] = -(dy[line]>>1); \
   destx[line] = b->x
@@ -219,7 +219,7 @@ IntEngGradientFillRect(
 /* Fill triangle with gradient */
 #define INITCOL(a,b,line,col,id) \
   c[line][id] = a->col >> 8; \
-  dc[line][id] = abs((b->col >> 8) - c[line][id]); \
+  dc[line][id] = labs((b->col >> 8) - c[line][id]); \
   ec[line][id] = -(dy[line]>>1); \
   ic[line][id] = LINC[(b->col >> 8) > c[line][id]]
 
@@ -233,7 +233,7 @@ IntEngGradientFillRect(
 
 #define FINITCOL(linefrom,lineto,colid) \
   gc[colid] = c[linefrom][colid]; \
-  gd[colid] = abs(c[lineto][colid] - gc[colid]); \
+  gd[colid] = labs(c[lineto][colid] - gc[colid]); \
   ge[colid] = -(gx >> 1); \
   gi[colid] = LINC[c[lineto][colid] > gc[colid]]
 
@@ -285,8 +285,8 @@ IntEngGradientFillRect(
 #define INITLINE(a,b,line) \
   x[line] = a->x; \
   sx[line] =  a->x + pptlDitherOrg->x; \
-  dx[line] = abs(b->x - a->x); \
-  dy[line] = max(abs(b->y - a->y),1); \
+  dx[line] = labs(b->x - a->x); \
+  dy[line] = max(labs(b->y - a->y),1); \
   incx[line] = LINC[b->x > a->x]; \
   ex[line] = -(dy[line]>>1); \
   destx[line] = b->x

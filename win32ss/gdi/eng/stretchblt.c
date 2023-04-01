@@ -564,8 +564,8 @@ IntEngStretchBlt(SURFOBJ *psoDest,
     DPRINT("bTopToBottom is '%d' and bLeftToRight is '%d'.\n", bTopToBottom, bLeftToRight);
 
     /* Check if source and dest size are equal */
-    if ((abs(DestRect->right - DestRect->left) == abs(SourceRect->right - SourceRect->left)) &&
-        (abs(DestRect->bottom - DestRect->top) == abs(SourceRect->bottom - SourceRect->top)))
+    if ((labs(DestRect->right - DestRect->left) == labs(SourceRect->right - SourceRect->left)) &&
+        (labs(DestRect->bottom - DestRect->top) == labs(SourceRect->bottom - SourceRect->top)))
     {
         DPRINT("source and dest size are equal.\n");
 
