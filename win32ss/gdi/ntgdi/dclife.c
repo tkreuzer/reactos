@@ -106,7 +106,7 @@ DC_InitHack(PDC pdc)
 {
     if (defaultDCstate == NULL)
     {
-        defaultDCstate = ExAllocatePoolWithTag(PagedPool, sizeof(DC), TAG_DC);
+        defaultDCstate = (PDC)ExAllocatePoolWithTag(PagedPool, sizeof(DC), TAG_DC);
         ASSERT(defaultDCstate);
         RtlZeroMemory(defaultDCstate, sizeof(DC));
         defaultDCstate->pdcattr = &defaultDCstate->dcattr;
@@ -260,7 +260,7 @@ DC_vInitDc(
 	IntEngInitClipObj(&pdc->co);
 
     /* Setup palette */
-    pdc->dclevel.hpal = StockObjects[DEFAULT_PALETTE];
+    pdc->dclevel.hpal = (HPALETTE)StockObjects[DEFAULT_PALETTE];
     pdc->dclevel.ppal = PALETTE_ShareLockPalette(pdc->dclevel.hpal);
 
     /* Setup path */
@@ -279,8 +279,8 @@ DC_vInitDc(
 	pdc->dcattr.ulPenClr = RGB(0, 0, 0);
 
     /* Select the default fill and line brush */
-	pdc->dcattr.hbrush = StockObjects[WHITE_BRUSH];
-	pdc->dcattr.hpen = StockObjects[BLACK_PEN];
+	pdc->dcattr.hbrush = (HBRUSH)StockObjects[WHITE_BRUSH];
+	pdc->dcattr.hpen = (HPEN)StockObjects[BLACK_PEN];
     pdc->dclevel.pbrFill = BRUSH_ShareLockBrush(pdc->pdcattr->hbrush);
     pdc->dclevel.pbrLine = PEN_ShareLockPen(pdc->pdcattr->hpen);
 	pdc->dclevel.ptlBrushOrigin.x = 0;
@@ -336,7 +336,7 @@ DC_vInitDc(
 	pdc->dcattr.lRelAbs = 1;
 	pdc->dcattr.lBreakExtra = 0;
 	pdc->dcattr.cBreak = 0;
-    pdc->dcattr.hlfntNew = StockObjects[SYSTEM_FONT];
+    pdc->dcattr.hlfntNew = (HFONT)StockObjects[SYSTEM_FONT];
     pdc->dclevel.plfnt = LFONT_ShareLockFont(pdc->dcattr.hlfntNew);
 
     /* Other stuff */
@@ -427,8 +427,8 @@ DC_vSetOwner(PDC pdc, ULONG ulOwner)
     BRUSH_ShareUnlockBrush(pdc->dclevel.pbrLine);
 
     /* Select the default fill and line brush */
-    pdc->dcattr.hbrush = StockObjects[WHITE_BRUSH];
-    pdc->dcattr.hpen = StockObjects[BLACK_PEN];
+    pdc->dcattr.hbrush = (HBRUSH)StockObjects[WHITE_BRUSH];
+    pdc->dcattr.hpen = (HPEN)StockObjects[BLACK_PEN];
     pdc->dclevel.pbrFill = BRUSH_ShareLockBrush(pdc->pdcattr->hbrush);
     pdc->dclevel.pbrLine = PEN_ShareLockPen(pdc->pdcattr->hpen);
 
@@ -672,10 +672,10 @@ GreOpenDCW(
         PDEVOBJ_vRelease(ppdev);
         return NULL;
     }
-    hdc = pdc->BaseObject.hHmgr;
+    hdc = (HDC)pdc->BaseObject.hHmgr;
 
     /* Lock ppdev and initialize the new DC */
-    DC_vInitDc(pdc, iType, ppdev);
+    DC_vInitDc(pdc, (DCTYPE)iType, ppdev);
     if (pUMdhpdev) *pUMdhpdev = ppdev->dhpdev;
     /* FIXME: HACK! */
     DC_InitHack(pdc);
@@ -735,7 +735,7 @@ NtGdiOpenDCW(
                 Size = dmSize + dmDriverExtra;
                 ProbeForRead(pdmInit, Size, 1);
 
-                pdmAllocated = ExAllocatePoolWithTag(PagedPool | POOL_RAISE_IF_ALLOCATION_FAILURE,
+                pdmAllocated = (PDEVMODEW)ExAllocatePoolWithTag((POOL_TYPE)(PagedPool | POOL_RAISE_IF_ALLOCATION_FAILURE),
                                                      Size,
                                                      TAG_DC);
                 RtlCopyMemory(pdmAllocated, pdmInit, Size);
@@ -863,7 +863,7 @@ GreCreateCompatibleDC(HDC hdc, BOOL bAltDc)
         PDEVOBJ_vRelease(ppdev);
         return NULL;
     }
-    hdcNew = pdcNew->BaseObject.hHmgr;
+    hdcNew = (HDC)pdcNew->BaseObject.hHmgr;
 
     /* Lock ppdev and initialize the new DC */
     DC_vInitDc(pdcNew, bAltDc ? DCTYPE_INFO : DCTYPE_MEMORY, ppdev);
@@ -962,7 +962,7 @@ NtGdiDeleteObjectApp(HANDLE hobj)
         return GreDeleteObject(hobj);
 
     // FIXME: Everything should be callback based
-    return IntGdiDeleteDC(hobj, FALSE);
+    return IntGdiDeleteDC((HDC)hobj, FALSE);
 }
 
 BOOL
@@ -999,7 +999,7 @@ MakeInfoDC(PDC pdc, BOOL bSet)
         if (!(pdc->fs & DC_TEMPINFODC) || pdc->dctype != DCTYPE_INFO)
             return FALSE;
 
-        pSurface = pdc->pSurfInfo;
+        pSurface = (PSURFACE)pdc->pSurfInfo;
         pdc->fs &= ~DC_TEMPINFODC;
         pdc->dclevel.pSurface = pSurface;
         pdc->dctype = DCTYPE_DIRECT;
@@ -1055,7 +1055,7 @@ IntGdiCreateDC(
                      TRUE,
                      NULL,
                      NULL,
-                     pUMdhpdev);
+                     (PVOID*)pUMdhpdev);
 
     return hdc;
 }

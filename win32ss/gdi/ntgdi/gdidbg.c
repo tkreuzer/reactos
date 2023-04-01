@@ -766,7 +766,7 @@ BOOL DbgInitDebugChannels(VOID)
     /* If the buffer in the stack is not enough allocate it */
     if(Status == STATUS_BUFFER_TOO_SMALL)
     {
-        Value.Buffer = ExAllocatePool(PagedPool, Value.MaximumLength);
+        Value.Buffer = (PWCH)ExAllocatePool(PagedPool, Value.MaximumLength);
         if(Value.Buffer == NULL)
         {
             return FALSE;

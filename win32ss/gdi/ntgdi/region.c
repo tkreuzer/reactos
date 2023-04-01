@@ -135,8 +135,8 @@ HRGN    hrgnDefault = NULL;
 #if 1
 #define COPY_RECTS(dest, src, nRects) \
   do {                                \
-    PRECTL xDest = (dest);            \
-    PRECTL xSrc = (src);              \
+    PRECTL xDest = (PRECTL)(dest);            \
+    PRECTL xSrc = (PRECTL)(src);              \
     UINT xRects = (nRects);           \
     while (xRects-- > 0) {            \
       *(xDest++) = *(xSrc++);         \
@@ -457,7 +457,7 @@ REGION_bGrowBufferSize(
     }
 
     /* Set the new buffer */
-    prgn->Buffer = pvBuffer;
+    prgn->Buffer = (PRECTL)pvBuffer;
     prgn->rdh.nRgnSize = cjNewSize;
 
     return TRUE;
@@ -597,7 +597,7 @@ REGION_CopyRegion(
             PRECTL temp;
 
             /* Allocate a new buffer */
-            temp = ExAllocatePoolWithTag(PagedPool,
+            temp = (PRECTL)ExAllocatePoolWithTag(PagedPool,
                                          src->rdh.nCount * sizeof(RECT),
                                          TAG_REGION);
             if (temp == NULL)
@@ -723,7 +723,7 @@ REGION_CropRegion(
     if ((rgnDst != rgnSrc) && (rgnDst->rdh.nRgnSize < nRgnSize))
     {
         PRECTL temp;
-        temp = ExAllocatePoolWithTag(PagedPool, nRgnSize, TAG_REGION);
+        temp = (PRECTL)ExAllocatePoolWithTag(PagedPool, nRgnSize, TAG_REGION);
         if (temp == NULL)
             return ERROR;
 
@@ -1003,7 +1003,7 @@ REGION_RegionOp(
      * nuke the Xrealloc() at the end of this function eventually. */
     newReg->rdh.nRgnSize = max(reg1->rdh.nCount + 1, reg2->rdh.nCount) * 2 * sizeof(RECT);
 
-    newReg->Buffer = ExAllocatePoolWithTag(PagedPool,
+    newReg->Buffer = (PRECTL)ExAllocatePoolWithTag(PagedPool,
                                            newReg->rdh.nRgnSize,
                                            TAG_REGION);
     if (newReg->Buffer == NULL)
@@ -1191,7 +1191,7 @@ REGION_RegionOp(
         if (REGION_NOT_EMPTY(newReg))
         {
             RECTL *prev_rects = newReg->Buffer;
-            newReg->Buffer = ExAllocatePoolWithTag(PagedPool,
+            newReg->Buffer = (PRECTL)ExAllocatePoolWithTag(PagedPool,
                                                    newReg->rdh.nCount * sizeof(RECT),
                                                    TAG_REGION);
 
@@ -1215,7 +1215,7 @@ REGION_RegionOp(
             if (newReg->Buffer != &newReg->rdh.rcBound)
                 ExFreePoolWithTag(newReg->Buffer, TAG_REGION);
 
-            newReg->Buffer = ExAllocatePoolWithTag(PagedPool,
+            newReg->Buffer = (PRECTL)ExAllocatePoolWithTag(PagedPool,
                                                    sizeof(RECT),
                                                    TAG_REGION);
             ASSERT(newReg->Buffer);
@@ -1780,7 +1780,7 @@ REGION_XorRegion(
     {
         return FALSE;
     }
-    htra = tra->BaseObject.hHmgr;
+    htra = (HRGN)tra->BaseObject.hHmgr;
 
     // FIXME: Don't use a handle
     trb = REGION_AllocRgnWithHandle(srb->rdh.nCount + 1);
@@ -1790,7 +1790,7 @@ REGION_XorRegion(
         GreDeleteObject(htra);
         return FALSE;
     }
-    htrb = trb->BaseObject.hHmgr;
+    htrb = (HRGN)trb->BaseObject.hHmgr;
 
     ret = REGION_SubtractRegion(tra, sra, srb) &&
           REGION_SubtractRegion(trb, srb, sra) &&
@@ -1935,7 +1935,7 @@ REGION_bMakeSimpleFrameRgn(
         NT_ASSERT(prgn->rdh.nCount > 1);
         prgn->rdh.nRgnSize = prgn->rdh.nCount * sizeof(RECT);
         NT_ASSERT(prgn->Buffer == &prgn->rdh.rcBound);
-        prgn->Buffer = ExAllocatePoolWithTag(PagedPool,
+        prgn->Buffer = (PRECTL)ExAllocatePoolWithTag(PagedPool,
                                             prgn->rdh.nRgnSize,
                                             TAG_REGION);
         if (prgn->Buffer == NULL)
@@ -2064,7 +2064,7 @@ GreCreateFrameRgn(
 
     if (REGION_bMakeFrameRegion(prgnFrame, prgnSrc, cx, cy))
     {
-        hrgnFrame = prgnFrame->BaseObject.hHmgr;
+        hrgnFrame = (HRGN)prgnFrame->BaseObject.hHmgr;
         REGION_UnlockRgn(prgnFrame);
     }
     else
@@ -2160,7 +2160,7 @@ REGION_bXformRgn(
     {
         /* Allocate a buffer for the polygons */
         cjSize = prgn->rdh.nCount * (4 * sizeof(POINT) + sizeof(ULONG));
-        ppt = ExAllocatePoolWithTag(PagedPool, cjSize, GDITAG_REGION);
+        ppt = (PPOINTL)ExAllocatePoolWithTag(PagedPool, cjSize, GDITAG_REGION);
         if (ppt == NULL)
         {
             return FALSE;
@@ -2241,7 +2241,7 @@ REGION_AllocRgnWithHandle(
     }
     else
     {
-        pReg->Buffer = ExAllocatePoolWithTag(PagedPool,
+        pReg->Buffer = (PRECTL)ExAllocatePoolWithTag(PagedPool,
                                              nReg * sizeof(RECT),
                                              TAG_REGION);
         if (pReg->Buffer == NULL)
@@ -2287,7 +2287,7 @@ REGION_bAllocRgnAttr(
     ppi = PsGetCurrentProcessWin32Process();
     ASSERT(ppi);
 
-    prgnattr = GdiPoolAllocate(ppi->pPoolRgnAttr);
+    prgnattr = (PRGN_ATTR)GdiPoolAllocate(ppi->pPoolRgnAttr);
     if (prgnattr == NULL)
     {
         DPRINT1("Could not allocate RGN attr\n");
@@ -2379,7 +2379,7 @@ REGION_LockRgn(
 {
     PREGION prgn;
 
-    prgn = GDIOBJ_LockObject(hrgn, GDIObjType_RGN_TYPE);
+    prgn = (PREGION)GDIOBJ_LockObject(hrgn, GDIObjType_RGN_TYPE);
     if (prgn == NULL)
         return NULL;
 
@@ -2848,7 +2848,7 @@ REGION_InsertEdgeInET(
     {
         if (*iSLLBlock > SLLSPERBLOCK-1)
         {
-            tmpSLLBlock = ExAllocatePoolWithTag(PagedPool,
+            tmpSLLBlock = (SCANLINE_LISTBLOCK*)ExAllocatePoolWithTag(PagedPool,
                                                 sizeof(SCANLINE_LISTBLOCK),
                                                 TAG_REGION);
             if (tmpSLLBlock == NULL)
@@ -3083,7 +3083,7 @@ REGION_PtsToRegion(
         numRects = 1;
     }
 
-    temp = ExAllocatePoolWithTag(PagedPool, numRects * sizeof(RECT), TAG_REGION);
+    temp = (PRECTL)ExAllocatePoolWithTag(PagedPool, numRects * sizeof(RECT), TAG_REGION);
     if (temp == NULL)
     {
         return 0;
@@ -3327,7 +3327,7 @@ REGION_SetPolyPolygonRgn(
     for (poly = total = 0; poly < cPolygons; poly++)
         total += pcPoints[poly];
 
-    pETEs = ExAllocatePoolWithTag(PagedPool,
+    pETEs = (EDGE_TABLE_ENTRY*)ExAllocatePoolWithTag(PagedPool,
                                   sizeof(EDGE_TABLE_ENTRY) * total,
                                   TAG_REGION);
     if (pETEs == NULL)
@@ -3365,7 +3365,7 @@ REGION_SetPolyPolygonRgn(
                 /* Send out the buffer */
                 if (iPts == NUMPTSTOBUFFER)
                 {
-                    tmpPtBlock = ExAllocatePoolWithTag(PagedPool,
+                    tmpPtBlock = (POINTBLOCK*)ExAllocatePoolWithTag(PagedPool,
                                                        sizeof(POINTBLOCK),
                                                        TAG_REGION);
                     if (tmpPtBlock == NULL)
@@ -3420,7 +3420,7 @@ REGION_SetPolyPolygonRgn(
                     /* Send out the buffer */
                     if (iPts == NUMPTSTOBUFFER)
                     {
-                        tmpPtBlock = ExAllocatePoolWithTag(PagedPool,
+                        tmpPtBlock = (POINTBLOCK*)ExAllocatePoolWithTag(PagedPool,
                                                            sizeof(POINTBLOCK),
                                                            TAG_REGION);
                         if (tmpPtBlock == NULL)
@@ -3491,7 +3491,7 @@ GreCreatePolyPolygonRgn(
     if (REGION_SetPolyPolygonRgn(prgn, ppt, pcPoints, cPolygons, iMode))
     {
         /* Success, get the handle and unlock the region */
-        hrgn = prgn->BaseObject.hHmgr;
+        hrgn = (HRGN)prgn->BaseObject.hHmgr;
         REGION_UnlockRgn(prgn);
     }
     else
@@ -3621,7 +3621,7 @@ NtGdiCreateRectRgn(
         return NULL;
     }
 
-    hRgn = pRgn->BaseObject.hHmgr;
+    hRgn = (HRGN)pRgn->BaseObject.hHmgr;
 
     REGION_SetRectRgn(pRgn, LeftRect, TopRect, RightRect, BottomRect);
     REGION_UnlockRgn(pRgn);
@@ -3678,7 +3678,7 @@ NtGdiCreateRoundRectRgn(
     if (obj == NULL)
         return 0;
 
-    hrgn = obj->BaseObject.hHmgr;
+    hrgn = (HRGN)obj->BaseObject.hHmgr;
 
     obj->rdh.rcBound.left   = left;
     obj->rdh.rcBound.top    = top;
@@ -3875,7 +3875,7 @@ NtGdiExtCreateRegion(
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
         return FALSE;
     }
-    hRgn = Region->BaseObject.hHmgr;
+    hRgn = (HRGN)Region->BaseObject.hHmgr;
 
     _SEH2_TRY
     {

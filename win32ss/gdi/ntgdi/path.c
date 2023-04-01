@@ -1458,7 +1458,7 @@ PATH_PathToRegion(
 
     if (!pPath->numEntriesUsed) return FALSE;
 
-    counts = ExAllocatePoolWithTag(PagedPool, (pPath->numEntriesUsed / 2) * sizeof(*counts), TAG_PATH);
+    counts = (PULONG)ExAllocatePoolWithTag(PagedPool, (pPath->numEntriesUsed / 2) * sizeof(*counts), TAG_PATH);
     if (!counts)
     {
         ERR("Failed to allocate %lu strokes\n", (pPath->numEntriesUsed / 2) * sizeof(*counts));
@@ -1653,7 +1653,7 @@ PATH_StrokePath(
      * and the rest PT_LINETO with PT_CLOSEFIGURE at the end) plus some buffer
      * space in case we get one to keep the number of reallocations small. */
     nAlloc = pPath->numEntriesUsed + 1 + 300;
-    pLinePts = ExAllocatePoolWithTag(PagedPool, nAlloc * sizeof(POINT), TAG_PATH);
+    pLinePts = (PPOINTL)ExAllocatePoolWithTag(PagedPool, nAlloc * sizeof(POINT), TAG_PATH);
     if (!pLinePts)
     {
         ERR("Can't allocate pool!\n");
@@ -1712,7 +1712,7 @@ PATH_StrokePath(
                         POINT *Realloc = NULL;
                         nAlloc = nMinAlloc * 2;
 
-                        Realloc = ExAllocatePoolWithTag(PagedPool,
+                        Realloc = (PPOINTL)ExAllocatePoolWithTag(PagedPool,
                                                         nAlloc * sizeof(POINT),
                                                         TAG_PATH);
 
@@ -1835,11 +1835,11 @@ IntGdiWidenPath(PPATH pPath, UINT penWidth, UINT penStyle, FLOAT eMiterLimit)
                 numStrokes++;
                 j = 0;
                 if (numStrokes == 1)
-                    pStrokes = ExAllocatePoolWithTag(PagedPool, sizeof(*pStrokes), TAG_PATH);
+                    pStrokes = (PPATH*)ExAllocatePoolWithTag(PagedPool, sizeof(*pStrokes), TAG_PATH);
                 else
                 {
                     pOldStrokes = pStrokes; // Save old pointer.
-                    pStrokes = ExAllocatePoolWithTag(PagedPool, numStrokes * sizeof(*pStrokes), TAG_PATH);
+                    pStrokes = (PPATH*)ExAllocatePoolWithTag(PagedPool, numStrokes * sizeof(*pStrokes), TAG_PATH);
                     if (!pStrokes)
                     {
                        ExFreePoolWithTag(pOldStrokes, TAG_PATH);
@@ -1856,7 +1856,7 @@ IntGdiWidenPath(PPATH pPath, UINT penWidth, UINT penStyle, FLOAT eMiterLimit)
                    PATH_Delete(flat_path->BaseObject.hHmgr);
                    return NULL;
                 }
-                pStrokes[numStrokes - 1] = ExAllocatePoolWithTag(PagedPool, sizeof(PATH), TAG_PATH);
+                pStrokes[numStrokes - 1] = (PPATH)ExAllocatePoolWithTag(PagedPool, sizeof(PATH), TAG_PATH);
                 if (!pStrokes[numStrokes - 1])
                 {
                     ASSERT(FALSE); // FIXME
@@ -1887,10 +1887,10 @@ IntGdiWidenPath(PPATH pPath, UINT penWidth, UINT penStyle, FLOAT eMiterLimit)
 
     for (i = 0; i < numStrokes; i++)
     {
-        pUpPath = ExAllocatePoolWithTag(PagedPool, sizeof(PATH), TAG_PATH);
+        pUpPath = (PPATH)ExAllocatePoolWithTag(PagedPool, sizeof(PATH), TAG_PATH);
         PATH_InitGdiPath(pUpPath);
         pUpPath->state = PATH_Open;
-        pDownPath = ExAllocatePoolWithTag(PagedPool, sizeof(PATH), TAG_PATH);
+        pDownPath = (PPATH)ExAllocatePoolWithTag(PagedPool, sizeof(PATH), TAG_PATH);
         PATH_InitGdiPath(pDownPath);
         pDownPath->state = PATH_Open;
 
@@ -2156,7 +2156,7 @@ PATH_WidenPathEx(DC *dc, PPATH pPath)
         return NULL;
     }
 
-    elp = ExAllocatePoolWithTag(PagedPool, size, TAG_PATH);
+    elp = (PEXTLOGPEN)ExAllocatePoolWithTag(PagedPool, size, TAG_PATH);
     if (elp == NULL)
     {
         TRACE("PWP 3\n");
@@ -2309,7 +2309,7 @@ PATH_add_outline(
                 {
                     WORD i;
                     POINTFX ptfx;
-                    POINT *pts = ExAllocatePoolWithTag(PagedPool, (curve->cpfx + 1) * sizeof(POINT), TAG_PATH);
+                    POINT *pts = (PPOINTL)ExAllocatePoolWithTag(PagedPool, (curve->cpfx + 1) * sizeof(POINT), TAG_PATH);
 
                     if (!pts) goto cleanup;
 
@@ -2424,7 +2424,7 @@ PATH_ExtTextOut(
                                  &identity,
                                  TRUE);
 
-            PATH_add_outline(dc, pPath, x + offset.x, y + offset.y, outline, dwSize);
+            PATH_add_outline(dc, pPath, x + offset.x, y + offset.y, (TTPOLYGONHEADER*)outline, dwSize);
 
             ExFreePoolWithTag(outline, TAG_PATH);
         }
@@ -2889,7 +2889,7 @@ NtGdiPathToRegion(HDC  hDC)
             DC_UnlockDc(pDc);
             return NULL;
         }
-        hrgnRval = Rgn->BaseObject.hHmgr;
+        hrgnRval = (HRGN)Rgn->BaseObject.hHmgr;
 
         pNewPath = PATH_FlattenPath(pPath);
         if (pNewPath == NULL)

@@ -125,7 +125,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
         hOrgBrush       = dc->pdcattr->hbrush;
         flags = dc->pdcattr->ulDirty_ & (DIRTY_BACKGROUND | DIRTY_TEXT | DIRTY_FILL | DC_BRUSH_DIRTY);
         // Set the attribute snapshot
-        dc->pdcattr->hbrush          = pgDPB->hbrush; 
+        dc->pdcattr->hbrush          = (HBRUSH)pgDPB->hbrush; 
         dc->pdcattr->crForegroundClr = pgDPB->crForegroundClr;
         dc->pdcattr->crBackgroundClr = pgDPB->crBackgroundClr;
         dc->pdcattr->crBrushClr      = pgDPB->crBrushClr;
@@ -284,7 +284,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
         if (dc->pdcattr->hlfntNew != pgO->hlfntNew)
         {
             hlfntNew = dc->pdcattr->hlfntNew;
-            dc->pdcattr->hlfntNew = pgO->hlfntNew;
+            dc->pdcattr->hlfntNew = (HFONT)pgO->hlfntNew;
             dc->pdcattr->ulDirty_ &= ~SLOW_WIDTHS;
             flags |= DIRTY_CHARSET;
         }
@@ -346,7 +346,7 @@ GdiFlushUserBatch(PDC dc, PGDIBATCHHDR pHdr)
 
         if (flags & DIRTY_CHARSET)
         {
-           dc->pdcattr->hlfntNew = hlfntNew;
+           dc->pdcattr->hlfntNew = (HFONT)hlfntNew;
            dc->pdcattr->ulDirty_ &= ~SLOW_WIDTHS;
         }
         dc->pdcattr->ulDirty_ |= saveflags | flags;

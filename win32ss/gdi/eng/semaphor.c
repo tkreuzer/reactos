@@ -14,7 +14,7 @@ EngCreateSemaphore(
     VOID)
 {
     // www.osr.com/ddk/graphics/gdifncs_95lz.htm
-    PERESOURCE psem = ExAllocatePoolWithTag(NonPagedPool,
+    PERESOURCE psem = (PERESOURCE)ExAllocatePoolWithTag(NonPagedPool,
                                             sizeof(ERESOURCE),
                                             GDITAG_SEMAPHORE);
     if (!psem)

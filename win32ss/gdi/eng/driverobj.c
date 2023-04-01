@@ -23,7 +23,7 @@ VOID
 NTAPI
 DRIVEROBJ_vCleanup(PVOID pObject)
 {
-    PEDRIVEROBJ pedo = pObject;
+    PEDRIVEROBJ pedo = (PEDRIVEROBJ)pObject;
     FREEOBJPROC pFreeProc;
 
     pFreeProc = pedo->drvobj.pFreeProc;
@@ -53,7 +53,7 @@ EngCreateDriverObj(
     {
         return NULL;
     }
-    hdo = pedo->baseobj.hHmgr;
+    hdo = (HDRVOBJ)pedo->baseobj.hHmgr;
 
     /* Fill in fields */
     pedo->drvobj.pvObj = pvObj;

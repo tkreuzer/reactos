@@ -194,7 +194,7 @@ CreateDIBPalette(
             else
             {
                 /* The masks are the first 3 values in the DIB color table */
-                PDWORD pdwColors = (PVOID)((PCHAR)pbmi + pbmi->bmiHeader.biSize);
+                PDWORD pdwColors = (PDWORD)((PCHAR)pbmi + pbmi->bmiHeader.biSize);
                 flRedMask = pdwColors[0];
                 flGreenMask = pdwColors[1];
                 flBlueMask = pdwColors[2];
@@ -501,7 +501,7 @@ NtGdiSetDIBitsToDeviceInternal(
 
     if (!Bits) return 0;
 
-    pbmiSafe = ExAllocatePoolWithTag(PagedPool, cjMaxInfo, 'pmTG');
+    pbmiSafe = (LPBITMAPINFO)ExAllocatePoolWithTag(PagedPool, cjMaxInfo, 'pmTG');
     if (!pbmiSafe) return 0;
 
     _SEH2_TRY
@@ -734,7 +734,7 @@ GreGetDIBitsInternal(
     }
 
     colorPtr = (LPBYTE)Info + Info->bmiHeader.biSize;
-    rgbQuads = colorPtr;
+    rgbQuads = (RGBQUAD*)colorPtr;
 
     bitmap_type = DIB_GetBitmapInfo(&Info->bmiHeader,
                                     &width,
@@ -1119,7 +1119,7 @@ NtGdiGetDIBitsInternal(
     cjAlloc = sizeof(BITMAPV5HEADER) + 256 * sizeof(RGBQUAD);
 
     /* Allocate a buffer the bitmapinfo */
-    pbmiSafe = ExAllocatePoolWithTag(PagedPool, cjAlloc, 'imBG');
+    pbmiSafe = (PBITMAPINFO)ExAllocatePoolWithTag(PagedPool, cjAlloc, 'imBG');
     if (!pbmiSafe)
     {
         /* Fail */
@@ -1258,7 +1258,7 @@ NtGdiStretchDIBitsInternal(
     cjAlloc = sizeof(BITMAPV5HEADER) + 256 * sizeof(RGBQUAD);
 
     /* Allocate a buffer the bitmapinfo */
-    pbmiSafe = ExAllocatePoolWithTag(PagedPool, cjAlloc, 'imBG');
+    pbmiSafe = (PBITMAPINFO)ExAllocatePoolWithTag(PagedPool, cjAlloc, 'imBG');
     if (!pbmiSafe)
     {
         /* Fail */
@@ -1309,7 +1309,7 @@ NtGdiStretchDIBitsInternal(
 
     if (pjInit && (cjMaxBits > 0))
     {
-        pvBits = ExAllocatePoolWithTag(PagedPool, cjMaxBits, TAG_DIB);
+        pvBits = (PBYTE)ExAllocatePoolWithTag(PagedPool, cjMaxBits, TAG_DIB);
         if (!pvBits)
         {
             return 0;
@@ -1361,7 +1361,7 @@ NtGdiStretchDIBitsInternal(
 
         if (dwUsage == DIB_PAL_COLORS)
         {
-            hPal = NtGdiGetDCObject(hdc, GDI_OBJECT_TYPE_PALETTE);
+            hPal = (HPALETTE)NtGdiGetDCObject(hdc, GDI_OBJECT_TYPE_PALETTE);
             hPal = GdiSelectPalette(hdcMem, hPal, FALSE);
         }
 
@@ -1645,7 +1645,7 @@ NtGdiCreateDIBitmapInternal(
     if(pjInit && (fInit & CBM_INIT))
     {
         if (cjMaxBits == 0) return NULL;
-        safeBits = ExAllocatePoolWithTag(PagedPool, cjMaxBits, TAG_DIB);
+        safeBits = (PBYTE)ExAllocatePoolWithTag(PagedPool, cjMaxBits, TAG_DIB);
         if(!safeBits)
         {
             DPRINT1("Failed to allocate %lu bytes\n", cjMaxBits);
@@ -1787,7 +1787,7 @@ GreCreateDIBitmapFromPackedDIB(
     }
 
     /* The packed DIB starts with the BITMAPINFOHEADER */
-    pbmi = pvPackedDIB;
+    pbmi = (PBITMAPINFO)pvPackedDIB;
 
     if (cjPackedDIB < pbmi->bmiHeader.biSize)
     {
@@ -2205,7 +2205,7 @@ DIB_MapPaletteColors(PPALETTE ppalDc, CONST BITMAPINFO* lpbmi)
         lpIndex++;
     }
 
-    hpal = ppalNew->BaseObject.hHmgr;
+    hpal = (HPALETTE)ppalNew->BaseObject.hHmgr;
     PALETTE_UnlockPalette(ppalNew);
 
     return hpal;
@@ -2242,7 +2242,7 @@ DIB_ConvertBitmapInfo (CONST BITMAPINFO* pbmi, DWORD Usage)
         return NULL;
     }
 
-    pNewBmi = ExAllocatePoolWithTag(PagedPool, sizeof(BITMAPINFOHEADER) + ColorsSize, TAG_DIB);
+    pNewBmi = (PBITMAPINFO)ExAllocatePoolWithTag(PagedPool, sizeof(BITMAPINFOHEADER) + ColorsSize, TAG_DIB);
     if(!pNewBmi) return NULL;
 
     RtlZeroMemory(pNewBmi, sizeof(BITMAPINFOHEADER) + ColorsSize);

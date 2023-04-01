@@ -35,7 +35,7 @@ EngCreatePath(VOID)
         return NULL;
     }
 
-    pPathObj = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+    pPathObj = (PEPATHOBJ)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
     if (pPathObj == NULL)
     {
         return NULL;
@@ -146,7 +146,7 @@ PATHOBJ_bMoveTo(
         return FALSE;
 
     /* allocate a subpath data */
-    ppd = ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
+    ppd = (PEXTPATHDATA)ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
     if (ppd == NULL)
         return FALSE;
 
@@ -155,7 +155,7 @@ PATHOBJ_bMoveTo(
     /* add the first point to the subpath */
     ppd->pd.flags = PD_BEGINSUBPATH;
     ppd->pd.count = 1;
-    ppd->pd.pptfx = ExAllocatePoolWithTag(PagedPool, sizeof(POINTFIX), GDITAG_PATHOBJ);
+    ppd->pd.pptfx = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, sizeof(POINTFIX), GDITAG_PATHOBJ);
     if (ppd->pd.pptfx == NULL)
     {
         ExFreePoolWithTag(ppd, GDITAG_PATHOBJ);
@@ -207,7 +207,7 @@ PATHOBJ_bPolyLineTo(
     if (ppdLast == NULL)
     {
         /* allocate a subpath data */
-        ppd = ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
+        ppd = (PEXTPATHDATA)ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
         if (ppd == NULL)
             return FALSE;
 
@@ -216,7 +216,7 @@ PATHOBJ_bPolyLineTo(
         ppd->pd.flags = PD_BEGINSUBPATH;
 
         size = cptfx * sizeof(POINTFIX);
-        pptfxNew = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+        pptfxNew = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
         if (pptfxNew == NULL)
         {
             ExFreePoolWithTag(ppd, GDITAG_PATHOBJ);
@@ -234,7 +234,7 @@ PATHOBJ_bPolyLineTo(
     else if (ppdLast->pd.flags & (PD_BEZIERS | PD_ENDSUBPATH))
     {
         /* allocate a subpath data */
-        ppd = ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
+        ppd = (PEXTPATHDATA)ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
         if (ppd == NULL)
             return FALSE;
 
@@ -244,7 +244,7 @@ PATHOBJ_bPolyLineTo(
         ppd->pd.count = cptfx;
 
         size = cptfx * sizeof(POINTFIX);
-        pptfxNew = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+        pptfxNew = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
         if (pptfxNew == NULL)
         {
             ExFreePoolWithTag(ppd, GDITAG_PATHOBJ);
@@ -263,7 +263,7 @@ PATHOBJ_bPolyLineTo(
     {
         /* concatenate ppdLast->pd.pptfx and pptfx */
         size = (ppdLast->pd.count + cptfx) * sizeof(POINTFIX);
-        pptfxNew = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+        pptfxNew = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
         if (pptfxNew == NULL)
             return FALSE;
 
@@ -304,7 +304,7 @@ PATHOBJ_bPolyBezierTo(
     if (ppdLast == NULL)
     {
         /* allocate a subpath data */
-        ppd = ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
+        ppd = (PEXTPATHDATA)ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
         if (ppd == NULL)
             return FALSE;
 
@@ -313,7 +313,7 @@ PATHOBJ_bPolyBezierTo(
         ppd->pd.flags = PD_BEGINSUBPATH | PD_BEZIERS;
 
         size = cptfx * sizeof(POINTFIX);
-        pptfxNew = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+        pptfxNew = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
         if (pptfxNew == NULL)
         {
             ExFreePoolWithTag(ppd, GDITAG_PATHOBJ);
@@ -331,7 +331,7 @@ PATHOBJ_bPolyBezierTo(
     else if (!(ppdLast->pd.flags & PD_BEZIERS) || (ppdLast->pd.flags & PD_ENDSUBPATH))
     {
         /* allocate a subpath data */
-        ppd = ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
+        ppd = (PEXTPATHDATA)ExAllocatePoolWithTag(PagedPool, sizeof(EXTPATHDATA), GDITAG_PATHOBJ);
         if (ppd == NULL)
             return FALSE;
 
@@ -341,7 +341,7 @@ PATHOBJ_bPolyBezierTo(
         ppd->pd.count = cptfx;
 
         size = cptfx * sizeof(POINTFIX);
-        pptfxNew = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+        pptfxNew = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
         if (pptfxNew == NULL)
         {
             ExFreePoolWithTag(ppd, GDITAG_PATHOBJ);
@@ -360,7 +360,7 @@ PATHOBJ_bPolyBezierTo(
     {
         /* concatenate ppdLast->pd.pptfx and pptfx */
         size = (ppdLast->pd.count + cptfx) * sizeof(POINTFIX);
-        pptfxNew = ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
+        pptfxNew = (PPOINTFIX)ExAllocatePoolWithTag(PagedPool, size, GDITAG_PATHOBJ);
         if (pptfxNew == NULL)
             return FALSE;
 

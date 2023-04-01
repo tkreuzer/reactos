@@ -511,7 +511,7 @@ EngpRegisterGraphicsDevice(
     TRACE("EngpRegisterGraphicsDevice(%wZ)\n", pustrDeviceName);
 
     /* Allocate a GRAPHICS_DEVICE structure */
-    pGraphicsDevice = ExAllocatePoolZero(PagedPool,
+    pGraphicsDevice = (PGRAPHICS_DEVICE)ExAllocatePoolZero(PagedPool,
                                          sizeof(GRAPHICS_DEVICE),
                                          GDITAG_GDEVICE);
     if (!pGraphicsDevice)
@@ -558,7 +558,7 @@ EngpRegisterGraphicsDevice(
     // TODO: Set flags according to the results.
     // if (Win32kCallbacks.bACPI)
     // if (Win32kCallbacks.DualviewFlags & ???)
-    pGraphicsDevice->PhysDeviceHandle = Win32kCallbacks.pPhysDeviceObject;
+    pGraphicsDevice->PhysDeviceHandle = (PDEVICE_OBJECT)Win32kCallbacks.pPhysDeviceObject;
 
     /* FIXME: Enumerate children monitor devices for this video adapter
      *
@@ -587,7 +587,7 @@ EngpRegisterGraphicsDevice(
 
     /* Allocate a buffer for the strings */
     cj = pustrDiplayDrivers->Length + pustrDescription->Length + sizeof(WCHAR);
-    pwsz = ExAllocatePoolWithTag(PagedPool, cj, GDITAG_DRVSUP);
+    pwsz = (PWSTR)ExAllocatePoolWithTag(PagedPool, cj, GDITAG_DRVSUP);
     if (!pwsz)
     {
         ERR("Could not allocate string buffer\n");

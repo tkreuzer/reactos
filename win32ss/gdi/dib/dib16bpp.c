@@ -443,7 +443,7 @@ DIB_16BPP_BitBltSrcCopy(PBLTINFO BltInfo)
           DPRINT("Flip is bLeftToRight.\n");
 
           /* Allocate enough pixels for a row in WORD's */
-          WORD *store = ExAllocatePoolWithTag(NonPagedPool,
+          WORD *store = (PWORD)ExAllocatePoolWithTag(NonPagedPool,
             (BltInfo->DestRect.right - BltInfo->DestRect.left + 1) * 2, TAG_DIB);
           if (store == NULL)
           {
@@ -498,7 +498,7 @@ DIB_16BPP_BitBltSrcCopy(PBLTINFO BltInfo)
           DPRINT("Flip is bTopToBottom.\n");
 
           /* Allocate enough pixels for a column in WORD's */
-          WORD *store = ExAllocatePoolWithTag(NonPagedPool,
+          WORD *store = (PWORD)ExAllocatePoolWithTag(NonPagedPool,
             (BltInfo->DestRect.bottom - BltInfo->DestRect.top + 1) * 2, TAG_DIB);
           if (store == NULL)
           {

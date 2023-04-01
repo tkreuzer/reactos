@@ -34,7 +34,7 @@ IntTMWFixUp(
     LOGFONTW lf;
     HFONT hCurrentFont;
 
-    hCurrentFont = NtGdiGetDCObject(hDC, GDI_OBJECT_TYPE_FONT);
+    hCurrentFont = (HFONT)NtGdiGetDCObject(hDC, GDI_OBJECT_TYPE_FONT);
     GreGetObject(hCurrentFont, sizeof(LOGFONTW), &lf);
 
     /* To compensate for the GetTextMetricsW call changing the PitchAndFamily
@@ -365,7 +365,7 @@ NtGdiGetTextExtentExW(
         return TRUE;
     }
 
-    String = ExAllocatePoolWithTag(PagedPool, Count * sizeof(WCHAR), GDITAG_TEXT);
+    String = (PWSTR)ExAllocatePoolWithTag(PagedPool, Count * sizeof(WCHAR), GDITAG_TEXT);
     if (NULL == String)
     {
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -374,7 +374,7 @@ NtGdiGetTextExtentExW(
 
     if (NULL != UnsafeDx)
     {
-        Dx = ExAllocatePoolWithTag(PagedPool, Count * sizeof(INT), GDITAG_TEXT);
+        Dx = (PINT)ExAllocatePoolWithTag(PagedPool, Count * sizeof(INT), GDITAG_TEXT);
         if (NULL == Dx)
         {
             ExFreePoolWithTag(String, GDITAG_TEXT);

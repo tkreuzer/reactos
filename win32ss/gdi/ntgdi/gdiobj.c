@@ -291,7 +291,7 @@ InitGdiHandleTable(void)
     }
 
     /* Allocate memory for the reference counter table */
-    gpaulRefCount = EngAllocSectionMem(&pvSection,
+    gpaulRefCount = (PULONG)EngAllocSectionMem(&pvSection,
                                      FL_ZERO_MEMORY,
                                      GDI_HANDLE_COUNT * sizeof(ULONG),
                                      'frHG');
@@ -305,10 +305,10 @@ InitGdiHandleTable(void)
     gulFirstFree = 0;
     gulFirstUnused = RESERVE_ENTRIES_COUNT;
 
-    GdiHandleTable = (PVOID)gpentHmgr;
+    GdiHandleTable = (PGDI_HANDLE_TABLE)gpentHmgr;
 
     /* Initialize the lookaside lists */
-    gpaLookasideList = ExAllocatePoolWithTag(NonPagedPool,
+    gpaLookasideList = (PPAGED_LOOKASIDE_LIST)ExAllocatePoolWithTag(NonPagedPool,
                            GDIObjTypeTotal * sizeof(PAGED_LOOKASIDE_LIST),
                            TAG_GDIHNDTBLE);
     if(!gpaLookasideList)
@@ -460,7 +460,7 @@ ENTRY_vPushFreeEntry(PENTRY pentFree)
         iFirst = InterlockedReadUlong(&gulFirstFree);
 
         /* Set the einfo.pobj member to the index of the first free entry */
-        pentFree->einfo.pobj = UlongToPtr(iFirst & GDI_HANDLE_INDEX_MASK);
+        pentFree->einfo.pobj = (_BASEOBJECT*)UlongToPtr(iFirst & GDI_HANDLE_INDEX_MASK);
 
         /* Combine new index and increased sequence number in iToFree */
         iToFree = idxToFree | ((iFirst & ~GDI_HANDLE_INDEX_MASK) + 0x10000);
@@ -566,12 +566,12 @@ GDIOBJ_AllocateObject(UCHAR objt, ULONG cjSize, FLONG fl)
     if (fl & BASEFLAG_LOOKASIDE)
     {
         /* Allocate the object from a lookaside list */
-        pobj = ExAllocateFromPagedLookasideList(&gpaLookasideList[objt & 0x1f]);
+        pobj = (POBJ)ExAllocateFromPagedLookasideList(&gpaLookasideList[objt & 0x1f]);
     }
     else
     {
         /* Allocate the object from paged pool */
-        pobj = ExAllocatePoolWithTag(PagedPool, cjSize, GDIOBJ_POOL_TAG(objt));
+        pobj = (POBJ)ExAllocatePoolWithTag(PagedPool, cjSize, GDIOBJ_POOL_TAG(objt));
     }
 
     if (!pobj) return NULL;
@@ -1074,7 +1074,7 @@ GDIOBJ_bLockMultipleObjects(
             while (i--)
             {
                 if (apObj[auiIndices[i]])
-                    GDIOBJ_vUnlockObject(apObj[auiIndices[i]]);
+                    GDIOBJ_vUnlockObject((POBJ)apObj[auiIndices[i]]);
             }
             return FALSE;
         }
@@ -1292,23 +1292,23 @@ GreGetObject(
     {
         case GDILoObjType_LO_PEN_TYPE:
         case GDILoObjType_LO_EXTPEN_TYPE:
-            iResult = PEN_GetObject(pvObj, cbCount, pvBuffer);
+            iResult = PEN_GetObject((PPEN)pvObj, cbCount, (PLOGPEN)pvBuffer);
             break;
 
         case GDILoObjType_LO_BRUSH_TYPE:
-            iResult = BRUSH_GetObject(pvObj, cbCount, pvBuffer);
+            iResult = BRUSH_GetObject((PBRUSH)pvObj, cbCount, (PLOGBRUSH)pvBuffer);
             break;
 
         case GDILoObjType_LO_BITMAP_TYPE:
-            iResult = BITMAP_GetObject(pvObj, cbCount, pvBuffer);
+            iResult = BITMAP_GetObject((PSURFACE)pvObj, cbCount, pvBuffer);
             break;
 
         case GDILoObjType_LO_FONT_TYPE:
-            iResult = FontGetObject(pvObj, cbCount, pvBuffer);
+            iResult = FontGetObject((PTEXTOBJ)pvObj, cbCount, pvBuffer);
             break;
 
         case GDILoObjType_LO_PALETTE_TYPE:
-            iResult = PALETTE_GetObject(pvObj, cbCount, pvBuffer);
+            iResult = PALETTE_GetObject((PPALETTE)pvObj, cbCount, (PLOGBRUSH)pvBuffer);
             break;
 
         default:
@@ -1316,7 +1316,7 @@ GreGetObject(
             break;
     }
 
-    GDIOBJ_vDereferenceObject(pvObj);
+    GDIOBJ_vDereferenceObject((POBJ)pvObj);
     return iResult;
 }
 

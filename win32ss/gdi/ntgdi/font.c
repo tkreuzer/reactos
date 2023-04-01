@@ -86,7 +86,7 @@ GreGetKerningPairs(
         EngSetLastError(ERROR_INSUFFICIENT_BUFFER);
         return 0;
      }
-     pKP = ExAllocatePoolWithTag(PagedPool, Count * sizeof(KERNINGPAIR), GDITAG_TEXT);
+     pKP = (KERNINGPAIR*)ExAllocatePoolWithTag(PagedPool, Count * sizeof(KERNINGPAIR), GDITAG_TEXT);
      if (!pKP)
      {
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -303,7 +303,7 @@ FontGetObject(PTEXTOBJ plfont, ULONG cjBuffer, PVOID pvBuffer)
         NTSTATUS Status;
         DPRINT("FontGetObject font not initialized!\n");
 
-        Status = TextIntRealizeFont(plfont->BaseObject.hHmgr, plfont);
+        Status = TextIntRealizeFont((HFONT)plfont->BaseObject.hHmgr, plfont);
         if (!NT_SUCCESS(Status))
         {
             DPRINT1("FontGetObject(TextIntRealizeFont) Status = 0x%lx\n", Status);
@@ -466,7 +466,7 @@ NtGdiAddFontResourceW(
 
     SafeFileName.MaximumLength = (USHORT)(cwc * sizeof(WCHAR));
     SafeFileName.Length = SafeFileName.MaximumLength - sizeof(UNICODE_NULL);
-    SafeFileName.Buffer = ExAllocatePoolWithTag(PagedPool,
+    SafeFileName.Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool,
                                                 SafeFileName.MaximumLength,
                                                 TAG_STRING);
     if (!SafeFileName.Buffer)
@@ -683,7 +683,7 @@ NtGdiGetFontUnicodeRanges(
 
   if (Size && pgs)
   {
-     pgsSafe = ExAllocatePoolWithTag(PagedPool, Size, GDITAG_TEXT);
+     pgsSafe = (PGLYPHSET)ExAllocatePoolWithTag(PagedPool, Size, GDITAG_TEXT);
      if (!pgsSafe)
      {
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -844,7 +844,7 @@ NtGdiGetKerningPairs(HDC  hDC,
         EngSetLastError(ERROR_INSUFFICIENT_BUFFER);
         return 0;
      }
-     pKP = ExAllocatePoolWithTag(PagedPool, Count * sizeof(KERNINGPAIR), GDITAG_TEXT);
+     pKP = (KERNINGPAIR*)ExAllocatePoolWithTag(PagedPool, Count * sizeof(KERNINGPAIR), GDITAG_TEXT);
      if (!pKP)
      {
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -921,7 +921,7 @@ NtGdiGetOutlineTextMetricsInternalW (HDC  hDC,
       EngSetLastError(ERROR_INSUFFICIENT_BUFFER);
       return 0;
   }
-  potm = ExAllocatePoolWithTag(PagedPool, Size, GDITAG_TEXT);
+  potm = (POUTLINETEXTMETRICW)ExAllocatePoolWithTag(PagedPool, Size, GDITAG_TEXT);
   if (!potm)
   {
       EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
@@ -982,7 +982,7 @@ NtGdiGetFontResourceInfoInternalW(
     /* Allocate a safe unicode string buffer */
     cbStringSize = cwc * sizeof(WCHAR);
     SafeFileNames.MaximumLength = SafeFileNames.Length = (USHORT)cbStringSize - sizeof(WCHAR);
-    SafeFileNames.Buffer = ExAllocatePoolWithTag(PagedPool,
+    SafeFileNames.Buffer = (PWCH)ExAllocatePoolWithTag(PagedPool,
                                                  cbStringSize,
                                                  TAG_USTR);
     if (!SafeFileNames.Buffer)
@@ -1157,7 +1157,7 @@ HfontCreate(
   {
       return NULL;
   }
-  hNewFont = plfont->BaseObject.hHmgr;
+  hNewFont = (HFONT)plfont->BaseObject.hHmgr;
 
   plfont->lft = lft;
   plfont->fl  = fl;

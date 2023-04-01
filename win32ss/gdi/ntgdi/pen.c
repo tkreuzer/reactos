@@ -97,7 +97,7 @@ IntGdiExtCreatePen(
 
     if ( (dwPenStyle & PS_STYLE_MASK) == PS_NULL)
     {
-        return StockObjects[NULL_PEN];
+        return (HPEN)StockObjects[NULL_PEN];
     }
 
     if (bOldStylePen)
@@ -170,7 +170,7 @@ IntGdiExtCreatePen(
     pbrushPen->BrushAttr.lbColor = ulColor;
     pbrushPen->iBrushStyle = ulBrushStyle;
     // FIXME: Copy the bitmap first ?
-    pbrushPen->hbmClient = (HANDLE)ulClientHatch;
+    pbrushPen->hbmClient = (HBITMAP)ulClientHatch;
     pbrushPen->dwStyleCount = 0;
     pbrushPen->pStyle = NULL;
     pbrushPen->ulStyleSize = 0;
@@ -415,7 +415,7 @@ NtGdiExtCreatePen(
     if (((dwPenStyle & PS_STYLE_MASK) == PS_NULL) ||
         (ulBrushStyle == BS_NULL))
     {
-        return StockObjects[NULL_PEN];
+        return (HPEN)StockObjects[NULL_PEN];
     }
 
 
@@ -446,7 +446,7 @@ NtGdiExtCreatePen(
             return 0;
         }
 
-        pSafeStyle = ExAllocatePoolWithTag(NonPagedPool,
+        pSafeStyle = (PDWORD)ExAllocatePoolWithTag(NonPagedPool,
                                            dwStyleCount * sizeof(DWORD),
                                            GDITAG_PENSTYLE);
         if (!pSafeStyle)

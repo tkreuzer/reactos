@@ -25,7 +25,7 @@ IntGdiCreateColorSpace(
     pCS = COLORSPACEOBJ_AllocCSWithHandle();
     if (pCS == NULL) return NULL;
 
-    hCS = pCS->BaseObject.hHmgr;
+    hCS = (HCOLORSPACE)pCS->BaseObject.hHmgr;
 
     pCS->lcsColorSpace = pLogColorSpace->lcsColorSpace;
     pCS->dwFlags = pLogColorSpace->dwFlags;
@@ -84,7 +84,7 @@ APIENTRY
 NtGdiDeleteColorSpace(
     IN HANDLE hColorSpace)
 {
-    return IntGdiDeleteColorSpace(hColorSpace);
+    return IntGdiDeleteColorSpace((HCOLORSPACE)hColorSpace);
 }
 
 BOOL
@@ -141,7 +141,7 @@ NtGdiGetDeviceGammaRamp(
         return FALSE;
     }
 
-    SafeRamp = ExAllocatePoolWithTag(PagedPool, sizeof(GAMMARAMP), GDITAG_ICM);
+    SafeRamp = (PGAMMARAMP)ExAllocatePoolWithTag(PagedPool, sizeof(GAMMARAMP), GDITAG_ICM);
     if (!SafeRamp)
     {
         DC_UnlockDc(dc);
@@ -381,7 +381,7 @@ NtGdiSetDeviceGammaRamp(
         return FALSE;
     }
 
-    SafeRamp = ExAllocatePoolWithTag(PagedPool, sizeof(GAMMARAMP), GDITAG_ICM);
+    SafeRamp = (PGAMMARAMP)ExAllocatePoolWithTag(PagedPool, sizeof(GAMMARAMP), GDITAG_ICM);
     if (!SafeRamp)
     {
         DC_UnlockDc(dc);

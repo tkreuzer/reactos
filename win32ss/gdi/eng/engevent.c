@@ -29,7 +29,7 @@ EngCreateEvent(
     PENG_EVENT EngEvent;
 
     /* Allocate memory for the event structure */
-    EngEvent = ExAllocatePoolWithTag(NonPagedPool,
+    EngEvent = (PENG_EVENT)ExAllocatePoolWithTag(NonPagedPool,
                                      sizeof(ENG_EVENT) + sizeof(KEVENT),
                                      GDITAG_ENG_EVENT);
     if (EngEvent)
@@ -39,7 +39,7 @@ EngCreateEvent(
         EngEvent->pKEvent = EngEvent + 1;
 
         /* Initialize the kernel event */
-        KeInitializeEvent(EngEvent->pKEvent,
+        KeInitializeEvent((PKEVENT)EngEvent->pKEvent,
                           SynchronizationEvent,
                           FALSE);
 
@@ -86,7 +86,7 @@ EngClearEvent(
     _In_ PEVENT Event)
 {
     /* Clear the event */
-    KeClearEvent(Event->pKEvent);
+    KeClearEvent((PKEVENT)Event->pKEvent);
 }
 
 LONG
@@ -95,7 +95,7 @@ EngSetEvent(
     _In_ PEVENT Event)
 {
     /* Set the event */
-    return KeSetEvent(Event->pKEvent,
+    return KeSetEvent((PKEVENT)Event->pKEvent,
                       IO_NO_INCREMENT,
                       FALSE);
 }
@@ -106,7 +106,7 @@ EngReadStateEvent(
     _In_ PEVENT Event)
 {
     /* Read the event state */
-    return KeReadStateEvent(Event->pKEvent);
+    return KeReadStateEvent((PKEVENT)Event->pKEvent);
 }
 
 PEVENT
@@ -123,7 +123,7 @@ EngMapEvent(
     NTSTATUS Status;
 
     /* Allocate memory for the event structure */
-    EngEvent = ExAllocatePoolWithTag(NonPagedPool,
+    EngEvent = (PENG_EVENT)ExAllocatePoolWithTag(NonPagedPool,
                                      sizeof(ENG_EVENT),
                                      GDITAG_ENG_EVENT);
     if (!EngEvent) return NULL;
@@ -142,7 +142,7 @@ EngMapEvent(
     if (NT_SUCCESS(Status))
     {
         /* Pulse the event and set that it's mapped by user */
-        KePulseEvent(pvEvent, EVENT_INCREMENT, FALSE);
+        KePulseEvent((PKEVENT)pvEvent, EVENT_INCREMENT, FALSE);
         EngEvent->pKEvent = pvEvent;
         EngEvent->fFlags |= ENG_EVENT_USERMAPPED;
     }

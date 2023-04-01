@@ -214,7 +214,7 @@ SURFACE_AllocSurface(
 
     /* Initialize the basic fields */
     pso = &psurf->SurfObj;
-    pso->hsurf = psurf->BaseObject.hHmgr;
+    pso->hsurf = (HSURF)psurf->BaseObject.hHmgr;
     pso->sizlBitmap.cx = cx;
     pso->sizlBitmap.cy = cy;
     pso->iBitmapFormat = iFormat;

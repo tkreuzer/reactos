@@ -99,7 +99,7 @@ EngCreateSection(
     LARGE_INTEGER liSize;
 
     /* Allocate a section object */
-    pSection = EngAllocMem(0, sizeof(ENGSECTION), 'stsU');
+    pSection = (PENGSECTION)EngAllocMem(0, sizeof(ENGSECTION), 'stsU');
     if (!pSection) return NULL;
 
     liSize.QuadPart = cjSize;
@@ -140,7 +140,7 @@ EngCreateSectionHack(
     LARGE_INTEGER liSize;
 
     /* Allocate a section object */
-    pSection = EngAllocMem(0, sizeof(ENGSECTION), 'stsU');
+    pSection = (PENGSECTION)EngAllocMem(0, sizeof(ENGSECTION), 'stsU');
     if (!pSection) return NULL;
 
     liSize.QuadPart = cjSize;
@@ -178,7 +178,7 @@ EngMapSection(
     _When_(bMap, _Outptr_) PVOID* pvBaseAddress)
 {
     NTSTATUS Status;
-    PENGSECTION pSection = pvSection;
+    PENGSECTION pSection = (PENGSECTION)pvSection;
     PEPROCESS pepProcess;
 
     /* Get a pointer to the process */
@@ -248,7 +248,7 @@ EngFreeSectionMem(
     _In_opt_ PVOID pvMappedBase)
 {
     NTSTATUS Status;
-    PENGSECTION pSection = pvSection;
+    PENGSECTION pSection = (PENGSECTION)pvSection;
     BOOL bResult = TRUE;
 
     /* Did the caller give us a mapping base? */
@@ -294,7 +294,7 @@ EngAllocSectionMem(
     if (cjSize == 0) return NULL;
 
     /* Allocate a section object */
-    pSection = EngCreateSectionHack(fl, cjSize, ulTag);
+    pSection = (PENGSECTION)EngCreateSectionHack(fl, cjSize, ulTag);
     if (!pSection)
     {
         *ppvSection = NULL;
@@ -343,11 +343,11 @@ EngLoadModuleEx(
 
     if (fl & FVF_FONTFILE)
     {
-        pFileView = EngAllocMem(0, sizeof(FONTFILEVIEW), 'vffG');
+        pFileView = (PFILEVIEW)EngAllocMem(0, sizeof(FONTFILEVIEW), 'vffG');
     }
     else
     {
-        pFileView = EngAllocMem(0, sizeof(FILEVIEW), 'liFg');
+        pFileView = (PFILEVIEW)EngAllocMem(0, sizeof(FILEVIEW), 'liFg');
     }
 
     /* Check for success */

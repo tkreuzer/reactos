@@ -73,7 +73,7 @@ MDEVOBJ_Create(
         pdm ? pdm->dmBitsPerPel : 0,
         pdm ? pdm->dmDisplayFrequency : 0);
 
-    pmdev = ExAllocatePoolZero(PagedPool, sizeof(MDEVOBJ) + sizeof(MDEVDISPLAY), GDITAG_MDEV);
+    pmdev = (PMDEVOBJ)ExAllocatePoolZero(PagedPool, sizeof(MDEVOBJ) + sizeof(MDEVDISPLAY), GDITAG_MDEV);
     if (!pmdev)
     {
         ERR("Failed to allocate memory for MDEV\n");
@@ -123,7 +123,7 @@ MDEVOBJ_Create(
             if (pmdev->cDev >= 1)
             {
                 /* We have to reallocate MDEV to add space for the new display */
-                PMDEVOBJ pmdevBigger = ExAllocatePoolZero(PagedPool, sizeof(MDEVOBJ) + (pmdev->cDev + 1) * sizeof(MDEVDISPLAY), GDITAG_MDEV);
+                PMDEVOBJ pmdevBigger = (PMDEVOBJ)ExAllocatePoolZero(PagedPool, sizeof(MDEVOBJ) + (pmdev->cDev + 1) * sizeof(MDEVDISPLAY), GDITAG_MDEV);
                 if (!pmdevBigger)
                 {
                     WARN("Failed to allocate memory for MDEV. Skipping display '%S'\n", pGraphicsDevice->szWinDeviceName);

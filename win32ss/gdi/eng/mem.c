@@ -203,7 +203,7 @@ EngSecureMemForRead(PVOID Address, ULONG Length)
         {
             ProbeForRead(Address, Length, 1);
             cPages = ADDRESS_AND_SIZE_TO_SPAN_PAGES(Address, Length);
-            pjProbe = ALIGN_DOWN_POINTER_BY(Address, PAGE_SIZE);
+            pjProbe = (PBYTE)ALIGN_DOWN_POINTER_BY(Address, PAGE_SIZE);
             while(cPages--)
             {
                 /* Do a read probe */

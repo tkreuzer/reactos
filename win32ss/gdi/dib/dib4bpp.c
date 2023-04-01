@@ -47,7 +47,7 @@ DIB_4BPP_HLine(SURFOBJ *SurfObj, LONG x1, LONG x2, LONG y, ULONG c)
 VOID
 DIB_4BPP_VLine(SURFOBJ *SurfObj, LONG x, LONG y1, LONG y2, ULONG c)
 {
-  PBYTE  addr = SurfObj->pvScan0;
+  PBYTE  addr = (PBYTE)SurfObj->pvScan0;
   int  lDelta = SurfObj->lDelta;
 
   addr += (x>>1) + y1 * lDelta;

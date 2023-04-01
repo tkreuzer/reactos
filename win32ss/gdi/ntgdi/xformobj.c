@@ -694,8 +694,8 @@ XFORMOBJ_bApplyXform(
     /* Convert POINTL to POINTFIX? */
     if (iMode == XF_LTOFX || iMode == XF_LTOL || iMode == XF_INV_LTOL)
     {
-        pptlIn = pvIn;
-        pptlOut = pvOut;
+        pptlIn = (PPOINTL)pvIn;
+        pptlOut = (PPOINTL)pvOut;
         for (i = cPoints - 1; i >= 0; i--)
         {
             pptlOut[i].x = LONG2FIX(pptlIn[i].x);
@@ -707,7 +707,7 @@ XFORMOBJ_bApplyXform(
     }
 
     /* Do the actual fixpoint transformation */
-    if (!XFORMOBJ_bXformFixPoints(pxo, cPoints, pvIn, pvOut))
+    if (!XFORMOBJ_bXformFixPoints(pxo, cPoints, (PPOINTL)pvIn, (PPOINTL)pvOut))
     {
         return FALSE;
     }
@@ -715,7 +715,7 @@ XFORMOBJ_bApplyXform(
     /* Convert POINTFIX to POINTL? */
     if (iMode == XF_INV_FXTOL || iMode == XF_INV_LTOL || iMode == XF_LTOL)
     {
-        pptlOut = pvOut;
+        pptlOut = (PPOINTL)pvOut;
         for (i = cPoints - 1; i >= 0; i--)
         {
             pptlOut[i].x = FIX2LONG(pptlOut[i].x);

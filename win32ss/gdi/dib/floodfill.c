@@ -38,7 +38,7 @@ static __inline BOOL initFlood(FLOODINFO *info, RECTL *DstRect)
 {
   ULONG width = DstRect->right - DstRect->left;
   ULONG height = DstRect->bottom - DstRect->top;
-  info->floodData = ExAllocatePoolWithTag(NonPagedPool, width * height * sizeof(FLOODITEM), TAG_DIB);
+  info->floodData = (FLOODITEM*)ExAllocatePoolWithTag(NonPagedPool, width * height * sizeof(FLOODITEM), TAG_DIB);
   if (info->floodData == NULL)
   {
     return FALSE;

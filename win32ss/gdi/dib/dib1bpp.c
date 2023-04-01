@@ -124,7 +124,7 @@ DIB_1BPP_BitBltSrcCopy_From1BPP (
     else
     {
         LONG y;
-        BYTE* PixBuf = ExAllocatePoolZero(PagedPool, Height * (ALIGN_UP_BY(Width, 8) / 8), TAG_DIB);
+        BYTE* PixBuf = (PBYTE)ExAllocatePoolZero(PagedPool, Height * (ALIGN_UP_BY(Width, 8) / 8), TAG_DIB);
         if (!PixBuf)
             return FALSE;
         for (y = 0; y < Height; y++)

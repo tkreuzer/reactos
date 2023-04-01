@@ -123,7 +123,7 @@ static void GDI_InternalBezier( POINT *Points, POINT **PtsOut, INT *dwOut,
 {
     if(*nPtsOut == *dwOut) {
         *dwOut *= 2;
-        *PtsOut = ExAllocatePoolWithTag(PagedPool, *dwOut * sizeof(POINT), TAG_BEZIER);
+        *PtsOut = (PPOINTL)ExAllocatePoolWithTag(PagedPool, *dwOut * sizeof(POINT), TAG_BEZIER);
         if (*PtsOut == NULL)
         {
             /// \todo FIXME!
@@ -197,7 +197,7 @@ POINT *GDI_Bezier( const POINT *Points, INT count, INT *nPtsOut )
     }
     *nPtsOut = 0;
 
-    out = ExAllocatePoolWithTag(PagedPool, dwOut * sizeof(POINT), TAG_BEZIER);
+    out = (PPOINTL)ExAllocatePoolWithTag(PagedPool, dwOut * sizeof(POINT), TAG_BEZIER);
     if (!out) return NULL;
 
     for(Bezier = 0; Bezier < (count-1)/3; Bezier++) {

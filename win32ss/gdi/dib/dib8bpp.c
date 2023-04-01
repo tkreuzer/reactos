@@ -260,7 +260,7 @@ DIB_8BPP_BitBltSrcCopy(PBLTINFO BltInfo)
             DPRINT("Flip is bLeftToRight.\n");
 
             /* Allocate enough pixels for a row in BYTE's */
-            BYTE *store = ExAllocatePoolWithTag(NonPagedPool,
+            BYTE *store = (PBYTE)ExAllocatePoolWithTag(NonPagedPool,
               BltInfo->DestRect.right - BltInfo->DestRect.left + 1, TAG_DIB);
             if (store == NULL)
             {
@@ -322,7 +322,7 @@ DIB_8BPP_BitBltSrcCopy(PBLTINFO BltInfo)
             DWORD  Index;
 
             /* Allocate enough pixels for a column in BYTE's */
-            BYTE *store = ExAllocatePoolWithTag(NonPagedPool,
+            BYTE *store = (PBYTE)ExAllocatePoolWithTag(NonPagedPool,
               BltInfo->DestRect.bottom - BltInfo->DestRect.top + 1, TAG_DIB);
             if (store == NULL)
             {
