@@ -13,6 +13,8 @@
 #define NDEBUG
 #include <debug.h>
 
+extern PSERVERINFO gpsi;
+
 /* FUNCTIONS *****************************************************************/
 
 __drv_preferredFunction("(see documentation)", "Obsolete, always returns false. ")

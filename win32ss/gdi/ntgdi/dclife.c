@@ -11,6 +11,8 @@
 #define NDEBUG
 #include <debug.h>
 
+extern "C" INT FASTCALL UserReleaseDC(struct _WND* Window, HDC hDc, BOOL EndPaint);
+
 // FIXME: Windows uses 0x0012009f
 #define DIRTY_DEFAULT DIRTY_CHARSET|DIRTY_BACKGROUND|DIRTY_TEXT|DIRTY_LINE|DIRTY_FILL
 

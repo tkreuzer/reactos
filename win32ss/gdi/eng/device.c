@@ -20,6 +20,18 @@ static PGRAPHICS_DEVICE gpGraphicsDeviceLast = NULL;
 static HSEMAPHORE ghsemGraphicsDeviceList;
 static ULONG giDevNum = 1;
 
+extern "C" {
+extern BOOL gbBaseVideo;
+extern HDC ScreenDeviceContext;
+extern BOOL FASTCALL IntPaintDesktop(HDC hDC);
+
+PGRAPHICS_DEVICE
+NTAPI
+InitDisplayDriver(
+    IN PWSTR pwszDeviceName,
+    IN PWSTR pwszRegKey);
+}
+
 CODE_SEG("INIT")
 NTSTATUS
 NTAPI
@@ -428,7 +440,7 @@ EngpGetDisplayDriverAccelerationLevel(
     return dwAccelerationLevel;
 }
 
-extern VOID
+extern "C" VOID
 UserRefreshDisplay(IN PPDEVOBJ ppdev);
 
 // PVIDEO_WIN32K_CALLOUT
