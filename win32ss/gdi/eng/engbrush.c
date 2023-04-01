@@ -422,7 +422,11 @@ EBRUSHOBJ_pvGetEngBrush(EBRUSHOBJ *pebo)
         if (!bResult)
         {
             if (pebo->pengbrush)
-                EngDeleteSurface(pebo->pengbrush);
+            {
+                HSURF hsurf = (HSURF)((PSURFACE)pebo->pengbrush)->BaseObject.hHmgr;
+                EngDeleteSurface(hsurf);
+                SURFACE_ShareUnlockSurface(pebo->pengbrush);
+            }
             pebo->pengbrush = NULL;
         }
     }
