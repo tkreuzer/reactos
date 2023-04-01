@@ -13,8 +13,8 @@
 #define NDEBUG
 #include <debug.h>
 
-extern ULONG gulFirstFree;
-extern ULONG gulFirstUnused;
+extern volatile ULONG gulFirstFree;
+extern volatile ULONG gulFirstUnused;
 extern PENTRY gpentHmgr;
 
 ULONG gulLogUnique = 0;
