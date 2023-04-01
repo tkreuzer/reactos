@@ -9,21 +9,21 @@ FORCEINLINE
 VOID
 KdRosDumpAllThreads(VOID)
 {
-    KdSystemDebugControl(' soR', (PVOID)DumpAllThreads, 0, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)' soR', (PVOID)DumpAllThreads, 0, 0, 0, 0, 0);
 }
 
 FORCEINLINE
 VOID
 KdRosDumpUserThreads(VOID)
 {
-    KdSystemDebugControl(' soR', (PVOID)DumpUserThreads, 0, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)' soR', (PVOID)DumpUserThreads, 0, 0, 0, 0, 0);
 }
 
 FORCEINLINE
 VOID
 KdRosDumpArmPfnDatabase(VOID)
 {
-    KdSystemDebugControl(' soR', (PVOID)KdSpare3, 0, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)' soR', (PVOID)KdSpare3, 0, 0, 0, 0, 0);
 }
 #endif
 
@@ -33,7 +33,7 @@ KdRosSetDebugCallback(
     ULONG Id,
     PVOID Callback)
 {
-    KdSystemDebugControl('CsoR', Callback, Id, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)'CsoR', Callback, Id, 0, 0, 0, 0);
 }
 
 FORCEINLINE
@@ -42,7 +42,7 @@ KdRosDumpStackFrames(
     ULONG Count,
     PULONG_PTR Backtrace)
 {
-    KdSystemDebugControl('DsoR', Backtrace, Count, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)'DsoR', Backtrace, Count, 0, 0, 0, 0);
 }
 
 #if defined(KDBG)
@@ -59,7 +59,7 @@ ULONG
 KdRosRegisterCliCallback(
     PKDBG_CLI_ROUTINE Callback)
 {
-    return KdSystemDebugControl('RbdK', Callback, FALSE, 0, 0, 0, 0);
+    return KdSystemDebugControl((SYSDBG_COMMAND)'RbdK', (PVOID)Callback, FALSE, 0, 0, 0, 0);
 }
 
 FORCEINLINE
@@ -67,7 +67,7 @@ VOID
 KdRosDeregisterCliCallback(
     PKDBG_CLI_ROUTINE Callback)
 {
-    KdSystemDebugControl('RbdK', Callback, TRUE, 0, 0, 0, 0);
+    KdSystemDebugControl((SYSDBG_COMMAND)'RbdK', (PVOID)Callback, TRUE, 0, 0, 0, 0);
 }
 #endif
 
