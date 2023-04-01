@@ -1,4 +1,5 @@
 #include <win32k.h>
+#include "brush.hpp"
 
 #define NDEBUG
 #include <debug.h>

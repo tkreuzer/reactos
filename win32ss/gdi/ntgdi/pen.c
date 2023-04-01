@@ -7,6 +7,7 @@
  */
 
 #include <win32k.h>
+#include "../ntgdi/brush.hpp"
 
 #define NDEBUG
 #include <debug.h>
@@ -116,7 +117,7 @@ IntGdiExtCreatePen(
         return 0;
     }
 
-    hPen = pbrushPen->BaseObject.hHmgr;
+    hPen = (HPEN)pbrushPen->hHmgr();
 
     if (bOldStylePen)
     {
@@ -263,7 +264,7 @@ IntGdiExtCreatePen(
 ExitCleanup:
     EngSetLastError(ERROR_INVALID_PARAMETER);
     pbrushPen->pStyle = NULL;
-    GDIOBJ_vDeleteObject(&pbrushPen->BaseObject);
+    GDIOBJ_vDeleteObject((POBJ)pbrushPen);
 
     return NULL;
 }

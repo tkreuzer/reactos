@@ -7,6 +7,8 @@
  */
 
 #include <win32k.h>
+#include "../ntgdi/brush.hpp"
+
 #define NDEBUG
 #include <debug.h>
 DBG_DEFAULT_CHANNEL(GdiBlt);

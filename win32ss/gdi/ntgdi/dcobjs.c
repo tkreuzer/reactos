@@ -7,6 +7,7 @@
  */
 
 #include <win32k.h>
+#include "../ntgdi/brush.hpp"
 
 #define NDEBUG
 #include <debug.h>
@@ -19,7 +20,7 @@ DC_vUpdateFillBrush(PDC pdc)
     PBRUSH pbrFill;
 
     /* Check if the brush handle has changed */
-    if (pdcattr->hbrush != pdc->dclevel.pbrFill->BaseObject.hHmgr)
+    if (pdcattr->hbrush != pdc->dclevel.pbrFill->hHmgr())
     {
         /* Try to lock the new brush */
         pbrFill = BRUSH_ShareLockBrush(pdcattr->hbrush);
@@ -35,7 +36,7 @@ DC_vUpdateFillBrush(PDC pdc)
         else
         {
             /* Invalid brush handle, restore old one */
-            pdcattr->hbrush = pdc->dclevel.pbrFill->BaseObject.hHmgr;
+            pdcattr->hbrush = (HBRUSH)pdc->dclevel.pbrFill->hHmgr();
         }
     }
 
@@ -65,7 +66,7 @@ DC_vUpdateLineBrush(PDC pdc)
     PBRUSH pbrLine;
 
     /* Check if the pen handle has changed */
-    if (pdcattr->hpen != pdc->dclevel.pbrLine->BaseObject.hHmgr)
+    if (pdcattr->hpen != pdc->dclevel.pbrLine->hHmgr())
     {
         /* Try to lock the new pen */
         pbrLine = PEN_ShareLockPen(pdcattr->hpen);
@@ -81,7 +82,7 @@ DC_vUpdateLineBrush(PDC pdc)
         else
         {
             /* Invalid pen handle, restore old one */
-            pdcattr->hpen = pdc->dclevel.pbrLine->BaseObject.hHmgr;
+            pdcattr->hpen = (HPEN)pdc->dclevel.pbrLine->hHmgr();
         }
     }
 

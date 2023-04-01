@@ -8,6 +8,7 @@
  */
 
 #include <win32k.h>
+#include "../ntgdi/brush.hpp"
 
 DBG_DEFAULT_CHANNEL(EngBrush);
 
