@@ -631,6 +631,7 @@ XFORMOBJ_iGetXform(
 
 
 // www.osr.com/ddk/graphics/gdifncs_5ig7.htm
+EXTERN_C
 ULONG
 APIENTRY
 XFORMOBJ_iGetFloatObjXform(

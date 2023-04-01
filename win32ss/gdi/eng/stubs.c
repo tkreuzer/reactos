@@ -1522,6 +1522,7 @@ EngFntCacheLookUp(
     return NULL;
 }
 
+EXTERN_C
 BOOLEAN
 APIENTRY
 EngNineGrid(

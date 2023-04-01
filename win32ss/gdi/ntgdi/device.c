@@ -13,6 +13,7 @@
 
 PDC defaultDCstate = NULL;
 
+EXTERN_C
 BOOL FASTCALL
 IntCreatePrimarySurface(VOID)
 {
@@ -28,6 +29,7 @@ IntCreatePrimarySurface(VOID)
     return TRUE;
 }
 
+EXTERN_C
 VOID FASTCALL
 IntDestroyPrimarySurface(VOID)
 {

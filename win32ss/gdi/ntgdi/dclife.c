@@ -33,6 +33,7 @@ const MATRIX gmxDeviceToWorldDefault =
     0, 0, 0x53
 };
 
+EXTERN_C
 const MATRIX gmxWorldToPageDefault =
 {
     FLOATOBJ_1, FLOATOBJ_0,
