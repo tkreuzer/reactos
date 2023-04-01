@@ -58,6 +58,7 @@ typedef struct _DC *PDC;
 #include "user/ntuser/win32kdebug.h"
 #include "user/ntuser/win32.h"
 #include "user/ntuser/tags.h"
+#include "user/ntuser/mmcopy.h"
 #ifndef __cplusplus
 #include "user/ntuser/ntuser.h"
 #include "user/ntuser/usrheap.h"
@@ -92,7 +93,6 @@ typedef struct _DC *PDC;
 #include "user/ntuser/scroll.h"
 #include "user/ntuser/winpos.h"
 #include "user/ntuser/callback.h"
-#include "user/ntuser/mmcopy.h"
 #include "user/ntuser/ghost.h"
 
 /* CSRSS Interface */

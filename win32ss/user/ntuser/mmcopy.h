@@ -1,5 +1,8 @@
 #pragma once
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 _IRQL_requires_max_(APC_LEVEL)
 NTSTATUS
@@ -17,3 +20,7 @@ _MmCopyToCaller(
 
 #define MmCopyFromCaller(x,y,z) _MmCopyFromCaller((PCHAR)(x),(PCHAR)(y),(UINT)(z))
 #define MmCopyToCaller(x,y,z) _MmCopyToCaller((PCHAR)(x),(PCHAR)(y),(UINT)(z))
+
+#ifdef __cplusplus
+}
+#endif
