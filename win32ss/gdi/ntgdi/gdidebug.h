@@ -127,7 +127,7 @@ GdiDbgPostServiceHook(ULONG ulSyscallId, ULONG_PTR ulResult);
 
 #ifndef __cplusplus
 FORCEINLINE void
-GdiDbgAssertNoLocks(char * pszFile, ULONG nLine)
+GdiDbgAssertNoLocks(const char * pszFile, ULONG nLine)
 {
     PTHREADINFO pti = (PTHREADINFO)PsGetCurrentThreadWin32Thread();
     if (pti && pti->cExclusiveLocks != 0)
@@ -139,6 +139,11 @@ GdiDbgAssertNoLocks(char * pszFile, ULONG nLine)
             DbgPrint("    Type %u: %u.\n", i, pti->acExclusiveLockCount[i]);
         ASSERT(FALSE);
     }
+}
+#else
+FORCEINLINE void
+GdiDbgAssertNoLocks(const char* pszFile, ULONG nLine)
+{
 }
 #endif // __cplusplus
 #endif

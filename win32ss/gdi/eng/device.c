@@ -328,7 +328,7 @@ static HKEY
 EngpGetRegistryHandleFromDeviceMap(
     _In_ PGRAPHICS_DEVICE pGraphicsDevice)
 {
-    static const PWCHAR KEY_VIDEO = L"\\Registry\\Machine\\HARDWARE\\DEVICEMAP\\VIDEO";
+    static const PCWCH KEY_VIDEO = L"\\Registry\\Machine\\HARDWARE\\DEVICEMAP\\VIDEO";
     HKEY hKey;
     WCHAR szDeviceKey[256];
     ULONG cbSize;
@@ -783,6 +783,7 @@ EngFileWrite(
     }
 }
 
+EXTERN_C
 _Success_(return>=0)
 NTSTATUS
 APIENTRY
