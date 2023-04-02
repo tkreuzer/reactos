@@ -314,8 +314,8 @@ FontGetObject(PTEXTOBJ plfont, ULONG cjBuffer, PVOID pvBuffer)
     if (pvBuffer == NULL) return sizeof(LOGFONTW);
 
     /* Calculate the maximum size according to number of axes */
-    cjMaxSize = FIELD_OFFSET(ENUMLOGFONTEXDVW,
-                    elfDesignVector.dvValues[plf->elfDesignVector.dvNumAxes]);
+    cjMaxSize = FIELD_OFFSET(ENUMLOGFONTEXDVW, elfDesignVector.dvValues) +
+        plf->elfDesignVector.dvNumAxes * sizeof(DESIGNVECTOR);
 
     if (cjBuffer > cjMaxSize) cjBuffer = cjMaxSize;
 
