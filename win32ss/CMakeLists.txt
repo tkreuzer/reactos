@@ -48,7 +48,7 @@ add_custom_command(
     COMMAND native-gendib ${CMAKE_CURRENT_BINARY_DIR}/gdi/dib
     DEPENDS native-gendib)
 
-list(APPEND SOURCE
+list(APPEND CPP_SOURCE
     gdi/dib/alphablend.c
     gdi/dib/dib1bpp.c
     gdi/dib/dib4bpp.c
@@ -59,24 +59,25 @@ list(APPEND SOURCE
     gdi/dib/floodfill.c
     gdi/dib/stretchblt.c
     gdi/eng/alphablend.c
-    gdi/eng/bitblt.c
-    gdi/eng/engbrush.c
-    gdi/eng/engevent.c
+    #gdi/eng/bitblt.c
     gdi/eng/clip.c
     gdi/eng/debug.c
     gdi/eng/device.c
     gdi/eng/driverobj.c
+    gdi/eng/engbrush.c
+    gdi/eng/engevent.c
+    #gdi/eng/engwindow.c
+    gdi/eng/engmisc.c
     gdi/eng/error.c
     gdi/eng/float.c
     gdi/eng/gradient.c
-    gdi/eng/lineto.c
     gdi/eng/ldevobj.c
+    gdi/eng/lineto.c
     gdi/eng/mapping.c
     gdi/eng/math.c
     gdi/eng/mdevobj.c
     gdi/eng/mem.c
-    gdi/eng/engmisc.c
-    gdi/eng/mouse.c
+    #gdi/eng/mouse.c
     gdi/eng/multidisp.c
     gdi/eng/pandisp.c
     gdi/eng/paint.c
@@ -90,13 +91,57 @@ list(APPEND SOURCE
     gdi/eng/stretchblt.c
     gdi/eng/surface.c
     gdi/eng/transblt.c
-    gdi/eng/engwindow.c
     gdi/eng/xlateobj.c
-    user/ntuser/main.c
-    user/ntuser/misc/file.c
-    user/ntuser/misc/rtlstr.c
-    user/ntuser/misc/copy.c
-    user/ntuser/misc/registry.c
+    gdi/eng/stubs.c
+    gdi/eng/umpdstubs.c
+    gdi/ntgdi/arc.c
+    gdi/ntgdi/bezier.c
+    gdi/ntgdi/bitblt.c
+    gdi/ntgdi/bitmaps.c
+    gdi/ntgdi/cliprgn.c
+    gdi/ntgdi/coord.c
+    gdi/ntgdi/dcattr.c
+    gdi/ntgdi/dclife.c
+    gdi/ntgdi/dcobjs.c
+    gdi/ntgdi/dcstate.c
+    gdi/ntgdi/dcutil.c
+    gdi/ntgdi/device.c
+    gdi/ntgdi/dibobj.c
+    gdi/ntgdi/drawing.c
+    #gdi/ntgdi/fillshap.c
+    gdi/ntgdi/font.c
+    #gdi/ntgdi/freetype.c
+    gdi/ntgdi/gdibatch.c
+    gdi/ntgdi/gdidbg.c
+    gdi/ntgdi/gdiobj.c
+    gdi/ntgdi/gdipool.c
+    gdi/ntgdi/icm.c
+    gdi/ntgdi/init.c
+    gdi/ntgdi/line.c
+    gdi/ntgdi/metafile.c
+    #gdi/ntgdi/palette.c
+    gdi/ntgdi/path.c
+    gdi/ntgdi/pen.c
+    gdi/ntgdi/polyfill.c
+    gdi/ntgdi/print.c
+    gdi/ntgdi/rect.c
+    gdi/ntgdi/region.c
+    #gdi/ntgdi/stockobj.c
+    gdi/ntgdi/text.c
+    #gdi/ntgdi/wingl.c
+    gdi/ntgdi/xformobj.c
+)
+
+list(APPEND SOURCE
+    ${CPP_SOURCE}
+    gdi/eng/bitblt.c
+    gdi/eng/mouse.c
+    gdi/eng/engwindow.c
+    gdi/ntgdi/fillshap.c
+    gdi/ntgdi/freetype.c
+    gdi/ntgdi/palette.c
+    gdi/ntgdi/stockobj.c
+    gdi/ntgdi/wingl.c
     reactx/ntddraw/ddraw.c
     reactx/ntddraw/dd.c
     reactx/ntddraw/ddsurf.c
@@ -106,6 +151,11 @@ list(APPEND SOURCE
     reactx/ntddraw/mocomp.c
     reactx/ntddraw/eng.c
     reactx/ntddraw/dxeng.c
+    user/ntuser/main.c
+    user/ntuser/misc/file.c
+    user/ntuser/misc/rtlstr.c
+    user/ntuser/misc/copy.c
+    user/ntuser/misc/registry.c
     user/ntuser/accelerator.c
     user/ntuser/callback.c
     user/ntuser/callproc.c
@@ -160,45 +210,9 @@ list(APPEND SOURCE
     user/ntuser/winsta.c
     user/ntuser/object.c
     user/rtl/text.c
-    gdi/ntgdi/arc.c
-    gdi/ntgdi/bezier.c
-    gdi/ntgdi/bitblt.c
-    gdi/ntgdi/bitmaps.c
-    gdi/ntgdi/cliprgn.c
-    gdi/ntgdi/coord.c
-    gdi/ntgdi/dcattr.c
-    gdi/ntgdi/dclife.c
-    gdi/ntgdi/dcobjs.c
-    gdi/ntgdi/dcstate.c
-    gdi/ntgdi/dcutil.c
-    gdi/ntgdi/device.c
-    gdi/ntgdi/dibobj.c
-    gdi/ntgdi/drawing.c
-    gdi/ntgdi/fillshap.c
-    gdi/ntgdi/font.c
-    gdi/ntgdi/freetype.c
-    gdi/ntgdi/gdibatch.c
-    gdi/ntgdi/gdidbg.c
-    gdi/ntgdi/gdiobj.c
-    gdi/ntgdi/gdipool.c
-    gdi/ntgdi/icm.c
-    gdi/ntgdi/init.c
-    gdi/ntgdi/line.c
-    gdi/ntgdi/metafile.c
-    gdi/ntgdi/palette.c
-    gdi/ntgdi/path.c
-    gdi/ntgdi/pen.c
-    gdi/ntgdi/polyfill.c
-    gdi/ntgdi/print.c
-    gdi/ntgdi/rect.c
-    gdi/ntgdi/region.c
-    gdi/ntgdi/stockobj.c
-    gdi/ntgdi/text.c
-    gdi/ntgdi/wingl.c
-    gdi/ntgdi/xformobj.c
-    gdi/eng/stubs.c
-    gdi/eng/umpdstubs.c
     pch.h)
+
+set_source_files_properties(${CPP_SOURCE} PROPERTIES LANGUAGE CXX)
 
 if(USE_DIBLIB)
     add_definitions(-D_USE_DIBLIB_)
