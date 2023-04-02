@@ -57,14 +57,16 @@ LDEVOBJ_pLoadDriver(
     _In_z_ LPWSTR pwszDriverName,
     _In_ LDEVTYPE ldevtype);
 
+struct _GRAPHICS_DEVICE;
+
 BOOL
 LDEVOBJ_bBuildDevmodeList(
-    _Inout_ PGRAPHICS_DEVICE pGraphicsDevice);
+    _Inout_ struct _GRAPHICS_DEVICE* pGraphicsDevice);
 
 /* This function selects the best available mode corresponding to requested mode */
 BOOL
 LDEVOBJ_bProbeAndCaptureDevmode(
-    _Inout_ PGRAPHICS_DEVICE pGraphicsDevice,
+    _Inout_ struct _GRAPHICS_DEVICE* pGraphicsDevice,
     _In_ PDEVMODEW RequestedMode,
     _Out_ PDEVMODEW *pSelectedMode,
     _In_ BOOL bSearchClosestMode);
