@@ -519,7 +519,7 @@ PDEVOBJ_Create(
 
         /* Replace vtable by panning vtable */
         for (i = 0; i < gPanDispDrvCount; i++)
-            ppdev->apfn[gPanDispDrvFn[i].iFunc] = gPanDispDrvFn[i].pfn;
+            ppdev->apfn[gPanDispDrvFn[i].iFunc] = (PVOID)gPanDispDrvFn[i].pfn;
     }
     else
     {

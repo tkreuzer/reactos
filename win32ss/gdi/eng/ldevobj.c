@@ -191,7 +191,7 @@ LDEVOBJ_bEnableDriver(
     /* Fill the driver function array */
     for (i = 0; i < ded.c; i++)
     {
-        pldev->apfn[ded.pdrvfn[i].iFunc] = ded.pdrvfn[i].pfn;
+        pldev->apfn[ded.pdrvfn[i].iFunc] = (PVOID)ded.pdrvfn[i].pfn;
     }
 
     /* Return success. */
