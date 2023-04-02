@@ -271,7 +271,7 @@ CallDibBitBlt(SURFOBJ* OutputObj,
     return Result;
 }
 
-INT __cdecl abs(INT nm);
+//INT __cdecl abs(INT nm);
 
 
 /*

@@ -100,4 +100,6 @@ typedef struct _DC *PDC;
 
 #endif // __cplusplus
 
+#define abs(x) (((x) >= 0) ? (x) : (-(x)))
+
 #include "gdi/ntgdi/gdidebug.h"
