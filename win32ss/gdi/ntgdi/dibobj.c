@@ -1025,7 +1025,7 @@ GreGetDIBitsInternal(
             if (newLines > 0)
             {
                 srcPoint.y = psurf->SurfObj.sizlBitmap.cy - newLines;
-                if (StartScan > psurf->SurfObj.sizlBitmap.cy)
+                if (StartScan > (ULONG)psurf->SurfObj.sizlBitmap.cy)
                 {
                     newLines -= (StartScan - psurf->SurfObj.sizlBitmap.cy);
                 }
@@ -2285,7 +2285,7 @@ DIB_FreeConvertedBitmapInfo(BITMAPINFO* converted, BITMAPINFO* orig, DWORD usage
     if(converted == orig)
         return;
 
-    if(usage == -1)
+    if(usage == (DWORD)-1)
     {
         /* Caller don't want any conversion */
         ExFreePoolWithTag(converted, TAG_DIB);

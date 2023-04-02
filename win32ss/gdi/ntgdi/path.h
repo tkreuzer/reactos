@@ -52,8 +52,8 @@ typedef struct _PATH
   FLONG        state;
   POINT        *pPoints;
   BYTE         *pFlags;
-  int          numEntriesUsed;
-  int          numEntriesAllocated;
+  UINT         numEntriesUsed;
+  UINT         numEntriesAllocated;
   BOOL         newStroke;
   POINT        pos;
 } PATH, *PPATH;
@@ -95,7 +95,7 @@ BOOL FASTCALL PATH_FillPathEx(PDC dc, PPATH pPath, PBRUSH pbrFill);
 PPATH FASTCALL PATH_FlattenPath (PPATH pPath);
 PPATH FASTCALL PATH_WidenPathEx(DC *dc, PPATH pPath);
 
-BOOL FASTCALL PATH_ReserveEntries (PPATH pPath, INT numEntries);
+BOOL FASTCALL PATH_ReserveEntries (PPATH pPath, UINT numEntries);
 BOOL FASTCALL PATH_StrokePath(DC *dc, PPATH pPath);
 
 VOID FASTCALL IntGdiCloseFigure(PPATH pPath);

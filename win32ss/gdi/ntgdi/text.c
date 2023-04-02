@@ -560,7 +560,7 @@ NtGdiGetTextFaceW(
 
     if (FaceName != NULL)
     {
-        Count = min(Count, fLen);
+        Count = min((UINT)Count, fLen);
         Status = MmCopyToCaller(FaceName, TextObj->TextFace, Count * sizeof(WCHAR));
         if (!NT_SUCCESS(Status))
         {
@@ -569,7 +569,7 @@ NtGdiGetTextFaceW(
             return 0;
         }
         /* Terminate if we copied only part of the font name */
-        if (Count > 0 && Count < fLen)
+        if ((Count > 0) && ((UINT)Count < fLen))
         {
             FaceName[Count - 1] = '\0';
         }

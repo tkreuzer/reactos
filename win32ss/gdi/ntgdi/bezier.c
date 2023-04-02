@@ -118,8 +118,8 @@ static BOOL BezierCheck( int level, POINT *Points)
 /* Helper for GDI_Bezier.
  * Just handles one Bezier, so Points should point to four POINTs
  */
-static void GDI_InternalBezier( POINT *Points, POINT **PtsOut, INT *dwOut,
-				INT *nPtsOut, INT level )
+static void GDI_InternalBezier( POINT *Points, POINT **PtsOut, UINT *dwOut,
+				UINT *nPtsOut, UINT level )
 {
     if(*nPtsOut == *dwOut) {
         *dwOut *= 2;
@@ -186,10 +186,10 @@ static void GDI_InternalBezier( POINT *Points, POINT **PtsOut, INT *dwOut,
  *  alternative would be to call the function twice, once to determine the size
  *  and a second time to do the work - I decided this was too much of a pain].
  */
-POINT *GDI_Bezier( const POINT *Points, INT count, INT *nPtsOut )
+POINT *GDI_Bezier( const POINT *Points, UINT count, UINT *nPtsOut )
 {
     POINT *out;
-    INT Bezier, dwOut = BEZIER_INITBUFSIZE, i;
+    UINT Bezier, dwOut = BEZIER_INITBUFSIZE, i;
 
     if (count == 1 || (count - 1) % 3 != 0) {
         DPRINT1("Invalid no. of points %d\n", count);

@@ -792,7 +792,7 @@ BITMAP_GetObject(SURFACE *psurf, INT Count, LPVOID buffer)
         /* DIBs data are 32 bits aligned */
         pBitmap->bmWidthBytes = WIDTH_BYTES_ALIGN32(pBitmap->bmWidth, pBitmap->bmBitsPixel);
 
-        if (Count >= sizeof(DIBSECTION))
+        if ((UINT)Count >= sizeof(DIBSECTION))
         {
             /* Fill rest of DIBSECTION */
             PDIBSECTION pds = (PDIBSECTION)buffer;

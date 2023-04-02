@@ -272,7 +272,7 @@ IntGdiPolyBezier(DC      *dc,
     /* We'll convert it into line segments and draw them using Polyline */
     {
         POINT *Pts;
-        INT nOut;
+        UINT nOut;
 
         Pts = GDI_Bezier ( pt, Count, &nOut );
         if ( Pts )
@@ -544,7 +544,7 @@ NtGdiPolyDraw(
     PDC_ATTR pdcattr;
     POINT bzr[4];
     volatile PPOINT line_pts, line_pts_old, bzr_pts;
-    INT num_pts, num_bzr_pts, space, space_old, size;
+    UINT num_pts, num_bzr_pts, space, space_old, size;
     ULONG i;
     BOOL result = FALSE;
 

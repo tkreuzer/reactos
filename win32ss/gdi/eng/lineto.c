@@ -44,7 +44,8 @@ HandleStyles(
     PEBRUSHOBJ pebo = (PEBRUSHOBJ)pbo;
     PULONG pulStyles = pebo->pbrush->pStyle;
     ULONG iStyle, cStyles = pebo->pbrush->dwStyleCount;
-    LONG diStyle, offStyle, lStyleMax;
+    LONG diStyle, lStyleMax;
+    ULONG offStyle;
 
     if (cStyles > 0)
     {

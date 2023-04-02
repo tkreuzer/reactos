@@ -296,14 +296,13 @@ BOOL
 FASTCALL
 PATH_ReserveEntries(
     PPATH pPath,
-    INT numEntries)
+    UINT numEntries)
 {
-    INT numEntriesToAllocate;
+    UINT numEntriesToAllocate;
     POINT *pPointsNew;
     BYTE *pFlagsNew;
 
     ASSERT(pPath != NULL);
-    ASSERT(numEntries >= 0);
 
     /* Do we have to allocate more memory? */
     if (numEntries > pPath->numEntriesAllocated)
@@ -1383,7 +1382,7 @@ PATH_AddFlatBezier(
 {
     POINT *pts;
     BOOL ret = FALSE;
-    INT no, i;
+    UINT no, i;
 
     pts = GDI_Bezier(pt, 4, &no);
     if (!pts) return FALSE;
@@ -1408,7 +1407,7 @@ FASTCALL
 PATH_FlattenPath(PPATH pPath)
 {
     PPATH newPath;
-    INT srcpt;
+    UINT srcpt;
     TRACE("PATH_FlattenPath\n");
     if (!(newPath = PATH_CreatePath(pPath->numEntriesUsed))) return NULL;
 
@@ -1453,9 +1452,9 @@ PATH_PathToRegion(
     INT Mode,
     PREGION Rgn)
 {
-    int i, pos, polygons;
+    UINT i, pos, polygons;
     PULONG counts;
-    int Ret;
+    BOOL Ret;
 
     if (!pPath->numEntriesUsed) return FALSE;
 
@@ -1600,7 +1599,7 @@ PATH_StrokePath(
     PPATH pPath)
 {
     BOOL ret = FALSE;
-    INT nLinePts, nAlloc, jOldFillMode, i = 0;
+    UINT nLinePts, nAlloc, jOldFillMode, i = 0;
     POINT *pLinePts = NULL;
     POINT ptViewportOrg, ptWindowOrg;
     SIZE szViewportExt, szWindowExt;
@@ -1700,7 +1699,7 @@ PATH_StrokePath(
                 }
                 else
                 {
-                    INT nBzrPts, nMinAlloc;
+                    UINT nBzrPts, nMinAlloc;
                     POINT *pBzrPts = GDI_Bezier(&pPath->pPoints[i - 1], 4, &nBzrPts);
                     /* Make sure we have allocated enough memory for the lines of
                      * this bezier and the rest of the path, assuming we won't get
@@ -1789,7 +1788,7 @@ end:
 PPATH FASTCALL
 IntGdiWidenPath(PPATH pPath, UINT penWidth, UINT penStyle, FLOAT eMiterLimit)
 {
-    INT i, j, numStrokes, numOldStrokes, penWidthIn, penWidthOut;
+    UINT i, j, numStrokes, numOldStrokes, penWidthIn, penWidthOut;
     PPATH flat_path, pNewPath, *pStrokes = NULL, *pOldStrokes, pUpPath, pDownPath;
     BYTE *type;
     DWORD joint, endcap;
@@ -2807,7 +2806,7 @@ NtGdiGetPath(
     {
         ret = pPath->numEntriesUsed;
     }
-    else if (nSize < pPath->numEntriesUsed)
+    else if (nSize < (INT)pPath->numEntriesUsed)
     {
         EngSetLastError(ERROR_INVALID_PARAMETER);
         goto done;

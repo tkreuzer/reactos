@@ -36,7 +36,7 @@ VOID DecompressBitmap(SIZEL Size, BYTE *CompressedBits, BYTE *UncompressedBits,
 
     _SEH2_TRY
     {
-        while (y >= 0 && (bits - begin) <= cjSizeImage)
+        while ((y >= 0) && ((ULONG)(bits - begin) <= cjSizeImage))
         {
             length = *bits++;
             if (length)

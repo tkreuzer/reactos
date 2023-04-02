@@ -147,7 +147,8 @@ DIB_16BPP_BitBltSrcCopy(PBLTINFO BltInfo)
   PBYTE    SourceBits, DestBits, SourceLine, DestLine;
   PBYTE    SourceBits_4BPP, SourceLine_4BPP;
   PWORD    Source32, Dest32;
-  DWORD    Index, StartLeft, EndRight;
+  DWORD    Index;
+  LONG StartLeft, EndRight;
   BOOLEAN  bTopToBottom, bLeftToRight;
 
   DPRINT("DIB_16BPP_BitBltSrcCopy: SrcSurf cx/cy (%d/%d), DestSuft cx/cy (%d/%d) dstRect: (%d,%d)-(%d,%d)\n",

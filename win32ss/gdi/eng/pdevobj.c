@@ -979,7 +979,7 @@ PDEVOBJ_vGetDeviceCaps(
     if (pDevCaps->ulBitsPixel == 15) pDevCaps->ulBitsPixel = 16;
     pDevCaps->ulPlanes = pGdiInfo->cPlanes;
     pDevCaps->ulNumPens = pGdiInfo->ulNumColors;
-    if (pDevCaps->ulNumPens != -1) pDevCaps->ulNumPens *= 5;
+    if (pDevCaps->ulNumPens != (ULONG)-1) pDevCaps->ulNumPens *= 5;
     pDevCaps->ulNumFonts = 0; // PDEVOBJ_cFonts(ppdev);
     pDevCaps->ulNumColors = pGdiInfo->ulNumColors;
     pDevCaps->ulRasterCaps = pGdiInfo->flRaster;
