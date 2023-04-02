@@ -18,7 +18,7 @@ EXTERN_C
 NTSTATUS
 GdiProcessCreate(PEPROCESS Process)
 {
-    PPROCESSINFO ppiCurrent = PsGetProcessWin32Process(Process);
+    PPROCESSINFO ppiCurrent = GetProcessInfo();
     ASSERT(ppiCurrent);
 
     InitializeListHead(&ppiCurrent->PrivateFontListHead);
@@ -48,7 +48,7 @@ EXTERN_C
 NTSTATUS
 GdiProcessDestroy(PEPROCESS Process)
 {
-    PPROCESSINFO ppiCurrent = PsGetProcessWin32Process(Process);
+    PPROCESSINFO ppiCurrent = GetProcessInfo();
     ASSERT(ppiCurrent);
     ASSERT(ppiCurrent->peProcess == Process);
 

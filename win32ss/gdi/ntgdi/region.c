@@ -2284,7 +2284,7 @@ REGION_bAllocRgnAttr(
 
     NT_ASSERT(prgn->prgnattr == &prgn->rgnattr);
 
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = GetProcessInfo();
     ASSERT(ppi);
 
     prgnattr = (PRGN_ATTR)GdiPoolAllocate(ppi->pPoolRgnAttr);
@@ -2452,7 +2452,7 @@ NTAPI
 REGION_vCleanup(PVOID ObjectBody)
 {
     PREGION pRgn = (PREGION)ObjectBody;
-    PPROCESSINFO ppi = PsGetCurrentProcessWin32Process();
+    PPROCESSINFO ppi = GetProcessInfo();
     ASSERT(ppi);
 
     ASSERT(pRgn->prgnattr);
@@ -2492,7 +2492,7 @@ IntGdiSetRegionOwner(HRGN hRgn, DWORD OwnerMask)
     {
         GDIOBJ_vSetObjectAttr(&prgn->BaseObject, NULL);
         prgn->prgnattr = &prgn->rgnattr;
-        ppi = PsGetCurrentProcessWin32Process();
+        ppi = GetProcessInfo();
         GdiPoolFree(ppi->pPoolRgnAttr, prgnattr);
     }
 

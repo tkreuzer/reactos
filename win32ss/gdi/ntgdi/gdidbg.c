@@ -745,7 +745,7 @@ BOOL DbgInitDebugChannels(VOID)
     BOOL ret;
 
     /* Initialize all channels to ERROR */
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = GetProcessInfo();
     RtlFillMemory( ppi->DbgChannelLevel,
                    sizeof(ppi->DbgChannelLevel),
                    ERR_LEVEL);

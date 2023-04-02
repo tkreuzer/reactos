@@ -51,7 +51,7 @@ EngAcquireSemaphore(
     }
 
     ExEnterCriticalRegionAndAcquireResourceExclusive((PERESOURCE)hsem);
-    W32Thread = PsGetThreadWin32Thread(PsGetCurrentThread());
+    W32Thread = GetThreadInfo();
     if (W32Thread) W32Thread->dwEngAcquireCount++;
 }
 
@@ -76,7 +76,7 @@ EngReleaseSemaphore(
         return;
     }
 
-    W32Thread = PsGetThreadWin32Thread(PsGetCurrentThread());
+    W32Thread = GetThreadInfo();
     if (W32Thread) --W32Thread->dwEngAcquireCount;
     ExReleaseResourceAndLeaveCriticalRegion((PERESOURCE)hsem);
 }
@@ -93,7 +93,7 @@ EngAcquireSemaphoreShared(
 
     ASSERT(hsem);
     ExEnterCriticalRegionAndAcquireResourceShared((PERESOURCE)hsem);
-    pti = PsGetThreadWin32Thread(PsGetCurrentThread());
+    pti = GetThreadInfo();
     if (pti) ++pti->dwEngAcquireCount;
 }
 

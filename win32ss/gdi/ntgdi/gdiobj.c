@@ -65,7 +65,7 @@ void
 INCREASE_THREAD_LOCK_COUNT(
     _In_ HANDLE hobj)
 {
-    PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
+    PTHREADINFO pti = GetThreadInfo();
     DBG_UNREFERENCED_PARAMETER(hobj);
     if (pti)
     {
@@ -81,7 +81,7 @@ void
 DECREASE_THREAD_LOCK_COUNT(
     _In_ HANDLE hobj)
 {
-    PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
+    PTHREADINFO pti = GetThreadInfo();
     DBG_UNREFERENCED_PARAMETER(hobj);
     if (pti)
     {
@@ -97,7 +97,7 @@ VOID
 ASSERT_LOCK_ORDER(
     _In_ UCHAR objt)
 {
-    PTHREADINFO pti = PsGetCurrentThreadWin32Thread();
+    PTHREADINFO pti = GetThreadInfo();
     ULONG i;
 
     if (pti)
@@ -333,7 +333,7 @@ FORCEINLINE
 VOID
 IncrementCurrentProcessGdiHandleCount(void)
 {
-    PPROCESSINFO ppi = PsGetCurrentProcessWin32Process();
+    PPROCESSINFO ppi = GetProcessInfo();
     if (ppi) InterlockedIncrement((LONG*)&ppi->GDIHandleCount);
 }
 
@@ -341,7 +341,7 @@ FORCEINLINE
 VOID
 DecrementCurrentProcessGdiHandleCount(void)
 {
-    PPROCESSINFO ppi = PsGetCurrentProcessWin32Process();
+    PPROCESSINFO ppi = GetProcessInfo();
     if (ppi) InterlockedDecrement((LONG*)&ppi->GDIHandleCount);
 }
 
@@ -357,7 +357,7 @@ IncrementGdiHandleCount(ULONG ulProcessId)
     NT_ASSERT(NT_SUCCESS(Status));
     __analysis_assume(NT_SUCCESS(Status));
 
-    ppi = PsGetProcessWin32Process(pep);
+    ppi = GetProcessInfo();
     if (ppi) InterlockedIncrement((LONG*)&ppi->GDIHandleCount);
     if (NT_SUCCESS(Status)) ObDereferenceObject(pep);
 }
@@ -374,7 +374,7 @@ DecrementGdiHandleCount(ULONG ulProcessId)
     NT_ASSERT(NT_SUCCESS(Status));
     __analysis_assume(NT_SUCCESS(Status));
 
-    ppi = PsGetProcessWin32Process(pep);
+    ppi = GetProcessInfo();
     if (ppi) InterlockedDecrement((LONG*)&ppi->GDIHandleCount);
     if (NT_SUCCESS(Status)) ObDereferenceObject(pep);
 }
@@ -1616,7 +1616,7 @@ GDI_CleanupForProcess(struct _EPROCESS *Process)
     DbgGdiHTIntegrityCheck();
 #endif
 
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = GetProcessInfo();
     DPRINT("Completed cleanup for process %p\n", Process->UniqueProcessId);
     if (ppi->GDIHandleCount != 0)
     {
@@ -1649,7 +1649,7 @@ GetBrushAttrPool(VOID)
 {
     PPROCESSINFO ppi;
 
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = GetProcessInfo();
     NT_ASSERT(ppi != NULL);
 
     return ppi->pPoolBrushAttr;

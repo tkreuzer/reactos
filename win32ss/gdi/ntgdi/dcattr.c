@@ -33,7 +33,7 @@ DC_bAllocDcAttr(PDC pdc)
     PPROCESSINFO ppi;
     PDC_ATTR pdcattr;
 
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = GetProcessInfo();
     ASSERT(ppi);
 
     pdcattr = (PDC_ATTR)GdiPoolAllocate(ppi->pPoolDcAttr);
@@ -69,7 +69,7 @@ DC_vFreeDcAttr(PDC pdc)
     /* Reset the object attribute in the handle table */
     GDIOBJ_vSetObjectAttr(&pdc->BaseObject, NULL);
 
-    ppi = PsGetCurrentProcessWin32Process();
+    ppi = GetProcessInfo();
     ASSERT(ppi);
     GdiPoolFree(ppi->pPoolDcAttr, pdc->pdcattr);
 

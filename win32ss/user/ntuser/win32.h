@@ -298,6 +298,20 @@ typedef struct _PROCESSINFO
 #endif // DBG
 } PROCESSINFO;
 
+FORCEINLINE
+PTHREADINFO
+GetThreadInfo(VOID)
+{
+    return (PTHREADINFO)PsGetCurrentThreadWin32Thread();
+}
+
+FORCEINLINE
+PPROCESSINFO
+GetProcessInfo(VOID)
+{
+    return (PPROCESSINFO)PsGetCurrentProcessWin32Process();
+}
+
 #if DBG
 void NTAPI UserDbgPreServiceHook(ULONG ulSyscallId, PULONG_PTR pulArguments);
 ULONG_PTR NTAPI UserDbgPostServiceHook(ULONG ulSyscallId, ULONG_PTR ulResult);
