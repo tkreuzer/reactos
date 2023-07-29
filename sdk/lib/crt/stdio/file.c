@@ -1799,10 +1799,10 @@ int CDECL _wsopen_s( int *fd, const wchar_t* path, int oflags, int shflags, int 
 
   if (oflags & _O_CREAT)
   {
-    if(pmode & ~(_S_IREAD | _S_IWRITE))
-      FIXME(": pmode 0x%04x ignored\n", pmode);
-    else
-      WARN(": pmode 0x%04x ignored\n", pmode);
+    //if(pmode & ~(_S_IREAD | _S_IWRITE))
+    //  FIXME(": pmode 0x%04x ignored\n", pmode);
+    //else
+    //  WARN(": pmode 0x%04x ignored\n", pmode);
 
     if (oflags & _O_EXCL)
       creation = CREATE_NEW;
