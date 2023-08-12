@@ -42,6 +42,14 @@ WINE_DEFAULT_DEBUG_CHANNEL(nls);
 
 #define CALINFO_MAX_YEAR 2029
 
+#ifdef __REACTOS__
+//#define RtlEnterCriticalSection EnterCriticalSection
+//#define RtlLeaveCriticalSection LeaveCriticalSection
+#define CRITICAL_SECTION RTL_CRITICAL_SECTION
+#define CRITICAL_SECTION_DEBUG RTL_CRITICAL_SECTION_DEBUG
+#define swprintf snwprintf
+#endif
+
 static HMODULE kernelbase_handle;
 
 struct registry_entry
@@ -433,7 +441,7 @@ static CRITICAL_SECTION_DEBUG critsect_debug =
 };
 static CRITICAL_SECTION locale_section = { &critsect_debug, -1, 0, 0, 0, 0 };
 
-
+#ifndef __REACTOS__
 static void load_locale_nls(void)
 {
     struct
@@ -526,6 +534,7 @@ static void load_sortdefault_nls(void)
 }
 
 
+#endif
 static const struct sortguid *find_sortguid( const GUID *guid )
 {
     int pos, ret, min = 0, max = sort.guid_count - 1;
@@ -548,6 +557,7 @@ static const NLS_LOCALE_DATA *get_locale_data( UINT idx )
     ULONG offset = locale_table->locales_offset + idx * locale_table->locale_size;
     return (const NLS_LOCALE_DATA *)((const char *)locale_table + offset);
 }
+#ifndef __REACTOS__
 
 
 static const struct calendar *get_calendar_data( const NLS_LOCALE_DATA *locale, UINT id )
@@ -561,6 +571,7 @@ static const struct calendar *get_calendar_data( const NLS_LOCALE_DATA *locale, 
 }
 
 
+#endif
 static int compare_locale_names( const WCHAR *n1, const WCHAR *n2 )
 {
     for (;;)
@@ -606,6 +617,7 @@ static const NLS_LOCALE_LCID_INDEX *find_lcid_entry( LCID lcid )
     }
     return NULL;
 }
+#ifndef __REACTOS__
 
 
 static const struct geo_id *find_geo_id_entry( GEOID id )
@@ -639,6 +651,7 @@ static const struct geo_id *find_geo_name_entry( const WCHAR *name )
 }
 
 
+#endif
 static const NLS_LOCALE_DATA *get_locale_by_name( const WCHAR *name, LCID *lcid )
 {
     const NLS_LOCALE_LCNAME_INDEX *entry;
@@ -704,6 +717,7 @@ static const struct sortguid *get_language_sort( const WCHAR *name )
     locale_sorts[entry - lcnames_index] = ret;
     return ret;
 }
+#ifndef __REACTOS__
 
 
 /******************************************************************************
@@ -2072,6 +2086,7 @@ static int casemap_string( const USHORT *table, const WCHAR *src, int srclen, WC
 }
 
 
+#endif
 static union char_weights get_char_weights( WCHAR c, UINT except )
 {
     union char_weights ret;
@@ -2079,6 +2094,7 @@ static union char_weights get_char_weights( WCHAR c, UINT except )
     ret.val = except ? sort.keys[sort.keys[except + (c >> 8)] + (c & 0xff)] : sort.keys[c];
     return ret;
 }
+#ifndef __REACTOS__
 
 
 static BYTE rol( BYTE val, BYTE count )
@@ -3259,6 +3275,7 @@ static int wcstombs_codepage( const CPTABLEINFO *info, DWORD flags, const WCHAR 
 }
 
 
+#endif
 struct sortkey
 {
     BYTE *buf;
@@ -3556,6 +3573,7 @@ static int append_hangul_weights( struct sortkey *key, const WCHAR *src, int src
     append_sortkey( key, trailing_idx != -1 ? sort.jamo[trailing_idx].weight : 2 );
     return pos - 1;
 }
+#ifndef __REACTOS__
 
 /* put one of the elements of a sortkey into the dst buffer */
 static int put_sortkey( BYTE *dst, int dstlen, int pos, const struct sortkey *key, BYTE terminator )
@@ -3569,6 +3587,7 @@ static int put_sortkey( BYTE *dst, int dstlen, int pos, const struct sortkey *ke
 }
 
 
+#endif
 struct sortkey_state
 {
     struct sortkey         key_primary;
@@ -3762,6 +3781,7 @@ static int append_weights( const struct sortguid *sortid, DWORD flags,
 
     return ret;
 }
+#ifndef __REACTOS__
 
 /* implementation of LCMAP_SORTKEY */
 static int get_sortkey( const struct sortguid *sortid, DWORD flags,
@@ -3884,6 +3904,7 @@ done:
 }
 
 
+#endif
 /* implementation of FindNLSStringEx */
 static int find_substring( const struct sortguid *sortid, DWORD flags, const WCHAR *src, int srclen,
                            const WCHAR *value, int valuelen, int *reslen )
@@ -3972,6 +3993,7 @@ static int find_substring( const struct sortguid *sortid, DWORD flags, const WCH
     free_sortkey_state( &val );
     return found;
 }
+#ifndef __REACTOS__
 
 
 /* map buffer to full-width katakana */
@@ -4212,6 +4234,7 @@ static int lcmap_string( const struct sortguid *sortid, DWORD flags,
 }
 
 
+#endif
 static int compare_tzdate( const TIME_FIELDS *tf, const SYSTEMTIME *compare )
 {
     static const int month_lengths[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
@@ -4295,6 +4318,7 @@ static DWORD get_timezone_id( const TIME_ZONE_INFORMATION *info, LARGE_INTEGER t
     }
     return TIME_ZONE_ID_STANDARD;
 }
+#ifndef __REACTOS__
 
 
 /* Note: the Internal_ functions are not documented. The number of parameters
@@ -4868,7 +4892,7 @@ INT WINAPI DECLSPEC_HOTPATCH CompareStringW( LCID lcid, DWORD flags, const WCHAR
     return CompareStringEx( locale, flags, str1, len1, str2, len2, NULL, NULL, 0 );
 }
 
-
+#endif
 /******************************************************************************
  *	CompareStringOrdinal   (kernelbase.@)
  */
@@ -4890,6 +4914,7 @@ INT WINAPI DECLSPEC_HOTPATCH CompareStringOrdinal( const WCHAR *str1, INT len1,
     if (ret > 0) return CSTR_GREATER_THAN;
     return CSTR_EQUAL;
 }
+#ifndef __REACTOS__
 
 
 /******************************************************************************
@@ -5161,7 +5186,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH EnumTimeFormatsEx( TIMEFMT_ENUMPROCEX proc, const 
                                      flags, TRUE, TRUE, lparam );
 }
 
-
+#endif
 /**************************************************************************
  *	FindNLSString   (kernelbase.@)
  */
@@ -5225,6 +5250,7 @@ INT WINAPI DECLSPEC_HOTPATCH FindNLSStringEx( const WCHAR *locale, DWORD flags, 
 
     return find_substring( sortid, flags, src, srclen, value, valuelen, found );
 }
+#ifndef __REACTOS__
 
 
 /******************************************************************************
@@ -5623,6 +5649,7 @@ INT WINAPI DECLSPEC_HOTPATCH GetCalendarInfoEx( const WCHAR *name, CALID calenda
 }
 
 
+#endif
 static CRITICAL_SECTION tzname_section;
 static CRITICAL_SECTION_DEBUG tzname_section_debug =
 {
@@ -5645,6 +5672,10 @@ DWORD WINAPI DECLSPEC_HOTPATCH GetDynamicTimeZoneInformation( DYNAMIC_TIME_ZONE_
 {
     HKEY key;
     LARGE_INTEGER now;
+#ifdef __REACTOS__
+    WCHAR system_dir[MAX_PATH];
+    GetSystemDirectoryW(system_dir, MAX_PATH);
+#endif
 
     if (!set_ntstatus( RtlQueryDynamicTimeZoneInformation( (RTL_DYNAMIC_TIME_ZONE_INFORMATION *)info )))
         return TIME_ZONE_ID_INVALID;
@@ -5681,6 +5712,7 @@ DWORD WINAPI DECLSPEC_HOTPATCH GetDynamicTimeZoneInformation( DYNAMIC_TIME_ZONE_
     NtQuerySystemTime( &now );
     return get_timezone_id( (TIME_ZONE_INFORMATION *)info, now, FALSE );
 }
+#ifndef __REACTOS__
 
 
 /******************************************************************************
@@ -6022,6 +6054,7 @@ LANGID WINAPI DECLSPEC_HOTPATCH GetSystemDefaultLangID(void)
 }
 
 
+//#endif
 /***********************************************************************
  *	GetSystemDefaultLocaleName   (kernelbase.@)
  */
@@ -6029,6 +6062,7 @@ INT WINAPI DECLSPEC_HOTPATCH GetSystemDefaultLocaleName( LPWSTR name, INT count 
 {
     return get_locale_info( system_locale, system_lcid, LOCALE_SNAME, name, count );
 }
+//#ifndef __REACTOS__
 
 
 /***********************************************************************
@@ -6075,6 +6109,7 @@ DWORD WINAPI DECLSPEC_HOTPATCH GetTimeZoneInformation( TIME_ZONE_INFORMATION *in
 }
 
 
+// here
 /***********************************************************************
  *	GetTimeZoneInformationForYear   (kernelbase.@)
  */
@@ -6149,6 +6184,7 @@ done:
     if (ret) SetLastError( ret );
     return !ret;
 }
+// end
 
 
 /***********************************************************************
@@ -6230,6 +6266,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH GetUserPreferredUILanguages( DWORD flags, ULONG *c
 }
 
 
+// this
 /******************************************************************************
  *	IdnToAscii   (kernelbase.@)
  */
@@ -6264,7 +6301,7 @@ INT WINAPI DECLSPEC_HOTPATCH IdnToUnicode( DWORD flags, const WCHAR *src, INT sr
     if (!set_ntstatus( status )) return 0;
     return dstlen;
 }
-
+// end
 
 /******************************************************************************
  *	IsCharAlphaA   (kernelbase.@)
@@ -6435,6 +6472,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH IsDBCSLeadByteEx( UINT codepage, BYTE testchar )
 }
 
 
+// here
 /******************************************************************************
  *	IsNormalizedString   (kernelbase.@)
  */
@@ -6444,6 +6482,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH IsNormalizedString( NORM_FORM form, const WCHAR *s
     if (!set_ntstatus( RtlIsNormalizedString( form, str, len, &res ))) res = FALSE;
     return res;
 }
+// endif
 
 
 /******************************************************************************
@@ -6828,6 +6867,7 @@ INT WINAPI DECLSPEC_HOTPATCH MultiByteToWideChar( UINT codepage, DWORD flags, co
 }
 
 
+// here
 /******************************************************************************
  *	NormalizeString   (kernelbase.@)
  */
@@ -6849,6 +6889,7 @@ INT WINAPI DECLSPEC_HOTPATCH NormalizeString(NORM_FORM form, const WCHAR *src, I
     SetLastError( RtlNtStatusToDosError( status ));
     return dst_len;
 }
+// end
 
 
 /******************************************************************************
@@ -8147,3 +8188,5 @@ int WINAPI GetTimeFormatEx( const WCHAR *name, DWORD flags, const SYSTEMTIME *sy
     TRACE( "(%s,%lx,%p,%s,%p,%d)\n", debugstr_w(name), flags, systime, debugstr_w(format), buffer, len );
     return get_time_format( locale, flags, systime, format, buffer, len );
 }
+
+#endif // !__REACTOS__
