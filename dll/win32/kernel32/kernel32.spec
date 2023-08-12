@@ -305,8 +305,8 @@
 @ stdcall FindFirstVolumeMountPointA(str ptr long)
 @ stdcall FindFirstVolumeMountPointW(wstr ptr long)
 @ stdcall FindFirstVolumeW(ptr long)
-@ stub -version=0x600+ FindNLSString
-@ stub -version=0x600+ FindNLSStringEx
+@ stdcall -version=0x600+ FindNLSString(long long wstr long wstr long ptr)
+@ stdcall -version=0x600+ FindNLSStringEx(ptr long wstr long wstr long ptr ptr ptr ptr)
 @ stdcall FindNextChangeNotification(long)
 @ stdcall FindNextFileA(long ptr)
 @ stub -version=0x600+ FindNextFileNameW
@@ -454,7 +454,7 @@
 @ stdcall GetDriveTypeW(wstr)
 @ stub -version=0x600+ GetDurationFormat
 @ stub -version=0x600+ GetDurationFormatEx
-@ stub -version=0x600+ GetDynamicTimeZoneInformation
+@ stdcall -version=0x600+ GetDynamicTimeZoneInformation(ptr)
 @ stdcall GetEnvironmentStrings()
 @ stdcall GetEnvironmentStringsA() GetEnvironmentStrings
 @ stdcall GetEnvironmentStringsW()
