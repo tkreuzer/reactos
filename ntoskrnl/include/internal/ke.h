@@ -1074,6 +1074,11 @@ KeBugCheckUnicodeToAnsi(
     IN ULONG Length
 );
 
+ULONG_PTR
+NTAPI
+KiGetStackPointer(
+    VOID);
+
 #ifdef __cplusplus
 } // extern "C"
 

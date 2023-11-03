@@ -1685,6 +1685,12 @@ MmGrowKernelStack(
     IN PVOID StackPointer
 );
 
+NTSTATUS
+NTAPI
+MmGrowKernelStackEx(
+    _In_ PVOID StackPointer,
+    _In_ ULONG GrowSize
+);
 
 FORCEINLINE
 VOID
