@@ -338,8 +338,8 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
              * is present or user mode exceptions are ignored, except if this
              * is a debug service which we must always pass to KD
              */
-            if ((!(PsGetCurrentProcess()->DebugPort) &&
-                 !(KdIgnoreUmExceptions)) ||
+            if ((!(PsGetCurrentProcess()->DebugPort) && !(KdIgnoreUmExceptions)) ||
+                 //PsGetCurrentProcess()->BreakOnTermination ||
                  (KdIsThisAKdTrap(ExceptionRecord, &Context, PreviousMode)))
             {
                 /* Make sure the debugger can access debug directories */
@@ -357,6 +357,7 @@ KiDispatchException(IN PEXCEPTION_RECORD ExceptionRecord,
                     goto Handled;
                 }
             }
+            if (PsGetCurrentProcess()->BreakOnTermination) __debugbreak();
 
             /* Forward exception to user mode debugger */
             if (DbgkForwardException(ExceptionRecord, TRUE, FALSE)) return;
