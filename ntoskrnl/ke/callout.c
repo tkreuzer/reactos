@@ -76,12 +76,15 @@ KeAllocateCalloutStackEx(
     }
 
     /* Allocate a stack with Mm */
-    StackBase = MmCreateKernelStack(LargeStack, Node); // FIXME: Commit all pages
+    StackBase = MmCreateKernelStackEx(LargeStack, StackSize, Node);
     if (StackBase == NULL)
     {
         DPRINT1("Failed to allocate callout stack\n");
         return STATUS_INSUFFICIENT_RESOURCES;
     }
+
+    // FIXME: Only commit as much as needed, but this function doesn't have a size parameter
+    // Use KiAllocateStackSegment
 
     /* Get the stack control structure and initialize it */
     StackControl = (PKSTACK_CONTROL)StackBase - 1;
@@ -248,6 +251,10 @@ KiAllocateStackSegmentAndCallout(
         return Status;
     }
 
+    /* Save previous CalloutActive and set it to TRUE */
+    PreviousCalloutActive = CurrentThread->CalloutActive;
+    CurrentThread->CalloutActive = TRUE;
+
     /* Get the stack control from the context */
     StackControl = (PKSTACK_CONTROL)StackContext;
 
@@ -277,28 +284,8 @@ KiAllocateStackSegmentAndCallout(
     UNIMPLEMENTED_DBGBREAK();
 #endif
 
-    /* Check if we need to grow the new stack */
-    ULONG_PTR InitialStack = (ULONG_PTR)CurrentThread->KernelStack;
-    if ((InitialStack - Size) < CurrentThread->StackLimit)
-    {
-        ASSERT(StackType = ReserveStackLarge);
-
-        /* Grow the stack */
-        Status = MmGrowKernelStackEx((PVOID)InitialStack, Size);
-    }
-
-    if (NT_SUCCESS(Status))
-    {
-        /* Save previous CalloutActive and set it to TRUE */
-        PreviousCalloutActive = CurrentThread->CalloutActive;
-        CurrentThread->CalloutActive = TRUE;
-
-        /* Switch to the new stack and invoke the callout function */
-        KiSwitchStackAndCallout(Parameter, Callout, CurrentThread->KernelStack);
-
-        /* Restore CalloutActive */
-        CurrentThread->CalloutActive = PreviousCalloutActive;
-    }
+    /* Switch to the new stack and invoke the callout function */
+    KiSwitchStackAndCallout(Parameter, Callout, CurrentThread->KernelStack);
  
     /* Restore the old stack */
     CurrentThread->StackBase = (PVOID)StackControl->Previous.StackBase;
@@ -318,6 +305,9 @@ KiAllocateStackSegmentAndCallout(
 
     /* Enable interrupts */
     _enable();
+
+    /* Restore CalloutActive */
+    CurrentThread->CalloutActive = PreviousCalloutActive;
 
     /* Free the stack */
     KeFreeCalloutStack(StackContext);
