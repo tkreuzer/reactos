@@ -418,7 +418,6 @@ NTAPI
 KiGetCacheInformation(VOID)
 {
     PKIPCR Pcr = (PKIPCR)KeGetPcr();
-    ULONG Vendor;
     ULONG CacheRequests = 0, i;
     ULONG CurrentRegister;
     UCHAR RegisterByte;
@@ -428,12 +427,8 @@ KiGetCacheInformation(VOID)
     /* Set default L2 size */
     Pcr->SecondLevelCacheSize = 0;
 
-    /* Get the Vendor ID and make sure we support CPUID */
-    Vendor = KiGetCpuVendor();
-    if (!Vendor) return;
-
     /* Check the Vendor ID */
-    switch (Vendor)
+    switch (Pcr->Prcb.CpuVendor)
     {
         /* Handle Intel case */
         case CPU_INTEL:
