@@ -8,11 +8,13 @@
 #pragma once
 #define __NTOSKRNL_INCLUDE_INTERNAL_X86X64_KE_H
 
+CODE_SEG("INIT")
 VOID
 NTAPI
 KiGetCpuVendorString(
     _Out_writes_z_(13) PCHAR VendorString);
 
+CODE_SEG("INIT")
 CPU_VENDORS
 NTAPI
 KiIdentifyCpuVendor(
