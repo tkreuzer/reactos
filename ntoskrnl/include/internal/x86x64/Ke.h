@@ -24,6 +24,7 @@ CPU_VENDORS
 NTAPI
 KiGetCpuVendor(VOID);
 
+CODE_SEG("INIT")
 VOID
 NTAPI
 KiGetCpuSignature(

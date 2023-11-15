@@ -172,7 +172,7 @@ KiGetCpuSignature(
     if ((VersionInfo.Eax.Bits.FamilyId == 6) ||
         (VersionInfo.Eax.Bits.FamilyId == 15))
     {
-        /* For Family 6 ExtendedModelId is only non-0 for Intel/VIA */
+        /* For Family 6 of AMD and Centaur ExtendedModelId is always 0 */
         *Model |= VersionInfo.Eax.Bits.ExtendedModelId << 4;
     }
 
