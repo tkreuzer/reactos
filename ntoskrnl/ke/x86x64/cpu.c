@@ -16,8 +16,11 @@
 
 /* CPU Signatures */
 static const CHAR KiIntelID[]       = "GenuineIntel";
+static const CHAR KiIotelID[]       = "GenuineIotel"; // Intel Xeon E3-1231 v3
 static const CHAR KiAmdID[]         = "AuthenticAMD";
+static const CHAR KiHygonID[]       = "HygonGenuine";
 static const CHAR KiCentaurID[]     = "CentaurHauls";
+static const CHAR KiZhaoxinID[]     = "  Shanghai  ";
 #ifdef _M_I386
 static const CHAR KiCyrixID[]       = "CyrixInstead";
 static const CHAR KiTransmetaID[]   = "GenuineTMx86";
@@ -70,15 +73,18 @@ KiIdentifyCpuVendor(
     _In_reads_z_(13) PCHAR VendorString)
 {
     /* Identify the CPU Type */
-    if (!strcmp(VendorString, KiIntelID))
+    if (!strcmp(VendorString, KiIntelID) ||
+        !strcmp(VendorString, KiIotelID))
     {
         return CPU_INTEL;
     }
-    else if (!strcmp(VendorString, KiAmdID))
+    else if (!strcmp(VendorString, KiAmdID) ||
+             !strcmp(VendorString, KiHygonID))
     {
         return CPU_AMD;
     }
-    else if (!strcmp(VendorString, KiCentaurID))
+    else if (!strcmp(VendorString, KiCentaurID) ||
+             !strcmp(VendorString, KiZhaoxinID))
     {
         return CPU_VIA;
     }
