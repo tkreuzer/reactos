@@ -21,3 +21,10 @@ KiIdentifyCpuVendor(
 CPU_VENDORS
 NTAPI
 KiGetCpuVendor(VOID);
+
+VOID
+NTAPI
+KiGetCpuSignature(
+    _Out_ PUSHORT Family,
+    _Out_ PUSHORT Model,
+    _Out_ PUSHORT Stepping);

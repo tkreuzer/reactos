@@ -9,6 +9,7 @@
 /* INCLUDES *****************************************************************/
 
 #include <ntoskrnl.h>
+#include <x86x64/Cpuid.h>
 #define NDEBUG
 #include <debug.h>
 
@@ -123,4 +124,58 @@ KiGetCpuVendor(VOID)
 
     /* Identify the CPU Type */
     return KiIdentifyCpuVendor(VendorString);
+}
+
+/*!
+ * \brief Get the CPU signature
+ *
+ * \param[out] Family - Pointer to a USHORT to receive the family
+ * \param[out] Model - Pointer to a USHORT to receive the model
+ * \param[out] Stepping - Pointer to a USHORT to receive the stepping
+ * 
+ * \See
+ * - https://www.sandpile.org/x86/cpuid.htm#level_0000_0001h
+ * - https://github.com/InstLatx64/InstLatx64
+ * 
+ * - Intel:
+ *   - https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-software-developer-vol-2a-manual.pdf#G5.876260
+ *   - https://www.scss.tcd.ie/Jeremy.Jones/CS4021/processor-identification-cpuid-instruction-note.pdf
+ *   - https://en.wikichip.org/wiki/intel/cpuid
+ * - AMD:
+ *   - https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/24594.pdf#G15.998445
+ *   - https://kib.kiev.ua/x86docs/AMD/AMD-CPUID-Spec/20734-r3.13.pdf
+ *   - https://en.wikichip.org/wiki/amd/cpuid
+ *
+ */
+CODE_SEG("INIT")
+VOID
+NTAPI
+KiGetCpuSignature(
+    _Out_ PUSHORT Family,
+    _Out_ PUSHORT Model,
+    _Out_ PUSHORT Stepping)
+{
+    CPUID_VERSION_INFO_REGS VersionInfo;
+
+    /* Get the CPUID */
+    __cpuid(VersionInfo.AsInt32, 1);
+
+    /* Get the family */
+    *Family = VersionInfo.Eax.Bits.FamilyId;
+    if (VersionInfo.Eax.Bits.FamilyId == 15)
+    {
+        *Family += VersionInfo.Eax.Bits.ExtendedFamilyId;
+    }
+
+    /* Get the model */
+    *Model = VersionInfo.Eax.Bits.Model;
+    if ((VersionInfo.Eax.Bits.FamilyId == 6) ||
+        (VersionInfo.Eax.Bits.FamilyId == 15))
+    {
+        /* For Family 6 ExtendedModelId is only non-0 for Intel/VIA */
+        *Model |= VersionInfo.Eax.Bits.ExtendedModelId << 4;
+    }
+
+    /* Get the stepping */
+    *Stepping = VersionInfo.Eax.Bits.SteppingId;
 }
