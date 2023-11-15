@@ -97,6 +97,13 @@ setCx86(UCHAR reg, UCHAR data)
 
 /* FUNCTIONS *****************************************************************/
 
+FORCEINLINE
+ULONG
+KiGetCpuVendor(VOID)
+{
+    return KiIdentifyCpuVendor(KeGetCurrentPrcb()->VendorString);
+}
+
 CODE_SEG("INIT")
 VOID
 NTAPI
