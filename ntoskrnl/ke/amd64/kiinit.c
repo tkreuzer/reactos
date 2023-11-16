@@ -477,6 +477,9 @@ KiInitModuleList(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     }
 }
 
+VOID
+KiTestGetClockInfo();
+
 CODE_SEG("INIT")
 DECLSPEC_NORETURN
 VOID
@@ -545,6 +548,8 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
 
     DPRINT1("Pcr = %p, Gdt = %p, Idt = %p, Tss = %p\n",
            Pcr, Pcr->GdtBase, Pcr->IdtBase, Pcr->TssBase);
+
+    KiTestGetClockInfo();
 
     /* Acquire lock */
     while (InterlockedBitTestAndSet64((PLONG64)&KiFreezeExecutionLock, 0))

@@ -134,6 +134,38 @@ typedef union
     } Amd;
 } CPUID_EXTENDED_CPU_SIG_REGS;
 
+// CPUID_TIME_STAMP_COUNTER (0x15)
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        ULONG Eax;
+        ULONG Ebx;
+        ULONG Ecx;
+        ULONG Edx;
+    };
+    struct
+    {
+        ULONG Denominator;
+        ULONG Numerator;
+        ULONG CoreFrequency;
+        ULONG Reserved;
+    };
+} CPUID_TIME_STAMP_COUNTER_REGS;
+
+// CPUID_PROCESSOR_FREQUENCY (0x16)
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        CPUID_PROCESSOR_FREQUENCY_EAX Eax;
+        CPUID_PROCESSOR_FREQUENCY_EBX Ebx;
+        CPUID_PROCESSOR_FREQUENCY_ECX Ecx;
+        ULONG Edx;
+    };
+} CPUID_PROCESSOR_FREQUENCY_REGS;
 
 // https://kib.kiev.ua/x86docs/AMD/AMD-CPUID-Spec/25481-r2.34.pdf#G3.2106230
 #define CPUID_L1_TLB_INFO 0xC0000005

@@ -179,3 +179,202 @@ KiGetCpuSignature(
     /* Get the stepping */
     *Stepping = VersionInfo.Eax.Bits.SteppingId;
 }
+
+ULONG
+KiGetMaxCpuid(VOID)
+{
+    CPUID_SIGNATURE_REGS Signature;
+
+    /* Read CPUID_SIGNATURE and return the maximum function */
+    __cpuid(Signature.AsInt32, CPUID_SIGNATURE);
+    return Signature.MaxLeaf;
+}
+
+ULONG
+KiGetMaxExtendedCpuid(VOID)
+{
+    CPU_INFO CpuInfo;
+
+    /* Get the CPUID */
+    KiCpuId(&CpuInfo, 0x80000000);
+
+    /* Return the max function */
+    return CpuInfo.Eax;
+}
+
+BOOLEAN
+KiGetBrandString(
+    _Out_writes_z_(49) PCHAR BrandString)
+{
+    if (KiGetMaxExtendedCpuid() < 0x80000004)
+    {
+        return FALSE;
+    }
+
+    /* Get the brand string */
+    KiCpuId((PCPU_INFO)BrandString, 0x80000002);
+    KiCpuId((PCPU_INFO)(BrandString + 16), 0x80000003);
+    KiCpuId((PCPU_INFO)(BrandString + 32), 0x80000004);
+
+    /* Null-terminate it */
+    BrandString[48] = 0;
+
+    /* Return success */
+    return TRUE;
+}
+
+ULONG
+KiGetClockFrequencyFromBrandString()
+{
+    CHAR BrandString[49];
+    PCHAR p;
+    ULONG Multiplier;
+    ULONG Divisor;
+    ULONG DigitMultiplier;
+    ULONG Frequency;
+
+    /* Get the brand string */
+    if (!KiGetBrandString(BrandString))
+    {
+        return 0;
+    }
+
+    /* Search for "MHz" */
+    p = strstr(BrandString, "MHz");
+    if (p != NULL)
+    {
+        Multiplier = 1000000;
+    }
+    else
+    {
+        /* Search for "GHz" */
+        p = strstr(BrandString, "GHz");
+        if (p != NULL)
+        {
+            Multiplier = 1000000000;
+        }
+        else
+        {
+            /* Not found */
+            return 0;
+        }
+    }
+
+    /* Skip optional white space */
+    p--;
+    if (*p == ' ')
+    {
+        p--;
+    }
+
+    /* Get the frequency */
+    Frequency = 0;
+    Divisor = 1;
+    DigitMultiplier = 1;
+    while (p > BrandString)
+    {
+        if ((*p >= '0') && (*p <= '9'))
+        {
+            Frequency += (*p - '0') * DigitMultiplier;
+            DigitMultiplier *= 10;
+        }
+        else if (*p == '.')
+        {
+            if (Divisor != 1)
+            {
+                /* Already found a dot */
+                return 0;
+            }
+            Divisor = DigitMultiplier;
+        }
+        else
+        {
+            /* Not a digit */
+            break;
+        }
+        p--;
+    }
+
+    /* Return the frequency */
+    return (ULONG)((ULONG64)Frequency * Multiplier / Divisor);
+}
+
+VOID
+KiGetClockInfo(
+    _Out_ PULONG TscFrequencyInHz,
+    _Out_ PUSHORT ClockSpeedInMHz,
+    _Out_ PUSHORT MaxBoostSpeedInMHz,
+    _Out_ PUSHORT BusSpeedInMHz,
+    _Out_ PULONG FrequencyFromBrandStringInHz)
+{
+    CPUID_SIGNATURE_REGS Signature;
+    CPUID_TIME_STAMP_COUNTER_REGS TscInfo;
+    CPUID_PROCESSOR_FREQUENCY_REGS CpuClockInfo;
+
+    /* Read signature for max lead */
+    __cpuid(Signature.AsInt32, CPUID_SIGNATURE);
+
+    /* Check if we support CPUID_TIME_STAMP_COUNTER (0x15) */
+    if (Signature.MaxLeaf >= CPUID_TIME_STAMP_COUNTER)
+    {
+        /* Get the TSC speed */
+        __cpuidex(TscInfo.AsInt32, CPUID_TIME_STAMP_COUNTER, 0);
+
+        /* Return the TSC frequency */
+        if (TscInfo.Denominator != 0)
+        {
+            *TscFrequencyInHz = (ULONG64)TscInfo.CoreFrequency *
+                TscInfo.Numerator / TscInfo.Denominator;
+        }
+        else
+        {
+            *TscFrequencyInHz = 0;
+        }
+    }
+    else
+    {
+        *TscFrequencyInHz = 0;
+    }
+
+    /* Check if we support CPUID_PROCESSOR_FREQUENCY (0x16) */
+    if (Signature.MaxLeaf >= CPUID_PROCESSOR_FREQUENCY)
+    {
+        /* Get the CPU speed */
+        __cpuidex(CpuClockInfo.AsInt32, CPUID_PROCESSOR_FREQUENCY, 0);
+        *ClockSpeedInMHz = CpuClockInfo.Eax.Bits.ProcessorBaseFrequency;
+        *MaxBoostSpeedInMHz = CpuClockInfo.Ebx.Bits.MaximumFrequency;
+        *BusSpeedInMHz = CpuClockInfo.Ecx.Bits.BusFrequency;
+    }
+    else
+    {
+        *ClockSpeedInMHz = 0;
+        *MaxBoostSpeedInMHz = 0;
+        *BusSpeedInMHz = 0;
+    }
+
+    *FrequencyFromBrandStringInHz =
+        KiGetClockFrequencyFromBrandString();
+}
+
+VOID
+KiTestGetClockInfo()
+{
+    ULONG TscFrequencyInHz;
+    USHORT ClockSpeedInMHz;
+    USHORT MaxBoostSpeedInMHz;
+    USHORT BusSpeedInMHz;
+    ULONG FrequencyFromBrandStringInHz;
+
+    __debugbreak();
+    KiGetClockInfo(&TscFrequencyInHz,
+        &ClockSpeedInMHz,
+        &MaxBoostSpeedInMHz,
+        &BusSpeedInMHz,
+        &FrequencyFromBrandStringInHz);
+
+    DPRINT1("TSC Frequency: %lu Hz\n", TscFrequencyInHz);
+    DPRINT1("Clock Speed: %u MHz\n", ClockSpeedInMHz);
+    DPRINT1("Max Boost Speed: %u MHz\n", MaxBoostSpeedInMHz);
+    DPRINT1("Bus Speed: %u MHz\n", BusSpeedInMHz);
+    DPRINT1("Frequency from Brand String: %lu Hz\n", FrequencyFromBrandStringInHz);
+}
