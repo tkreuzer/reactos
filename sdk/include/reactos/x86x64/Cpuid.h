@@ -34,6 +34,19 @@ typedef union
     };
 } CPUID_VERSION_INFO_REGS;
 
+// CPUID_CACHE_PARAMS (0x4)
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        CPUID_CACHE_PARAMS_EAX Eax;
+        CPUID_CACHE_PARAMS_EBX Ebx;
+        ULONG Ecx;
+        CPUID_CACHE_PARAMS_EDX Edx;
+    };
+} CPUID_CACHE_PARAMS_REGS;
+
 // CPUID_THERMAL_POWER_MANAGEMENT (6)
 typedef union
 {
@@ -261,6 +274,26 @@ typedef union
         UINT32 Edx;
     };
 } CPUID_EXTENDED_CACHE_INFO_REGS;
+
+// CPUID_VIR_PHY_ADDRESS_SIZE (0x80000008)
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        CPUID_VIR_PHY_ADDRESS_SIZE_EAX Eax;
+        UINT32 ReservedEbx;
+        UINT32 ReservedEcx;
+        UINT32 ReservedEdx;
+    } Intel;
+    struct
+    {
+        CPUID_AMD_VIR_PHY_ADDRESS_SIZE_EAX Eax;
+        CPUID_AMD_VIR_PHY_ADDRESS_SIZE_EBX Ebx;
+        CPUID_AMD_VIR_PHY_ADDRESS_SIZE_ECX Ecx;
+        ULONG Edx;
+    } Amd;
+} CPUID_VIR_PHY_ADDRESS_SIZE_REGS;
 
 // Additional AMD specific CPUID:
 // See

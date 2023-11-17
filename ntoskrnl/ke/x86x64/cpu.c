@@ -378,3 +378,59 @@ KiTestGetClockInfo()
     DPRINT1("Bus Speed: %u MHz\n", BusSpeedInMHz);
     DPRINT1("Frequency from Brand String: %lu Hz\n", FrequencyFromBrandStringInHz);
 }
+
+// Topology Enumeration
+// CPUID_EXTENDED_TOPOLOGY
+// CPUID_V2_EXTENDED_TOPOLOGY (preferred)
+// https://kib.kiev.ua/x86docs/AMD/AMD-CPUID-Spec/25481-r2.34.pdf#G3.2023419
+VOID
+KiGetMultiProcessorInfo(
+    PULONG NumberOfLogicalProcessors,
+    PULONG NumberOfPhysicalCores)
+{
+    CPUID_VERSION_INFO_REGS VersionInfo;
+    CPU_VENDORS Vendor;
+
+    /* Get the CPUID */
+    __cpuid(VersionInfo.AsInt32, CPUID_VERSION_INFO);
+
+    /* Get the number of logical processors */
+    *NumberOfLogicalProcessors = VersionInfo.Ebx.Bits.MaximumAddressableIdsForLogicalProcessors;
+
+    Vendor = KiGetCpuVendor();
+    if (Vendor == CPU_INTEL)
+    {
+        CPUID_CACHE_PARAMS_REGS CacheParams;
+
+        /* Get the number of physical cores */
+        __cpuid(CacheParams.AsInt32, CPUID_CACHE_PARAMS);
+        *NumberOfPhysicalCores = CacheParams.Eax.Bits.MaximumAddressableIdsForProcessorCores;
+    }
+    else if (Vendor == CPU_AMD)
+    {
+        // See https://kib.kiev.ua/x86docs/AMD/AMD-CPUID-Spec/25481-r2.34.pdf#G3.2107883
+        CPUID_VIR_PHY_ADDRESS_SIZE_REGS VirPhyAddressSize;
+
+        /* Get the number of physical cores */
+        __cpuid(VirPhyAddressSize.AsInt32, CPUID_VIR_PHY_ADDRESS_SIZE);
+        *NumberOfPhysicalCores = VirPhyAddressSize.Amd.Ecx.Bits.NC + 1;
+    }
+    else
+    {
+        /* Unknown vendor */
+        *NumberOfPhysicalCores = 1;
+    }
+}
+
+VOID
+KiTestGetMultiProcessorInfo()
+{
+    ULONG NumberOfLogicalProcessors;
+    ULONG NumberOfPhysicalCores;
+
+    __debugbreak();
+    KiGetMultiProcessorInfo(&NumberOfLogicalProcessors, &NumberOfPhysicalCores);
+
+    DPRINT1("NumberOfLogicalProcessors: %lu\n", NumberOfLogicalProcessors);
+    DPRINT1("NumberOfPhysicalCores: %lu\n", NumberOfPhysicalCores);
+}
