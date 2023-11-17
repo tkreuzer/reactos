@@ -34,19 +34,6 @@ typedef union
     };
 } CPUID_VERSION_INFO_REGS;
 
-// CPUID_EXTENDED_FUNCTION (0x80000000)
-typedef union
-{
-    INT32 AsInt32[4];
-    struct
-    {
-        UINT32 MaxLeaf;
-        UINT32 ReservedEbx;
-        UINT32 ReservedEcx;
-        UINT32 ReservedEdx;
-    };
-} CPUID_EXTENDED_FUNCTION_REGS;
-
 // CPUID_THERMAL_POWER_MANAGEMENT (6)
 typedef union
 {
@@ -114,6 +101,19 @@ typedef union
     };
 } CPUID_EXTENDED_STATE_SUB_LEAF_EAX_REGS;
 
+// CPUID_EXTENDED_FUNCTION (0x80000000)
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        UINT32 MaxLeaf;
+        UINT32 ReservedEbx;
+        UINT32 ReservedEcx;
+        UINT32 ReservedEdx;
+    };
+} CPUID_EXTENDED_FUNCTION_REGS;
+
 // CPUID_EXTENDED_CPU_SIG (0x80000001)
 typedef union
 {
@@ -134,6 +134,101 @@ typedef union
     } Amd;
 } CPUID_EXTENDED_CPU_SIG_REGS;
 
+
+// https://kib.kiev.ua/x86docs/AMD/AMD-CPUID-Spec/25481-r2.34.pdf#G3.2106230
+#define CPUID_L1_TLB_INFO 0xC0000005
+
+typedef union
+{
+    struct
+    {
+        UINT32 L1ITlb2and4MSize : 8; // EAX[7..0]
+        UINT32 L1ITlb2and4MAssoc : 8; // EAX[15..8] 0xFF = Fully associative
+        UINT32 L1DTlb2and4MSize : 8; // EAX[23..16]
+        UINT32 L1DTlb2and4MAssoc : 8; // EAX[31..24] 0xFF = Fully associative
+    } Bits;
+
+    UINT32    Uint32;
+} CPUID_AMD_L1_TLB_INFO_EAX;
+
+typedef union
+{
+    struct
+    {
+        UINT32 L1ITlb4KSize : 8; // EBX[7..0]
+        UINT32 L1ITlb4KAssoc : 8; // EBX[15..8] 0xFF = Fully associative
+        UINT32 L1DTlb4KSize : 8; // EBX[23..16]
+        UINT32 L1DTlb4KAssoc : 8; // EBX[31..24] 0xFF = Fully associative
+    } Bits;
+
+    UINT32    Uint32;
+} CPUID_AMD_L1_TLB_INFO_EBX;
+
+typedef union
+{
+    struct
+    {
+        UINT32 L1DcLineSize : 8; // ECX[7..0]
+        UINT32 L1DcLinesPerTag : 8; // ECX[15..8]
+        UINT32 L1DcAssoc : 8; // ECX[23..16] 0xFF = Fully associative
+        UINT32 L1DcSize : 8; // ECX[31..24]
+    } Bits;
+
+    UINT32    Uint32;
+} CPUID_AMD_L1_TLB_INFO_ECX;
+
+typedef union
+{
+    struct
+    {
+        UINT32 L1IcLineSize : 8; // EDX[7..0]
+        UINT32 L1IcLinesPerTag : 8; // EDX[15..8]
+        UINT32 L1IcAssoc : 8; // EDX[23..16] 0xFF = Fully associative
+        UINT32 L1IcSize : 8; // EDX[31..24]
+    } Bits;
+
+    UINT32    Uint32;
+} CPUID_AMD_L1_TLB_INFO_EDX;
+
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        UINT32 ReservedEax;
+        UINT32 ReservedEbx;
+        UINT32 ReservedEcx;
+        UINT32 ReservedEdx;
+    } Intel;
+    struct
+    {
+        CPUID_AMD_L1_TLB_INFO_EAX Eax;
+        CPUID_AMD_L1_TLB_INFO_EBX Ebx;
+        CPUID_AMD_L1_TLB_INFO_ECX Ecx;
+        CPUID_AMD_L1_TLB_INFO_EDX Edx;
+    } Amd;
+    struct
+    {
+        // Same as AMD, but no TLB info in EAX
+        UINT32 Eax; // Reserved
+        CPUID_AMD_L1_TLB_INFO_EBX Ebx;
+        CPUID_AMD_L1_TLB_INFO_ECX Ecx;
+        CPUID_AMD_L1_TLB_INFO_EDX Edx;
+    } Via;
+} CPUID_L1_TLB_INFO_REGS;
+
+// CPUID_EXTENDED_CACHE_INFO (0x80000006)
+typedef union
+{
+    INT32 AsInt32[4];
+    struct
+    {
+        UINT32 Eax;
+        UINT32 Ebx;
+        CPUID_EXTENDED_CACHE_INFO_ECX Ecx;
+        UINT32 Edx;
+    };
+} CPUID_EXTENDED_CACHE_INFO_REGS;
 
 // Additional AMD specific CPUID:
 // See
