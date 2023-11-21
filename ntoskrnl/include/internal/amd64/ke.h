@@ -415,7 +415,6 @@ VOID KiGdtPrepareForApplicationProcessorInit(ULONG Id);
 VOID Ki386InitializeLdt(VOID);
 VOID Ki386SetProcessorFeatures(VOID);
 VOID KiGetCacheInformation(VOID);
-VOID KiSetProcessorType(VOID);
 ULONG64 KiGetFeatureBits(VOID);
 VOID KiInitializeCpuFeatures(VOID);
 #if DBG

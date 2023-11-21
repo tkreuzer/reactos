@@ -98,6 +98,7 @@ KiInitializePcr(
     _In_ PKTHREAD IdleThread,
     _In_ PVOID DpcStack)
 {
+    USHORT Family, Model, Stepping;
     /* Zero out the PCR */
     RtlZeroMemory(Pcr, sizeof(KIPCR));
 
@@ -153,6 +154,16 @@ KiInitializePcr(
 
     /* Start us out at PASSIVE_LEVEL */
     Pcr->Irql = PASSIVE_LEVEL;
+
+    /* Get the CPU vendor */
+    KiGetCpuVendorString(Pcr->Prcb.VendorString);
+    Pcr->Prcb.CpuVendor = KiIdentifyCpuVendor(Pcr->Prcb.VendorString);
+
+    /* Get the CPU signature */
+    KiGetCpuSignature(&Family, &Model, &Stepping);
+    Pcr->Prcb.CpuID = TRUE;
+    Pcr->Prcb.CpuType = (UCHAR)Family;
+    Pcr->Prcb.CpuStep = ((Model << 8) | Stepping);
 }
 
 VOID
@@ -168,9 +179,6 @@ KiInitializeCpu(PKIPCR Pcr)
     /* Set GS base */
     __writemsr(MSR_GS_BASE, (ULONG64)Pcr);
     __writemsr(MSR_GS_SWAP, (ULONG64)Pcr);
-
-    /* Detect and set the CPU Type */
-    KiSetProcessorType();
 
     /* Get the processor features for this CPU */
     FeatureBits = KiGetFeatureBits();

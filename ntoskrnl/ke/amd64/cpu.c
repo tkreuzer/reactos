@@ -34,25 +34,6 @@ volatile LONG KiTbFlushTimeStamp;
 
 /* FUNCTIONS *****************************************************************/
 
-VOID
-NTAPI
-KiSetProcessorType(VOID)
-{
-    PKPRCB Prcb = KeGetCurrentPrcb();
-    USHORT Family, Model, Stepping;
-
-    /* This initializes Prcb->CpuVendor */
-    KiGetCpuVendorString(Prcb->VendorString);
-    Prcb->CpuVendor = KiIdentifyCpuVendor(Prcb->VendorString);
-
-    KiGetCpuSignature(&Family, &Model, &Stepping);
-
-    /* Save them in the PRCB */
-    Prcb->CpuID = TRUE;
-    Prcb->CpuType = (UCHAR)Family;
-    Prcb->CpuStep = ((Model << 8) | Stepping);
-}
-
 /*!
     \brief Evaluates the KeFeatureFlag bits for the current CPU.
 
