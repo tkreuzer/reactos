@@ -33,6 +33,12 @@ HalStartNextProcessor(
     return FALSE;
 }
 
+VOID
+HalpSetupProcessorsTable(
+    _In_ UINT32 NTProcessorNumber)
+{
+}
+
 #ifdef _M_AMD64
 
 VOID
