@@ -540,6 +540,11 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         /* Setup the IDT */
         KeInitExceptions();
     }
+    else
+    {
+        /* Update CR3 from the startup page tables to the initial process */
+        __writecr3(InitialThread->ApcState.Process->DirectoryTableBase[0]);
+    }
 
     /* Acquire lock */
     while (InterlockedBitTestAndSet64((PLONG64)&KiFreezeExecutionLock, 0))
@@ -569,8 +574,8 @@ KiSystemStartup(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         if (KdPollBreakIn()) DbgBreakPointWithStatus(DBG_STATUS_CONTROL_C);
     }
 
-    DPRINT1("Pcr = %p, Gdt = %p, Idt = %p, Tss = %p\n",
-           Pcr, Pcr->GdtBase, Pcr->IdtBase, Pcr->TssBase);
+    DPRINT1("Cpu %u: Pcr = %p, Gdt = %p, Idt = %p, Tss = %p\n",
+            Cpu, Pcr, Pcr->GdtBase, Pcr->IdtBase, Pcr->TssBase);
 
     /* Raise to HIGH_LEVEL */
     KfRaiseIrql(HIGH_LEVEL);
