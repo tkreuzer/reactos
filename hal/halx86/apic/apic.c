@@ -672,7 +672,7 @@ HalEnableSystemInterrupt(
     IN KINTERRUPT_MODE InterruptMode)
 {
     IOAPIC_REDIRECTION_REGISTER ReDirReg;
-    PKPRCB Prcb = KeGetCurrentPrcb();
+ //   PKPRCB Prcb = KeGetCurrentPrcb();
     UCHAR Index;
     ASSERT(Irql <= HIGH_LEVEL);
     ASSERT((IrqlToTpr(Irql) & 0xF0) == (Vector & 0xF0));
@@ -690,6 +690,12 @@ HalEnableSystemInterrupt(
     /* Read the redirection entry */
     ReDirReg = ApicReadIORedirectionEntry(Index);
 
+    if (ReDirReg.Mask == FALSE)
+    {
+        /* Interrupt is already enabled */
+        return TRUE;
+    }
+
     /* Check if the interrupt was unused */
     if (ReDirReg.Vector != Vector)
     {
@@ -703,7 +709,7 @@ HalEnableSystemInterrupt(
     if (ReDirReg.DestinationMode == APIC_DM_Logical)
     {
         /* Set the bit for this cpu */
-        ReDirReg.Destination |= ApicLogicalId(Prcb->Number);
+        ReDirReg.Destination |= ApicLogicalId(0);
     }
 
     /* Set the trigger mode */
