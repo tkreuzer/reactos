@@ -163,6 +163,13 @@ extern VOID __cdecl KiInterruptTemplate(VOID);
 /* One of the Reserved Wait Blocks, this one is for the Thread's Timer */
 #define TIMER_WAIT_BLOCK 0x3L
 
+/* Helper to find the lowest CPU in a KAFFINITY */
+#ifdef _WIN64
+#define BitScanForwardAffinity BitScanForward64
+#else
+#define BitScanForwardAffinity BitScanForward
+#endif
+
 /* INTERNAL KERNEL FUNCTIONS ************************************************/
 
 /* Finds a new thread to run */

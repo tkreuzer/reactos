@@ -17,6 +17,7 @@
 extern KSPIN_LOCK KiReverseStallIpiLock;
 
 /* PRIVATE FUNCTIONS *********************************************************/
+#ifndef _M_AMD64
 
 VOID
 NTAPI
@@ -270,3 +271,5 @@ KeIpiGenericCall(IN PKIPI_BROADCAST_WORKER Function,
     KeLowerIrql(OldIrql);
     return Status;
 }
+
+#endif
