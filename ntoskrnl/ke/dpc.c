@@ -918,25 +918,36 @@ VOID
 NTAPI
 KeFlushQueuedDpcs(VOID)
 {
-    PKPRCB CurrentPrcb = KeGetCurrentPrcb();
+    KAFFINITY RemainingSet, SetMember;
+    ULONG ProcessorIndex;
+    PKPRCB CurrentPrcb;
+
     PAGED_CODE();
 
-    /* Check if this is an UP machine */
-    if (KeActiveProcessors == 1)
+    /* Loop all active processors */
+    RemainingSet = KeActiveProcessors;
+    while (RemainingSet != 0)
     {
+        NT_VERIFY(BitScanForwardAffinity(&ProcessorIndex, RemainingSet) != 0);
+        ASSERT(ProcessorIndex < KeNumberProcessors);
+        SetMember = AFFINITY_MASK(ProcessorIndex);
+        RemainingSet &= ~SetMember;
+
+        /* Attach to the target processor */
+        KeSetSystemAffinityThread(SetMember);
+
         /* Check if there are DPCs on either queues */
+        CurrentPrcb = KeGetCurrentPrcb();
+        ASSERT(CurrentPrcb->SetMember == SetMember);
         if ((CurrentPrcb->DpcData[DPC_NORMAL].DpcQueueDepth > 0) ||
             (CurrentPrcb->DpcData[DPC_THREADED].DpcQueueDepth > 0))
         {
             /* Request an interrupt */
             HalRequestSoftwareInterrupt(DISPATCH_LEVEL);
-        }
+        }        
     }
-    else
-    {
-        /* FIXME: SMP support required */
-        ASSERT(FALSE);
-    }
+
+    KeRevertToUserAffinityThread();
 }
 
 /*
