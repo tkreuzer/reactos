@@ -16,6 +16,7 @@
 .code
 
 TRAP_ENTRY HalpClockInterrupt, (TF_VOLATILES OR TF_SEND_EOI)
+TRAP_ENTRY HalpClockIpi, (TF_VOLATILES OR TF_SEND_EOI)
 TRAP_ENTRY HalpProfileInterrupt, (TF_VOLATILES OR TF_SEND_EOI)
 
 PUBLIC ApicSpuriousService
