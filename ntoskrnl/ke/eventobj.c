@@ -12,6 +12,8 @@
 #define NDEBUG
 #include <debug.h>
 
+PKEVENT DbgEvent = NULL;
+
 /* FUNCTIONS *****************************************************************/
 
 /*
@@ -166,6 +168,8 @@ KeSetEvent(IN PKEVENT Event,
     ASSERT_EVENT(Event);
     ASSERT_IRQL_LESS_OR_EQUAL(DISPATCH_LEVEL);
 
+    if (Event == DbgEvent) __debugbreak();
+
     /*
      * Check if this is an signaled notification event without an upcoming wait.
      * In this case, we can immediately return TRUE, without locking.
@@ -234,6 +238,8 @@ KeSetEventBoostPriority(IN PKEVENT Event,
     PKTHREAD Thread = KeGetCurrentThread(), WaitThread;
     ASSERT(Event->Header.Type == EventSynchronizationObject);
     ASSERT_IRQL_LESS_OR_EQUAL(DISPATCH_LEVEL);
+
+    if (Event == DbgEvent) __debugbreak();
 
     /* Acquire Dispatcher Database Lock */
     OldIrql = KiAcquireDispatcherLock();

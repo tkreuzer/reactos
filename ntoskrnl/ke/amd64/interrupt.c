@@ -93,7 +93,7 @@ KeConnectInterrupt(IN PKINTERRUPT Interrupt)
 
     /* Check if its already connected */
     if (Interrupt->Connected) return TRUE;
-
+    //if (Interrupt->Number != 0) __debugbreak();
     /* Set the system affinity and acquire the dispatcher lock */
     KeSetSystemAffinityThread(1ULL << Interrupt->Number);
     OldIrql = KiAcquireDispatcherLock();

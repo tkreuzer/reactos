@@ -1638,6 +1638,8 @@ Cleanup:
     return;
 }
 
+extern PKEVENT DbgEvent;
+
 VOID
 FASTCALL
 xHalExamineMBR(IN PDEVICE_OBJECT DeviceObject,
@@ -1691,6 +1693,8 @@ xHalExamineMBR(IN PDEVICE_OBJECT DeviceObject,
     IoStackLocation = IoGetNextIrpStackLocation(Irp);
     IoStackLocation->Flags |= SL_OVERRIDE_VERIFY_VOLUME;
 
+    DbgEvent = &Event;
+
     /* Call the driver */
     Status = IoCallDriver(DeviceObject, Irp);
     if (Status == STATUS_PENDING)
@@ -1699,6 +1703,8 @@ xHalExamineMBR(IN PDEVICE_OBJECT DeviceObject,
         KeWaitForSingleObject(&Event, Executive, KernelMode, FALSE, NULL);
         Status = IoStatusBlock.Status;
     }
+
+    DbgEvent = NULL;
 
     /* Check driver Status */
     if (NT_SUCCESS(Status))
