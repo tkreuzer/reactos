@@ -300,6 +300,21 @@ typedef struct _PROCESSINFO
 #endif // DBG
 } PROCESSINFO;
 
+typedef struct _WIN32K_GLOBAL_STATS
+{
+    ULONG cProcessesAttached;
+    ULONG cProcessInfoAllocated;
+    ULONG cThreadsAttached;
+    ULONG cThreadInfoAllocated;
+    ULONG cKernelObjects;
+    ULONG cGDIObjects;
+    ULONG cUserObjects;
+    ULONG cHandles;
+    ULONG cKernelAllocs;
+} WIN32K_GLOBAL_STATS;
+
+extern WIN32K_GLOBAL_STATS g_Win32kGlobalStats;
+
 #if DBG
 void NTAPI UserDbgPreServiceHook(ULONG ulSyscallId, PULONG_PTR pulArguments);
 ULONG_PTR NTAPI UserDbgPostServiceHook(ULONG ulSyscallId, ULONG_PTR ulResult);

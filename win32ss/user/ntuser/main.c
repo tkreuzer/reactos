@@ -14,6 +14,7 @@
 #include <kdros.h>
 
 HANDLE hModuleWin;
+WIN32K_GLOBAL_STATS g_Win32kGlobalStats;
 
 NTSTATUS ExitProcessCallback(PEPROCESS Process);
 NTSTATUS NTAPI ExitThreadCallback(PETHREAD Thread);
@@ -76,6 +77,8 @@ AllocW32Process(IN  PEPROCESS Process,
         return STATUS_NO_MEMORY;
     }
 
+    InterlockedIncrementUL(&g_Win32kGlobalStats.cProcessInfoAllocated);
+
     TRACE_CH(UserProcess, "Allocated ppi 0x%p for PID:0x%lx\n",
              ppiCurrent, HandleToUlong(Process->UniqueProcessId));
 
@@ -115,6 +118,7 @@ UserDeleteW32Process(
 
     /* Free the PROCESSINFO */
     ExFreePoolWithTag(ppiCurrent, USERTAG_PROCESSINFO);
+    InterlockedDecrementUL(&g_Win32kGlobalStats.cProcessInfoAllocated);
 }
 
 NTSTATUS
@@ -290,6 +294,7 @@ InitProcessCallback(PEPROCESS Process)
     ppiCurrent->ppiNext = gppiList;
     gppiList = ppiCurrent;
 
+    InterlockedIncrementUL(&g_Win32kGlobalStats.cProcessesAttached);
     return STATUS_SUCCESS;
 
 error:
@@ -333,6 +338,7 @@ ExitProcessCallback(PEPROCESS Process)
 
     /* Finally, dereference */
     IntDereferenceProcessInfo(ppiCurrent);
+    InterlockedDecrementUL(&g_Win32kGlobalStats.cProcessesAttached);
 
     return STATUS_SUCCESS;
 }
@@ -391,6 +397,8 @@ AllocW32Thread(IN  PETHREAD Thread,
         return STATUS_NO_MEMORY;
     }
 
+    InterlockedIncrementUL(&g_Win32kGlobalStats.cThreadInfoAllocated);
+
     TRACE_CH(UserThread, "Allocated pti 0x%p for TID:0x%lx\n",
              ptiCurrent, HandleToUlong(Thread->Cid.UniqueThread));
 
@@ -425,6 +433,7 @@ UserDeleteW32Thread(PTHREADINFO pti)
    ObDereferenceObject(pti->pEThread);
 
    ExFreePoolWithTag(pti, USERTAG_THREADINFO);
+   InterlockedDecrementUL(&g_Win32kGlobalStats.cThreadInfoAllocated);
 
    IntDereferenceProcessInfo(ppi);
 
@@ -684,6 +693,7 @@ InitThreadCallback(PETHREAD Thread)
     }
 
     TRACE_CH(UserThread, "UserCreateW32Thread pti 0x%p\n", ptiCurrent);
+    InterlockedIncrementUL(&g_Win32kGlobalStats.cThreadsAttached);
     return STATUS_SUCCESS;
 
 error:
@@ -871,6 +881,7 @@ ExitThreadCallback(PETHREAD Thread)
 
     /* Dereference the THREADINFO */
     IntDereferenceThreadInfo(ptiCurrent);
+    InterlockedDecrementUL(&g_Win32kGlobalStats.cThreadsAttached);
 
     return STATUS_SUCCESS;
 }
