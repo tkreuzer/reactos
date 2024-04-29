@@ -1243,7 +1243,7 @@ IntCreateClass(IN CONST WNDCLASSEXW* lpwcx,
     {
 NoMem:
         ERR("Failed to allocate class on Desktop 0x%p\n", Desktop);
-
+        __debugbreak();
         if (pszMenuName != NULL)
             UserHeapFree(pszMenuName);
 
