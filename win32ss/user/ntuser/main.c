@@ -104,9 +104,7 @@ UserDeleteW32Process(
         ExFreePoolWithTag(ppiCurrent->InputIdleEvent, USERTAG_EVENT);
     }
 
-    /* Close the startup desktop */
-    if (ppiCurrent->rpdeskStartup)
-        ObDereferenceObject(ppiCurrent->rpdeskStartup);
+    ASSERT(ppiCurrent->rpdeskStartup == NULL);
 
 #if DBG
     if (DBG_IS_CHANNEL_ENABLED(ppiCurrent, DbgChUserObj, WARN_LEVEL))
@@ -227,6 +225,14 @@ UserProcessDestroy(PEPROCESS Process)
     /* Clean up the process icon cache */
     IntCleanupCurIconCache(ppiCurrent);
 
+    /* Close the startup desktop */
+    if (ppiCurrent->rpdeskStartup)
+    {
+        //__debugbreak();
+        ObDereferenceObject(ppiCurrent->rpdeskStartup);
+    }
+    ppiCurrent->rpdeskStartup = NULL;
+
     return STATUS_SUCCESS;
 }
 
@@ -338,7 +344,10 @@ ExitProcessCallback(PEPROCESS Process)
 
     /* Finally, dereference */
     IntDereferenceProcessInfo(ppiCurrent);
-    InterlockedDecrementUL(&g_Win32kGlobalStats.cProcessesAttached);
+    if (InterlockedDecrementUL(&g_Win32kGlobalStats.cProcessesAttached) == 0)
+    {
+        __debugbreak();
+    }
 
     return STATUS_SUCCESS;
 }
@@ -918,7 +927,7 @@ VOID NTAPI
 DriverUnload(IN PDRIVER_OBJECT DriverObject)
 {
     // TODO: Do more cleanup!
-
+    __debugbreak();
     ResetCsrApiPort();
     ResetCsrProcess();
 }

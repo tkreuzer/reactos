@@ -128,7 +128,7 @@ IntUserHeapCreate(IN PVOID SectionObject,
     NTSTATUS Status;
 
     Offset.QuadPart = 0;
-
+    //__debugbreak();
     /* Commit the first page before creating the heap! */
     Status = MmMapViewOfSection(SectionObject,
                                 PsGetCurrentProcess(),

@@ -160,15 +160,27 @@ IntDesktopObjectDelete(
 
     TRACE("Deleting desktop object 0x%p\n", pdesk);
 
-    if (pdesk->pDeskInfo &&
-        pdesk->pDeskInfo->spwnd)
+    /* Mark the desktop as destroyed */
+    pdesk->dwDTFlags |= DF_DESTROYED;
+
+    __debugbreak();
+    if (pdesk->pDeskInfo && pdesk->pDeskInfo->spwnd)
     {
         ASSERT(pdesk->pDeskInfo->spwnd->spwndChild == NULL);
-        co_UserDestroyWindow(pdesk->pDeskInfo->spwnd);
+        //co_UserDestroyWindow(pdesk->pDeskInfo->spwnd);
+        co_UserFreeWindow(pdesk->pDeskInfo->spwnd, PsGetCurrentProcessWin32Process(), PsGetCurrentThreadWin32Thread(), FALSE);
     }
 
     if (pdesk->spwndMessage)
-        co_UserDestroyWindow(pdesk->spwndMessage);
+    {
+        ASSERT(pdesk->spwndMessage->spwndNext == NULL);
+        ASSERT(pdesk->spwndMessage->spwndPrev == NULL);
+        ASSERT(pdesk->spwndMessage->spwndParent == NULL);
+        ASSERT(pdesk->spwndMessage->spwndChild == NULL);
+        ASSERT(pdesk->spwndMessage->spwndOwner == NULL);
+        //co_UserDestroyWindow(pdesk->spwndMessage);
+        co_UserFreeWindow(pdesk->spwndMessage, PsGetCurrentProcessWin32Process(), PsGetCurrentThreadWin32Thread(), FALSE);
+    }
 
     /* Remove the desktop from the window station's list of associated desktops */
     RemoveEntryList(&pdesk->ListEntry);
@@ -2371,7 +2383,7 @@ IntCreateDesktop(
     CREATESTRUCTW Cs;
     PTHREADINFO ptiCurrent;
     PCLS pcls;
-
+    //__debugbreak();
     TRACE("Enter IntCreateDesktop\n");
 
     ASSERT(UserIsEnteredExclusive());
@@ -3380,6 +3392,24 @@ IntSetThreadDesktop(IN HDESK hDesktop,
                 ObDereferenceObject(pdesk);
             }
             return FALSE;
+        }
+
+        /* Check if we own the message window */
+        if (pti->rpdesk->spwndMessage != NULL &&
+            pti->rpdesk->spwndMessage->head.pti == pti)
+        {__debugbreak();
+            /* Destroy the window */
+            co_UserDestroyWindow(pti->rpdesk->spwndMessage);
+            pti->rpdesk->spwndMessage = NULL;
+        }
+
+        /* Check if we own the desktop window */
+        if (pti->rpdesk->pDeskInfo->spwnd != NULL &&
+            pti->rpdesk->pDeskInfo->spwnd->head.pti == pti)
+        {__debugbreak();
+            /* Destroy the window */
+            co_UserDestroyWindow(pti->rpdesk->pDeskInfo->spwnd);
+            pti->rpdesk->pDeskInfo->spwnd = NULL;
         }
     }
 
