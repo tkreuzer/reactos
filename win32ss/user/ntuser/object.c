@@ -79,6 +79,12 @@ static PVOID AllocDeskThreadObject(
     ObjHead->rpdesk = pDesk;
     ObjHead->pti = pti;
     IntReferenceThreadInfo(pti);
+
+    /* We need to reference the desktop as well, because the threadinfo
+       might not even be attached to the desktop, which is retarded, but
+       this is how our wink32 "works" */
+    ObReferenceObject(pDesk);
+
     *HandleOwner = pti;
     /* It's a thread object, but it still count as one for the process */
     pti->ppi->UserHandleCount++;
@@ -97,6 +103,11 @@ static void FreeDeskThreadObject(
 
     pti->ppi->UserHandleCount--;
     IntDereferenceThreadInfo(pti);
+
+    /* We need to dereference the desktop as well, because the threadinfo
+       might not even be attached to the desktop, which is retarded, but
+       this is how our wink32 "works" */
+    ObDereferenceObject(pDesk);
 }
 
 _Success_(return!=NULL)
