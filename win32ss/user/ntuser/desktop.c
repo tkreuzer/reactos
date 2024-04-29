@@ -1815,8 +1815,9 @@ BOOL IntDeRegisterShellHookWindow(HWND hWnd)
 static VOID
 IntFreeDesktopHeap(IN OUT PDESKTOP Desktop)
 {
-    /* FIXME: Disable until unmapping works in mm */
-#if 0
+    /* Make sure all allocations are gone */
+    ASSERT(Desktop->NumberOfAllocations == 0);
+
     if (Desktop->pheapDesktop != NULL)
     {
         MmUnmapViewInSessionSpace(Desktop->pheapDesktop);
@@ -1828,7 +1829,6 @@ IntFreeDesktopHeap(IN OUT PDESKTOP Desktop)
         ObDereferenceObject(Desktop->hsectionDesktop);
         Desktop->hsectionDesktop = NULL;
     }
-#endif
 }
 
 BOOL FASTCALL
@@ -2272,6 +2272,8 @@ UserInitializeDesktop(PDESKTOP pdesk, PUNICODE_STRING DesktopName, PWINSTATION_O
     ObReferenceObject(pwinsta);
     pdesk->rpwinstaParent = pwinsta;
     InsertTailList(&pwinsta->DesktopListHead, &pdesk->ListEntry);
+
+    InitializeListHead(&pdesk->AllocList);
 
     /* Create the desktop heap */
     pdesk->hsectionDesktop = NULL;

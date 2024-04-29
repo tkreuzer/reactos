@@ -41,6 +41,18 @@ typedef struct _DESKTOP
     /* Thread blocking input */
     PVOID BlockInputThread;
     LIST_ENTRY ShellHookWindows;
+
+    ULONG NumberOfAllocations;
+    union
+    {
+        struct
+        {
+            struct _USER_HEAP_HEADER *First;
+            struct _USER_HEAP_HEADER *Last;
+        };
+        LIST_ENTRY AllocList;
+    };
+
 } DESKTOP, *PDESKTOP;
 
 // Desktop flags
@@ -199,27 +211,59 @@ UserIsMessageWindow(IN PWND pWnd)
 
 #endif
 
+typedef struct _USER_HEAP_HEADER
+{
+    union
+    {
+        struct
+        {
+            struct _USER_HEAP_HEADER *Next;
+            struct _USER_HEAP_HEADER *Prev;
+        };
+        LIST_ENTRY ListLink;
+    };
+    CHAR Signature[8];
+    PVOID BackTrace[6];
+    ULONG_PTR Size;
+} USER_HEAP_HEADER, *PUSER_HEAP_HEADER;
 
 static __inline PVOID
 DesktopHeapAlloc(IN PDESKTOP Desktop,
                  IN SIZE_T Bytes)
 {
+    PUSER_HEAP_HEADER pHeader;
+    PVOID p = NULL;
+
     /* Desktop heap has no lock, using global user lock instead. */
     ASSERT(UserIsEnteredExclusive());
-    return RtlAllocateHeap(Desktop->pheapDesktop,
+    pHeader = RtlAllocateHeap(Desktop->pheapDesktop,
                            HEAP_NO_SERIALIZE,
-                           Bytes);
+                           Bytes + sizeof(USER_HEAP_HEADER));
+    if (pHeader != NULL)
+    {
+        RtlCopyMemory(pHeader->Signature, "BckTrac\0", 8);
+        RtlCaptureStackBackTrace(1, 6, pHeader->BackTrace, NULL);
+        InsertTailList(&Desktop->AllocList, &pHeader->ListLink);
+        Desktop->NumberOfAllocations++;
+        p = (PVOID)(pHeader + 1);
+    }
+    return p;
 }
 
 static __inline BOOL
 DesktopHeapFree(IN PDESKTOP Desktop,
                 IN PVOID lpMem)
 {
+    PUSER_HEAP_HEADER pHeader;
+
     /* Desktop heap has no lock, using global user lock instead. */
     ASSERT(UserIsEnteredExclusive());
+    pHeader = (PUSER_HEAP_HEADER)lpMem - 1;
+    RemoveEntryList(&pHeader->ListLink);
+    Desktop->NumberOfAllocations--;
     return RtlFreeHeap(Desktop->pheapDesktop,
                        HEAP_NO_SERIALIZE,
-                       lpMem);
+                       pHeader);
 }
 
 static __inline PVOID
@@ -235,36 +279,42 @@ DesktopHeapReAlloc(IN PDESKTOP Desktop,
                              Bytes);
 #else
     SIZE_T PrevSize;
-    PVOID pNew;
+    PVOID pNew = NULL;
+    PUSER_HEAP_HEADER pHeader, pHeaderNew;
 
     /* Desktop heap has no lock, using global user lock instead. */
     ASSERT(UserIsEnteredExclusive());
 
+    Bytes += sizeof(USER_HEAP_HEADER);
+    pHeader = (PUSER_HEAP_HEADER)lpMem - 1;
     PrevSize = RtlSizeHeap(Desktop->pheapDesktop,
                            HEAP_NO_SERIALIZE,
-                           lpMem);
+                           pHeader);
 
     if (PrevSize == Bytes)
         return lpMem;
 
-    pNew = RtlAllocateHeap(Desktop->pheapDesktop,
+    pHeaderNew = RtlAllocateHeap(Desktop->pheapDesktop,
                            HEAP_NO_SERIALIZE,
                            Bytes);
-    if (pNew != NULL)
+    if (pHeaderNew != NULL)
     {
         if (PrevSize < Bytes)
             Bytes = PrevSize;
 
-        RtlCopyMemory(pNew,
-                      lpMem,
-                      Bytes);
+        RtlCopyMemory(pHeaderNew, pHeader, Bytes);
+
+        /* Relink the new header */
+        pHeader->Next->Prev = pHeaderNew;
+        pHeader->Prev->Next = pHeaderNew;
 
         RtlFreeHeap(Desktop->pheapDesktop,
                     HEAP_NO_SERIALIZE,
-                    lpMem);
+                    pHeader);
+        pNew = (PVOID)(pHeaderNew + 1);
     }
 
-    return pNew;
+    return pNew;;
 #endif
 }
 
