@@ -564,6 +564,11 @@ typedef struct _CALLPROCDATA
 
 typedef struct _CLS
 {
+    union
+    {
+        struct _CLS *pclsNextGlobal;
+        LIST_ENTRY leGlobalLink;
+    };
     struct _CLS *pclsNext;
     RTL_ATOM atomClassName;
     ATOM atomNVClassName;
@@ -593,6 +598,8 @@ typedef struct _CLS
     UINT Global:1; // CS_GLOBALCLASS or CSF_SERVERSIDEPROC
     UINT MenuNameIsString:1;
     UINT NotUsed:29;
+    struct _PROCESSINFO* ppiOwner;
+    struct _EPROCESS* pepOwner;
 } CLS, *PCLS;
 
 typedef struct _SBINFOEX

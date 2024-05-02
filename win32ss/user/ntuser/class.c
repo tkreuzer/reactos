@@ -9,6 +9,16 @@
 #include <win32k.h>
 DBG_DEFAULT_CHANNEL(UserClass);
 
+union
+{
+    LIST_ENTRY Head;
+    struct
+    {
+        PCLS pclsFirst;
+        PCLS pclsLast;
+    };
+} gClassList = { { &gClassList.Head, &gClassList.Head } };
+
 static PWSTR ControlsList[] =
 {
   L"Button",
@@ -286,6 +296,9 @@ IntDestroyClass(IN OUT PCLS Class)
 
     pDesk = Class->rpdeskParent;
     Class->rpdeskParent = NULL;
+
+    RemoveEntryList(&Class->leGlobalLink);
+    Class->ppiOwner->cClasses--;
 
     /* Free the structure */
     if (pDesk != NULL)
@@ -1040,6 +1053,95 @@ IntCheckProcessDesktopClasses(IN PDESKTOP Desktop,
     return Ret;
 }
 
+VOID
+UserPrintBackTrace(PUSER_BACKTRACE BackTrace)
+{
+    ULONG i;
+
+    for (i = 0; i < _countof(BackTrace->P); i++)
+    {
+        DbgPrint("  %p\n", BackTrace->P[i]);
+    }
+    DbgPrint("\n");
+}
+
+// This function walks the list of allocations in the desktop heap,
+// builds a list of the top offenders by their backtrace and
+// prints the list to the debug output.
+VOID
+DumpDesktopHeapOffenders(PDESKTOP Desktop)
+{
+    PLIST_ENTRY ListEntry;
+    struct _OFFENDER
+    {
+        USER_BACKTRACE BackTrace;
+        ULONG Count;
+    } Offenders[100];
+    ULONG i, OffenderCount = 0;
+
+    DbgPrint("Dumping desktop heap offenders for desktop %p\n", Desktop);
+
+    /* Loop all allocations */
+    for (ListEntry = Desktop->AllocList.Flink;
+         ListEntry != &Desktop->AllocList;
+         ListEntry = ListEntry->Flink)
+    {
+        /* Get the allocation header */
+        PUSER_HEAP_HEADER Alloc = CONTAINING_RECORD(ListEntry,
+                                                    USER_HEAP_HEADER,
+                                                    ListLink);
+
+        /* Check if we have this backtrace already */
+        for (i = 0; i < OffenderCount; i++)
+        {
+            if (RtlEqualMemory(&Offenders[i].BackTrace,
+                               &Alloc->BackTrace,
+                               sizeof(Alloc->BackTrace)))
+            {
+                Offenders[i].Count++;
+                break;
+            }
+        }
+
+        if (i == OffenderCount)
+        {
+            if (OffenderCount == ARRAYSIZE(Offenders))
+            {
+                continue;
+            }
+
+            /* New backtrace */
+            Offenders[OffenderCount].Count = 1;
+            Offenders[OffenderCount].BackTrace = Alloc->BackTrace;
+            OffenderCount++;
+        }
+    }
+
+    /* Sort the list */
+    for (i = 0; i < OffenderCount; i++)
+    {
+        ULONG j;
+
+        for (j = i + 1; j < OffenderCount; j++)
+        {
+            if (Offenders[j].Count > Offenders[i].Count)
+            {
+                struct _OFFENDER Temp;
+                Temp = Offenders[i];
+                Offenders[i] = Offenders[j];
+                Offenders[j] = Temp;
+            }
+        }
+    }
+
+    /* Print the list */
+    for (i = 0; i < OffenderCount; i++)
+    {
+        DbgPrint("Backtrace %u: Count %u\n", i, Offenders[i].Count);
+        UserPrintBackTrace(&Offenders[i].BackTrace);
+    }
+}
+
 PCLS
 FASTCALL
 IntCreateClass(IN CONST WNDCLASSEXW* lpwcx,
@@ -1243,6 +1345,7 @@ IntCreateClass(IN CONST WNDCLASSEXW* lpwcx,
     {
 NoMem:
         ERR("Failed to allocate class on Desktop 0x%p\n", Desktop);
+        DumpDesktopHeapOffenders(Desktop);
         __debugbreak();
         if (pszMenuName != NULL)
             UserHeapFree(pszMenuName);
@@ -1251,6 +1354,14 @@ NoMem:
         IntDeregisterClassAtom(verAtom);
 
         EngSetLastError(ERROR_NOT_ENOUGH_MEMORY);
+    }
+
+    if (Class != NULL)
+    {
+        InsertHeadList(&gClassList.Head, &Class->leGlobalLink);
+        Class->ppiOwner = pi;
+        Class->pepOwner = pi->peProcess;
+        pi->cClasses++;
     }
 
     TRACE("Created class 0x%p with name %wZ and proc 0x%p for atom 0x%x and version atom 0x%x and hInstance 0x%p, global %u\n",
@@ -1517,7 +1628,7 @@ UserRegisterClass(IN CONST WNDCLASSEXW* lpwcx,
     pti = GetW32ThreadInfo();
 
     pi = pti->ppi;
-
+    //__debugbreak();
     // Need only to test for two conditions not four....... Fix more whine tests....
     if ( IntGetAtomFromStringOrAtom( ClassVersion, &ClassAtom) &&
                                      ClassAtom != (RTL_ATOM)0 &&

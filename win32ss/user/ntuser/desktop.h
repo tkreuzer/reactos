@@ -211,6 +211,11 @@ UserIsMessageWindow(IN PWND pWnd)
 
 #endif
 
+typedef struct _USER_BACKTRACE
+{
+    PVOID P[6];
+} USER_BACKTRACE, *PUSER_BACKTRACE;
+
 typedef struct _USER_HEAP_HEADER
 {
     union
@@ -223,7 +228,7 @@ typedef struct _USER_HEAP_HEADER
         LIST_ENTRY ListLink;
     };
     CHAR Signature[8];
-    PVOID BackTrace[6];
+    USER_BACKTRACE BackTrace;
     ULONG_PTR Size;
 } USER_HEAP_HEADER, *PUSER_HEAP_HEADER;
 
@@ -242,7 +247,7 @@ DesktopHeapAlloc(IN PDESKTOP Desktop,
     if (pHeader != NULL)
     {
         RtlCopyMemory(pHeader->Signature, "BckTrac\0", 8);
-        RtlCaptureStackBackTrace(1, 6, pHeader->BackTrace, NULL);
+        RtlCaptureStackBackTrace(1, 6, pHeader->BackTrace.P, NULL);
         InsertTailList(&Desktop->AllocList, &pHeader->ListLink);
         Desktop->NumberOfAllocations++;
         p = (PVOID)(pHeader + 1);

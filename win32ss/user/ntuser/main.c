@@ -178,6 +178,13 @@ UserProcessDestroy(PEPROCESS Process)
     PPROCESSINFO ppiCurrent = PsGetProcessWin32Process(Process);
     ASSERT(ppiCurrent);
 
+    if ((ppiCurrent->pclsPrivateList != NULL) ||
+        (ppiCurrent->pclsPublicList != NULL) ||
+        (ppiCurrent->cClasses != 0))
+    {
+        __debugbreak();
+    }
+
     if (ppiScrnSaver == ppiCurrent)
         ppiScrnSaver = NULL;
 

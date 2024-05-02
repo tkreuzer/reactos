@@ -294,6 +294,7 @@ typedef struct _PROCESSINFO
 
 #if DBG
     BYTE DbgChannelLevel[DbgChCount];
+    ULONG cClasses;
 #ifndef __cplusplus
     DWORD DbgHandleCount[TYPE_CTYPES];
 #endif // __cplusplus
