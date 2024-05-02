@@ -2272,7 +2272,7 @@ static NTSTATUS
 UserInitializeDesktop(PDESKTOP pdesk, PUNICODE_STRING DesktopName, PWINSTATION_OBJECT pwinsta)
 {
     PVOID DesktopHeapSystemBase = NULL;
-    ULONG_PTR HeapSize = gdwDesktopSectionSize * 1024 * 4;
+    ULONG_PTR HeapSize = gdwDesktopSectionSize * 1024;
     SIZE_T DesktopInfoSize;
     ULONG i;
 
