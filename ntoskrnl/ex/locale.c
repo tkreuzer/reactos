@@ -134,9 +134,7 @@ ExpValidateNlsLocaleId(
                                NULL);
 
     /* Copy the locale ID into a buffer */
-    swprintf(LocaleIdBuffer,
-             L"%08lx",
-             (ULONG)LocaleId);
+    _swprintf(LocaleIdBuffer, L"%08lx", (ULONG)LocaleId);
 
     /* And build the LCID string */
     RtlInitUnicodeString(&LocaleIdString, LocaleIdBuffer);
