@@ -265,6 +265,12 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 #  define __mingw_ovr static __cdecl
 #endif /* __cplusplus */
 
+// TODO: define __has_cpp_attribute for GCC/Clang
+
+// ReactOS hacks for ucrt headers
+#define __acrt_iob_func __iob_func
+#define __stdio_common_vfprintf _vfprintf_s
+
 #include "_mingw_mac.h"
 
 #endif /* !_INC_MINGW */

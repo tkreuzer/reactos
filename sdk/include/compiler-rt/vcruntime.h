@@ -160,3 +160,5 @@
 
 // FIXME: C++!
 #define __crt_countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
+
+void __cdecl __security_init_cookie(void);
