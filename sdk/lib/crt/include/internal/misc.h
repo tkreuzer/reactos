@@ -1,10 +1,13 @@
 
+#include <signal.h>
 
 extern int msvcrt_error_mode;
 extern int __app_type;
 #define _UNKNOWN_APP 0
 #define _CONSOLE_APP 1
 #define _GUI_APP 2
+
+typedef _crt_signal_t __p_sig_fn_t;
 
 int
 __cdecl
