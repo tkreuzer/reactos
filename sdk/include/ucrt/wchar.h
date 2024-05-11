@@ -194,7 +194,11 @@ typedef wchar_t _Wint_t;
         _In_opt_ mbstate_t const* _P
         )
     {
+#ifdef __REACTOS__
+        return (!_P || *_P==0);
+#else
         return _P == NULL || _P->_Wchar == 0;
+#endif
     }
 
     __inline wchar_t _CONST_RETURN* __CRTDECL wmemchr(
