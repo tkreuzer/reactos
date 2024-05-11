@@ -12,6 +12,7 @@
 /* INCLUDES *****************************************************************/
 
 #include <stdio.h>
+#include <stdarg.h>
 
 #define WIN32_NO_STATUS
 #include <windef.h>

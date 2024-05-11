@@ -1,5 +1,6 @@
 #include <math.h>
 #include <float.h>
+#include <errno.h>
 #include "ieee754/ieee754.h"
 
 typedef int fpclass_t;

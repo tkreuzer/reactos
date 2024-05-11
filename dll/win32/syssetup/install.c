@@ -12,6 +12,7 @@
 
 #define COBJMACROS
 
+#include <stdarg.h>
 #include <io.h>
 #include <wincon.h>
 #include <winnls.h>

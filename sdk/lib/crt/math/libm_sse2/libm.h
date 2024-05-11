@@ -1,7 +1,7 @@
 /***********************************************************************************/
 /** MIT License **/
 /** ----------- **/
-/** **/  
+/** **/
 /** Copyright (c) 2002-2019 Advanced Micro Devices, Inc. **/
 /** **/
 /** Permission is hereby granted, free of charge, to any person obtaining a copy **/
@@ -10,7 +10,7 @@
 /** to use, copy, modify, merge, publish, distribute, sublicense, and/or sell **/
 /** copies of the Software, and to permit persons to whom the Software is **/
 /** furnished to do so, subject to the following conditions: **/
-/** **/ 
+/** **/
 /** The above copyright notice and this permission notice shall be included in **/
 /** all copies or substantial portions of the Software. **/
 /** **/
@@ -30,6 +30,7 @@
 
 #include <math.h>
 #include <fpieee.h>
+#include "libm_errno.h"
 
 #ifndef IS_64BIT
 #define IS_64BIT

@@ -32,7 +32,7 @@
 #include <windef.h>
 #include <winbase.h>
 #include <winuser.h>
-//#include <io.h>
+#include <io.h>
 #include <dos.h>
 
 #include "resource.h"

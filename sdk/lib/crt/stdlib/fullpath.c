@@ -8,6 +8,7 @@
 
 #include <precomp.h>
 #include <tchar.h>
+#include <direct.h>
 
 /*
  * @implemented

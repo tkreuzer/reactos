@@ -13,6 +13,7 @@
 
 #include <io.h>
 #include <process.h>
+#include <sys/types.h>
 
 #define __UNISTD_GETOPT__
 #include <getopt.h>
