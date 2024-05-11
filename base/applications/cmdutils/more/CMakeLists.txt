@@ -3,6 +3,8 @@ PROJECT(more)
 
 include_directories(${REACTOS_SOURCE_DIR}/sdk/lib/conutils)
 
+add_definitions(-D_CRT_NON_CONFORMING_WCSTOK)
+
 add_executable(more more.c more.rc)
 set_module_type(more win32cui UNICODE)
 target_link_libraries(more conutils ${PSEH_LIB})
