@@ -129,7 +129,7 @@ namespace std
   using ::wcsrchr;
   using ::wcsstr;
   using ::wmemchr;
-
+#if 0
   inline wchar_t*
   wcschr(wchar_t* __p, wchar_t __c)
   { return wcschr(const_cast<const wchar_t*>(__p), __c); }
@@ -149,4 +149,5 @@ namespace std
   inline wchar_t*
   wmemchr(wchar_t* __p, wchar_t __c, size_t __n)
   { return wmemchr(const_cast<const wchar_t*>(__p), __c, __n); }
+#endif
 }
