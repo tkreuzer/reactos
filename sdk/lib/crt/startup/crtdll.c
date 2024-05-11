@@ -32,7 +32,7 @@
 #include <sect_attribs.h>
 #include <locale.h>
 
-extern void __cdecl _initterm(_PVFV *,_PVFV *);
+_CRTIMP extern void __cdecl _initterm(_PVFV *,_PVFV *);
 extern void __main ();
 extern void _pei386_runtime_relocator (void);
 extern _CRTALLOC(".CRT$XIA") _PIFV __xi_a[];
