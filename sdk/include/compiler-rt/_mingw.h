@@ -214,6 +214,7 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 #endif
 
 /* Disable deprecation for now! */
+#define _CRT_DECLARE_NONSTDC_NAMES 1
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_DEPRECATE_CORE
 #ifdef __WINESRC__
@@ -268,8 +269,22 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 // TODO: define __has_cpp_attribute for GCC/Clang
 
 // ReactOS hacks for ucrt headers
-#define __acrt_iob_func __iob_func
-#define __stdio_common_vfprintf _vfprintf_s
+#ifndef _NO_CRT_STDIO_INLINE
+#define _NO_CRT_STDIO_INLINE
+#endif
+#define _CRT_FUNCTIONS_REQUIRED 1
+
+// HACK
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#define __crt_locale_data threadlocaleinfostruct
+
+// HACK: nonstandard function used by stlport
+__declspec(dllimport)
+char*
+__cdecl
+gets(
+    char *_Buffer);
 
 #include "_mingw_mac.h"
 
