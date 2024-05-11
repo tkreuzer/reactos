@@ -4,6 +4,7 @@ include_directories(include)
 
 add_definitions(-D_CRTBLD -D_CORECRT_BUILD)
 add_definitions(-D_NO_CRT_STDIO_INLINE)
+add_definitions(-D_CRT_DECLARE_NONSTDC_NAMES)
 
 include(conio/conio.cmake)
 include(direct/direct.cmake)
