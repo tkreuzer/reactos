@@ -5,7 +5,7 @@
  * PURPOSE:         Implementation of _vscwprintf
  */
 
-#include <stdio.h>
+#include "internal/stdio_internal.h"
 #include <stdarg.h>
 
 int __cdecl wstreamout(FILE *stream, const wchar_t *format, va_list argptr);

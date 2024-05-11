@@ -10,6 +10,10 @@
 #include <stdio.h>
 #include <wchar.h>
 
+// These are no longer defined in stdio.h
+#define _IOSTRG 0x0040
+#define _IOWRT 0x0002
+
 int __cdecl KmtWcToMb(char *mbchar, wchar_t wchar)
 {
     *mbchar = (char)wchar;

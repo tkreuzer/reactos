@@ -19,6 +19,8 @@
 #include <mbstring.h>
 #endif
 
+extern int __globallocalestatus;
+
 /* Special handling for ARM & ARM64, __winitenv & __initenv aren't present there. */
 #if !defined(__arm__) && !defined(__aarch64__)
 _CRTIMP extern wchar_t** __winitenv;

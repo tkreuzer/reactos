@@ -5,7 +5,7 @@
  * PURPOSE:         Implementation of _vscprintf
  */
 
-#include <stdio.h>
+#include "internal/stdio_internal.h"
 #include <stdarg.h>
 
 int __cdecl streamout(FILE *stream, const char *format, va_list argptr);

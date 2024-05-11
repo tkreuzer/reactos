@@ -163,13 +163,6 @@ _getcwd(
 #define _A_SUBDIR 0x10
 #define _A_ARCH 0x20
 
-  /* Some defines for _access nAccessMode (MS doesn't define them, but
-  * it doesn't seem to hurt to add them). */
-#define	F_OK	0	/* Check for file existence */
-#define	X_OK	1	/* Check for execute permission. */
-#define	W_OK	2	/* Check for write permission */
-#define	R_OK	4	/* Check for read permission */
-
   _Check_return_
   _CRTIMP
   int
