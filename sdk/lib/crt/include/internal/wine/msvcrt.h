@@ -41,6 +41,8 @@
 #include "windef.h"
 #include "winbase.h"
 
+typedef _crt_signal_t __p_sig_fn_t;
+
 extern unsigned int __lc_codepage;
 extern int __lc_collate_cp;
 extern int __mb_cur_max;
