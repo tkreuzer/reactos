@@ -40,6 +40,16 @@
 #include <sys/utime.h>
 #include "bitsfixup.h"
 
+#ifndef _futime
+#ifdef _USE_32BIT_TIME_T
+#define _futime _futime32
+#define _utimbuf __utimbuf32
+#else
+#define _futime _futime64
+#define _utimbuf __utimbuf64
+#endif
+#endif
+
 int
 _tutime(const _TCHAR* path, struct _utimbuf *t)
 {

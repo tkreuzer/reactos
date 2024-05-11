@@ -65,6 +65,7 @@ char __syserr41[] = "Directory not empty (ENOTEMPTY)";
 char __syserr42[] = "Illegal byte sequence (EILSEQ)";
 char __syserr43[] = "Unknown/generic error";
 
+#undef _sys_errlist
 char *_sys_errlist[] = {
 __syserr00, __syserr01, __syserr02, __syserr03, __syserr04,
 __syserr05, __syserr06, __syserr07, __syserr08, __syserr09,
@@ -77,6 +78,7 @@ __syserr35, __syserr36, __syserr37, __syserr38, __syserr39,
 __syserr40, __syserr41, __syserr42, __syserr43
 };
 
+#undef _sys_nerr
 int _sys_nerr = sizeof(_sys_errlist) / sizeof(_sys_errlist[0]) - 1;
 
 /*********************************************************************

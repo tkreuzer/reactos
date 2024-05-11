@@ -29,6 +29,7 @@ int CDECL _tstat(const _TCHAR* path, struct _stat * buf)
 
 int CDECL _tstati64(const _TCHAR* path, struct _stati64 * buf)
 {
+#if 0
   int ret;
   struct __stat64 buf64;
 
@@ -36,6 +37,9 @@ int CDECL _tstati64(const _TCHAR* path, struct _stati64 * buf)
   if (!ret)
     stat64_to_stat(&buf64, buf);
   return ret;
+#else
+return 0;
+#endif
 }
 
 #ifndef _UNICODE

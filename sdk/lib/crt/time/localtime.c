@@ -4,7 +4,7 @@
  * FILE:        lib/sdk/crt/time/localtime.c
  * PURPOSE:     Implementation of localtime, localtime_s
  * PROGRAMERS:  Timo Kreuzer
- *              Samuel Serapión
+ *              Samuel SerapiÃ³n
  */
 #include <precomp.h>
 #include <time.h>
@@ -14,6 +14,8 @@
 #define _MAX__TIME64_T     0x793406fffLL     /* number of seconds from
                                                  00:00:00, 01/01/1970 UTC to
                                                  23:59:59. 12/31/3000 UTC */
+struct tm *
+localtime(const time_t *ptime);
 
 errno_t
 localtime_s(struct tm* _tm, const time_t *ptime)
@@ -44,6 +46,13 @@ localtime_s(struct tm* _tm, const time_t *ptime)
 }
 
 extern char _tz_is_set;
+#ifndef gmtime
+#ifdef _USE_32BIT_TIME_T
+#define gmtime _gmtime32
+#else
+#define gmtime _gmtime64
+#endif
+#endif
 
 struct tm *
 localtime(const time_t *ptime)

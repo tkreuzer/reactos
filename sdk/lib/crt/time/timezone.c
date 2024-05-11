@@ -7,6 +7,12 @@
  */
 #include "precomp.h"
 
+#ifdef _USE_32BIT_TIME_T
+#define _mkgmtime _mkgmtime32
+#else
+#define _mkgmtime _mkgmtime64
+#endif
+
 char _tz_is_set = 0;
 
 /* buffers must hold 64 characters! */
@@ -19,6 +25,7 @@ long dst_end = 0;
 /******************************************************************************
  * \var _tzname
  */
+#undef _tzname
 char * _tzname[2] = {
   tz_name,
   tz_dst_name,
@@ -27,6 +34,7 @@ char * _tzname[2] = {
 /******************************************************************************
  * \var _daylight
  */
+#undef _daylight
 int _daylight = 0;
 
 /******************************************************************************
@@ -43,6 +51,7 @@ __p__daylight(void)
  * \var _timezone
  * \brief
  */
+#undef _timezone
 long _timezone = 28800;
 
 /******************************************************************************
@@ -59,6 +68,7 @@ __p__timezone(void)
  * \var _dstbias
  * \brief
  */
+#undef _dstbias
 long _dstbias = 0;
 
 /******************************************************************************
