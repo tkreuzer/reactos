@@ -1,5 +1,5 @@
 
-add_definitions(-D__WINESRC__)
+add_definitions(-D__WINESRC__ -D_CRT_DECLARE_NONSTDC_NAMES)
 include_directories(${REACTOS_SOURCE_DIR}/sdk/include/reactos/wine)
 spec2def(fusion.dll fusion.spec)
 
