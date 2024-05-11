@@ -11,8 +11,9 @@
 #define MINGW_HAS_SECURE_API 1
 
 /* Headers to be compiled */
+#include "internal/stdio_internal.h"
+#include "internal/io_internal.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #include <conio.h>
@@ -22,7 +23,6 @@
 #include <malloc.h>
 #include <math.h>
 #include <limits.h>
-#include <io.h>
 
 #include <sys/stat.h>
 #include <sys/locking.h>

@@ -7,10 +7,10 @@
  *                  Katayama Hirofumi MZ
  */
 
-#include <stdio.h>
+#include "internal/stdio_internal.h"
 #include <stdarg.h>
 #include <tchar.h>
-#include <strings.h>
+#include <string.h>
 #include <math.h>
 #include <float.h>
 

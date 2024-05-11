@@ -6,7 +6,7 @@
  * PROGRAMMER:      Timo Kreuzer
  */
 
-#include <stdio.h>
+#include "internal/stdio_internal.h"
 #include <stdarg.h>
 #include <limits.h>
 #include <tchar.h>

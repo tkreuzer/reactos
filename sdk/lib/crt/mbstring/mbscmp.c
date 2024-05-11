@@ -1,3 +1,4 @@
+#include "internal/stdio_internal.h"
 #include <mbstring.h>
 #include <string.h>
 #include <precomp.h>

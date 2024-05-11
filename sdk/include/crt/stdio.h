@@ -57,10 +57,6 @@ extern "C" {
 #define SEEK_END 2
 #define SEEK_SET 0
 
-#define	STDIN_FILENO	0
-#define	STDOUT_FILENO	1
-#define	STDERR_FILENO	2
-
 #define FILENAME_MAX 260
 #define FOPEN_MAX 20
 #define _SYS_OPEN 20
@@ -121,19 +117,9 @@ _CRTIMP int* __cdecl __p__commode(void);
 /* On newer Windows windows versions, (*__p__commode()) is used */
 extern _CRTIMP int _commode;
 
-#define _IOREAD 0x0001
-#define _IOWRT 0x0002
-
 #define _IOFBF 0x0000
 #define _IOLBF 0x0040
 #define _IONBF 0x0004
-
-#define _IOMYBUF 0x0008
-#define _IOEOF 0x0010
-#define _IOERR 0x0020
-#define _IOSTRG 0x0040
-#define _IORW 0x0080
-#define _USERBUF 0x0100
 
 #define _TWO_DIGIT_EXPONENT 0x1
 
@@ -144,14 +130,6 @@ extern _CRTIMP int _commode;
   int
   __cdecl
   _filbuf(
-    _Inout_ FILE *_File);
-
-  _Check_return_opt_
-  _CRTIMP
-  int
-  __cdecl
-  _flsbuf(
-    _In_ int _Ch,
     _Inout_ FILE *_File);
 
 #ifdef _POSIX_
