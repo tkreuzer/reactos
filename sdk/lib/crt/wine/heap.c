@@ -20,7 +20,7 @@
  * Note: Win32 heap operations are MT safe. We only lock the new
  *       handler and non atomic heap operations
  */
-
+#define __STDC_WANT_SECURE_LIB__ 0
 #include <precomp.h>
 #include <malloc.h>
 
