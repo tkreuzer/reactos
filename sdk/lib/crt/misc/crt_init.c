@@ -17,6 +17,14 @@ extern char** __initenv;     /* pointer to initial environment block */
 extern wchar_t** _wenviron;  /* pointer to environment block */
 extern wchar_t** __winitenv; /* pointer to initial environment block */
 
+#if 1 // ucrt headers
+_CRTIMP extern unsigned int _winver;
+_CRTIMP extern unsigned int _winmajor;
+_CRTIMP extern unsigned int _winminor;
+_CRTIMP extern unsigned int _osplatform;
+_CRTIMP extern unsigned int _osver;
+#endif
+
 BOOL
 crt_process_init(void)
 {

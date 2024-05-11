@@ -32,6 +32,8 @@ void msvcrt_free_popen_data(void)
 }
 #endif
 
+extern int _fmode;
+
 /*
  * @implemented
  */
