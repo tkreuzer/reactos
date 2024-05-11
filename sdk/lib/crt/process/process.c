@@ -11,6 +11,8 @@
 #include <tchar.h>
 #include <internal/wine/msvcrt.h>
 
+#define F_OK    0
+
 #ifdef _UNICODE
    #define sT "S"
    #define find_execT find_execW
