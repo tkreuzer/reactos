@@ -35,7 +35,7 @@ _CRTIMP void __cdecl __setusermatherr(int (__cdecl *)(struct _exception *));
   typedef void (__cdecl *_PVFI)(int);
 #endif
 
-#if defined (SPECIAL_CRTEXE) && (defined (_DLL) || defined (__GNUC__))
+#if (defined(SPECIAL_CRTEXE) && (defined (_DLL) || defined (__GNUC__))) || defined(_CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY)
   extern int _commode;
 #else
   _CRTIMP extern int _commode;
