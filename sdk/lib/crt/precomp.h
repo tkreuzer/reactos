@@ -83,4 +83,10 @@ WINE_DEFAULT_DEBUG_CHANNEL(msvcrt);
 #include <internal/tls.h>
 #endif
 
+// In latest MS crt headers, corecrt.h will define _CRT_NO_TIME_T,
+// when _CORECRT_BUILD is defined.
+#ifdef _CRT_NO_TIME_T
+typedef __time32_t time_t;
+#endif
+
 #endif /* _CRT_PRECOMP_H */
