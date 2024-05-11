@@ -120,7 +120,7 @@ _CRTIMP  extern ioinfo ** __pioinfo[];
 _CRTIMP extern wchar_t ** __winitenv;
 _CRTIMP extern char ** __initenv;
 _CRTIMP extern char * _acmdln;
-_CRTIMP extern  char * _wcmdln;
+_CRTIMP extern  wchar_t * _wcmdln;
 
   _CRTIMP __declspec(noreturn) void __cdecl _amsg_exit(int);
 
