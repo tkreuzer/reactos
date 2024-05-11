@@ -628,7 +628,11 @@ typedef struct _Mbstatet
     unsigned short _Byte, _State;
 } _Mbstatet;
 
+#ifdef __REACTOS__
+typedef int mbstate_t;
+#else
 typedef _Mbstatet mbstate_t;
+#endif
 
 #if defined _USE_32BIT_TIME_T && defined _WIN64
     #error You cannot use 32-bit time_t (_USE_32BIT_TIME_T) with _WIN64

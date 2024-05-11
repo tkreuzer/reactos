@@ -94,6 +94,10 @@ wchar_t* __CRTDECL _get_wide_winmain_command_line(void);
 _ACRTIMP char**    __cdecl __p__acmdln(void);
 _ACRTIMP wchar_t** __cdecl __p__wcmdln(void);
 
+#ifdef __REACTOS__
+ _CRTIMP extern char*    _acmdln;
+ _CRTIMP extern wchar_t* _wcmdln;
+#else
 #ifdef _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
     extern char*    _acmdln;
     extern wchar_t* _wcmdln;
@@ -101,6 +105,7 @@ _ACRTIMP wchar_t** __cdecl __p__wcmdln(void);
     #define _acmdln (*__p__acmdln())
     #define _wcmdln (*__p__wcmdln())
 #endif
+#endif // __REACTOS__
 
 
 
