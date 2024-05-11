@@ -1,3 +1,4 @@
+#define _NO_CRT_STDIO_INLINE
 #include <stdarg.h>
 #include <windef.h>
 #include <winbase.h>
@@ -275,7 +276,7 @@ ata_send_ioctl(
     AtaCtl->hdr.Timeout = 10000;
     AtaCtl->hdr.ControlCode = Ioctl;
     AtaCtl->hdr.ReturnCode = 0;
-    
+
     if(addr) {
         AtaCtl->addr = *addr;
         AtaCtl->addr.Length = sizeof(AtaCtl->addr);
@@ -359,7 +360,7 @@ ata_send_scsi(
     sptwb->spt.TimeOutValue = 10;
     sptwb->spt.DataBufferOffset =
        offsetof(SCSI_PASS_THROUGH_WITH_BUFFERS,ucDataBuf);
-    sptwb->spt.SenseInfoOffset = 
+    sptwb->spt.SenseInfoOffset =
        offsetof(SCSI_PASS_THROUGH_WITH_BUFFERS,ucSenseBuf);
     memcpy(&sptwb->spt.Cdb, cdb, cdbLength);
 
@@ -703,7 +704,7 @@ ata_check_unit(
                 &inquiryData->InquiryData[8]);
             }*/
             l_dev_id = (i << 16) | ((ULONG)(inquiryData->TargetId) << 8) | inquiryData->Lun;
-            
+
             if(l_dev_id == dev_id || dev_id == -1) {
 
                 scsi_ident = (PINQUIRYDATA)&(inquiryData->InquiryData);
@@ -746,7 +747,7 @@ ata_check_unit(
                 } else {
                     io_mode = -1;
                 }
-    
+
                 memset(&pin, 0, sizeof(pin));
                 memset(buff, 0, sizeof(buff));
                 pin.irDriveRegs.bCommandReg = ID_CMD;
@@ -954,7 +955,7 @@ next_dev:
             if (inquiryData->NextInquiryDataOffset == 0) {
                 break;
             }
-            
+
             inquiryData = (PSCSI_INQUIRY_DATA) (g_inquiry_buffer +
                 inquiryData->NextInquiryDataOffset);
         }
@@ -998,7 +999,7 @@ ata_adapter_info(
             return FALSE;
         }
     } else {
-        AdapterInfo = g_AdapterInfo; 
+        AdapterInfo = g_AdapterInfo;
     }
     memset(AdapterInfo, 0, len);
 
@@ -1509,7 +1510,7 @@ ata_bblk(
                 printf("Bad input BB list file:\n  %s\n", g_bb_list);
                 printf("Can't parse line %d:\n%s\n", j, BB_Msg);
                 continue;
-            } 
+            }
             if(!tmp_bb_len) {
                 printf("Bad input BB list file:\n  %s\n", g_bb_list);
                 printf("BlockCount evaluated to 0 in line %d:\n%s\n", j, BB_Msg);
