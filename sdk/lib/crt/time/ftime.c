@@ -9,6 +9,11 @@
 #include <sys/timeb.h>
 #include "bitsfixup.h"
 
+#if !defined(_USE_EXPLICIT_64BIT_TIME) && !defined(_USE_EXPLICIT_32BIT_TIME)
+#undef _ftime_s
+#undef _ftime
+#endif
+
 /******************************************************************************
  * \name _ftime_s
  * \brief Get the current time.

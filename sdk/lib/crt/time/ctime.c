@@ -7,6 +7,7 @@
  */
 #define MINGW_HAS_SECURE_API 1
 
+#include <precomp.h>
 #include <errno.h>
 #define RC_INVOKED 1 // to prevent inline functions
 #include <tchar.h>
@@ -15,6 +16,7 @@
 
 /* Doesn't really exist, but we need it here */
 _CRTIMP errno_t __cdecl localtime_s(struct tm *_Tm,const time_t *_Time);
+struct tm * localtime(const time_t *ptime);
 
 /******************************************************************************
  * \name _tctime_s

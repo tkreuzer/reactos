@@ -5,6 +5,7 @@
  * PURPOSE:     Implementation of difftime
  * PROGRAMERS:  Timo Kreuzer
  */
+#include <precomp.h>
 #include <time.h>
 #include "bitsfixup.h"
 

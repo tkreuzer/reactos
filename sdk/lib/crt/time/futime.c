@@ -44,6 +44,16 @@
 ioinfo* get_ioinfo(int fd);
 void release_ioinfo(ioinfo *info);
 
+ _CRTIMP time_t __cdecl time(time_t *_Time);
+
+#ifndef _utimbuf
+    struct _utimbuf
+    {
+        time_t actime;          // access time
+        time_t modtime;         // modification time
+    };
+#endif
+
 /******************************************************************************
  * \name _futime
  * \brief Set a file's modification time.
