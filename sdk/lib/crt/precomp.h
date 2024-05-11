@@ -10,6 +10,8 @@
 /* needed to expose _s api definitions */
 #define MINGW_HAS_SECURE_API 1
 
+#define _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
+
 /* Headers to be compiled */
 #include "internal/stdio_internal.h"
 #include "internal/io_internal.h"
