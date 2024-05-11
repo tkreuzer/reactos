@@ -1,5 +1,7 @@
 include_directories(${REACTOS_SOURCE_DIR}/sdk/lib/conutils)
 
+add_definitions(-D_CRT_NON_CONFORMING_WCSTOK)
+
 add_executable(where where.c where.rc)
 set_module_type(where win32cui UNICODE)
 target_link_libraries(where conutils ${PSEH_LIB})

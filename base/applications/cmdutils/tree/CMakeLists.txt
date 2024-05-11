@@ -1,6 +1,8 @@
 
 include_directories(${REACTOS_SOURCE_DIR}/sdk/lib/conutils)
 
+add_definitions(-D_CRT_NON_CONFORMING_WCSTOK)
+
 add_executable(tree tree.c tree.rc)
 set_module_type(tree win32cui UNICODE)
 target_link_libraries(tree conutils ${PSEH_LIB})
