@@ -83,6 +83,23 @@ struct _stat64
 
 #define __stat64 _stat64 // For legacy compatibility
 
+#if !defined _UCRT && !defined _CRT_NO_TIME_T
+    struct _stat
+    {
+        _dev_t         st_dev;
+        _ino_t         st_ino;
+        unsigned short st_mode;
+        short          st_nlink;
+        short          st_uid;
+        short          st_gid;
+        _dev_t         st_rdev;
+        _off_t         st_size;
+        time_t         st_atime;
+        time_t         st_mtime;
+        time_t         st_ctime;
+    };
+#endif // _UCRT
+
 #if defined(_CRT_INTERNAL_NONSTDC_NAMES) && _CRT_INTERNAL_NONSTDC_NAMES && !defined _CRT_NO_TIME_T
     struct stat
     {
@@ -133,6 +150,7 @@ struct _stat64
 // Functions
 //
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#ifdef _UCRT
 #ifdef _USE_32BIT_TIME_T
     #define _fstat      _fstat32
     #define _fstati64   _fstat32i64
@@ -148,7 +166,7 @@ struct _stat64
     #define _wstat      _wstat64i32
     #define _wstati64   _wstat64
 #endif
-
+#endif
 
 
 _ACRTIMP int __cdecl _fstat32(
@@ -211,37 +229,39 @@ _ACRTIMP int __cdecl _wstat64(
     _Out_  struct _stat64* _Stat
     );
 
+#if !defined _UCRT && !defined _CRT_NO_TIME_T
 
+_ACRTIMP int __cdecl _fstat(
+    _In_  int             _FileHandle,
+    _Out_ struct _stat*   _Stat
+    );
+
+_ACRTIMP int __cdecl _stat(
+    _In_z_ char const*     _FileName,
+    _Out_  struct _stat*   _Stat
+    );
+
+_ACRTIMP int __cdecl _wstat(
+    _In_z_ wchar_t const*  _FileName,
+    _Out_  struct _stat*   _Stat
+    );
+
+#endif // _UCRT
 
 #if !defined RC_INVOKED && !defined __midl && defined(_CRT_INTERNAL_NONSTDC_NAMES) && _CRT_INTERNAL_NONSTDC_NAMES && !defined _CRT_NO_TIME_T
-    #ifdef _USE_32BIT_TIME_T
 
         static __inline int __CRTDECL fstat(int const _FileHandle, struct stat* const _Stat)
         {
-            _STATIC_ASSERT(sizeof(struct stat) == sizeof(struct _stat32));
-            return _fstat32(_FileHandle, (struct _stat32*)_Stat);
+            _STATIC_ASSERT(sizeof(struct stat) == sizeof(struct _stat));
+            return _fstat(_FileHandle, (struct _stat*)_Stat);
         }
 
         static __inline int __CRTDECL stat(char const* const _FileName, struct stat* const _Stat)
         {
-            _STATIC_ASSERT(sizeof(struct stat) == sizeof(struct _stat32));
-            return _stat32(_FileName, (struct _stat32*)_Stat);
+            _STATIC_ASSERT(sizeof(struct stat) == sizeof(struct _stat));
+            return _stat(_FileName, (struct _stat*)_Stat);
         }
 
-    #else
-
-        static __inline int __CRTDECL fstat(int const _FileHandle, struct stat* const _Stat)
-        {
-            _STATIC_ASSERT(sizeof(struct stat) == sizeof(struct _stat64i32));
-            return _fstat64i32(_FileHandle, (struct _stat64i32*)_Stat);
-        }
-        static __inline int __CRTDECL stat(char const* const _FileName, struct stat* const _Stat)
-        {
-            _STATIC_ASSERT(sizeof(struct stat) == sizeof(struct _stat64i32));
-            return _stat64i32(_FileName, (struct _stat64i32*)_Stat);
-        }
-
-    #endif
 #endif
 
 _CRT_END_C_HEADER

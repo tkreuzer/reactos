@@ -606,6 +606,13 @@ typedef struct _CrtMemState
     #define _CrtSetReportHook2(t, f)            ((int)0)
     #define _CrtSetReportHookW2(t, f)           ((int)0)
 
+#elif !defined(_UCRT) && (__MSVCRT__VERSION < _MSVCRT_VERSION_VISTA)
+
+    #define _CrtDbgReport(...) 0
+    #define _CrtDbgReportW(...) 0
+    #define _VCrtDbgReportA(...) 0
+    #define _VCrtDbgReportW(...) 0
+
 #else // ^^^ !_DEBUG ^^^ // vvv _DEBUG vvv //
 
     _ACRTIMP int __cdecl _CrtDbgReport(

@@ -268,6 +268,7 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
     // Wide Character Formatted Output Functions (Stream)
     //
     //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#if 1 // (_UCRT_VERSION >= 1)
     _Check_return_opt_
     _ACRTIMP int __cdecl __stdio_common_vfwprintf(
         _In_                                    unsigned __int64 _Options,
@@ -294,6 +295,7 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         _In_opt_                                _locale_t        _Locale,
                                                 va_list          _ArgList
         );
+#endif // (_UCRT_VERSION >= 1)
 
     _Check_return_opt_
     _CRT_STDIO_INLINE int __CRTDECL _vfwprintf_l(
@@ -302,7 +304,8 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         _In_opt_                                _locale_t      const _Locale,
                                                 va_list              _ArgList
         )
-    #if defined _NO_CRT_STDIO_INLINE
+#if defined _NO_CRT_STDIO_INLINE || (_UCRT_VERSION < 1)
+        ;
     ;
     #else
     {
@@ -1221,9 +1224,16 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
     ;
     #else
     {
+#if defined(_UCRT) || (__MSVCRT_VERSION__ >= _MSVCRT_VERSION_VISTA)
         return _vswprintf_l(_Buffer, (size_t)-1, _Format, NULL, _ArgList);
+#else
+        // We must use the non-conforming version of vswprintf
+        return vswprintf(_Buffer, _Format, _ArgList);
+#endif
     }
     #endif
+
+#if defined _UCRT
 
     _Success_(return >= 0)
     _Check_return_opt_
@@ -1233,13 +1243,15 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         _In_z_ _Printf_format_string_params_(1)           wchar_t const* const _Format,
                                                           va_list              _ArgList
         )
-    #if defined _NO_CRT_STDIO_INLINE
+    #if defined _NO_CRT_STDIO_INLINE || (__MSVCRT_VERSION__ < _MSVCRT_VERSION_VISTA)
     ;
     #else
     {
         return _vswprintf_c_l(_Buffer, _BufferCount, _Format, NULL, _ArgList);
     }
     #endif
+
+#endif
 
     _Success_(return >= 0)
     _Check_return_opt_
@@ -1446,11 +1458,17 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         int _Result;
         va_list _ArgList;
         __crt_va_start(_ArgList, _Format);
+#if defined(_UCRT) || (__MSVCRT_VERSION__ >= _MSVCRT_VERSION_VISTA)
         _Result = __vswprintf_l(_Buffer, _Format, NULL, _ArgList);
+#else
+        _Result = _vswprintf(_Buffer, _Format, _ArgList);
+#endif
         __crt_va_end(_ArgList);
         return _Result;
     }
     #endif
+
+#ifdef _UCRT
 
     _Success_(return >= 0)
     _Check_return_opt_
@@ -1459,7 +1477,7 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         _In_                                              size_t         const _BufferCount,
         _In_z_ _Printf_format_string_                     wchar_t const* const _Format,
         ...)
-    #if defined _NO_CRT_STDIO_INLINE
+    #if defined _NO_CRT_STDIO_INLINE || (__MSVCRT_VERSION__ < _MSVCRT_VERSION_VISTA)
     ;
     #else
     {
@@ -1471,6 +1489,26 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         return _Result;
     }
     #endif
+
+#else
+
+    _Success_(return >= 0)
+    _Check_return_opt_
+    static __inline int __CRTDECL swprintf(
+        _Out_writes_opt_(_BufferCount) _Always_(_Post_z_) wchar_t*       const _Buffer,
+        _In_                                              size_t         const _BufferCount,
+        _In_z_ _Printf_format_string_                     wchar_t const* const _Format,
+        ...)
+    {
+        int _Result;
+        va_list _ArgList;
+        __crt_va_start(_ArgList, _Format);
+        _Result = _vsnwprintf(_Buffer, _BufferCount, _Format, _ArgList);
+        __crt_va_end(_ArgList);
+        return _Result;
+    }
+
+#endif
 
     __DEFINE_CPP_OVERLOAD_STANDARD_FUNC_0_2_ARGLIST_EX(
         _Success_(return >= 0)
@@ -1797,7 +1835,7 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         #pragma warning(push)
         #pragma warning(disable: 4141 6054)
 
-        #ifdef __cplusplus
+        #if defined __cplusplus && defined _UCRT
 
             extern "C++" _SWPRINTFS_DEPRECATED _CRT_INSECURE_DEPRECATE(swprintf_s)
             inline int swprintf(

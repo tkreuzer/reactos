@@ -217,12 +217,22 @@ _ACRTIMP size_t __cdecl wcsspn(
     _In_z_ wchar_t const* _Control
     );
 
-_Check_return_ _CRT_INSECURE_DEPRECATE(wcstok_s)
-_ACRTIMP wchar_t* __cdecl wcstok(
-    _Inout_opt_z_                     wchar_t*       _String,
-    _In_z_                            wchar_t const* _Delimiter,
-    _Inout_opt_ _Deref_prepost_opt_z_ wchar_t**      _Context
-    );
+#ifdef _UCRT
+    // UCRTBASE exports the ISO C/C++ conformant wcstok
+    _Check_return_ _CRT_INSECURE_DEPRECATE(wcstok_s)
+    _ACRTIMP wchar_t* __cdecl wcstok(
+        _Inout_opt_z_                     wchar_t*       _String,
+        _In_z_                            wchar_t const* _Delimiter,
+        _Inout_opt_ _Deref_prepost_opt_z_ wchar_t**      _Context
+        );
+#else
+    // MSVCRT has the legacy wcstok
+    _Check_return_ /* _CRT_INSECURE_DEPRECATE(wcstok_s) */
+    _ACRTIMP wchar_t* __cdecl wcstok(
+        _Inout_opt_z_ wchar_t*       _String,
+        _In_z_        wchar_t const* _Delimiter
+        );
+#endif
 
 #if !defined RC_INVOKED && !defined __midl
 
@@ -241,13 +251,18 @@ _ACRTIMP wchar_t* __cdecl wcstok(
         _In_z_        wchar_t const* const _Delimiter
         )
     {
+#ifdef _UCRT
         return wcstok(_String, _Delimiter, 0);
+#else
+        return wcstok(_String, _Delimiter);
+#endif
     }
 
     #if defined _CRT_NON_CONFORMING_WCSTOK && !defined __cplusplus
         #define wcstok _wcstok
     #endif
 
+  #ifdef _UCRT
     #if defined __cplusplus && !defined _CRT_NO_INLINE_DEPRECATED_WCSTOK
         extern "C++" _Check_return_ _WCSTOK_DEPRECATED
         inline wchar_t* __CRTDECL wcstok(
@@ -258,6 +273,7 @@ _ACRTIMP wchar_t* __cdecl wcstok(
             return wcstok(_String, _Delimiter, 0);
         }
     #endif
+  #endif
 
 #endif // !defined RC_INVOKED && !defined __midl
 

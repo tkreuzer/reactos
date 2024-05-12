@@ -293,6 +293,8 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 // HACK
 #define __crt_locale_data threadlocaleinfostruct
 
+#define _UCRT_VERSION 0 // no UCRT
+
 #include "_mingw_mac.h"
 
 #endif /* !_INC_MINGW */

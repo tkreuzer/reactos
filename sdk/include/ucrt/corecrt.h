@@ -11,6 +11,28 @@
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
+// CRT Versioning Support
+//
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#ifndef _CRT_OS_VERSION
+    #define _CRT_OS_VERSION _WIN32_WINNT
+#endif
+#if defined(__MSVCRT_VERSION__) || defined(_KERNEL_MODE)
+    #undef _UCRT // This is always defined in vcruntime.h
+#else
+    #define __MSVCRT_VERSION__ 0xE00 // UCRT
+#endif
+
+#define _MSVCRT_VERSION_NT4 0x0400 // MSVCRT 4.0
+#define _MSVCRT_VERSION_WIN2K 0x0500 // MSVCRT 5.0
+#define _MSVCRT_VERSION_WINXP 0x0600 // MSVCRT 6.0
+#define _MSVCRT_VERSION_WIN2K3 0x0700 // MSVCRT 7.0
+#define _MSVCRT_VERSION_VISTA 0x0A00 // MSVCRT
+#define _MSVCRT_VERSION_WIN7 0x0B00 // MSVCRT
+#define _MSVCRT_VERSION_WIN8 0x0C00 // MSVCRT
+
+//-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+//
 // Windows API Partitioning and ARM Desktop Support
 //
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

@@ -92,6 +92,7 @@ struct __finddata64_t
 // Functions
 //
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#ifdef _UCRT
 #ifdef _USE_32BIT_TIME_T
     #define _findfirst      _findfirst32
     #define _findnext       _findnext32
@@ -103,6 +104,7 @@ struct __finddata64_t
     #define _findfirsti64   _findfirst64
     #define _findnexti64    _findnext64
 #endif
+#endif // _UCRT
 
 #if _CRT_FUNCTIONS_REQUIRED
 
@@ -432,6 +434,23 @@ struct __finddata64_t
 
     #endif
 
+    #if !defined _UCRT
+
+        _Success_(return != -1)
+        _Check_return_
+        _ACRTIMP intptr_t __cdecl _findfirst(
+            _In_z_ char const*           _FileName,
+            _Out_  struct _finddata_t*   _FindData
+            );
+
+        _Success_(return != -1)
+        _Check_return_
+        _ACRTIMP int __cdecl _findnext(
+            _In_  intptr_t              _FindHandle,
+            _Out_ struct _finddata_t*   _FindData
+            );
+
+    #endif
 
 
     #if defined(_CRT_INTERNAL_NONSTDC_NAMES) && _CRT_INTERNAL_NONSTDC_NAMES

@@ -30,6 +30,8 @@ _CRT_BEGIN_C_HEADER
 
 #else
 
+#if (__MSVCRT_VERSION__ >= _MSVCRT_VERSION_VISTA)
+
     _ACRTIMP void __cdecl _wassert(
         _In_z_ wchar_t const* _Message,
         _In_z_ wchar_t const* _File,
@@ -40,6 +42,21 @@ _CRT_BEGIN_C_HEADER
             (!!(expression)) ||                                                              \
             (_wassert(_CRT_WIDE(#expression), _CRT_WIDE(__FILE__), (unsigned)(__LINE__)), 0) \
         )
+
+#else
+
+    _ACRTIMP void __cdecl _assert(
+        _In_z_ char const* _Message,
+        _In_z_ char const* _File,
+        _In_   unsigned _Line
+        );
+
+    #define assert(expression) (void)(                                                       \
+            (!!(expression)) ||                                                              \
+            (_assert(#expression, __FILE__, (unsigned)(__LINE__)), 0) \
+        )
+
+#endif
 
 #endif
 

@@ -1424,6 +1424,8 @@ __DEFINE_CPP_OVERLOAD_STANDARD_FUNC_0_0(
         #error Macro definition of vsnprintf conflicts with Standard Library function declaration
     #endif
 
+#ifdef _UCRT
+
     _Success_(return >= 0)
     _Check_return_opt_
     _CRT_STDIO_INLINE int __CRTDECL vsnprintf(
@@ -1443,6 +1445,23 @@ __DEFINE_CPP_OVERLOAD_STANDARD_FUNC_0_0(
         return _Result < 0 ? -1 : _Result;
     }
     #endif
+
+#else
+
+    _Success_(return >= 0)
+    _Check_return_opt_
+    static __inline int __CRTDECL vsnprintf(
+        _Out_writes_opt_(_BufferCount) _Always_(_Post_z_) char*       const _Buffer,
+        _In_                                              size_t      const _BufferCount,
+        _In_z_ _Printf_format_string_                     char const* const _Format,
+                                                          va_list           _ArgList
+        )
+    {
+        int const _Result = _vsnprintf(_Buffer, _BufferCount, _Format, _ArgList);
+        return _Result < 0 ? -1 : _Result;
+    }
+
+#endif
 
     _Success_(return >= 0)
     _Check_return_opt_ _CRT_INSECURE_DEPRECATE(_vsprintf_s_l)

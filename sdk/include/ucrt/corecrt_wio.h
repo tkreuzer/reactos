@@ -79,6 +79,7 @@ struct _wfinddata64_t
 // Functions
 //
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+#ifdef _UCRT
 #ifdef _USE_32BIT_TIME_T
     #define _wfindfirst     _wfindfirst32
     #define _wfindnext      _wfindnext32
@@ -90,6 +91,7 @@ struct _wfinddata64_t
     #define _wfindfirsti64  _wfindfirst64
     #define _wfindnexti64   _wfindnext64
 #endif
+#endif // _UCRT
 
 _Check_return_
 _ACRTIMP int __cdecl _waccess(
