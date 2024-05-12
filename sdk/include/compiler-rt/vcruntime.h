@@ -5,6 +5,29 @@
 #include <sal.h>
 #include <vadefs.h>
 
+#define _CRT_STRINGIZE_(x) #x
+#define _CRT_STRINGIZE(x) _CRT_STRINGIZE_(x)
+
+#ifndef _MSC_VER
+#define __pragma(x) _Pragma(_CRT_STRINGIZE(x))
+#endif
+
+#ifdef __cplusplus
+    #define _CRT_BEGIN_C_HEADER \
+        __pragma(pack(push, _CRT_PACKING_IDENTIFIER, _CRT_PACKING)) \
+        extern "C" {
+    #define _CRT_END_C_HEADER \
+        } \
+        __pragma(pack(pop, _CRT_PACKING_IDENTIFIER))
+#else
+    #define _CRT_BEGIN_C_HEADER \
+        __pragma(pack(push, _CRT_PACKING_IDENTIFIER, _CRT_PACKING))
+    #define _CRT_END_C_HEADER \
+        __pragma(pack(pop, _CRT_PACKING_IDENTIFIER))
+#endif
+
+_CRT_BEGIN_C_HEADER
+
 #ifndef _CRTIMP
  #ifdef CRTDLL /* Defined for ntdll, crtdll, msvcrt, etc */
   #define _CRTIMP
@@ -14,6 +37,16 @@
   #define _CRTIMP
  #endif /* CRTDLL || _DLL */
 #endif /* !_CRTIMP */
+
+#ifndef _VCRTIMP
+ #ifndef _VCRT_DEFINED_CRTIMP
+  #define _VCRTIMP _CRTIMP
+ #elif defined(_VCRT_BUILD) && defined(CRTDLL) && !defined(_VCRT_SAT_1)
+  #define _VCRTIMP __declspec(dllexport)
+ #else
+  #define _VCRTIMP
+ #endif
+#endif
 
 #ifndef _CRT_STRINGIZE
 #define __CRT_STRINGIZE(_Value) #_Value
@@ -130,3 +163,26 @@
 
 // Hack
 #define _VCRT_ALIGN _CRT_ALIGN
+
+#ifndef _HAS_NODISCARD
+ #ifndef __has_cpp_attribute
+  #define _HAS_NODISCARD 0
+ #elif __has_cpp_attribute(nodiscard) >= 201603L
+  #define _HAS_NODISCARD 1
+ #else
+  #define _HAS_NODISCARD 0
+ #endif
+#endif // _HAS_NODISCARD
+
+#if _HAS_NODISCARD
+ #define _NODISCARD [[nodiscard]]
+#else
+ #define _NODISCARD
+#endif // _HAS_NODISCARD
+
+// FIXME: C++!
+#define __crt_countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
+
+void __cdecl __security_init_cookie(void);
+
+_CRT_END_C_HEADER
