@@ -11,17 +11,14 @@
 #include <ctype.h>
 #include <wctype.h>
 
-#define wcsnicmp strncmpiW
-#define wcsicmp strcmpiW
-#define wcsrchr strrchrW
-#define wcschr strchrW
+#define wcsnicmp _wcsnicmp
+#define wcsicmp _wcsicmp
 
 typedef HANDLE HWND;
 
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 #define max(x, y) (((x) > (y)) ? (x) : (y))
-#define _strnicmp(_String1, _String2, _MaxCount) strncasecmp(_String1, _String2, _MaxCount)
-#define stricmp(_String1, _String2) strcasecmp(_String1, _String2)
+#define stricmp(_String1, _String2) _stricmp(_String1, _String2)
 
 #ifdef __i386__
 #define CDECL __cdecl
