@@ -33,10 +33,10 @@ _UCRT_DISABLE_CLANG_WARNINGS
 _CRT_BEGIN_C_HEADER
 
 
-
+#ifndef WCHAR_MIN
 #define WCHAR_MIN 0x0000
 #define WCHAR_MAX 0xffff
-
+#endif
 
 
 typedef wchar_t _Wint_t;
