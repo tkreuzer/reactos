@@ -32,7 +32,9 @@
 
 #define long intptr_t
 
+#ifndef min
 #define min(a, b)	(a) < (b) ? (a) : (b)
+#endif
 
 /*
  * Qsort routine from Bentley & McIlroy's "Engineering a Sort Function".
