@@ -5,8 +5,10 @@
  * COPYRIGHT:   Copyright 2021 Timo Kreuzer <timo.kreuzer@reactos.org>
  */
 
+#define fabsf _fabsf_
 #include <math.h>
 
+#undef fabsf
 _Check_return_
 float
 __cdecl
