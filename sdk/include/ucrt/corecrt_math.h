@@ -490,9 +490,12 @@ extern "C++"
     _Check_return_ double __cdecl tan(_In_ double _X);
     _Check_return_ double __cdecl tanh(_In_ double _X);
 
+#if (__MSVCRT_VERSION__ >= _MSVCRT_VERSION_WIN8) // FIXME: find correct version
     _Check_return_ _ACRTIMP double    __cdecl acosh(_In_ double _X);
     _Check_return_ _ACRTIMP double    __cdecl asinh(_In_ double _X);
     _Check_return_ _ACRTIMP double    __cdecl atanh(_In_ double _X);
+#endif // __MSVCRT_VERSION__
+
     _Check_return_ _ACRTIMP  double    __cdecl atof(_In_z_ char const* _String);
     _Check_return_ _ACRTIMP  double    __cdecl _atof_l(_In_z_ char const* _String, _In_opt_ _locale_t _Locale);
     _Check_return_ _ACRTIMP double    __cdecl _cabs(_In_ struct _complex _Complex_value);

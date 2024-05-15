@@ -18,6 +18,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#if (DLL_EXPORT_VERSION < 0x600)
+//#define asinh __asinh
+#endif
+
 #include "calc.h"
 
 static double validate_rad2angle(double a);
@@ -46,6 +50,7 @@ void apply_int_mask(calc_number_t *r)
     r->i &= mask;
 }
 
+#if (DLL_EXPORT_VERSION < 0x600)
 double asinh(double x)
 {
     return log(x+sqrt(x*x+1));
@@ -67,6 +72,7 @@ double atanh(double x)
 
     return log((1.0+x)/(1.0-x))/2.0;
 }
+#endif // (DLL_EXPORT_VERSION < 0x600)
 
 static double validate_rad2angle(double a)
 {
