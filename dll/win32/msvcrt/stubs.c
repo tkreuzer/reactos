@@ -1,6 +1,9 @@
 
+#define __acrt_locale_get_ctype_array_value __acrt_locale_get_ctype_array_value_
 #include <windef.h>
 #include <stubs.h>
+
+#undef __acrt_locale_get_ctype_array_value
 
 #undef UNIMPLEMENTED
 #define UNIMPLEMENTED __wine_spec_unimplemented_stub("msvcrt.dll", __FUNCTION__)
@@ -100,7 +103,6 @@ __acrt_get_locale_data_prefix(
     return (__crt_locale_data_public*)_TypedLocalePointers->locinfo;
 }
 
-static
 int
 __CRTDECL
 __acrt_locale_get_ctype_array_value(
