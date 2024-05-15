@@ -1545,7 +1545,7 @@
 @ cdecl wcsspn(wstr wstr)
 @ cdecl wcsstr(wstr wstr)
 @ cdecl wcstod(wstr ptr)
-@ cdecl wcstok(wstr wstr)
+@ cdecl wcstok(wstr wstr) MSVCRT_wcstok # Non-conforming version of wcstok
 @ cdecl -version=0x600+ wcstok_s(wstr wstr ptr)
 @ cdecl wcstol(wstr ptr long)
 @ cdecl wcstombs(ptr ptr long)
