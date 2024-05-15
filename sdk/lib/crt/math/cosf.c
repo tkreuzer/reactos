@@ -3,7 +3,7 @@
  * This file is part of the w64 mingw-runtime package.
  * No warranty is given; refer to the file DISCLAIMER.PD within this package.
  */
-
+#define _CORECRT_BUILD_APISET
 #include <math.h>
 
 #if defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_AMD64))

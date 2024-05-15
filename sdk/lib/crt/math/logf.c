@@ -3,7 +3,10 @@
  * This file is part of the w64 mingw-runtime package.
  * No warranty is given; refer to the file DISCLAIMER.PD within this package.
  */
+#define logf _logf_
 #include <math.h>
+
+#undef logf
 
 #if defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_AMD64))
 #pragma function(logf)
