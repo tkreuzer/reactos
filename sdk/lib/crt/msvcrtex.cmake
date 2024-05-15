@@ -88,8 +88,11 @@ endif()
 set_source_files_properties(${MSVCRTEX_ASM_SOURCE} PROPERTIES COMPILE_DEFINITIONS "_DLL;_MSVCRTEX_")
 add_asm_files(msvcrtex_asm ${MSVCRTEX_ASM_SOURCE})
 
+# The startup code needs dllimport, the rest doesn't
+set_source_files_properties(${CRT_STARTUP_SOURCE} PROPERTIES COMPILE_DEFINITIONS "_DLL")
+
 add_library(msvcrtex OBJECT ${MSVCRTEX_SOURCE} ${msvcrtex_asm})
-target_compile_definitions(msvcrtex PRIVATE _DLL _MSVCRTEX_)
+target_compile_definitions(msvcrtex PRIVATE _MSVCRTEX_)
 
 if(MSVC AND (ARCH STREQUAL "i386"))
     # user32.dll needs this as a stand-alone object file
