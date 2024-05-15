@@ -11,6 +11,7 @@
 #include <reactos/kdros.h>
 #endif
 
+#define _A_VOLID  0x08
 
 #define USE_ROS_CC_AND_FS
 #define ENABLE_SWAPOUT
