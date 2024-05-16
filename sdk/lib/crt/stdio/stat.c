@@ -1,6 +1,14 @@
 #include <precomp.h>
 #include <tchar.h>
 
+#ifdef _WIN64
+    typedef struct _stat64i32 stat_s;
+    typedef struct _stat64 stati64_s;
+#else
+    typedef struct _stat32 stat_s;
+    typedef struct _stat32i64 stati64_s;
+#endif
+
 #define stat64_to_stat(buf64, buf)   \
     do { \
     buf->st_dev   = (buf64)->st_dev;   \
@@ -16,7 +24,7 @@
     buf->st_ctime = (time_t)(buf64)->st_ctime; \
     } while (0)
 
-int CDECL _tstat(const _TCHAR* path, struct _stat * buf)
+int CDECL _tstat(const _TCHAR* path, stat_s * buf)
 {
   int ret;
   struct __stat64 buf64;
@@ -27,7 +35,7 @@ int CDECL _tstat(const _TCHAR* path, struct _stat * buf)
   return ret;
 }
 
-int CDECL _tstati64(const _TCHAR* path, struct _stati64 * buf)
+int CDECL _tstati64(const _TCHAR* path, stati64_s * buf)
 {
   int ret;
   struct __stat64 buf64;
@@ -40,7 +48,7 @@ int CDECL _tstati64(const _TCHAR* path, struct _stati64 * buf)
 
 #ifndef _UNICODE
 
-int CDECL _fstat(int fd, struct _stat* buf)
+int CDECL _fstat(int fd, stat_s* buf)
 { int ret;
   struct __stat64 buf64;
 
@@ -50,7 +58,7 @@ int CDECL _fstat(int fd, struct _stat* buf)
   return ret;
 }
 
-int CDECL _fstati64(int fd, struct _stati64* buf)
+int CDECL _fstati64(int fd, stati64_s* buf)
 {
   int ret;
   struct __stat64 buf64;
