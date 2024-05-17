@@ -31,6 +31,12 @@
 #define _MSVCRT_VERSION_WIN7 0x0B00 // MSVCRT
 #define _MSVCRT_VERSION_WIN8 0x0C00 // MSVCRT
 
+#ifdef _MSC_VER
+    #define _PRAGMA_ALTNAME(New, Old) __pragma(comment(linker, "/alternatename:" #Old "=" #New))
+#else
+    #define _PRAGMA_ALTNAME(New, Old) __pragma(redefine_extname Old New)
+#endif
+
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
 // Windows API Partitioning and ARM Desktop Support

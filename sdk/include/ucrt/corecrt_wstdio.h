@@ -1233,8 +1233,6 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
     }
     #endif
 
-#if defined _UCRT
-
     _Success_(return >= 0)
     _Check_return_opt_
     _CRT_STDIO_INLINE int __CRTDECL vswprintf(
@@ -1251,7 +1249,6 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
     }
     #endif
 
-#endif
 
     _Success_(return >= 0)
     _Check_return_opt_
