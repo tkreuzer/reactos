@@ -1611,7 +1611,7 @@
 @ cdecl strrchr()
 @ cdecl strspn()
 @ cdecl strstr()
-@ cdecl swprintf()
+@ cdecl swprintf() _swprintf # non-standard
 @ cdecl tolower()
 @ cdecl toupper()
 @ cdecl towlower()

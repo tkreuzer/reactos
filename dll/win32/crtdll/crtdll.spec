@@ -482,7 +482,7 @@
 @ cdecl strtol(str ptr long)
 @ cdecl strtoul(str ptr long)
 @ cdecl strxfrm(ptr str long)
-@ varargs swprintf(wstr wstr)
+@ varargs swprintf(wstr wstr) # _swprintf # non-standard ??? wher is this defined?
 @ varargs swscanf(wstr wstr)
 @ cdecl system(str)
 @ cdecl tan(double)
@@ -500,7 +500,7 @@
 @ cdecl vfwprintf(ptr wstr long)
 @ cdecl vprintf(str long)
 @ cdecl vsprintf(ptr str ptr)
-@ cdecl vswprintf(ptr wstr long)
+@ cdecl vswprintf(ptr wstr long) _vswprintf # non-standard
 @ cdecl vwprintf(wstr long)
 @ cdecl wcscat(wstr wstr)
 @ cdecl wcschr(wstr long)

@@ -1486,7 +1486,7 @@
 @ cdecl strtol(str ptr long)
 @ cdecl strtoul(str ptr long)
 @ cdecl strxfrm(ptr str long)
-@ varargs swprintf(ptr wstr)
+@ varargs swprintf(ptr wstr) _swprintf # non-standard
 @ stub -version=0x600+ swprintf_s
 @ varargs swscanf(wstr wstr)
 @ stub -version=0x600+ swscanf_s
@@ -1516,7 +1516,7 @@
 @ cdecl -version=0x600+ vsnprintf(ptr long str ptr)
 @ cdecl vsprintf(ptr str ptr)
 @ stub -version=0x600+ vsprintf_s
-@ cdecl vswprintf(ptr wstr ptr)
+@ cdecl vswprintf(ptr wstr ptr) _vswprintf # non-standard
 @ stub -version=0x600+ vswprintf_s
 @ cdecl vwprintf(wstr ptr)
 @ stub -version=0x600+ vwprintf_s
