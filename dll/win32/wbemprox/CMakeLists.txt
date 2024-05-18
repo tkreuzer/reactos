@@ -32,6 +32,7 @@ add_library(wbemprox MODULE
     wbemprox.rc
     ${CMAKE_CURRENT_BINARY_DIR}/wbemprox.def)
 
+target_compile_definitions(wbemprox PRIVATE _CRT_NON_CONFORMING_SWPRINTFS)
 set_source_files_properties(wbemprox.rc PROPERTIES OBJECT_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/wbemprox.rgs)
 set_module_type(wbemprox win32dll)
 target_link_libraries(wbemprox uuid wine oldnames)

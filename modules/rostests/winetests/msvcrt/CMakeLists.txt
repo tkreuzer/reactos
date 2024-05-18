@@ -25,6 +25,7 @@ add_executable(msvcrt_winetest
 target_compile_definitions(msvcrt_winetest PRIVATE
     WINETEST_USE_DBGSTR_LONGLONG
     _CRT_NONSTDC_NO_DEPRECATE
+    _CRT_NON_CONFORMING_SWPRINTFS
     __msvcrt_ulong=ULONG)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU" OR CMAKE_C_COMPILER_ID STREQUAL "Clang")
