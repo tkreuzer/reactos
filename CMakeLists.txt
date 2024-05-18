@@ -70,8 +70,6 @@ include(sdk/cmake/compilerflags.cmake)
 
 add_definitions(
     -D__REACTOS__
-    # swprintf without count argument is used in most of the codebase
-    -D_CRT_NON_CONFORMING_SWPRINTFS
 )
 
 # There doesn't seem to be a standard for __FILE__ being relative or absolute, so detect it at runtime.
@@ -337,7 +335,7 @@ Enable this if the module uses typeid or dynamic_cast. You will probably need to
     add_subdirectory(sdk/include/asm)
 
     if(ARCH MATCHES "64$")
-        include(sdk/cmake/baseaddress64.cmake)  
+        include(sdk/cmake/baseaddress64.cmake)
     elseif(NO_ROSSYM)
         include(sdk/cmake/baseaddress_dwarf.cmake)
     elseif(MSVC)
