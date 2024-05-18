@@ -763,7 +763,7 @@ HRESULT WINAPI CRegFolder::SetNameOf(HWND hwndOwner, PCUITEMID_CHILD pidl,    /*
     if (FAILED_UNEXPECTEDLY(hr))
         return hr;
 
-    swprintf(szName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\%s", pStr);
+    _swprintf(szName, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\CLSID\\%s", pStr);
 
     DWORD cbData = (wcslen(lpName) + 1) * sizeof(WCHAR);
     LONG res = SHSetValueW(HKEY_CURRENT_USER, szName, NULL, RRF_RT_REG_SZ, lpName, cbData);

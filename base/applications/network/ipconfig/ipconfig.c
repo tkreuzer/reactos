@@ -282,7 +282,7 @@ GetInterfaceFriendlyName(
     if (PathSize >= 255)
         return;
 
-    swprintf(Path, L"%s%s%s", PrePath, &lpDeviceName[dwPrefixLength], PostPath);
+    _swprintf(Path, L"%s%s%s", PrePath, &lpDeviceName[dwPrefixLength], PostPath);
 
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE,
                       Path,

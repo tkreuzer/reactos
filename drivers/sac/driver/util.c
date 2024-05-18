@@ -628,49 +628,49 @@ TranslateMachineInformationXML(IN PWCHAR *Buffer,
 
     if (MachineInformation->MachineName)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<name>%s</name>\r\n",
                       MachineInformation->MachineName);
     }
 
     if (MachineInformation->MachineGuid)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<guid>%s</guid>\r\n",
                       MachineInformation->MachineGuid);
     }
 
     if (MachineInformation->ProcessorArchitecture)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<processor-architecture>%s</processor-architecture>\r\n",
                       MachineInformation->ProcessorArchitecture);
     }
 
     if (MachineInformation->MajorVersion)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<os-version>%s</os-version>\r\n",
                       MachineInformation->MajorVersion);
     }
 
     if (MachineInformation->BuildNumber)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<os-build-number>%s</os-build-number>\r\n",
                       MachineInformation->BuildNumber);
     }
 
     if (MachineInformation->ProductType)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<os-product>%s</os-product>\r\n",
                       MachineInformation->ProductType);
     }
 
     if (MachineInformation->ServicePack)
     {
-        p += swprintf(p,
+        p += _swprintf(p,
                       L"<os-service-pack>%s</os-service-pack>\r\n",
                       MachineInformation->ServicePack);
     }
@@ -809,7 +809,7 @@ InitializeMachineInformation(VOID)
         }
 
         /* Build the string with the GUID in it, and save the ppointer to it */
-        swprintf(GuidString,
+        _swprintf(GuidString,
                  L"%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
                  SystemGuid.Data1,
                  SystemGuid.Data2,
@@ -859,7 +859,7 @@ InitializeMachineInformation(VOID)
     }
 
     /* Build the buffer and set a pointer to it */
-    swprintf(MajorVersion,
+    _swprintf(MajorVersion,
              L"%d.%d",
              VersionInformation.dwMajorVersion,
              VersionInformation.dwMinorVersion);
@@ -874,7 +874,7 @@ InitializeMachineInformation(VOID)
     }
 
     /* Build the buffer and set a pointer to it */
-    swprintf(BuildNumber, L"%d", VersionInformation.dwBuildNumber);
+    _swprintf(BuildNumber, L"%d", VersionInformation.dwBuildNumber);
     MachineInformation->BuildNumber = BuildNumber;
 
     /* Now check what kind of SKU this is */
@@ -931,7 +931,7 @@ InitializeMachineInformation(VOID)
         if (ServicePack)
         {
             /* Build the buffer and set a pointer to it */
-            swprintf(ServicePack,
+            _swprintf(ServicePack,
                      L"%d.%d",
                      VersionInformation.wServicePackMajor,
                      VersionInformation.wServicePackMinor);

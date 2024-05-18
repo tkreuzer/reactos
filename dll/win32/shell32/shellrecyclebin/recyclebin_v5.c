@@ -758,9 +758,9 @@ HRESULT RecycleBin5_Constructor(IN LPCWSTR VolumePath, OUT IUnknown **ppUnknown)
     s->recycleBinImpl.lpVtbl = &RecycleBin5Vtbl;
     s->ref = 1;
     if (StringSid)
-        len = swprintf(s->Folder, L"%s%s\\%s", VolumePath, RecycleBinDirectory, StringSid);
+        len = _swprintf(s->Folder, L"%s%s\\%s", VolumePath, RecycleBinDirectory, StringSid);
     else
-        len = swprintf(s->Folder, L"%s%s", VolumePath, RecycleBinDirectory);
+        len = _swprintf(s->Folder, L"%s%s", VolumePath, RecycleBinDirectory);
     p = &s->Folder[len];
     wcscpy(p, L"\\" RECYCLE_BIN_FILE_NAME);
     s->hInfo = CreateFileW(s->Folder, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);

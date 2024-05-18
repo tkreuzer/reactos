@@ -48,7 +48,7 @@ IntVideoPortGetMonitorId(
              (USHORT)ChildExtension->ChildDescriptor[10];
 
     /* Convert the Monitor ID to a readable form */
-    swprintf(Buffer,
+    _swprintf(Buffer,
              L"%C%C%C%04hx",
              (WCHAR)((Manufacturer >> 10 & 0x001F) + 'A' - 1),
              (WCHAR)((Manufacturer >> 5 & 0x001F) + 'A' - 1),

@@ -346,7 +346,7 @@ InstallSerialPort(IN HDEVINFO DeviceInfoSet,
     }
 
     /* Build the name of the port device */
-    swprintf(szPortName, L"%s%u", pszCom, dwPortNumber);
+    _swprintf(szPortName, L"%s%u", pszCom, dwPortNumber);
 
     /* Close the com port database */
     if (hComDB != HCOMDB_INVALID_HANDLE_VALUE)
@@ -389,7 +389,7 @@ InstallSerialPort(IN HDEVINFO DeviceInfoSet,
                                           NULL))
     {
         /* ... and use it to build a new friendly name */
-        swprintf(szFriendlyName,
+        _swprintf(szFriendlyName,
                  L"%s (%s)",
                  szDeviceDescription,
                  szPortName);
@@ -397,7 +397,7 @@ InstallSerialPort(IN HDEVINFO DeviceInfoSet,
     else
     {
         /* ... or build a generic friendly name */
-        swprintf(szFriendlyName,
+        _swprintf(szFriendlyName,
                  L"Serial Port (%s)",
                  szPortName);
     }
@@ -474,7 +474,7 @@ InstallParallelPort(IN HDEVINFO DeviceInfoSet,
 
     if (dwPortNumber != 0)
     {
-        swprintf(szPortName, L"%s%u", pszLpt, dwPortNumber);
+        _swprintf(szPortName, L"%s%u", pszLpt, dwPortNumber);
     }
     else
     {
@@ -538,7 +538,7 @@ InstallParallelPort(IN HDEVINFO DeviceInfoSet,
                                           NULL))
     {
         /* ... and use it to build a new friendly name */
-        swprintf(szFriendlyName,
+        _swprintf(szFriendlyName,
                  L"%s (%s)",
                  szDeviceDescription,
                  szPortName);
@@ -546,7 +546,7 @@ InstallParallelPort(IN HDEVINFO DeviceInfoSet,
     else
     {
         /* ... or build a generic friendly name */
-        swprintf(szFriendlyName,
+        _swprintf(szFriendlyName,
                  L"Parallel Port (%s)",
                  szPortName);
     }

@@ -647,7 +647,7 @@ OnResolutionChanged(PINFO pInfo, INT position)
                         Pixel,
                         sizeof(Pixel) / sizeof(WCHAR)))
         {
-            swprintf(Buffer,
+            _swprintf(Buffer,
                      Pixel,
                      pInfo->DisplayDeviceList->Resolutions[position].dmPelsWidth,
                      pInfo->DisplayDeviceList->Resolutions[position].dmPelsHeight,

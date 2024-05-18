@@ -284,7 +284,7 @@ WritePortSettings(
         nFlowControlIndex = ComboBox_GetCurSel(hwndControl);
     }
 
-    swprintf(szPortData,
+    _swprintf(szPortData,
              L"%lu,%s,%s,%s",
              BaudRates[nBaudRateIndex],
              Paritys[nParityIndex],

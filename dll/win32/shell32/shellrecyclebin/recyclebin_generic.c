@@ -119,7 +119,7 @@ RecycleBinGeneric_RecycleBin_DeleteFile(
         return HRESULT_FROM_WIN32(GetLastError());
     }
 #else
-    swprintf(szVolume, L"%c:\\", szFullName[0]);
+    _swprintf(szVolume, L"%c:\\", szFullName[0]);
 #endif
 
     /* Skip namespace (if any) */
@@ -163,7 +163,7 @@ RecycleBinGeneric_RecycleBin_EmptyRecycleBin(
     {
         if (!(dwLogicalDrives & (1 << i)))
             continue;
-        swprintf(szVolumeName, L"%c:\\", 'A' + i);
+        _swprintf(szVolumeName, L"%c:\\", 'A' + i);
         if (GetDriveTypeW(szVolumeName) != DRIVE_FIXED)
             continue;
 

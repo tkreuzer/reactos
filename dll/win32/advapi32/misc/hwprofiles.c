@@ -121,7 +121,7 @@ GetCurrentHwProfileW(LPHW_PROFILE_INFOW lpHwProfileInfo)
         return FALSE;
     }
 
-    swprintf(szKeyName,
+    _swprintf(szKeyName,
              L"Hardware Profile\\%04lu",
              dwConfigId);
 
@@ -158,7 +158,7 @@ GetCurrentHwProfileW(LPHW_PROFILE_INFOW lpHwProfileInfo)
     {
         /* Create a new GUID */
         UuidCreate(&uuid);
-        swprintf(
+        _swprintf(
             lpHwProfileInfo->szHwProfileGuid,
             L"{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
             uuid.Data1,

@@ -173,7 +173,7 @@ FormatDateTime(time_t Time, LPWSTR lpBuf)
         --i; /* don't count NULL character */
 
     /* Copy time now */
-    i += swprintf(lpBuf + i, L", ");
+    i += _swprintf(lpBuf + i, L", ");
 
     GetTimeFormatW(LOCALE_SYSTEM_DEFAULT, 0, &SysTime, NULL, lpBuf + i, BUFFER_SIZE - i);
 }
@@ -363,14 +363,14 @@ AllSysInfo(VOID)
     cSeconds = GetSeconds();
     if (!LoadStringW(GetModuleHandle(NULL), IDS_UP_TIME_FORMAT, Tmp, BUFFER_SIZE))
         Tmp[0] = L'\0';
-    swprintf(Buf, Tmp, cSeconds / (60*60*24), (cSeconds / (60*60)) % 24, (cSeconds / 60) % 60, cSeconds % 60);
+    _swprintf(Buf, Tmp, cSeconds / (60*60*24), (cSeconds / (60*60)) % 24, (cSeconds / 60) % 60, cSeconds % 60);
     PrintRow(IDS_UP_TIME, FALSE, L"%s", Buf);
 
     // prepare SMBIOS data
     SMBiosBuf = LoadSMBiosData(DmiStrings);
 
     //getting System Manufacturer; HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\OEMInformation\Manufacturer for Win >= 6.0
-    swprintf(Tmp, L"%s\\oeminfo.ini", szSystemDir);
+    _swprintf(Tmp, L"%s\\oeminfo.ini", szSystemDir);
     GetPrivateProfileStringW(L"General",
                              L"Manufacturer",
                              L"",
@@ -417,12 +417,12 @@ AllSysInfo(VOID)
     //getting Processor(s)
     if (!LoadStringW(GetModuleHandle(NULL), IDS_PROCESSORS_FORMAT, Tmp, BUFFER_SIZE))
         Tmp[0] = L'\0';
-    swprintf(Buf, Tmp, (unsigned)SysInfo.dwNumberOfProcessors);
+    _swprintf(Buf, Tmp, (unsigned)SysInfo.dwNumberOfProcessors);
     PrintRow(IDS_PROCESSORS, FALSE, L"%s", Buf);
     for(i = 0; i < (unsigned int)SysInfo.dwNumberOfProcessors; i++)
     {
-        swprintf(Tmp, L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\%u", i);
-        j = swprintf(Buf, L"[%02u]: ", i + 1);
+        _swprintf(Tmp, L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\%u", i);
+        j = _swprintf(Buf, L"[%02u]: ", i + 1);
 
         j += RegGetSZ(HKEY_LOCAL_MACHINE, Tmp, L"Identifier", Buf + j, BUFFER_SIZE - j);
         if(j + 1 < BUFFER_SIZE)
@@ -633,7 +633,7 @@ AllSysInfo(VOID)
         /* Print adapters count */
         if (!LoadStringW(GetModuleHandle(NULL), IDS_NETWORK_CARDS_FORMAT, Tmp, BUFFER_SIZE))
             Tmp[0] = L'\0';
-        swprintf(Buf, Tmp, cAdapters);
+        _swprintf(Buf, Tmp, cAdapters);
         PrintRow(IDS_NETWORK_CARDS, FALSE, L"%s", Buf);
 
         /* Show information about each adapter */

@@ -226,7 +226,7 @@ PciCreateHardwareIDsString(PUNICODE_STRING HardwareIDs)
     ULONG Index;
 
     Index = 0;
-    Index += swprintf(&Buffer[Index],
+    Index += _swprintf(&Buffer[Index],
                       L"FDC\\GENERIC_FLOPPY_DRIVE");
     Index++;
 
@@ -248,7 +248,7 @@ PciCreateCompatibleIDsString(PUNICODE_STRING CompatibleIDs)
     ULONG Index;
 
     Index = 0;
-    Index += swprintf(&Buffer[Index],
+    Index += _swprintf(&Buffer[Index],
                       L"GenFloppyDisk");
     Index++;
 
@@ -268,7 +268,7 @@ PciCreateInstanceIDString(PUNICODE_STRING InstanceID,
 {
     WCHAR Buffer[3];
 
-    swprintf(Buffer, L"%02X", PeripheralNumber & 0xff);
+    _swprintf(Buffer, L"%02X", PeripheralNumber & 0xff);
 
     return RtlCreateUnicodeString(InstanceID, Buffer) ? STATUS_SUCCESS : STATUS_INSUFFICIENT_RESOURCES;
 }
@@ -328,7 +328,7 @@ FdcFdoQueryBusRelations(
         {
             do
             {
-                swprintf(DeviceNameBuffer, L"\\Device\\FloppyPDO%lu", DeviceNumber++);
+                _swprintf(DeviceNameBuffer, L"\\Device\\FloppyPDO%lu", DeviceNumber++);
                 RtlInitUnicodeString(&DeviceName, DeviceNameBuffer);
                 DPRINT("Device name: %S\n", DeviceNameBuffer);
 

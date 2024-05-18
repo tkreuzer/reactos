@@ -28,7 +28,7 @@ AddDeviceInternal(IN PDRIVER_OBJECT DriverObject,
     ASSERT(Pdo);
 
     /* Create new device object */
-    swprintf(DeviceNameBuffer,
+    _swprintf(DeviceNameBuffer,
              L"\\Device\\ParallelPort%lu",
              IoGetConfigurationInformation()->ParallelCount);
     RtlInitUnicodeString(&DeviceName,
@@ -235,7 +235,7 @@ FdoCreateRawParallelPdo(
     FdoDeviceExtension = (PFDO_DEVICE_EXTENSION)DeviceObject->DeviceExtension;
 
     /* Create new device object */
-    swprintf(DeviceNameBuffer,
+    _swprintf(DeviceNameBuffer,
              L"\\Device\\Parallel%lu",
              FdoDeviceExtension->PortNumber);
     RtlInitUnicodeString(&DeviceName,
@@ -273,7 +273,7 @@ FdoCreateRawParallelPdo(
 
 
     /* Create link \DosDevices\LPTX -> \Device\ParallelY */
-    swprintf(LinkNameBuffer, L"\\DosDevices\\LPT%lu", PdoDeviceExtension->LptPort);
+    _swprintf(LinkNameBuffer, L"\\DosDevices\\LPT%lu", PdoDeviceExtension->LptPort);
     RtlInitUnicodeString(&LinkName, LinkNameBuffer);
     Status = IoCreateSymbolicLink(&LinkName,
                                   &DeviceName);
@@ -283,7 +283,7 @@ FdoCreateRawParallelPdo(
         goto done;
     }
 
-    swprintf(LptPortBuffer, L"LPT%lu", PdoDeviceExtension->LptPort);
+    _swprintf(LptPortBuffer, L"LPT%lu", PdoDeviceExtension->LptPort);
     RtlInitUnicodeString(&LptPort, LptPortBuffer);
 
     /* Write an entry value under HKLM\HARDWARE\DeviceMap\PARALLEL PORTS. */

@@ -804,7 +804,7 @@ PciGetBiosConfig(IN PPCI_PDO_EXTENSION DeviceExtension,
     if (!NT_SUCCESS(Status)) return Status;
 
     /* Create the key value based on the device and function number */
-    swprintf(Buffer,
+    _swprintf(Buffer,
              L"DEV_%02x&FUN_%02x",
              DeviceExtension->Slot.u.bits.DeviceNumber,
              DeviceExtension->Slot.u.bits.FunctionNumber);
@@ -864,7 +864,7 @@ PciSaveBiosConfig(IN PPCI_PDO_EXTENSION DeviceExtension,
     if (!NT_SUCCESS(Status)) return Status;
 
     /* Create the key value based on the device and function number */
-    swprintf(Buffer,
+    _swprintf(Buffer,
              L"DEV_%02x&FUN_%02x",
              DeviceExtension->Slot.u.bits.DeviceNumber,
              DeviceExtension->Slot.u.bits.FunctionNumber);

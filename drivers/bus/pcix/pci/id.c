@@ -438,7 +438,7 @@ PciQueryDeviceText(IN PPCI_PDO_EXTENSION PdoExtension,
             if (LocationBuffer)
             {
                 /* Build the location string based on bus, function, and device */
-                swprintf(LocationBuffer,
+                _swprintf(LocationBuffer,
                          MessageBuffer,
                          PdoExtension->ParentFdoExtension->BaseBus,
                          PdoExtension->Slot.u.bits.FunctionNumber,

@@ -103,7 +103,7 @@ HelpGroup(
     pCommand = pGroup->pCommandListHead;
     while (pCommand != NULL)
     {
-        swprintf(szBuffer, L"%s %s", pGroup->pwszCmdGroupToken, pCommand->pwszCmdToken);
+        _swprintf(szBuffer, L"%s %s", pGroup->pwszCmdGroupToken, pCommand->pwszCmdToken);
         ConPrintf(StdOut, L"%-15s - ", szBuffer);
         ConResPuts(StdOut, pCommand->dwShortCmdHelpToken);
         pCommand = pCommand->pNext;

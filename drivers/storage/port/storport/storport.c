@@ -184,7 +184,7 @@ PortAddDevice(
     ASSERT(DriverObject);
     ASSERT(PhysicalDeviceObject);
 
-    swprintf(NameBuffer,
+    _swprintf(NameBuffer,
              L"\\Device\\RaidPort%lu",
              PortNumber);
     RtlInitUnicodeString(&DeviceName, NameBuffer);

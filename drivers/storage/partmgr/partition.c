@@ -28,7 +28,7 @@ PartitionCreateDevice(
 
     // create the device object
 
-    swprintf(nameBuf, L"\\Device\\HarddiskVolume%u", HarddiskVolumeNextId++);
+    _swprintf(nameBuf, L"\\Device\\HarddiskVolume%u", HarddiskVolumeNextId++);
     RtlCreateUnicodeString(&deviceName, nameBuf);
 
     PDEVICE_OBJECT partitionDevice;
@@ -100,7 +100,7 @@ PartitionHandleStartDevice(
     PFDO_EXTENSION fdoExtension = PartExt->LowerDevice->DeviceExtension;
 
     // \\Device\\Harddisk%u\\Partition%u
-    swprintf(nameBuf, PartitionSymLinkFormat,
+    _swprintf(nameBuf, PartitionSymLinkFormat,
         fdoExtension->DiskData.DeviceNumber, PartExt->DetectedNumber);
 
     if (!RtlCreateUnicodeString(&partitionSymlink, nameBuf))
@@ -187,7 +187,7 @@ PartitionHandleRemove(
         UNICODE_STRING partitionSymlink;
         PFDO_EXTENSION fdoExtension = PartExt->LowerDevice->DeviceExtension;
 
-        swprintf(nameBuf, PartitionSymLinkFormat,
+        _swprintf(nameBuf, PartitionSymLinkFormat,
             fdoExtension->DiskData.DeviceNumber, PartExt->DetectedNumber);
 
         RtlInitUnicodeString(&partitionSymlink, nameBuf);
@@ -319,14 +319,14 @@ PartitionHandleQueryId(
 
             if (fdoExtension->DiskData.PartitionStyle == PARTITION_STYLE_MBR)
             {
-                swprintf(string, L"S%08lx_O%I64x_L%I64x",
+                _swprintf(string, L"S%08lx_O%I64x_L%I64x",
                          fdoExtension->DiskData.Mbr.Signature,
                          PartExt->StartingOffset,
                          PartExt->PartitionLength);
             }
             else
             {
-                swprintf(string,
+                _swprintf(string,
                         L"S%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02xS_O%I64x_L%I64x",
                         fdoExtension->DiskData.Gpt.DiskId.Data1,
                         fdoExtension->DiskData.Gpt.DiskId.Data2,

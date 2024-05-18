@@ -1974,7 +1974,7 @@ ThemePageDlgProc(HWND hwndDlg,
                             WCHAR* format = L"desk.cpl desk,@Appearance /Action:ActivateMSTheme /file:\"%s\"";
 
                             SHGetFolderPathAndSubDirW(0, CSIDL_RESOURCES, NULL, SHGFP_TYPE_DEFAULT, Themes[iTheme].ThemeFile, wszTheme);
-                            swprintf(wszParams, format, wszTheme);
+                            _swprintf(wszParams, format, wszTheme);
                             RunControlPanelApplet(hwndDlg, wszParams);
                         }
                         else
@@ -2811,7 +2811,7 @@ ProcessUnattendSection(
                                      NULL))
             {
                 WCHAR szPath[MAX_PATH];
-                swprintf(szName, L"%d", i);
+                _swprintf(szName, L"%d", i);
                 DPRINT("szName %S szValue %S\n", szName, szValue);
 
                 if (ExpandEnvironmentStringsW(szValue, szPath, MAX_PATH))
@@ -3063,7 +3063,7 @@ ProcessSetupInf(
     }
 
     /* Save the path in Win32 format in the setup INF */
-    swprintf(szValue, L"\"%s\"", pSetupData->SourcePath);
+    _swprintf(szValue, L"\"%s\"", pSetupData->SourcePath);
     WritePrivateProfileStringW(L"data", L"dospath", szValue, szPath);
 
     /*

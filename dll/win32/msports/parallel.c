@@ -176,7 +176,7 @@ ChangePortNumber(
         return ERROR_SUCCESS;
 
     /* Build the new port name */
-    swprintf(szNewPortName, L"LPT%lu", dwNewPortNumber);
+    _swprintf(szNewPortName, L"LPT%lu", dwNewPortNumber);
 
     /* Open the devices hardware key */
     hDeviceKey = SetupDiOpenDevRegKey(pPortData->DeviceInfoSet,
@@ -214,7 +214,7 @@ ChangePortNumber(
                                          NULL))
     {
         /* ... and use it to build a new friendly name */
-        swprintf(szFriendlyName,
+        _swprintf(szFriendlyName,
                  L"%s (%s)",
                  szDeviceDescription,
                  szNewPortName);
@@ -222,7 +222,7 @@ ChangePortNumber(
     else
     {
         /* ... or build a generic friendly name */
-        swprintf(szFriendlyName,
+        _swprintf(szFriendlyName,
                  L"Parallel Port (%s)",
                  szNewPortName);
     }
@@ -424,7 +424,7 @@ OnInitDialog(HWND hwnd,
 
         for (i = 1; i < 4; i++)
         {
-            swprintf(szBuffer, L"LPT%lu", i);
+            _swprintf(szBuffer, L"LPT%lu", i);
 
             if ((dwPortMap & (1 << i)) && (pPortData->dwPortNumber != i))
                 wcscat(szBuffer, szPortInUse);
