@@ -2150,7 +2150,7 @@ RtlStringFromGUID (IN REFGUID Guid,
     if (!GuidString->Buffer) return STATUS_NO_MEMORY;
 
     /* Now format the GUID */
-    swprintf(GuidString->Buffer,
+    _swprintf(GuidString->Buffer,
              L"{%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
              Guid->Data1,
              Guid->Data2,

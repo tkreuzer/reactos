@@ -5,7 +5,7 @@
  * PURPOSE:         Driver Object Management
  * PROGRAMMERS:     Alex Ionescu (alex.ionescu@reactos.org)
  *                  Filip Navara (navaraf@reactos.org)
- *                  Hervé Poussineau (hpoussin@reactos.org)
+ *                  HervÃ© Poussineau (hpoussin@reactos.org)
  */
 
 /* INCLUDES *******************************************************************/
@@ -1593,9 +1593,9 @@ try_again:
     if (!DriverName)
     {
         /* Create a random name and set up the string */
-        NameLength = (USHORT)swprintf(NameBuffer,
-                                      DRIVER_ROOT_NAME L"%08u",
-                                      KeTickCount.LowPart);
+        NameLength = (USHORT)_swprintf(NameBuffer,
+                                       DRIVER_ROOT_NAME L"%08u",
+                                       KeTickCount.LowPart);
         LocalDriverName.Length = NameLength * sizeof(WCHAR);
         LocalDriverName.MaximumLength = LocalDriverName.Length + sizeof(UNICODE_NULL);
         LocalDriverName.Buffer = NameBuffer;

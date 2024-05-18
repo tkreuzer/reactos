@@ -92,7 +92,7 @@ BlStatusPrint (
     )
     {
         /* Print the string out into a buffer */
-        if (vswprintf(BlScratchBuffer, Format, va) > 0)
+        if (_vswprintf(BlScratchBuffer, Format, va) > 0)
         {
 #if DBG
             EfiPrintf(BlScratchBuffer);

@@ -622,7 +622,7 @@ RtlQueryAtomInAtomTable(
     {
         /* Synthesize an entry */
         NumberEntry.AtomTableEntry.Atom = Atom;
-        NumberEntry.AtomTableEntry.NameLength = swprintf(NumberEntry.AtomTableEntry.Name,
+        NumberEntry.AtomTableEntry.NameLength = _swprintf(NumberEntry.AtomTableEntry.Name,
                                                 L"#%lu",
                                                 (ULONG)Atom);
         NumberEntry.AtomTableEntry.ReferenceCount = 1;

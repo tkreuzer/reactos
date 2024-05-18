@@ -543,7 +543,7 @@ BmFatalErrorEx (
             ErrorStatus = (NTSTATUS)Parameter2;
 
             /* Build the error string */
-            swprintf(FormatString,
+            _swprintf(FormatString,
                      L"\nAn error occurred (%08x) while attempting "
                      L"to read the boot configuration data file %s\n",
                      ErrorStatus,
@@ -562,7 +562,7 @@ BmFatalErrorEx (
             ErrorStatus = (NTSTATUS)Parameter2;
 
             /* Build the error string */
-            swprintf(FormatString,
+            _swprintf(FormatString,
                      L"\nNo valid entries found in the boot configuration data file %s\n",
                      FileName);
 
@@ -579,7 +579,7 @@ BmFatalErrorEx (
             ErrorStatus = (NTSTATUS)Parameter2;
 
             /* Build the error string */
-            swprintf(FormatString,
+            _swprintf(FormatString,
                      L"\nThe boot configuration file %s is invalid (%08x).\n",
                      FileName,
                      ErrorStatus);
@@ -594,7 +594,7 @@ BmFatalErrorEx (
             ErrorStatus = (NTSTATUS)Parameter1;
 
             /* Build the error string */
-            swprintf(FormatString,
+            _swprintf(FormatString,
                      L"\nThe boot manager experienced an error (%08x).\n",
                      ErrorStatus);
 

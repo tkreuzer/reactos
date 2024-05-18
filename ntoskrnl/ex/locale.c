@@ -134,7 +134,7 @@ ExpValidateNlsLocaleId(
                                NULL);
 
     /* Copy the locale ID into a buffer */
-    swprintf(LocaleIdBuffer,
+    _swprintf(LocaleIdBuffer,
              L"%08lx",
              (ULONG)LocaleId);
 
@@ -366,7 +366,7 @@ ExpSetCurrentUserUILanguage(IN PCWSTR MuiName,
         if (NT_SUCCESS(Status))
         {
             /* Setup the value name */
-            ValueLength = swprintf(ValueBuffer,
+            ValueLength = _swprintf(ValueBuffer,
                                    L"%04lX",
                                    (ULONG)LanguageId);
 
@@ -543,14 +543,14 @@ NtSetDefaultLocale(IN BOOLEAN UserProfile,
                 if (UserProfile)
                 {
                     /* Fill in the buffer */
-                    ValueLength = swprintf(ValueBuffer,
+                    ValueLength = _swprintf(ValueBuffer,
                                            L"%08lx",
                                            (ULONG)DefaultLocaleId);
                 }
                 else
                 {
                     /* Fill in the buffer */
-                    ValueLength = swprintf(ValueBuffer,
+                    ValueLength = _swprintf(ValueBuffer,
                                            L"%04lx",
                                            (ULONG)DefaultLocaleId & 0xFFFF);
                 }
