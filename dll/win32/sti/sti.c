@@ -155,7 +155,7 @@ static HRESULT WINAPI stillimagew_RegisterLaunchApplication(IStillImageW *iface,
         WCHAR *value = HeapAlloc(GetProcessHeap(), 0, len * sizeof(WCHAR));
         if (value)
         {
-            swprintf(value, format, pwszCommandLine, commandLineSuffix);
+            _swprintf(value, format, pwszCommandLine, commandLineSuffix);
             ret = RegSetValueExW(registeredAppsKey, pwszAppName, 0,
                 REG_SZ, (BYTE*)value, (lstrlenW(value)+1)*sizeof(WCHAR));
             if (ret != ERROR_SUCCESS)

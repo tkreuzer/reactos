@@ -703,7 +703,7 @@ HRESULT WINAPI OleRegGetUserType(REFCLSID clsid, DWORD form, LPOLESTR *usertype)
   {
     HKEY auxkey;
 
-    swprintf(auxkeynameW, auxusertypeW, form);
+    _swprintf(auxkeynameW, auxusertypeW, form);
     if (COM_OpenKeyForCLSID(clsid, auxkeynameW, KEY_READ, &auxkey) == S_OK)
     {
       if (!RegQueryValueExW(auxkey, emptyW, NULL, &valuetype, NULL, &valuelen) && valuelen)
@@ -892,7 +892,7 @@ HRESULT WINAPI OleRegGetMiscStatus(
   /*
    * Open the key specific to the requested aspect.
    */
-  swprintf(keyName, dfmtW, dwAspect);
+  _swprintf(keyName, dfmtW, dwAspect);
 
   result = open_classes_key(miscStatusKey, keyName, KEY_READ, &aspectKey);
   if (result == ERROR_SUCCESS)

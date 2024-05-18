@@ -324,7 +324,7 @@ LRESULT WINAPI LresultFromObject( REFIID riid, WPARAM wParam, LPUNKNOWN pAcc )
     }
 
     memcpy(atom_str, lresult_atom_prefix, sizeof(lresult_atom_prefix));
-    swprintf(atom_str+ARRAY_SIZE(lresult_atom_prefix), atom_fmt, GetCurrentProcessId(),
+    _swprintf(atom_str+ARRAY_SIZE(lresult_atom_prefix), atom_fmt, GetCurrentProcessId(),
              HandleToUlong(mapping), stat.cbSize.u.LowPart);
     atom = GlobalAddAtomW(atom_str);
     if(!atom) {

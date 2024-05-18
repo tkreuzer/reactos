@@ -1073,7 +1073,7 @@ L"<?xml version='1.0'?>"
     VariantInit(&v);
 
 #ifdef __REACTOS__
-    swprintf(buffer, regex_doc, input);
+    _swprintf(buffer, regex_doc, input);
 #else
     swprintf(buffer, ARRAY_SIZE(buffer), regex_doc, input);
 #endif
@@ -1083,7 +1083,7 @@ L"<?xml version='1.0'?>"
     SysFreeString(bstr);
 
 #ifdef __REACTOS__
-    swprintf(buffer, regex_schema, regex);
+    _swprintf(buffer, regex_schema, regex);
 #else
     swprintf(buffer, ARRAY_SIZE(buffer), regex_schema, regex);
 #endif

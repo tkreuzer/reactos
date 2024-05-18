@@ -292,7 +292,7 @@ static HRESULT WINAPI ITS_IMonikerImpl_GetDisplayName(
 
     len = lstrlenW( This->szFile ) + lstrlenW( This->szHtml );
     str = CoTaskMemAlloc( len*sizeof(WCHAR) );
-    swprintf( str, szFormat, This->szFile, This->szHtml );
+    _swprintf( str, szFormat, This->szFile, This->szHtml );
 
     *ppszDisplayName = str;
     

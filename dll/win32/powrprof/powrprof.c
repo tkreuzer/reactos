@@ -102,7 +102,7 @@ DeletePwrScheme(UINT uiIndex)
     UINT Current;
     LONG Err;
 
-    swprintf(Buf, L"Control Panel\\PowerCfg\\PowerPolicies\\%d", uiIndex);
+    _swprintf(Buf, L"Control Panel\\PowerCfg\\PowerPolicies\\%d", uiIndex);
 
     if (!GetActivePwrScheme(&Current))
         return FALSE;
@@ -136,7 +136,7 @@ POWRPROF_GetUserPowerPolicy(LPWSTR szNum,
     WCHAR szPath[MAX_PATH];
     BOOL bRet = FALSE;
 
-    swprintf(szPath, L"Control Panel\\PowerCfg\\PowerPolicies\\%s", szNum);
+    _swprintf(szPath, L"Control Panel\\PowerCfg\\PowerPolicies\\%s", szNum);
 
     Err = RegOpenKeyExW(HKEY_CURRENT_USER, szPath, 0, KEY_READ, &hSubKey);
     if (Err != ERROR_SUCCESS)
@@ -189,7 +189,7 @@ POWRPROF_GetMachinePowerPolicy(LPWSTR szNum, PMACHINE_POWER_POLICY pmachinePwrPo
     WCHAR szPath[MAX_PATH];
     DWORD dwSize;
 
-    swprintf(szPath, L"Software\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\PowerPolicies\\%s", szNum);
+    _swprintf(szPath, L"Software\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\PowerPolicies\\%s", szNum);
 
     Err = RegOpenKeyExW(HKEY_LOCAL_MACHINE, szPath, 0, KEY_READ, &hKey);
     if (Err != ERROR_SUCCESS)
@@ -588,7 +588,7 @@ ReadProcessorPwrScheme(UINT uiID,
     WCHAR szPath[MAX_PATH];
     DWORD dwSize = sizeof(MACHINE_PROCESSOR_POWER_POLICY);
 
-    swprintf(szPath, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\ProcessorPolicies\\%i", uiID);
+    _swprintf(szPath, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\ProcessorPolicies\\%i", uiID);
     if (RegOpenKeyEx(HKEY_LOCAL_MACHINE, szPath, 0, KEY_READ, &hKey) != ERROR_SUCCESS)
         return FALSE;
 
@@ -616,7 +616,7 @@ ReadPwrScheme(UINT uiID,
 
     ReleaseSemaphore(PPRegSemaphore, 1, NULL);
 
-    swprintf(szNum, L"%d", uiID);
+    _swprintf(szNum, L"%d", uiID);
 
     if (!POWRPROF_GetUserPowerPolicy(szNum, &userPwrPolicy, 0, NULL, 0, NULL))
     {
@@ -653,7 +653,7 @@ SetActivePwrScheme(UINT uiID,
     if (RegOpenKeyEx(HKEY_CURRENT_USER, szUserPowerConfigSubKey, 0, KEY_WRITE, &hKey) != ERROR_SUCCESS)
         return FALSE;
 
-    swprintf(Buf, L"%i", uiID);
+    _swprintf(Buf, L"%i", uiID);
 
     if (RegSetValueExW(hKey, szCurrentPowerPolicies, 0, REG_SZ, (PBYTE)Buf, strlenW(Buf)*sizeof(WCHAR)) != ERROR_SUCCESS)
     {
@@ -735,7 +735,7 @@ WriteProcessorPwrScheme(UINT ID,
     WCHAR Buf[MAX_PATH];
     HKEY hKey;
 
-    swprintf(Buf, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\ProcessorPolicies\\%i", ID);
+    _swprintf(Buf, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\ProcessorPolicies\\%i", ID);
 
     if (RegCreateKey(HKEY_LOCAL_MACHINE, Buf, &hKey) != ERROR_SUCCESS)
         return FALSE;
@@ -757,7 +757,7 @@ SetLastID(VOID)
                     KEY_WRITE,
                     &hKey) != ERROR_SUCCESS)
         return;
-    swprintf(Buf, L"%i", g_LastID);
+    _swprintf(Buf, L"%i", g_LastID);
     RegSetValueExW(hKey, szLastID, 0, REG_SZ, (PBYTE)Buf, strlenW(Buf)*sizeof(WCHAR));
     RegCloseKey(hKey);
 }
@@ -778,7 +778,7 @@ WritePwrScheme(PUINT puiID,
         SetLastID();
     }
 
-    swprintf(Buf, L"Control Panel\\PowerCfg\\PowerPolicies\\%i", *puiID);
+    _swprintf(Buf, L"Control Panel\\PowerCfg\\PowerPolicies\\%i", *puiID);
 
     if (RegCreateKey(HKEY_CURRENT_USER, Buf, &hKey) != ERROR_SUCCESS)
         return FALSE;
@@ -1236,7 +1236,7 @@ BOOLEAN WINAPI WritePwrPolicy(PUINT puiID, PPOWER_POLICY pPowerPolicy)
     WCHAR Buf[MAX_PATH];
     HKEY hKey;
 
-    swprintf(Buf, L"Control Panel\\PowerCfg\\PowerPolicies\\%i", *puiID);
+    _swprintf(Buf, L"Control Panel\\PowerCfg\\PowerPolicies\\%i", *puiID);
 
     if (RegCreateKey(HKEY_CURRENT_USER, Buf, &hKey) != ERROR_SUCCESS)
         return FALSE;
@@ -1244,7 +1244,7 @@ BOOLEAN WINAPI WritePwrPolicy(PUINT puiID, PPOWER_POLICY pPowerPolicy)
     RegSetValueExW(hKey, szPolicies, 0, REG_BINARY, (const unsigned char *)&pPowerPolicy->user, sizeof(USER_POWER_POLICY));
     RegCloseKey(hKey);
 
-    swprintf(Buf, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\PowerPolicies\\%i", *puiID);
+    _swprintf(Buf, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Controls Folder\\PowerCfg\\PowerPolicies\\%i", *puiID);
 
     if (RegCreateKey(HKEY_LOCAL_MACHINE, Buf, &hKey) != ERROR_SUCCESS)
         return FALSE;

@@ -157,10 +157,10 @@ static HRESULT WINAPI name_GetDisplayName(
     }
     lstrcpyW( buffer, name->name );
     len = lstrlenW( buffer );
-    if (name->arch)    len += swprintf( buffer + len, fmtW, archW, name->arch );
-    if (name->token)   len += swprintf( buffer + len, fmtW, tokenW, name->token );
-    if (name->type)    len += swprintf( buffer + len, fmtW, typeW, name->type );
-    if (name->version) len += swprintf( buffer + len, fmtW, versionW, name->version );
+    if (name->arch)    len += _swprintf( buffer + len, fmtW, archW, name->arch );
+    if (name->token)   len += _swprintf( buffer + len, fmtW, tokenW, name->token );
+    if (name->type)    len += _swprintf( buffer + len, fmtW, typeW, name->type );
+    if (name->version) len += _swprintf( buffer + len, fmtW, versionW, name->version );
     return S_OK;
 }
 

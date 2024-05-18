@@ -1969,7 +1969,7 @@ static void find_fallback_font(enum usp10_script scriptid, WCHAR *FaceName)
         DWORD count = LF_FACESIZE * sizeof(WCHAR);
         DWORD type;
 
-        swprintf(value, szFmt, scriptInformation[scriptid].scriptTag);
+        _swprintf(value, szFmt, scriptInformation[scriptid].scriptTag);
         if (RegQueryValueExW(hkey, value, 0, &type, (BYTE *)FaceName, &count))
             lstrcpyW(FaceName,scriptInformation[scriptid].fallbackFont);
         RegCloseKey(hkey);

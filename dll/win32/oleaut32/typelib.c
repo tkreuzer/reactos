@@ -244,7 +244,7 @@ static WCHAR *get_typelib_key( REFGUID guid, WORD wMaj, WORD wMin, WCHAR *buffer
 
     memcpy( buffer, TypelibW, sizeof(TypelibW) );
     StringFromGUID2( guid, buffer + lstrlenW(buffer), 40 );
-    swprintf( buffer + lstrlenW(buffer), VersionFormatW, wMaj, wMin );
+    _swprintf( buffer + lstrlenW(buffer), VersionFormatW, wMaj, wMin );
     return buffer;
 }
 
@@ -268,7 +268,7 @@ static WCHAR *get_lcid_subkey( LCID lcid, SYSKIND syskind, WCHAR *buffer )
     static const WCHAR win32W[] = {'w','i','n','3','2',0};
     static const WCHAR win64W[] = {'w','i','n','6','4',0};
 
-    swprintf( buffer, LcidFormatW, lcid );
+    _swprintf( buffer, LcidFormatW, lcid );
     switch(syskind)
     {
     case SYS_WIN16: lstrcatW( buffer, win16W ); break;
@@ -631,7 +631,7 @@ static void TLB_register_interface(TLIBATTR *libattr, LPOLESTR name, TYPEATTR *t
             StringFromGUID2(&libattr->guid, buffer, 40);
             RegSetValueExW(subKey, NULL, 0, REG_SZ,
                            (BYTE *)buffer, (lstrlenW(buffer)+1) * sizeof(WCHAR));
-            swprintf(buffer, fmtver, libattr->wMajorVerNum, libattr->wMinorVerNum);
+            _swprintf(buffer, fmtver, libattr->wMajorVerNum, libattr->wMinorVerNum);
             RegSetValueExW(subKey, VersionW, 0, REG_SZ,
                            (BYTE*)buffer, (lstrlenW(buffer)+1) * sizeof(WCHAR));
             RegCloseKey(subKey);
@@ -717,7 +717,7 @@ HRESULT WINAPI RegisterTypeLib(ITypeLib *ptlib, const WCHAR *szFullPath, const W
             /* FIXME: is %u correct? */
             static const WCHAR formatW[] = {'%','u',0};
             WCHAR buf[20];
-            swprintf(buf, formatW, attr->wLibFlags);
+            _swprintf(buf, formatW, attr->wLibFlags);
             if (RegSetValueExW(subKey, NULL, 0, REG_SZ,
                                (BYTE *)buf, (lstrlenW(buf) + 1)*sizeof(WCHAR) ) != ERROR_SUCCESS)
                 res = E_FAIL;
@@ -7983,7 +7983,7 @@ static BOOL CALLBACK search_res_tlb(HMODULE hModule, LPCWSTR lpszType, LPWSTR lp
     if (!(len = GetModuleFileNameW(hModule, szPath, MAX_PATH)))
         return TRUE;
 
-    if (swprintf(szPath + len, formatW, LOWORD(lpszName)) < 0)
+    if (_swprintf(szPath + len, formatW, LOWORD(lpszName)) < 0)
         return TRUE;
 
     ret = LoadTypeLibEx(szPath, REGKIND_NONE, &pTLib);

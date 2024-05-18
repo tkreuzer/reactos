@@ -11308,11 +11308,11 @@ AtapiRegCheckDevLunValue(
         HwDeviceExtension, NamePrefix, Name, val);
 
     if(chan != CHAN_NOT_SPECIFIED) {
-        swprintf(namex, L"%s\\Chan_%1.1d", NamePrefix, chan);
+        _swprintf(namex, L"%s\\Chan_%1.1d", NamePrefix, chan);
         val = AtapiRegCheckParameterValue(
             HwDeviceExtension, namex, Name, val);
         if(dev != DEVNUM_NOT_SPECIFIED) {
-            swprintf(namex, L"%s\\Chan_%1.1d\\%s", NamePrefix, chan, (dev & 0x01) ? L"Lun_1" : L"Lun_0");
+            _swprintf(namex, L"%s\\Chan_%1.1d\\%s", NamePrefix, chan, (dev & 0x01) ? L"Lun_1" : L"Lun_0");
             val = AtapiRegCheckParameterValue(
                 HwDeviceExtension, namex, Name, val);
         }
@@ -11350,7 +11350,7 @@ EncodeVendorStr(
            (a >= 127)) {
             Buffer[j] = '#';
             j++;
-            swprintf(Buffer+j, L"%2.2x", a);
+            _swprintf(Buffer+j, L"%2.2x", a);
             j++;
         } else {
             Buffer[j] = a;
@@ -11409,70 +11409,70 @@ AtapiRegCheckDevValue(
     if(deviceExtension) {
 
         if(HwFlags & UNIATA_SATA) {
-            swprintf(namev, L"\\SATA");
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\SATA");
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
         }
         if(HwFlags & UNIATA_AHCI) {
-            swprintf(namev, L"\\AHCI");
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\AHCI");
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
         }
         if(!(HwFlags & (UNIATA_SATA | UNIATA_AHCI))) {
-            swprintf(namev, L"\\PATA");
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\PATA");
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
         }
 
         if(deviceExtension->AdapterInterfaceType == PCIBus) {
             // PCI
-            swprintf(namev, L"\\IDE_%d", deviceExtension->DevIndex);
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\IDE_%d", deviceExtension->DevIndex);
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 
 
-            swprintf(namev, L"\\Ven_%4.4x", VendorID);
-            swprintf(named, L"\\Dev_%4.4x", DeviceID);
-            swprintf(names, L"\\Slot_%8.8x", SlotNumber);
+            _swprintf(namev, L"\\Ven_%4.4x", VendorID);
+            _swprintf(named, L"\\Dev_%4.4x", DeviceID);
+            _swprintf(names, L"\\Slot_%8.8x", SlotNumber);
 
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 
-            swprintf(namex, L"Parameters%s%s", namev, named);
+            _swprintf(namex, L"Parameters%s%s", namev, named);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 
-            swprintf(namex, L"Parameters%s%s%s", namev, named, names);
+            _swprintf(namex, L"Parameters%s%s%s", namev, named, names);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
         } else
         if(deviceExtension->AdapterInterfaceType == Isa) {
             // Isa
-            swprintf(namev, L"\\IDE_%d", deviceExtension->DevIndex+BMListLen);
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\IDE_%d", deviceExtension->DevIndex+BMListLen);
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 
-            swprintf(namev, L"\\ISA_%d", deviceExtension->DevIndex);
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\ISA_%d", deviceExtension->DevIndex);
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 
         } else
         if(deviceExtension->AdapterInterfaceType == MicroChannel) {
             // MicroChannel
-            swprintf(namev, L"\\IDE_%d", deviceExtension->DevIndex+BMListLen+IsaCount);
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\IDE_%d", deviceExtension->DevIndex+BMListLen+IsaCount);
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 
-            swprintf(namev, L"\\MCA_%d", deviceExtension->DevIndex);
-            swprintf(namex, L"Parameters%s", namev);
+            _swprintf(namev, L"\\MCA_%d", deviceExtension->DevIndex);
+            _swprintf(namex, L"Parameters%s", namev);
             val = AtapiRegCheckDevLunValue(
                 HwDeviceExtension, namex, chan, dev, Name, val);
 

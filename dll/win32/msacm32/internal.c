@@ -616,7 +616,7 @@ static void MSACM_ReorderDriversByPriority(void)
             static const WCHAR sPrefix[] = {'m','s','a','c','m','.','\0'};
             
             /* Build expected entry name */
-            swprintf(szSubKey, priorityTmpl, i + 1);
+            _swprintf(szSubKey, priorityTmpl, i + 1);
             lBufferLength = sizeof(szBuffer);
             lError = RegQueryValueExW(hPriorityKey, szSubKey, NULL, NULL, (LPBYTE)szBuffer, (LPDWORD)&lBufferLength);
             if (lError != ERROR_SUCCESS) continue;
@@ -705,10 +705,10 @@ void MSACM_WriteCurrentPriorities(void)
 
         /* Build required value name */
         dwPriorityCounter++;
-        swprintf(szSubKey, priorityTmpl, dwPriorityCounter);
+        _swprintf(szSubKey, priorityTmpl, dwPriorityCounter);
         
         /* Value has a 1 in front for enabled drivers and 0 for disabled drivers */
-        swprintf(szBuffer, valueTmpl, (padid->fdwSupport & ACMDRIVERDETAILS_SUPPORTF_DISABLED) ? '0' : '1', padid->pszDriverAlias);
+        _swprintf(szBuffer, valueTmpl, (padid->fdwSupport & ACMDRIVERDETAILS_SUPPORTF_DISABLED) ? '0' : '1', padid->pszDriverAlias);
         _wcslwr(szBuffer);
         
         lError = RegSetValueExW(hPriorityKey, szSubKey, 0, REG_SZ, (BYTE *)szBuffer, (lstrlenW(szBuffer) + 1) * sizeof(WCHAR));
@@ -720,10 +720,10 @@ void MSACM_WriteCurrentPriorities(void)
     
     /* Build required value name */
     dwPriorityCounter++;
-    swprintf(szSubKey, priorityTmpl, dwPriorityCounter);
+    _swprintf(szSubKey, priorityTmpl, dwPriorityCounter);
         
     /* Value has a 1 in front for enabled drivers and 0 for disabled drivers */
-    swprintf(szBuffer, valueTmpl, '1', converterAlias);
+    _swprintf(szBuffer, valueTmpl, '1', converterAlias);
         
     lError = RegSetValueExW(hPriorityKey, szSubKey, 0, REG_SZ, (BYTE *)szBuffer, (lstrlenW(szBuffer) + 1) * sizeof(WCHAR));
     if (lError != ERROR_SUCCESS) {

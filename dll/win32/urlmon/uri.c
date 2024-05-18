@@ -844,9 +844,9 @@ static DWORD ui2ipv4(WCHAR *dest, UINT address) {
 
     if(!dest) {
         WCHAR tmp[16];
-        ret = swprintf(tmp, formatW, digits[0], digits[1], digits[2], digits[3]);
+        ret = _swprintf(tmp, formatW, digits[0], digits[1], digits[2], digits[3]);
     } else
-        ret = swprintf(dest, formatW, digits[0], digits[1], digits[2], digits[3]);
+        ret = _swprintf(dest, formatW, digits[0], digits[1], digits[2], digits[3]);
 
     return ret;
 }
@@ -857,9 +857,9 @@ static DWORD ui2str(WCHAR *dest, UINT value) {
 
     if(!dest) {
         WCHAR tmp[11];
-        ret = swprintf(tmp, formatW, value);
+        ret = _swprintf(tmp, formatW, value);
     } else
-        ret = swprintf(dest, formatW, value);
+        ret = _swprintf(dest, formatW, value);
 
     return ret;
 }
@@ -2644,11 +2644,11 @@ static BOOL canonicalize_ipv6address(const parse_data *data, Uri *uri,
                     static const WCHAR formatW[] = {'%','x',0};
 
                     if(!computeOnly)
-                        uri->canon_len += swprintf(uri->canon_uri+uri->canon_len,
+                        uri->canon_len += _swprintf(uri->canon_uri+uri->canon_len,
                                             formatW, values[i]);
                     else {
                         WCHAR tmp[5];
-                        uri->canon_len += swprintf(tmp, formatW, values[i]);
+                        uri->canon_len += _swprintf(tmp, formatW, values[i]);
                     }
                 }
             }

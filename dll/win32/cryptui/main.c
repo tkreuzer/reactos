@@ -2600,7 +2600,7 @@ static WCHAR *field_format_version(PCCERT_CONTEXT cert)
     WCHAR *buf = HeapAlloc(GetProcessHeap(), 0, 12 * sizeof(WCHAR));
 
     if (buf)
-        swprintf(buf, fmt, cert->pCertInfo->dwVersion);
+        _swprintf(buf, fmt, cert->pCertInfo->dwVersion);
     return buf;
 }
 
@@ -2615,7 +2615,7 @@ static WCHAR *format_hex_string(void *pb, DWORD cb)
         WCHAR *ptr;
 
         for (i = 0, ptr = buf; i < cb; i++, ptr += 3)
-            swprintf(ptr, fmt, ((BYTE *)pb)[i]);
+            _swprintf(ptr, fmt, ((BYTE *)pb)[i]);
     }
     return buf;
 }
@@ -2910,7 +2910,7 @@ static WCHAR *field_format_extension_hex_with_ascii(const CERT_EXTENSION *ext)
             {
                 /* Output as hex bytes first */
                 for (j = i; j < min(i + 8, ext->Value.cbData); j++, ptr += 3)
-                    swprintf(ptr, fmt, ext->Value.pbData[j]);
+                    _swprintf(ptr, fmt, ext->Value.pbData[j]);
                 /* Pad the hex output with spaces for alignment */
                 if (j == ext->Value.cbData && j % 8)
                 {

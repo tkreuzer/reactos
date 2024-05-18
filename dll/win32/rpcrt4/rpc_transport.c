@@ -2400,7 +2400,7 @@ static RPC_STATUS insert_content_length_header(HINTERNET request, DWORD len)
         {'C','o','n','t','e','n','t','-','L','e','n','g','t','h',':',' ','%','u','\r','\n',0};
     WCHAR header[ARRAY_SIZE(fmtW) + 10];
 
-    swprintf(header, fmtW, len);
+    _swprintf(header, fmtW, len);
     if ((HttpAddRequestHeadersW(request, header, -1, HTTP_ADDREQ_FLAG_REPLACE | HTTP_ADDREQ_FLAG_ADD))) return RPC_S_OK;
     return RPC_S_SERVER_UNAVAILABLE;
 }

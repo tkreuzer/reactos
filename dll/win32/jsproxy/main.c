@@ -303,7 +303,7 @@ static char *get_computer_name( COMPUTER_NAME_FORMAT format )
 
 static void printf_addr( const WCHAR *fmt, WCHAR *buf, SIZE_T size, struct sockaddr_in *addr )
 {
-    swprintf( buf, fmt,
+    _swprintf( buf, fmt,
               (unsigned int)(ntohl( addr->sin_addr.s_addr ) >> 24 & 0xff),
               (unsigned int)(ntohl( addr->sin_addr.s_addr ) >> 16 & 0xff),
               (unsigned int)(ntohl( addr->sin_addr.s_addr ) >> 8 & 0xff),

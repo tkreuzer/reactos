@@ -3949,7 +3949,7 @@ static BOOL register_codepages(void)
     {
         for (info = family->mime_cp_info; info < family->mime_cp_info + family->number_of_cp; info++)
         {
-            swprintf(buf, formatW, info->cp);
+            _swprintf(buf, formatW, info->cp);
             status = RegCreateKeyW(db_key, buf, &key);
             if (status != ERROR_SUCCESS)
                 continue;

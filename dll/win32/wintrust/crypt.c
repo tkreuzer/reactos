@@ -130,7 +130,7 @@ BOOL WINAPI CryptCATAdminAcquireContext(HCATADMIN *catAdmin,
     CreateDirectoryW(catroot_dir, NULL);
 
     if (!sys) sys = &defsys;
-    swprintf(ca->path, fmt, catroot_dir, sys->Data1, sys->Data2,
+    _swprintf(ca->path, fmt, catroot_dir, sys->Data1, sys->Data2,
              sys->Data3, sys->Data4[0], sys->Data4[1], sys->Data4[2],
              sys->Data4[3], sys->Data4[4], sys->Data4[5], sys->Data4[6],
              sys->Data4[7]);

@@ -373,9 +373,9 @@ ATOM WINAPI AtlModuleRegisterWndClassInfoW(_ATL_MODULEW *pm, _ATL_WNDCLASSINFOW 
         if (!wci->m_wc.lpszClassName)
         {
 #ifndef __REACTOS__
-            swprintf(wci->m_szAutoName, ARRAY_SIZE(wci->m_szAutoName), L"ATL:%p", wci);
+            _swprintf(wci->m_szAutoName, ARRAY_SIZE(wci->m_szAutoName), L"ATL:%p", wci);
 #else
-            swprintf(wci->m_szAutoName, L"ATL:%p", wci);
+            _swprintf(wci->m_szAutoName, L"ATL:%p", wci);
 #endif
             TRACE("auto-generated class name %s\n", debugstr_w(wci->m_szAutoName));
             wci->m_wc.lpszClassName = wci->m_szAutoName;

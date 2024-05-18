@@ -98,7 +98,7 @@ static HRESULT WINAPI status_code_GetErrorCodeText(
 
     FIXME("%p, 0x%08x, 0x%04x, 0x%08x, %p\n", iface, res, lcid, flags, text);
 
-    swprintf(msg, fmt, res);
+    _swprintf(msg, fmt, res);
     *text = SysAllocString(msg);
     return WBEM_S_NO_ERROR;
 }
@@ -116,7 +116,7 @@ static HRESULT WINAPI status_code_GetFacilityCodeText(
 
     FIXME("%p, 0x%08x, 0x%04x, 0x%08x, %p\n", iface, res, lcid, flags, text);
 
-    swprintf(msg, fmt, res);
+    _swprintf(msg, fmt, res);
     *text = SysAllocString(msg);
     return WBEM_S_NO_ERROR;
 }

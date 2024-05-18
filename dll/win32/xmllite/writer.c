@@ -1072,7 +1072,7 @@ static HRESULT WINAPI xmlwriter_WriteCharEntity(IXmlWriter *iface, WCHAR ch)
         ;
     }
 
-    swprintf(bufW, fmtW, ch);
+    _swprintf(bufW, fmtW, ch);
     write_output_buffer(This->output, bufW, -1);
 
     return S_OK;

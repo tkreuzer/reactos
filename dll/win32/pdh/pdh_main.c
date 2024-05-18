@@ -1223,7 +1223,7 @@ PDH_STATUS WINAPI PdhMakeCounterPathW( PDH_COUNTER_PATH_ELEMENTS_W *e, LPWSTR bu
             lstrcatW(path, fslash);
         }
         lstrcatW(path, e->szInstanceName);
-        swprintf(instance, fmt, e->dwInstanceIndex);
+        _swprintf(instance, fmt, e->dwInstanceIndex);
         lstrcatW(path, instance);
         lstrcatW(path, rparen);
     }

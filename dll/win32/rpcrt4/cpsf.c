@@ -45,7 +45,7 @@ static void format_clsid( WCHAR *buffer, const CLSID *clsid )
                                     '%','0','2','X','%','0','2','X','-','%','0','2','X','%','0','2','X',
                                     '%','0','2','X','%','0','2','X','%','0','2','X','%','0','2','X','}',0};
 
-    swprintf( buffer, clsid_formatW, clsid->Data1, clsid->Data2, clsid->Data3,
+    _swprintf( buffer, clsid_formatW, clsid->Data1, clsid->Data2, clsid->Data3,
               clsid->Data4[0], clsid->Data4[1], clsid->Data4[2], clsid->Data4[3],
               clsid->Data4[4], clsid->Data4[5], clsid->Data4[6], clsid->Data4[7] );
 
@@ -264,7 +264,7 @@ HRESULT WINAPI NdrDllRegisterProxy(HMODULE hDll,
         if (name)
           RegSetValueExA(key, NULL, 0, REG_SZ, (const BYTE *)name, strlen(name)+1);
         RegSetValueW( key, clsid32W, REG_SZ, clsid, 0 );
-        swprintf(num, numformatW, proxy->header.DispatchTableCount);
+        _swprintf(num, numformatW, proxy->header.DispatchTableCount);
         RegSetValueW( key, nummethodsW, REG_SZ, num, 0 );
         RegCloseKey(key);
       }

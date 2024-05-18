@@ -121,7 +121,7 @@ static WCHAR *build_assembly_name( const WCHAR *arch, const WCHAR *name, const W
     buflen += lstrlenW( token );
     buflen += lstrlenW( version );
     if (!(ret = HeapAlloc( GetProcessHeap(), 0, buflen * sizeof(WCHAR) ))) return NULL;
-    *len = swprintf( ret, fmtW, arch, name, token, version );
+    *len = _swprintf( ret, fmtW, arch, name, token, version );
     return _wcslwr( ret );
 }
 
@@ -141,7 +141,7 @@ static WCHAR *build_manifest_path( const WCHAR *arch, const WCHAR *name, const W
         HeapFree( GetProcessHeap(), 0, path );
         return NULL;
     }
-    swprintf( ret, fmtW, sxsdir, path );
+    _swprintf( ret, fmtW, sxsdir, path );
     HeapFree( GetProcessHeap(), 0, path );
     return ret;
 }
@@ -158,7 +158,7 @@ static WCHAR *build_policy_name( const WCHAR *arch, const WCHAR *name, const WCH
     buflen += lstrlenW( name );
     buflen += lstrlenW( token );
     if (!(ret = HeapAlloc( GetProcessHeap(), 0, buflen * sizeof(WCHAR) ))) return NULL;
-    *len = swprintf( ret, fmtW, arch, name, token );
+    *len = _swprintf( ret, fmtW, arch, name, token );
     return _wcslwr( ret );
 }
 
@@ -179,7 +179,7 @@ static WCHAR *build_policy_path( const WCHAR *arch, const WCHAR *name, const WCH
         HeapFree( GetProcessHeap(), 0, path );
         return NULL;
     }
-    swprintf( ret, fmtW, sxsdir, path, version );
+    _swprintf( ret, fmtW, sxsdir, path, version );
     HeapFree( GetProcessHeap(), 0, path );
     return ret;
 }

@@ -405,7 +405,7 @@ static void filedlg_collect_places_pidls(FileOpenDlgInfos *fodInfos)
             HRESULT hr;
             WCHAR *str;
 
-            swprintf(nameW, placeW, i);
+            _swprintf(nameW, placeW, i);
             if (get_config_key_dword(hkey, nameW, &value))
             {
                 hr = SHGetSpecialFolderLocation(NULL, value, &fodInfos->places[i]);

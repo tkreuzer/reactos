@@ -308,7 +308,7 @@ HRESULT WINAPI PSStringFromPropertyKey(REFPROPERTYKEY pkey, LPWSTR psz, UINT cch
         return E_NOT_SUFFICIENT_BUFFER;
     }
 
-    swprintf(psz, guid_fmtW, pkey->fmtid.Data1, pkey->fmtid.Data2,
+    _swprintf(psz, guid_fmtW, pkey->fmtid.Data1, pkey->fmtid.Data2,
              pkey->fmtid.Data3, pkey->fmtid.Data4[0], pkey->fmtid.Data4[1],
              pkey->fmtid.Data4[2], pkey->fmtid.Data4[3], pkey->fmtid.Data4[4],
              pkey->fmtid.Data4[5], pkey->fmtid.Data4[6], pkey->fmtid.Data4[7]);
@@ -318,7 +318,7 @@ HRESULT WINAPI PSStringFromPropertyKey(REFPROPERTYKEY pkey, LPWSTR psz, UINT cch
     *p++ = ' ';
     cch -= GUIDSTRING_MAX - 1 + 1;
 
-    len = swprintf(pidW, pid_fmtW, pkey->pid);
+    len = _swprintf(pidW, pid_fmtW, pkey->pid);
 
     if (cch >= len + 1)
     {

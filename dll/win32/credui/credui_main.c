@@ -393,7 +393,7 @@ static BOOL CredDialogInit(HWND hwndDlg, struct cred_dialog_params *params)
         WCHAR format[256];
         WCHAR message[256];
         LoadStringW(hinstCredUI, IDS_MESSAGEFORMAT, format, ARRAY_SIZE(format));
-        swprintf(message, format, params->pszTargetName);
+        _swprintf(message, format, params->pszTargetName);
         SetDlgItemTextW(hwndDlg, IDC_MESSAGE, message);
     }
     SetWindowTextW(hwndUsername, params->pszUsername);
@@ -418,7 +418,7 @@ static BOOL CredDialogInit(HWND hwndDlg, struct cred_dialog_params *params)
         WCHAR format[256];
         WCHAR title[256];
         LoadStringW(hinstCredUI, IDS_TITLEFORMAT, format, ARRAY_SIZE(format));
-        swprintf(title, format, params->pszTargetName);
+        _swprintf(title, format, params->pszTargetName);
         SetWindowTextW(hwndDlg, title);
     }
 

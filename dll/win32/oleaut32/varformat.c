@@ -1415,13 +1415,13 @@ VARIANT_FormatNumber_Bool:
       if (exponent < 0)
       {
         *pBuff++ = '-';
-        swprintf(pBuff, szPercentZeroStar_d, pToken[1], -exponent);
+        _swprintf(pBuff, szPercentZeroStar_d, pToken[1], -exponent);
       }
       else
       {
         if (*pToken == FMT_NUM_EXP_POS_L || *pToken == FMT_NUM_EXP_POS_U)
           *pBuff++ = '+';
-        swprintf(pBuff, szPercentZeroStar_d, pToken[1], exponent);
+        _swprintf(pBuff, szPercentZeroStar_d, pToken[1], exponent);
       }
       while (*pBuff)
         pBuff++;
@@ -1894,7 +1894,7 @@ static HRESULT VARIANT_FormatDate(LPVARIANT pVarIn, LPOLESTR lpszFormat,
     }
     else if (szPrintFmt)
     {
-      swprintf(pBuff, szPrintFmt, dwVal);
+      _swprintf(pBuff, szPrintFmt, dwVal);
       while (*pBuff)
         pBuff++;
     }

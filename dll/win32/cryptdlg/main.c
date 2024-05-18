@@ -501,9 +501,9 @@ static BOOL CRYPT_FormatHexString(const BYTE *pbEncoded, DWORD cbEncoded,
             for (i = 0; i < cbEncoded; i++)
             {
                 if (i < cbEncoded - 1)
-                    ptr += swprintf(ptr, fmt, pbEncoded[i]);
+                    ptr += _swprintf(ptr, fmt, pbEncoded[i]);
                 else
-                    ptr += swprintf(ptr, endFmt, pbEncoded[i]);
+                    ptr += _swprintf(ptr, endFmt, pbEncoded[i]);
             }
         }
         else
@@ -707,7 +707,7 @@ static BOOL CRYPT_FormatUserNotice(DWORD dwCertEncodingType,
                     memcpy(str, noticeNum, noticeNumLen * sizeof(WCHAR));
                     str += noticeNumLen;
                 }
-                swprintf(noticeNumStr, numFmt, k + 1);
+                _swprintf(noticeNumStr, numFmt, k + 1);
                 charsNeeded += lstrlenW(noticeNumStr);
                 if (str && *pcchStr >= charsNeeded)
                 {
@@ -838,7 +838,7 @@ BOOL WINAPI FormatVerisignExtension(DWORD dwCertEncodingType,
             charsNeeded += 1; /* '['*/
             if (str && *pcbFormat >= charsNeeded * sizeof(WCHAR))
                 *str++ = '[';
-            swprintf(policyNum, numFmt, i + 1);
+            _swprintf(policyNum, numFmt, i + 1);
             charsNeeded += lstrlenW(policyNum);
             if (str && *pcbFormat >= charsNeeded * sizeof(WCHAR))
             {
@@ -915,7 +915,7 @@ BOOL WINAPI FormatVerisignExtension(DWORD dwCertEncodingType,
                 charsNeeded += 1; /* ','*/
                 if (str && *pcbFormat >= charsNeeded * sizeof(WCHAR))
                     *str++ = ',';
-                swprintf(policyQualifierNum, numFmt, j + 1);
+                _swprintf(policyQualifierNum, numFmt, j + 1);
                 charsNeeded += lstrlenW(policyQualifierNum);
                 if (str && *pcbFormat >= charsNeeded * sizeof(WCHAR))
                 {

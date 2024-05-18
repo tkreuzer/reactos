@@ -3321,7 +3321,7 @@ static HRESULT WINAPI filesys_GetTempName(IFileSystem3 *iface, BSTR *pbstrResult
 
     if(!RtlGenRandom(&random, sizeof(random)))
         return E_FAIL;
-    swprintf(*pbstrResult, fmt, random & 0xfffff);
+    _swprintf(*pbstrResult, fmt, random & 0xfffff);
     return S_OK;
 }
 
@@ -3914,7 +3914,7 @@ static void get_versionstring(VS_FIXEDFILEINFO *info, WCHAR *ver)
     c = (WORD)((version >> 16) & 0xffff);
     d = (WORD)( version & 0xffff);
 
-    swprintf(ver, fmtW, a, b, c, d);
+    _swprintf(ver, fmtW, a, b, c, d);
 }
 
 static HRESULT WINAPI filesys_GetFileVersion(IFileSystem3 *iface, BSTR name, BSTR *version)

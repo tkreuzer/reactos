@@ -756,11 +756,11 @@ BOOL search_dll_path(const struct process *process, const WCHAR *name, BOOL (*ma
     for (i = 0;; i++)
     {
         WCHAR env_name[64];
-        swprintf(env_name, ARRAY_SIZE(env_name), L"WINEDLLDIR%u", i);
+        _swprintf(env_name, ARRAY_SIZE(env_name), L"WINEDLLDIR%u", i);
         if (!(env = process_getenv(process, env_name))) return FALSE;
         len = wcslen(env) + wcslen(name) + 2;
         if (!(buf = heap_alloc(len * sizeof(WCHAR)))) return FALSE;
-        swprintf(buf, len, L"%s\\%s", env, name);
+        _swprintf(buf, len, L"%s\\%s", env, name);
         file = CreateFileW(buf, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE)
         {

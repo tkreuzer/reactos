@@ -141,7 +141,7 @@ static void _tryLoadProvider(PCWSTR provider)
     HKEY hKey;
 
     TRACE("%s\n", debugstr_w(provider));
-    swprintf(serviceName, serviceFmt, servicePrefix, provider);
+    _swprintf(serviceName, serviceFmt, servicePrefix, provider);
     serviceName[ARRAY_SIZE(serviceName) - 1] = '\0';
     if (RegOpenKeyExW(HKEY_LOCAL_MACHINE, serviceName, 0, KEY_READ, &hKey) ==
      ERROR_SUCCESS)

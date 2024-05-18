@@ -6514,7 +6514,7 @@ static HRESULT VARIANT_BstrFromReal(DOUBLE dblIn, LCID lcid, ULONG dwFlags,
   if (!pbstrOut)
     return E_INVALIDARG;
 
-  swprintf( buff, lpszFormat, dblIn );
+  _swprintf( buff, lpszFormat, dblIn );
 
   /* Negative zeroes are disallowed (some applications depend on this).
      If buff starts with a minus, and then nothing follows but zeroes

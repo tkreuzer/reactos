@@ -472,7 +472,7 @@ static void update_counter(install_ctx_t *ctx, HWND hwnd)
     }else {
         WCHAR buf[100];
         LoadStringW(urlmon_instance, IDS_AXINSTALL_INSTALLN, buf, ARRAY_SIZE(buf));
-        swprintf(text, buf, ctx->counter);
+        _swprintf(text, buf, ctx->counter);
     }
 
     SetDlgItemTextW(hwnd, ID_AXINSTALL_INSTALL_BTN, text);
@@ -606,7 +606,7 @@ static void failure_msgbox(install_ctx_t *ctx, HRESULT hres)
     WCHAR buf[1024], fmt[1024];
 
     LoadStringW(urlmon_instance, IDS_AXINSTALL_FAILURE, fmt, ARRAY_SIZE(fmt));
-    swprintf(buf, fmt, hres);
+    _swprintf(buf, fmt, hres);
     MessageBoxW(ctx->hwnd, buf, NULL, MB_OK);
 }
 

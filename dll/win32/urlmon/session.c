@@ -561,7 +561,7 @@ static void ensure_useragent(void)
     else
         os_type = emptyW;
 
-    swprintf(buf, formatW, is_nt, info.dwMajorVersion, info.dwMinorVersion, os_type);
+    _swprintf(buf, formatW, is_nt, info.dwMajorVersion, info.dwMinorVersion, os_type);
     len = lstrlenW(buf);
 
     size = len+40;
