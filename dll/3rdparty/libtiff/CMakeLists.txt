@@ -56,6 +56,9 @@ list(APPEND SOURCE
 
 add_library(libtiff MODULE ${SOURCE} libtiff.def)
 
+target_compile_definitions(libtiff PRIVATE _CRT_DECLARE_NONSTDC_NAMES _CRT_NONSTDC_NO_DEPRECATE)
+target_link_libraries(libtiff oldnames)
+
 set_module_type(libtiff win32dll)
 target_link_libraries(libtiff zlib getopt)
 add_importlibs(libtiff user32 msvcrt kernel32 ntdll)

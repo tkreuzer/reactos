@@ -113,7 +113,6 @@
 #define HOST_FILLORDER FILLORDER_LSB2MSB
 
 #define HAVE__SNPRINTF 1
-#define snprintf _snprintf
 
 /* Define to 1 if your processor stores words with the most significant byte
    first (like Motorola and SPARC, unlike Intel and VAX). */
