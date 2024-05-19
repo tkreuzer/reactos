@@ -64,6 +64,8 @@ struct _timespec64
 //
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 // Nonzero if Daylight Savings Time is used
+#if defined _UCRT // FIXME: Some of this stuff exists on Vista + MSVCRT, but not everything
+
 _Check_return_ _CRT_INSECURE_DEPRECATE_GLOBALS(_get_daylight)
 _ACRTIMP int* __cdecl __daylight(void);
 
@@ -110,7 +112,14 @@ _ACRTIMP errno_t __cdecl _get_tzname(
     _In_                         int     _Index
     );
 
+#else
 
+    _CRTIMP extern int _daylight;
+    _CRTIMP extern long _dstbias;
+    _CRTIMP extern long _timezone;
+    _CRTIMP extern char* _tzname[2];
+
+#endif // _UCRT
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //
