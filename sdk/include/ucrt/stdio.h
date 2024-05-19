@@ -2420,7 +2420,11 @@ __DEFINE_CPP_OVERLOAD_STANDARD_FUNC_0_0(
         #pragma managed(pop)
     #endif
 
-
+    _CRTIMP
+    char*
+    __cdecl
+    gets(
+        char *_Buffer); // FIXME: non-standard
 
     //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //
