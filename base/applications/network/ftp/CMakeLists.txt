@@ -10,7 +10,11 @@ list(APPEND SOURCE
     precomp.h)
 
 add_executable(ftp ${SOURCE} ftp.rc)
-target_compile_definitions(ftp PRIVATE lint)
+target_compile_definitions(ftp PRIVATE
+    lint
+    _CRT_DECLARE_NONSTDC_NAMES
+    _CRT_NONSTDC_NO_DEPRECATE
+)
 
 set_module_type(ftp win32cui)
 add_importlibs(ftp ws2_32 iphlpapi msvcrt kernel32)

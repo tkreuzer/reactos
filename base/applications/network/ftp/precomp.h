@@ -18,6 +18,7 @@
 #else
 #define WIN32_NO_STATUS
 #include <stdarg.h>
+#include <direct.h>
 #include <windef.h>
 #include <winbase.h>
 #include <wingdi.h>
