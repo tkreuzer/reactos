@@ -146,6 +146,25 @@
     #endif // __clang__
 #endif // _UCRT_RESTORE_CLANG_WARNINGS
 
+#ifndef _UCRT_DISABLE_GCC_WARNINGS
+    #ifdef __GNUC__
+    // warning: declaration of x conflicts with built-in declaration [-Wbuiltin-declaration-mismatch]
+        #define _UCRT_DISABLE_GCC_WARNINGS                                  \
+            _Pragma("GCC diagnostic push")                                  \
+            _Pragma("GCC diagnostic ignored \"-Wbuiltin-declaration-mismatch\"")
+    #else // __GNUC__
+        #define _UCRT_DISABLE_GCC_WARNINGS
+    #endif // __GNUC__
+#endif // _UCRT_DISABLE_GCC_WARNINGS
+
+#ifndef _UCRT_RESTORE_GCC_WARNINGS
+    #ifdef __GNUC__
+        #define _UCRT_RESTORE_GCC_WARNINGS _Pragma("GCC diagnostic pop")
+    #else // __GNUC__
+        #define _UCRT_RESTORE_GCC_WARNINGS
+    #endif // __GNUC__
+#endif // _UCRT_RESTORE_GCC_WARNINGS
+
 #pragma warning(push)
 #pragma warning(disable: _UCRT_DISABLED_WARNINGS)
 _UCRT_DISABLE_CLANG_WARNINGS
