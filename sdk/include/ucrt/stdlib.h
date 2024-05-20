@@ -243,11 +243,11 @@ _CRT_INSECURE_DEPRECATE_GLOBALS(_get_pgmptr ) _ACRTIMP char**    __cdecl __p__pg
 _CRT_INSECURE_DEPRECATE_GLOBALS(_get_wpgmptr) _ACRTIMP wchar_t** __cdecl __p__wpgmptr(void);
 _CRT_INSECURE_DEPRECATE_GLOBALS(_get_fmode  ) _ACRTIMP int*      __cdecl __p__fmode  (void);
 
-#ifdef _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
-    _CRT_INSECURE_DEPRECATE_GLOBALS(_get_pgmptr ) extern char*    _pgmptr;
-    _CRT_INSECURE_DEPRECATE_GLOBALS(_get_wpgmptr) extern wchar_t* _wpgmptr;
+#if defined _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY || !defined _UCRT
+    _CRT_INSECURE_DEPRECATE_GLOBALS(_get_pgmptr ) _ACRTIMP extern char*    _pgmptr;
+    _CRT_INSECURE_DEPRECATE_GLOBALS(_get_wpgmptr) _ACRTIMP extern wchar_t* _wpgmptr;
     #ifndef _CORECRT_BUILD
-        _CRT_INSECURE_DEPRECATE_GLOBALS(_get_fmode  ) extern int      _fmode;
+        _CRT_INSECURE_DEPRECATE_GLOBALS(_get_fmode  ) _ACRTIMP extern int      _fmode;
     #endif
 #else
     #define _pgmptr  (*__p__pgmptr ())
@@ -1145,10 +1145,10 @@ _ACRTIMP int*       __cdecl __p___argc (void);
 _ACRTIMP char***    __cdecl __p___argv (void);
 _ACRTIMP wchar_t*** __cdecl __p___wargv(void);
 
-#ifdef _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
-    extern int       __argc;
-    extern char**    __argv;
-    extern wchar_t** __wargv;
+#if defined _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY || !defined _UCRT
+    _ACRTIMP extern int       __argc;
+    _ACRTIMP extern char**    __argv;
+    _ACRTIMP extern wchar_t** __wargv;
 #else
     #define __argc  (*__p___argc())  // Pointer to number of command line arguments
     #define __argv  (*__p___argv())  // Pointer to table of narrow command line arguments
@@ -1157,6 +1157,8 @@ _ACRTIMP wchar_t*** __cdecl __p___wargv(void);
 
 _DCRTIMP char***    __cdecl __p__environ (void);
 _DCRTIMP wchar_t*** __cdecl __p__wenviron(void);
+
+#ifdef _UCRT
 
 #ifndef _CRT_BEST_PRACTICES_USAGE
     #define _CRT_V12_LEGACY_FUNCTIONALITY
@@ -1172,7 +1174,12 @@ _DCRTIMP wchar_t*** __cdecl __p__wenviron(void);
     #define _wenviron (*__p__wenviron()) // Pointer to wide environment table
 #endif
 
+#else // _UCRT
 
+    _ACRTIMP extern char**    _environ;
+    _ACRTIMP extern wchar_t** _wenviron;
+
+#endif // _UCRT
 
 // Sizes for buffers used by the getenv/putenv family of functions.
 #define _MAX_ENV 32767

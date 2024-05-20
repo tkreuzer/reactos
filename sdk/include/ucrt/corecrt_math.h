@@ -592,7 +592,7 @@ extern "C++"
     _Check_return_ _ACRTIMP float     __cdecl atanhf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl cbrtf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl _chgsignf(_In_ float _X);
-#ifdef _UCRT
+#if defined _UCRT || defined _CRTBLD
     _Check_return_ _ACRTIMP float     __cdecl copysignf(_In_ float _Number, _In_ float _Sign);
     _Check_return_ _ACRTIMP float     __cdecl _copysignf(_In_ float _Number, _In_ float _Sign);
 #else

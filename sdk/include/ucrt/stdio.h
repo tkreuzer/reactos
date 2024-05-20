@@ -588,8 +588,8 @@ __DEFINE_CPP_OVERLOAD_STANDARD_FUNC_0_0(
 
     _ACRTIMP int* __cdecl __p__commode(void);
 
-    #ifdef _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
-        extern int _commode;
+    #if defined _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY || !defined _UCRT
+        _ACRTIMP extern int _commode;
     #else
         #define _commode (*__p__commode())
     #endif
