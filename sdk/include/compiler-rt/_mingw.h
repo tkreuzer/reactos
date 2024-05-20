@@ -220,6 +220,7 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 #ifdef __GNUC__
 /* Ignore format warnings due to int vs long */
 #pragma GCC diagnostic ignored "-Wformat"
+#pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif /* __GNUC__ */
 #endif
 

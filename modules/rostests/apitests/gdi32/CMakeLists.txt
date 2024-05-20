@@ -87,6 +87,10 @@ add_executable(gdi32_apitest
     ${PCH_SKIP_SOURCE}
     resource.rc)
 
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(gdi32_apitest PRIVATE -Wno-format-truncation)
+endif()
+
 target_link_libraries(gdi32_apitest ${PSEH_LIB} win32ksys)
 set_module_type(gdi32_apitest win32cui)
 add_importlibs(gdi32_apitest gdi32 user32 msvcrt kernel32 ntdll)
