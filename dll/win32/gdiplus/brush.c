@@ -40,7 +40,8 @@ WINE_DEFAULT_DEBUG_CHANNEL(gdiplus);
     Unix stuff
     Code from http://www.johndcook.com/blog/2009/01/19/stand-alone-error-function-erf/
 */
-double erf(double x)
+#define erf __erf
+static double erf(double x)
 {
     const float a1 =  0.254829592f;
     const float a2 = -0.284496736f;
