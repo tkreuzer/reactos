@@ -354,7 +354,7 @@
 @ cdecl __wgetmainargs(ptr ptr ptr long ptr)
 @ extern -arch=i386,x86_64 __winitenv
 @ cdecl -arch=i386 _abnormal_termination()
-# stub _abs64
+@ stub _abs64
 @ cdecl _access(str long)
 @ cdecl -version=0x600+ _access_s(str long)
 @ extern _acmdln
@@ -442,6 +442,7 @@
 @ stub -version=0x600+ _cscanf_l
 @ stub -version=0x600+ _cscanf_s
 @ stub -version=0x600+ _cscanf_s_l
+@ cdecl -version=0x400-0x502 -arch=win32 -impsym _ctime32() ctime
 @ stub -version=0x600+ _ctime32
 @ stub -version=0x600+ _ctime32_s
 @ cdecl _ctime64(ptr)
@@ -585,6 +586,7 @@
 @ cdecl -stub _getwche()
 @ cdecl _getws(ptr)
 @ cdecl -arch=i386 _global_unwind2(ptr)
+@ cdecl -version=0x400-0x502 -arch=win32 -impsym _gmtime32(ptr) gmtime
 @ cdecl -version=0x600+ _gmtime32(ptr)
 @ cdecl -version=0x600+ _gmtime32_s(ptr ptr)
 @ cdecl _gmtime64(ptr)
@@ -710,6 +712,7 @@
 @ cdecl -arch=x86_64 _local_unwind(ptr ptr)
 @ cdecl -arch=i386 _local_unwind2(ptr long)
 @ cdecl -arch=i386 -version=0x600+ _local_unwind4(ptr ptr long)
+@ cdecl -version=0x400-0x502 -arch=win32 -impsym _localtime32(ptr) localtime
 @ cdecl -version=0x600+ _localtime32(ptr)
 @ cdecl -version=0x600+ _localtime32_s(ptr ptr)
 @ cdecl _localtime64(ptr)
@@ -878,6 +881,7 @@
 @ cdecl _mkgmtime64(ptr)
 @ cdecl _mktemp(str)
 @ stub -version=0x600+ _mktemp_s
+@ cdecl -version=0x400-0x502 -arch=win32 -impsym _mktime32(ptr) mktime
 @ cdecl -version=0x600+ _mktime32(ptr)
 @ cdecl _mktime64(ptr)
 @ cdecl _msize(ptr)
@@ -955,6 +959,7 @@
 @ cdecl _setsystime(ptr long)
 @ cdecl _sleep(long)
 @ varargs _snprintf(ptr long str)
+@ varargs -impsym snprintf(ptr long str) _snprintf # Old style behaviour, not C99 compliant
 @ stub -version=0x600+ _snprintf_c
 @ stub -version=0x600+ _snprintf_c_l
 @ stub -version=0x600+ _snprintf_l
@@ -1049,6 +1054,7 @@
 @ cdecl -ret64 _telli64(long)
 @ cdecl _tempnam(str str)
 @ stub -version=0x600+ _tempnam_dbg
+@ cdecl -version=0x400-0x502 -arch=win32 -impsym _time32(ptr) time
 @ stub -version=0x600+ _time32
 @ cdecl _time64(ptr)
 @ extern _timezone
@@ -1392,6 +1398,7 @@
 @ cdecl iswxdigit(long)
 @ cdecl isxdigit(long)
 @ cdecl labs(long)
+@ cdecl -impsym llabs(int64) _abs64 # UCRT compatibility
 @ cdecl ldexp(double long)
 @ cdecl ldiv(long long)
 @ cdecl localeconv()

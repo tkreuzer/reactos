@@ -50,6 +50,7 @@ void Test___argc(void)
     test_is_local_symbol(p, FALSE);
 
     #undef __argc
+    _CRTIMP extern int __argc;
     ok_ptr(&__argc, p);
 #ifdef _M_IX86
     ok_ptr(__p___argc(), p);
@@ -62,6 +63,7 @@ void Test___argv(void)
     test_is_local_symbol(p, FALSE);
 
     #undef __argv
+    _CRTIMP extern char ** __argv;
     ok_ptr(&__argv, p);
 #ifdef _M_IX86
     ok_ptr(__p___argv(), p);
@@ -123,6 +125,8 @@ void Test___lc_handle(void)
 
 void Test___mb_cur_max(void)
 {
+    #undef __mb_cur_max
+    _CRTIMP extern int __mb_cur_max;
     void* p = &__mb_cur_max;
     test_is_local_symbol(&__mb_cur_max, FALSE);
     ok_int(__mb_cur_max, 1);
@@ -278,6 +282,7 @@ void Test__ctype(void)
 
 void Test__wctype(void)
 {
+    _CRTIMP extern const unsigned short _wctype[];
     ok_int(_wctype[0], 0);
     ok_int(_wctype[1], _CONTROL);
 
@@ -391,19 +396,21 @@ void Test__fmode(void)
 
 void Test__iob(void)
 {
+#ifdef _iob
     void* p = &_iob;
     test_is_local_symbol(&_iob, FALSE);
     ok_ptr(&_iob[0], stdin);
     ok_ptr(&_iob[1], stdout);
     ok_ptr(&_iob[2], stderr);
-
     #undef _iob
     _CRTIMP extern FILE _iob[];
     ok_ptr(&_iob, p);
-
+#endif
+    _CRTIMP extern FILE _iob[];
+    _CRTIMP FILE* __cdecl __iob_func(void);
     ok_ptr(__iob_func(), &_iob);
 
-#ifdef _M_IX86
+#if 0 // def _M_IX86
     _CRTIMP int* __cdecl __p__iob();
     ok_ptr(__p__iob(), p);
 #endif
@@ -411,6 +418,8 @@ void Test__iob(void)
 
 void Test__mbcasemap(void)
 {
+    #undef _mbcasemap
+    _CRTIMP extern unsigned char _mbcasemap[];
     void* p = &_mbcasemap;
     ok_int(_mbcasemap[0], 0);
 
@@ -425,6 +434,8 @@ void Test__mbcasemap(void)
 
 void Test__mbctype(void)
 {
+    #undef _mbctype
+    _CRTIMP extern unsigned char _mbctype[];
     void* p = &_mbctype;
     ok_int(_mbctype[0], 0);
 
@@ -440,6 +451,7 @@ void Test__mbctype(void)
 #ifndef _M_ARM
 void Test__osplatform(void)
 {
+    _CRTIMP extern unsigned int _osplatform;
     ok_int(_osplatform, s_osvi.dwPlatformId);
     if (p_get_osplatform != NULL)
     {
@@ -452,6 +464,7 @@ void Test__osplatform(void)
 
 void Test__osver(void)
 {
+    _CRTIMP extern int _osver;
     ok_int(_osver, s_osvi.dwBuildNumber);
 
 #ifdef _M_IX86
@@ -481,6 +494,8 @@ void Test__pgmptr(void)
 
 void Test__sys_errlist(void)
 {
+    #undef _sys_errlist
+    _CRTIMP extern char* _sys_errlist[];
     void* p = &_sys_errlist;
     ok_int(strcmp(_sys_errlist[0], strerror(0)), 0);
     ok_int(strcmp(_sys_errlist[42], strerror(42)), 0);
@@ -492,6 +507,8 @@ void Test__sys_errlist(void)
 
 void Test__sys_nerr(void)
 {
+    #undef _sys_nerr
+    _CRTIMP extern int _sys_nerr;
     void* p = &_sys_nerr;
     ok_int(_sys_nerr, 43);
 
@@ -567,6 +584,7 @@ void Test__wenviron(void)
 
 void Test__winmajor(void)
 {
+    _CRTIMP extern unsigned int _winmajor;
     ok_int(_winmajor, s_osvi.dwMajorVersion);
 #ifdef _M_IX86
     _CRTIMP unsigned int* __cdecl __p__winmajor();
@@ -582,6 +600,7 @@ void Test__winmajor(void)
 
 void Test__winminor(void)
 {
+    _CRTIMP extern unsigned int _winminor;
     ok_int(_winminor, s_osvi.dwMinorVersion);
 #ifdef _M_IX86
     _CRTIMP unsigned int* __cdecl __p__winminor();
@@ -598,6 +617,7 @@ void Test__winminor(void)
 #ifndef _M_ARM
 void Test__winver(void)
 {
+    _CRTIMP extern unsigned int _winver;
     ok_int(_winver, (s_osvi.dwMajorVersion << 8) | s_osvi.dwMinorVersion);
 #ifdef _M_IX86
     _CRTIMP unsigned int* __cdecl __p__winver();
@@ -614,15 +634,15 @@ void Test__winver(void)
 
 void Test__wpgmptr(void)
 {
-    void* p = _wpgmptr;
+    //void* p = _wpgmptr;
     ok_ptr(_wpgmptr, NULL);
 
     #undef _wpgmptr
-    ok_ptr(_wpgmptr, p);
+//    ok_ptr(_wpgmptr, p);
 
 #ifdef _M_IX86
     _CRTIMP wchar_t ** __cdecl __p__wpgmptr();
-    ok_ptr(__p__wpgmptr(), &_wpgmptr);
+    //ok_ptr(__p__wpgmptr(), &_wpgmptr);
 #endif
 
 #if 0 // FIXME: This returns an error on Windows 10

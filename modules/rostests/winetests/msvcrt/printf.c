@@ -38,7 +38,11 @@
 
 #include "wine/test.h"
 
-#ifndef __REACTOS__
+#ifdef __REACTOS__
+
+#define _TWO_DIGIT_EXPONENT 0x1
+
+#else /* __REACTOS__ */
 
 static inline float __port_infinity(void)
 {

@@ -1,4 +1,4 @@
-/* 
+/*
  * Setupapi cabinet routines
  *
  * Copyright 2003 Gregory M. Turner
@@ -20,7 +20,7 @@
  *
  * Many useful traces are commented in code, uncomment them if you have
  * trouble and run with WINEDEBUG=+setupapi
- * 
+ *
  */
 
 #include "setupapi_private.h"
@@ -28,6 +28,8 @@
 #include <fcntl.h>
 #include <share.h>
 #include <fdi.h>
+
+#define _SH_COMPAT 0x00
 
 HINSTANCE hInstance = NULL;
 OSVERSIONINFOEXW OsVersionInfo;

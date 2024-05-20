@@ -10,7 +10,9 @@ add_definitions(
     -DHAVE_STAT
     -DHAVE_WIN32_THREADS
     -D_REENTRANT
-    -DLIBXML_STATIC)
+    -DLIBXML_STATIC
+    -D_CRT_DECLARE_NONSTDC_NAMES=1
+)
 
 list(APPEND SOURCE
     attributes.c

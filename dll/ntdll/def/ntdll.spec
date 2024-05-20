@@ -1794,6 +1794,7 @@
 @ cdecl -arch=x86_64,arm _setjmp(ptr ptr)
 @ cdecl -arch=x86_64,arm _setjmpex(ptr ptr)
 @ varargs _snprintf(ptr long str)
+@ varargs -impsym snprintf(ptr long str) _snprintf # Old style behaviour, not C99 compliant
 @ varargs _snwprintf(ptr long wstr)
 @ cdecl _splitpath(str ptr ptr ptr ptr)
 @ cdecl _strcmpi(str str) _stricmp

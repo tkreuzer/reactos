@@ -88,7 +88,9 @@ list(APPEND SOURCE
 
 add_library(ext2fs MODULE ${SOURCE} ext2fs.rc)
 
-target_compile_definitions(ext2fs PRIVATE _CRT_NON_CONFORMING_SWPRINTFS)
+target_compile_definitions(ext2fs PRIVATE
+    _CRT_DECLARE_NONSTDC_NAMES=1
+    _CRT_NON_CONFORMING_SWPRINTFS)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     # Disable warning C4101: 'i': unreferenced local variable

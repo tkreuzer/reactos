@@ -1563,6 +1563,7 @@
 @ cdecl -arch=x86_64,arm _setjmp(ptr ptr)
 @ cdecl -arch=x86_64,arm _setjmpex(ptr ptr)
 @ cdecl _snprintf()
+@ cdecl -impsym snprintf() _snprintf # Non-standard
 @ cdecl _snwprintf()
 @ cdecl _stricmp()
 @ cdecl _strlwr()

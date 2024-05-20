@@ -1,5 +1,5 @@
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright Â© 2012 The Regents of the University of Michigan
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -45,7 +45,7 @@
 #include <process.h>
 #include <basetsd.h>
 
-#define snprintf _snprintf
+//#define snprintf _snprintf
 //#define vsnprintf _vsnprintf
 #define strcasecmp _stricmp
 //#define strdup _strdup
@@ -72,7 +72,7 @@
 /*
  * Functions imported from BSD
  */
-struct timezone 
+struct timezone
 {
   int  tz_minuteswest; /* minutes W of Greenwich */
   int  tz_dsttime;     /* type of dst correction */

@@ -7,6 +7,8 @@
 #define _CRT_SECURE_NO_DEPRECATE
 #endif /*_MSC_VER */
 
+#define _CRT_DECLARE_NONSTDC_NAMES 1 // for alloca
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>

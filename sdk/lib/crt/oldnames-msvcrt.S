@@ -119,7 +119,6 @@ ENDM
     CREATE_ALIAS rmtmp, _rmtmp
     CREATE_ALIAS searchenv, _searchenv
     CREATE_ALIAS setmode, _setmode
-    CREATE_ALIAS snprintf, _snprintf
     CREATE_ALIAS sopen, _sopen
     CREATE_ALIAS spawnl, _spawnl
     CREATE_ALIAS spawnle, _spawnle
