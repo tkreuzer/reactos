@@ -70,6 +70,9 @@ include(sdk/cmake/compilerflags.cmake)
 
 add_definitions(
     -D__REACTOS__
+    -D__CORRECT_ISO_CPP_WCHAR_H_PROTO
+    -D__CORRECT_ISO_CPP_STDLIB_H_PROTO
+    -D__CORRECT_ISO_CPP_MATH_H_PROTO
 )
 
 # There doesn't seem to be a standard for __FILE__ being relative or absolute, so detect it at runtime.
