@@ -355,13 +355,13 @@ Ext2ClearFlag(PULONG Flags, ULONG FlagBit)
 // Inode flags (Linux uses octad number, but why ? strange!!!)
 //
 
-#define S_IFMT   0x0F000            /* 017 0000 */
+//#define S_IFMT   0x0F000            /* 017 0000 */
 #define S_IFSOCK 0x0C000            /* 014 0000 */
 #define S_IFLNK  0x0A000            /* 012 0000 */
-#define S_IFREG  0x08000            /* 010 0000 */
+//#define S_IFREG  0x08000            /* 010 0000 */
 #define S_IFBLK  0x06000            /* 006 0000 */
-#define S_IFDIR  0x04000            /* 004 0000 */
-#define S_IFCHR  0x02000            /* 002 0000 */
+//#define S_IFDIR  0x04000            /* 004 0000 */
+//#define S_IFCHR  0x02000            /* 002 0000 */
 #define S_IFIFO  0x01000            /* 001 0000 */
 
 #define S_ISUID  0x00800            /* 000 4000 */
