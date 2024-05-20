@@ -176,7 +176,10 @@ void* __cdecl _alloca(_In_ size_t _Size);
     #define alloca _alloca
 #endif
 
-
+#ifndef _UCRT
+_CRTIMP int     __cdecl _set_sbh_threshold(_In_ size_t _NewValue);
+_CRTIMP size_t  __cdecl _get_sbh_threshold(void);
+#endif
 
 _CRT_END_C_HEADER
 _UCRT_RESTORE_CLANG_WARNINGS

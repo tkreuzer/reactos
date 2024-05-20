@@ -2426,6 +2426,11 @@ __DEFINE_CPP_OVERLOAD_STANDARD_FUNC_0_0(
     gets(
         char *_Buffer); // FIXME: non-standard
 
+    _Check_return_
+    _CRTIMP int __cdecl _filbuf(
+        _Inout_ FILE * _File ); // defined in old stdio.h
+
+
     //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     //
     // Non-ANSI Names for Compatibility

@@ -174,6 +174,8 @@ _CRT_BEGIN_C_HEADER
 
 void __cdecl _fperrraise(_In_ int _Except);
 
+#ifdef _UCRT
+
 _Check_return_ _ACRTIMP short __cdecl _dclass(_In_ double _X);
 _Check_return_ _ACRTIMP short __cdecl _ldclass(_In_ long double _X);
 _Check_return_ _ACRTIMP short __cdecl _fdclass(_In_ float _X);
@@ -220,6 +222,30 @@ _Check_return_ _ACRTIMP float __cdecl _fdlog(_In_ float _X, _In_ int _Baseflag);
 _Check_return_ _ACRTIMP double __cdecl _dsin(_In_ double _X, _In_ unsigned int _Qoff);
 _Check_return_ _ACRTIMP long double __cdecl _ldsin(_In_ long double _X, _In_ unsigned int _Qoff);
 _Check_return_ _ACRTIMP float __cdecl _fdsin(_In_ float _X, _In_ unsigned int _Qoff);
+
+#else
+
+_CRTIMP int _fpclass(double x);
+_CRTIMP int _fpclassf(float x); /* x64 only */
+
+// HACKS!!!
+_Check_return_ static __inline short __cdecl _dtest(_In_ double* _Px) { return 0; }
+_Check_return_ static __inline short __cdecl _ldtest(_In_ long double* _Px) { return _dtest((double*)_Px); }
+_Check_return_ static __inline short __cdecl _fdtest(_In_ float* _Px) { return 0; }
+
+_Check_return_ static __inline short __cdecl _dclass(_In_ double _X) { return _dtest(&_X); }
+_Check_return_ static __inline short __cdecl _ldclass(_In_ long double _X) { return _ldtest(&_X); }
+_Check_return_ static __inline short __cdecl _fdclass(_In_ float _X) { return _fdtest(&_X); }
+
+_Check_return_ static __inline int __cdecl _dsign(_In_ double _X) { return 0; }
+_Check_return_ static __inline int __cdecl _ldsign(_In_ long double _X) { return 0; }
+_Check_return_ static __inline int __cdecl _fdsign(_In_ float _X) { return 0; }
+
+_Check_return_ static __inline int __cdecl _dpcomp(_In_ double _X, _In_ double _Y) { return 0; }
+_Check_return_ static __inline int __cdecl _ldpcomp(_In_ long double _X, _In_ long double _Y) { return 0; }
+_Check_return_ static __inline int __cdecl _fdpcomp(_In_ float _X, _In_ float _Y) { return 0; }
+
+#endif // _UCRT
 
 // double declarations
 typedef union
@@ -522,9 +548,17 @@ extern "C++"
     _Check_return_ _ACRTIMP long long __cdecl llrint(_In_ double _X);
     _Check_return_ _ACRTIMP long long __cdecl llround(_In_ double _X);
     _Check_return_ _ACRTIMP double    __cdecl log1p(_In_ double _X);
+#ifdef _UCRT
     _Check_return_ _ACRTIMP double    __cdecl log2(_In_ double _X);
+#else
+    _Check_return_ __CRT_INLINE double log2(_In_ double _X) { return log(_X) / log(2.0); }
+#endif
     _Check_return_ _ACRTIMP double    __cdecl logb(_In_ double _X);
+#ifdef _UCRT
     _Check_return_ _ACRTIMP long      __cdecl lrint(_In_ double _X);
+#else
+    _Check_return_ __CRT_INLINE long lrint(_In_ double _X) { return (long)((_X < 0) ? (_X - 0.5f) : (_X + 0.5)); }
+#endif
     _Check_return_ _ACRTIMP long      __cdecl lround(_In_ double _X);
 
     int __CRTDECL _matherr(_Inout_ struct _exception* _Except);
@@ -537,7 +571,11 @@ extern "C++"
     _Check_return_ _ACRTIMP double __cdecl remainder(_In_ double _X, _In_ double _Y);
     _Check_return_ _ACRTIMP double __cdecl remquo(_In_ double _X, _In_ double _Y, _Out_ int* _Z);
     _Check_return_ _ACRTIMP double __cdecl rint(_In_ double _X);
+#ifdef _UCRT
     _Check_return_ _ACRTIMP double __cdecl round(_In_ double _X);
+#else
+    _Check_return_ static __inline double round(_In_ double _X) { return (_X < 0) ? ceil(_X - 0.5f) : floor(_X + 0.5); }
+#endif
     _Check_return_ _ACRTIMP double __cdecl scalbln(_In_ double _X, _In_ long _Y);
     _Check_return_ _ACRTIMP double __cdecl scalbn(_In_ double _X, _In_ int _Y);
     _Check_return_ _ACRTIMP double __cdecl tgamma(_In_ double _X);
@@ -554,8 +592,13 @@ extern "C++"
     _Check_return_ _ACRTIMP float     __cdecl atanhf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl cbrtf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl _chgsignf(_In_ float _X);
+#ifdef _UCRT
     _Check_return_ _ACRTIMP float     __cdecl copysignf(_In_ float _Number, _In_ float _Sign);
     _Check_return_ _ACRTIMP float     __cdecl _copysignf(_In_ float _Number, _In_ float _Sign);
+#else
+    //_Check_return_ static __inline float copysignf(_In_ float _Number, _In_ float _Sign) { return (float)_copysign((double)_Number, (double)_Sign); }
+    _Check_return_ static __inline float _copysignf(_In_ float _Number, _In_ float _Sign) { return (float)_copysign((double)_Number, (double)_Sign); }
+#endif
     _Check_return_ _ACRTIMP float     __cdecl erff(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl erfcf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl expm1f(_In_ float _X);
@@ -572,7 +615,11 @@ extern "C++"
     _Check_return_ _ACRTIMP float     __cdecl log1pf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl log2f(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl logbf(_In_ float _X);
+#ifdef _UCRT
     _Check_return_ _ACRTIMP long      __cdecl lrintf(_In_ float _X);
+#else
+    _Check_return_ __CRT_INLINE long lrintf(_In_ float _X) { return (long)((_X < 0) ? (_X - 0.5f) : (_X + 0.5)); }
+#endif
     _Check_return_ _ACRTIMP long      __cdecl lroundf(_In_ float _X);
     _Check_return_ _ACRTIMP float     __cdecl nanf(_In_ char const* _X);
     _Check_return_ _ACRTIMP float     __cdecl nearbyintf(_In_ float _X);

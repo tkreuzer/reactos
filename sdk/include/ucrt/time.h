@@ -89,6 +89,15 @@ _ACRTIMP char** __cdecl __tzname(void);
 
 #define _tzname (__tzname())
 
+#else
+
+    _CRTIMP extern int _daylight;
+    _CRTIMP extern long _dstbias;
+    _CRTIMP extern long _timezone;
+    _CRTIMP extern char* _tzname[2];
+
+#endif // _UCRT
+
  _Success_(_Daylight != 0)
 _ACRTIMP errno_t __cdecl _get_daylight(
     _Out_ int* _Daylight
@@ -111,15 +120,6 @@ _ACRTIMP errno_t __cdecl _get_tzname(
     _In_                         size_t  _SizeInBytes,
     _In_                         int     _Index
     );
-
-#else
-
-    _CRTIMP extern int _daylight;
-    _CRTIMP extern long _dstbias;
-    _CRTIMP extern long _timezone;
-    _CRTIMP extern char* _tzname[2];
-
-#endif // _UCRT
 
 //-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 //

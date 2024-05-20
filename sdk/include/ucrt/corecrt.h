@@ -520,8 +520,10 @@ _ACRTIMP void __cdecl _invoke_watson(
     #define _CRT_SECURE_CPP_OVERLOAD_SECURE_NAMES_MEMORY 0
 #endif
 
+#if (__MSVCRT_VERSION__ >= _MSVCRT_VERSION_VISTA)
 #define __STDC_SECURE_LIB__ 200411L
 #define __GOT_SECURE_LIB__ __STDC_SECURE_LIB__ // For backwards compatibility
+#endif
 
 #ifndef __STDC_WANT_SECURE_LIB__
     #define __STDC_WANT_SECURE_LIB__ 1

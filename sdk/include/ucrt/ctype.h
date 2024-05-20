@@ -48,8 +48,12 @@ _Check_return_ _CRT_JIT_INTRINSIC _ACRTIMP int __cdecl isspace(_In_ int _C);
 _Check_return_ _ACRTIMP int __cdecl _isspace_l(_In_ int _C, _In_opt_ _locale_t _Locale);
 _Check_return_ _ACRTIMP int __cdecl ispunct(_In_ int _C);
 _Check_return_ _ACRTIMP int __cdecl _ispunct_l(_In_ int _C, _In_opt_ _locale_t _Locale);
+#ifdef _UCRT
 _Check_return_ _ACRTIMP int __cdecl isblank(_In_ int _C);
 _Check_return_ _ACRTIMP int __cdecl _isblank_l(_In_ int _C, _In_opt_ _locale_t _Locale);
+#elif !defined(_CRTBLD)
+_Check_return_ static __inline int __cdecl isblank(_In_ int _C) { return (_isctype(_C, _BLANK) || _C == '\t'); }
+#endif
 _Check_return_ _CRT_JIT_INTRINSIC _ACRTIMP int __cdecl isalnum(_In_ int _C);
 _Check_return_ _ACRTIMP int __cdecl _isalnum_l(_In_ int _C, _In_opt_ _locale_t _Locale);
 _Check_return_ _ACRTIMP int __cdecl isprint(_In_ int _C);
