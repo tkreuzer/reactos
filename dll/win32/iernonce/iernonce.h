@@ -7,6 +7,8 @@
 
 #pragma once
 
+#include <stdlib.h> // To prevent conflict with GCC's C++ headers
+#define _GLIBCXX_BITS_STD_ABS_H 1 // To prevent conflict with GCC's C++ headers
 #include <cassert>
 #include <cstdlib>
 
