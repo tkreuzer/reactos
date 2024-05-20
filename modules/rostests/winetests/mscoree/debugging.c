@@ -43,7 +43,7 @@ static const char *debugstr_guid(REFIID riid)
     if(!riid)
         return "(null)";
 
-    sprintf(buf, "{%08X-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
+    sprintf(buf, "{%08lX-%04X-%04X-%02X%02X-%02X%02X%02X%02X%02X%02X}",
             riid->Data1, riid->Data2, riid->Data3, riid->Data4[0],
             riid->Data4[1], riid->Data4[2], riid->Data4[3], riid->Data4[4],
             riid->Data4[5], riid->Data4[6], riid->Data4[7]);

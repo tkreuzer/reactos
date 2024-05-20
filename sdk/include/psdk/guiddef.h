@@ -21,11 +21,7 @@
 
 typedef struct _GUID
 {
-#ifdef _MSC_VER
     unsigned long  Data1;
-#else
-    unsigned int   Data1;
-#endif
     unsigned short Data2;
     unsigned short Data3;
     unsigned char  Data4[ 8 ];

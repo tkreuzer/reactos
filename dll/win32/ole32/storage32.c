@@ -6998,7 +6998,7 @@ void StorageUtl_WriteULargeInteger(BYTE* buffer, ULONG offset,
 
 void StorageUtl_ReadGUID(const BYTE* buffer, ULONG offset, GUID* value)
 {
-  StorageUtl_ReadDWord(buffer, offset,   &(value->Data1));
+  StorageUtl_ReadDWord(buffer, offset,   (PULONG)&(value->Data1));
   StorageUtl_ReadWord(buffer,  offset+4, &(value->Data2));
   StorageUtl_ReadWord(buffer,  offset+6, &(value->Data3));
 

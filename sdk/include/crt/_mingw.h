@@ -216,6 +216,13 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 /* Disable deprecation for now! */
 #define _CRT_SECURE_NO_DEPRECATE
 #define _CRT_SECURE_NO_DEPRECATE_CORE
+#ifdef __WINESRC__
+#ifdef __GNUC__
+/* Ignore format warnings due to int vs long */
+#pragma GCC diagnostic ignored "-Wformat"
+#endif /* __GNUC__ */
+#define _CRT_NONSTDC_NO_DEPRECATE
+#endif
 
 #define __crt_typefix(ctype)
 

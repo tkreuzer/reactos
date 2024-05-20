@@ -69,7 +69,7 @@ static BOOL CALLBACK callback(PDSPROPERTY_DIRECTSOUNDDEVICE_DESCRIPTION_DATA dat
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_RENDER ? "Render" :
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_CAPTURE ?
           "Capture" : "Unknown");
-    trace("    DeviceId: {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
+    trace("    DeviceId: {%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
           data->DeviceId.Data1,data->DeviceId.Data2,data->DeviceId.Data3,
           data->DeviceId.Data4[0],data->DeviceId.Data4[1],
           data->DeviceId.Data4[2],data->DeviceId.Data4[3],
@@ -98,7 +98,7 @@ static BOOL CALLBACK callback1(PDSPROPERTY_DIRECTSOUNDDEVICE_DESCRIPTION_1_DATA 
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_RENDER ? "Render" :
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_CAPTURE ?
           "Capture" : "Unknown");
-    trace("    DeviceId: {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
+    trace("    DeviceId: {%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
           data->DeviceId.Data1,data->DeviceId.Data2,data->DeviceId.Data3,
           data->DeviceId.Data4[0],data->DeviceId.Data4[1],
           data->DeviceId.Data4[2],data->DeviceId.Data4[3],
@@ -127,7 +127,7 @@ static BOOL CALLBACK callbackA(PDSPROPERTY_DIRECTSOUNDDEVICE_DESCRIPTION_A_DATA 
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_RENDER ? "Render" :
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_CAPTURE ?
           "Capture" : "Unknown");
-    trace("    DeviceId: {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
+    trace("    DeviceId: {%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
           data->DeviceId.Data1,data->DeviceId.Data2,data->DeviceId.Data3,
           data->DeviceId.Data4[0],data->DeviceId.Data4[1],
           data->DeviceId.Data4[2],data->DeviceId.Data4[3],
@@ -157,7 +157,7 @@ static BOOL CALLBACK callbackW(PDSPROPERTY_DIRECTSOUNDDEVICE_DESCRIPTION_W_DATA 
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_RENDER ? "Render" :
           data->DataFlow == DIRECTSOUNDDEVICE_DATAFLOW_CAPTURE ?
           "Capture" : "Unknown");
-    trace("\tDeviceId: {%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
+    trace("\tDeviceId: {%08lx-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x}\n",
           data->DeviceId.Data1,data->DeviceId.Data2,data->DeviceId.Data3,
           data->DeviceId.Data4[0],data->DeviceId.Data4[1],
           data->DeviceId.Data4[2],data->DeviceId.Data4[3],

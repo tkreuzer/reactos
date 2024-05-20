@@ -222,7 +222,7 @@ static void testGetIfEntry(DWORD index)
      apiReturn);
     row.dwIndex = index;
     apiReturn = pGetIfEntry(&row);
-    ok(apiReturn == NO_ERROR, 
+    ok(apiReturn == NO_ERROR,
      "GetIfEntry returned %d, expected NO_ERROR\n", apiReturn);
   }
 }
@@ -1744,7 +1744,7 @@ static void test_interface_identifier_conversion(void)
     memset( &guid, 0xff, sizeof(guid) );
     ret = pConvertInterfaceLuidToGuid( NULL, &guid );
     ok( ret == ERROR_INVALID_PARAMETER, "got %u\n", ret );
-    ok( guid.Data1 == 0xffffffff, "got %x\n", guid.Data1 );
+    ok( guid.Data1 == 0xffffffff, "got %lx\n", guid.Data1 );
 
     ret = pConvertInterfaceLuidToGuid( &luid, NULL );
     ok( ret == ERROR_INVALID_PARAMETER, "got %u\n", ret );
@@ -1752,7 +1752,7 @@ static void test_interface_identifier_conversion(void)
     memset( &guid, 0, sizeof(guid) );
     ret = pConvertInterfaceLuidToGuid( &luid, &guid );
     ok( !ret, "got %u\n", ret );
-    ok( guid.Data1, "got %x\n", guid.Data1 );
+    ok( guid.Data1, "got %lx\n", guid.Data1 );
 
     /* ConvertInterfaceGuidToLuid */
     ret = pConvertInterfaceGuidToLuid( NULL, NULL );

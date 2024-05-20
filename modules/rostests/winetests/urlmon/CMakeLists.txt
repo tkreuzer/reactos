@@ -1,5 +1,5 @@
 
-add_definitions(-DUSE_WINE_TODOS)
+add_definitions(-DUSE_WINE_TODOS -D__WINESRC__)
 
 list(APPEND SOURCE
     generated.c
