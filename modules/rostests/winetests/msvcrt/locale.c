@@ -27,7 +27,7 @@ static BOOL (__cdecl *p__crtGetStringTypeW)(DWORD, DWORD, const wchar_t*, int, W
 static int (__cdecl *pmemcpy_s)(void *, size_t, void*, size_t);
 static int (__cdecl *p___mb_cur_max_func)(void);
 static int *(__cdecl *p__p___mb_cur_max)(void);
-void* __cdecl _Gettnames(void);
+_CRTIMP void* __cdecl _Gettnames(void);
 
 static void init(void)
 {

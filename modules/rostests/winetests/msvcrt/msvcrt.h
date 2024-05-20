@@ -26,7 +26,7 @@
  *   Other conventions
  *      - To avoid conflicts with the standard C library,
  *        no msvcrt headers are included in the implementation.
- *      - Instead, symbols are duplicated here, prefixed with 
+ *      - Instead, symbols are duplicated here, prefixed with
  *        MSVCRT_, as explained above.
  *      - To avoid inconsistencies, a test for each symbol is
  *        added into tests/headers.c. Please always add a
@@ -911,7 +911,7 @@ int __cdecl      _cprintf(const char*,...);
 int __cdecl      _cwprintf(const MSVCRT_wchar_t*,...);
 char*** __cdecl  MSVCRT___p__environ(void);
 int*    __cdecl  __p___mb_cur_max(void);
-unsigned int*  __cdecl __p__fmode(void);
+_CRTIMP int*  __cdecl __p__fmode(void);
 MSVCRT_wchar_t* __cdecl MSVCRT__wcsdup(const MSVCRT_wchar_t*);
 MSVCRT_wchar_t*** __cdecl MSVCRT___p__wenviron(void);
 char*   __cdecl MSVCRT__strdate(char* date);
