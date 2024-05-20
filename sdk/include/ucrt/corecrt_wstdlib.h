@@ -8,6 +8,8 @@
 //
 #pragma once
 
+#define _WSTDLIBP_S_DEFINED /* GCC header compatibility */
+
 #include <corecrt.h>
 
 #pragma warning(push)
