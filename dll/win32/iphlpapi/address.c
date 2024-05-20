@@ -278,9 +278,9 @@ QueryFlags(
 
     *Flags = 0;
 
-    snprintf(KeyName, 256,
-             "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\%*s",
-             InterfaceLength, Interface);
+    _snprintf(KeyName, 256,
+              "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\%*s",
+              InterfaceLength, Interface);
 
     if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, KeyName, 0, KEY_READ, &InterfaceKey) == ERROR_SUCCESS)
     {
@@ -432,7 +432,7 @@ GetAdaptersAddresses(
                 HKEY ConnectionKey;
                 CHAR KeyName[256];
 
-                snprintf(KeyName, 256,
+                _snprintf(KeyName, 256,
                     "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}\\%*s\\Connection",
                     Entry->if_descrlen, &Entry->if_descr[0]);
 
@@ -462,7 +462,7 @@ GetAdaptersAddresses(
                 HKEY InterfaceKey;
                 CHAR KeyName[256];
 
-                snprintf(KeyName, 256,
+                _snprintf(KeyName, 256,
                     "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\%*s",
                     Entry->if_descrlen, &Entry->if_descr[0]);
 
@@ -524,7 +524,7 @@ GetAdaptersAddresses(
                         HKEY ConnectionKey;
                         CHAR KeyName[256];
 
-                        snprintf(KeyName, 256,
+                        _snprintf(KeyName, 256,
                             "SYSTEM\\CurrentControlSet\\Control\\Network\\{4D36E972-E325-11CE-BFC1-08002BE10318}\\%*s\\Connection",
                             Entry->if_descrlen, &Entry->if_descr[0]);
 
@@ -571,7 +571,7 @@ GetAdaptersAddresses(
                     HKEY InterfaceKey;
                     CHAR KeyName[256];
 
-                    snprintf(KeyName, 256,
+                    _snprintf(KeyName, 256,
                         "SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\%*s",
                         Entry->if_descrlen, &Entry->if_descr[0]);
 
