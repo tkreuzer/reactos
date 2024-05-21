@@ -48,6 +48,13 @@
 #undef vprintf
 #undef vsprintf
 
+extern "C"
+_CRTIMP
+char*
+__cdecl
+gets(
+    char *_Buffer); // FIXME: non-standard
+
 namespace std
 {
   using ::FILE;
