@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #include <libloaderapi.h>
+#include <sysinfoapi.h>
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -4146,4 +4147,8 @@ WCHAR * CDECL wine_get_dos_file_name(LPCSTR str);
 #ifdef __cplusplus
 }
 #endif
+
+#include <synchapi.h>
+#include <processthreadsapi.h>
+
 #endif /* _WINBASE_H */
