@@ -33,7 +33,7 @@
  */
 
 /* NFSv4.1 client for Windows
- * Copyright © 2012 The Regents of the University of Michigan
+ * Copyright Â© 2012 The Regents of the University of Michigan
  *
  * Olga Kornievskaia <aglo@umich.edu>
  * Casey Bodley <cbodley@umich.edu>
@@ -87,9 +87,9 @@ typedef UINT64   u_quad_t;
 
 typedef UINT     uid_t;
 typedef UINT     gid_t;
-#ifndef __REACTOS__
+//#ifndef __REACTOS__
 typedef DWORD    pid_t;
-#endif
+//#endif
 
 #ifndef _SSIZE_T_DEFINED
 #define _SSIZE_T_DEFINED
@@ -162,7 +162,7 @@ struct t_bind {
  * not use.
  */
 struct __rpc_sockinfo {
-	ADDRESS_FAMILY si_af; 
+	ADDRESS_FAMILY si_af;
 	int si_proto;
 	int si_socktype;
 	int si_alen;
