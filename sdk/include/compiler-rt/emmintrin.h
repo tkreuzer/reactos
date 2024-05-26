@@ -70,6 +70,10 @@ typedef signed char __v16qs __attribute__((__vector_size__(16)));
 
 #endif /* _MSC_VER */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern __m128d _mm_add_sd(__m128d a, __m128d b);
 extern __m128d _mm_add_pd(__m128d a, __m128d b);
 extern __m128d _mm_sub_sd(__m128d a, __m128d b);
@@ -319,8 +323,13 @@ void _mm_pause(void);
 #define _mm_bsrli_si128 _mm_srli_si128
 #define _mm_stream_si64 _mm_stream_si64x
 
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
 #if defined(_MSC_VER) && !defined(__clang__)
 
+#if 0
 #pragma intrinsic(_mm_add_sd)
 #pragma intrinsic(_mm_add_pd)
 #pragma intrinsic(_mm_sub_sd)
@@ -555,6 +564,7 @@ void _mm_pause(void);
 #pragma intrinsic(_mm_castsi128_ps)
 #pragma intrinsic(_mm_castsi128_pd)
 #pragma intrinsic(_mm_pause)
+#endif
 
 #else /* _MSC_VER */
 

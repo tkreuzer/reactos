@@ -23,6 +23,7 @@
 #define _INCLUDED_MM2
 
 #include <mmintrin.h>
+#include <malloc.h>
 
 #if defined(_MM2_FUNCTIONALITY) && !defined(_MM_FUNCTIONALITY)
 #define _MM_FUNCTIONALITY
@@ -67,7 +68,7 @@ typedef union _DECLSPEC_INTRIN_TYPE _CRT_ALIGN(16) __m128
 #else
 #define __ATTRIBUTE_SSE__ __attribute__((__target__("sse")))
 #endif
-#define __INTRIN_INLINE_SSE __INTRIN_INLINE __ATTRIBUTE_SSE__ 
+#define __INTRIN_INLINE_SSE __INTRIN_INLINE __ATTRIBUTE_SSE__
 
 #endif /* _MSC_VER */
 
