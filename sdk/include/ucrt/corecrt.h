@@ -677,7 +677,7 @@ typedef struct _Mbstatet
     unsigned short _Byte, _State;
 } _Mbstatet;
 
-#ifdef __REACTOS__
+#ifndef _UCRT // HACK for wine compatibility
 typedef int mbstate_t;
 #else
 typedef _Mbstatet mbstate_t;
