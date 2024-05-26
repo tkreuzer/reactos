@@ -607,7 +607,7 @@
 #define HAVE_PCLOSE 1
 
 /* Define to 1 if the system has the type `pid_t'. */
-#define HAVE_PID_T 1
+#define HAVE_PID_T 0
 
 /* Define to 1 if you have the `pipe2' function. */
 /* #undef HAVE_PIPE2 */
