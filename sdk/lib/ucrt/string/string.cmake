@@ -63,9 +63,8 @@ list(APPEND CRT_STRING_SOURCES
     string/wmemmove_s.cpp
 )
 
-if (${UCRT_ARCH} STREQUAL "lol")
 if(${UCRT_ARCH} STREQUAL "x86")
-    list(APPEND CRT_STRING_SOURCES
+    list(APPEND CRT_STRING_ASM_SOURCES
         string/i386/_memicmp.asm
         string/i386/_strnicm.asm
         string/i386/memccpy.asm
@@ -83,7 +82,7 @@ else()
 endif()
 
 if(${UCRT_ARCH} STREQUAL "x86")
-    list(APPEND CRT_STRING_SOURCES
+    list(APPEND CRT_STRING_ASM_SOURCES
         string/i386/strcat.asm
         string/i386/strcmp.asm
         string/i386/strcspn.asm
@@ -96,19 +95,21 @@ if(${UCRT_ARCH} STREQUAL "x86")
     )
 elseif(${UCRT_ARCH} STREQUAL "x64")
     list(APPEND CRT_STRING_SOURCES
+        string/amd64/strcspn.c
+        string/amd64/strpbrk.c
+        string/amd64/strspn.c
+    )
+    list(APPEND CRT_STRING_ASM_SOURCES
         string/amd64/strcat.asm
         string/amd64/strcmp.asm
-        string/amd64/strcspn.c
         string/amd64/strlen.asm
         string/amd64/strncat.asm
         string/amd64/strncmp.asm
         string/amd64/strncpy.asm
-        string/amd64/strpbrk.c
-        string/amd64/strspn.c
     )
 else()
     if(${UCRT_ARCH} STREQUAL "arm64")
-        list(APPEND CRT_STRING_SOURCES
+        list(APPEND CRT_STRING_ASM_SOURCES
             string/arm64/strlen.asm
             string/arm64/wcslen.asm
     )
@@ -130,4 +131,21 @@ else()
         string/strspn.c
     )
 endif()
-endif()
+
+#add_asm_files(ucrt_string_asm ${CRT_STRING_ASM_SOURCES})
+#list(APPEND CRT_STRING_SOURCES
+#    ${ucrt_string_asm}
+#)
+
+# HACK, because asm is broken!
+list(APPEND CRT_STRING_SOURCES
+    string/strcat.c
+    string/strcmp.c
+    string/strcspn.c
+    string/strncat.c
+    string/strncmp.c
+    string/strncpy.c
+    string/strpbrk.c
+    string/strspn.c
+)
+

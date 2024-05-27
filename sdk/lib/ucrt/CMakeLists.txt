@@ -88,9 +88,9 @@ add_library(ucrt
     ${CRT_VCRUNTIME_SOURCES}
 )
 
-add_library(liboucrtdll
+add_library(ucrtdll
     ${CRTDLL_DLL_SOURCES}
 )
-target_compile_definitions(liboucrtdll PRIVATE CRTDLL)
+target_compile_definitions(ucrtdll PRIVATE CRTDLL)
 
 add_dependencies(ucrt psdk asm)
