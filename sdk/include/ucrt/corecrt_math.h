@@ -225,7 +225,7 @@ _Check_return_ _ACRTIMP float __cdecl _fdsin(_In_ float _X, _In_ unsigned int _Q
 
 #else
 
-_CRTIMP int _fpclass(double x);
+_Check_return_ _ACRTIMP int    __cdecl _fpclass(_In_ double _X);
 _CRTIMP int _fpclassf(float x); /* x64 only */
 
 // HACKS!!!

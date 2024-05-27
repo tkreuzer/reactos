@@ -82,7 +82,7 @@ _CRT_BEGIN_C_HEADER
 #endif
 
 #if _CRT_FUNCTIONS_REQUIRED
-#if 0 // FIXME: This is broken on GCC
+#ifdef _MSC_VER // FIXME: This is broken on GCC
     // This function must not be inlined into callers to avoid ODR violations.  The
     // static local variable has different names in C and in C++ translation units.
     _Check_return_ _Ret_notnull_

@@ -304,7 +304,7 @@ _ACRTIMP_ALT FILE* __cdecl __acrt_iob_func(unsigned _Ix);
         _In_opt_                                _locale_t      const _Locale,
                                                 va_list              _ArgList
         )
-#if defined _NO_CRT_STDIO_INLINE || (_UCRT_VERSION < 1)
+#if defined _NO_CRT_STDIO_INLINE
         ;
     ;
     #else
