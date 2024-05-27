@@ -5,8 +5,22 @@
 #include <sal.h>
 #include <vadefs.h>
 
+#ifndef _VCRT_COMPILER_PREPROCESSOR
+ #if defined(RC_INVOKED) || defined(Q_MOC_RUN)
+  #define _VCRT_COMPILER_PREPROCESSOR 0
+ #else
+  #define _VCRT_COMPILER_PREPROCESSOR 1
+ #endif
+#endif // _VCRT_COMPILER_PREPROCESSOR
+
 #define _CRT_STRINGIZE_(x) #x
 #define _CRT_STRINGIZE(x) _CRT_STRINGIZE_(x)
+
+#define _CRT_CONCATENATE_(a, b) a ## b
+#define _CRT_CONCATENATE(a, b)  _CRT_CONCATENATE_(a, b)
+
+#define _CRT_UNPARENTHESIZE_(...) __VA_ARGS__
+#define _CRT_UNPARENTHESIZE(...)  _CRT_UNPARENTHESIZE_ __VA_ARGS__
 
 #ifndef _MSC_VER
 #define __pragma(x) _Pragma(_CRT_STRINGIZE(x))
@@ -29,8 +43,9 @@
 _CRT_BEGIN_C_HEADER
 
 #ifndef _CRTIMP
- #ifdef CRTDLL /* Defined for ntdll, crtdll, msvcrt, etc */
-  #define _CRTIMP
+ #define _VCRT_DEFINED_CRTIMP
+ #if defined(CRTDLL) && defined(_CRTBLD) /* Defined for ntdll, crtdll, msvcrt, etc */
+  #define _CRTIMP /* __declspec(dllexport) */
  #elif defined(_DLL)
   #define _CRTIMP __declspec(dllimport)
  #else /* !CRTDLL && !_DLL */
@@ -48,11 +63,6 @@ _CRT_BEGIN_C_HEADER
  #endif
 #endif
 
-#ifndef _CRT_STRINGIZE
-#define __CRT_STRINGIZE(_Value) #_Value
-#define _CRT_STRINGIZE(_Value) __CRT_STRINGIZE(_Value)
-#endif
-
 #ifndef _CRT_WIDE
 #define __CRT_WIDE(_String) L ## _String
 #define _CRT_WIDE(_String) __CRT_WIDE(_String)
@@ -66,14 +76,13 @@ _CRT_BEGIN_C_HEADER
 #define __CRTDECL __cdecl
 #endif
 
-// FIXME: see definition of _CONST_RETURN above
 #ifndef _CONST_RETURN
-#ifdef __cplusplus
-#define _CONST_RETURN const
-#define _CRT_CONST_CORRECT_OVERLOADS
-#else
-#define _CONST_RETURN
-#endif
+ #ifdef __cplusplus
+  #define _CONST_RETURN const
+  #define _CRT_CONST_CORRECT_OVERLOADS
+ #else
+  #define _CONST_RETURN
+ #endif
 #endif
 
 #ifdef __GNUC__
@@ -94,7 +103,12 @@ _CRT_BEGIN_C_HEADER
 #endif
 
 #ifndef _CRT_INSECURE_DEPRECATE_MEMORY
-#define _CRT_INSECURE_DEPRECATE_MEMORY(_Replacement)
+ #ifndef _CRT_SECURE_WARNINGS_MEMORY
+  #define _CRT_INSECURE_DEPRECATE_MEMORY(_Replacement)
+ #else
+  #define _CRT_INSECURE_DEPRECATE_MEMORY(_Replacement) \
+      _CRT_INSECURE_DEPRECATE(_Replacement)
+ #endif
 #endif
 
 #ifndef _SIZE_T_DEFINED
@@ -136,7 +150,7 @@ _CRT_BEGIN_C_HEADER
 #if defined(__GNUC__) && defined(__STRICT_ANSI__)
   typedef int ptrdiff_t __attribute__ ((mode (DI)));
 #else
-  __MINGW_EXTENSION typedef __int64 ptrdiff_t;
+  typedef __int64 ptrdiff_t;
 #endif
 #else
   typedef int ptrdiff_t;
@@ -149,6 +163,28 @@ _CRT_BEGIN_C_HEADER
 #if defined(_MSC_VER) || !defined(__cplusplus)
   typedef unsigned short wchar_t;
 #endif
+#endif
+
+#if defined __cplusplus
+    typedef bool  __vcrt_bool;
+#elif defined __midl
+    typedef char __vcrt_bool;
+#else
+    typedef _Bool __vcrt_bool;
+#endif
+
+#ifndef NULL
+ #ifdef __cplusplus
+  #define NULL 0
+ #else
+  #define NULL ((void *)0)
+ #endif
+#endif
+
+#if defined _M_X64 || defined _M_ARM || defined _M_ARM64
+    #define _UNALIGNED __unaligned
+#else
+    #define _UNALIGNED
 #endif
 
 #ifndef _CRT_ALIGN
