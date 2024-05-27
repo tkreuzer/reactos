@@ -215,6 +215,7 @@ _CRT_BEGIN_C_HEADER
 // FIXME: C++!
 #define __crt_countof(_Array) (sizeof(_Array) / sizeof(_Array[0]))
 
+extern uintptr_t __security_cookie;
 void __cdecl __security_init_cookie(void);
 
 _CRT_END_C_HEADER
