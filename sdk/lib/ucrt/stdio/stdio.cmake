@@ -50,3 +50,9 @@ list(APPEND CRT_STDIO_SOURCES
     stdio/_getbuf.cpp
     stdio/_sftbuf.cpp
 )
+
+if(NOT MSVC)
+    list(APPEND CRT_STDIO_SOURCES
+        stdio/stdio_inline.c
+    )
+endif()
