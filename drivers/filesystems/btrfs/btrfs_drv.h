@@ -24,7 +24,7 @@
 #define _WIN32_WINNT 0x0601
 #define NTDDI_VERSION 0x06020000 // Win 8
 #define _CRT_SECURE_NO_WARNINGS
-#define _NO_CRT_STDIO_INLINE
+#define _NO_CRT_STDIO_INLINE // ???
 #endif /* __REACTOS__ */
 
 #ifdef _MSC_VER
