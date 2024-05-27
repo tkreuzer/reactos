@@ -117,15 +117,15 @@ C_ASSERT(sizeof(DWORD) == 4);
 C_ASSERT(sizeof(UINT_PTR) == sizeof(ULONG_PTR));
 
 /* Integer range margins (use (x-1) to prevent warnings) */
-#define INT8_MIN ((signed char)(-127 - 1))
+#define INT8_MIN (-127i8 - 1)
 #define SHORT_MIN (-32768)
-#define INT16_MIN ((short)(-32767 - 1))
+#define INT16_MIN (-32767i16 - 1)
 #define INT_MIN (-2147483647 - 1)
-#define INT32_MIN (-2147483647 - 1)
+#define INT32_MIN (-2147483647i32 - 1)
 #define LONG_MIN (-2147483647L - 1)
 #define LONGLONG_MIN (-9223372036854775807LL - 1)
 #define LONG64_MIN (-9223372036854775807LL - 1)
-#define INT64_MIN (-9223372036854775807LL - 1)
+#define INT64_MIN  (-9223372036854775807i64 - 1)
 #define INT128_MIN (-170141183460469231731687303715884105727i128 - 1)
 #ifdef _WIN64
 #define INT_PTR_MIN (-9223372036854775807LL - 1)
@@ -139,29 +139,29 @@ C_ASSERT(sizeof(UINT_PTR) == sizeof(ULONG_PTR));
 #define SSIZE_T_MIN (-2147483647L - 1)
 #endif /* _WIN64 */
 
-#define INT8_MAX ((signed char)127)
-#define UINT8_MAX ((unsigned char)0xffU)
+#define INT8_MAX 127i8
+#define UINT8_MAX 0xffui8 /* 255U */
 #define BYTE_MAX ((unsigned char)0xff)
 #define SHORT_MAX ((short)32767)
-#define INT16_MAX ((short)32767)
+#define INT16_MAX 32767i16
 #define USHORT_MAX ((unsigned short)0xffff)
-#define UINT16_MAX ((unsigned short)0xffff)
+#define UINT16_MAX 0xffffui16 /* 65535U */
 #define WORD_MAX ((unsigned short)0xffff)
 #define INT_MAX 2147483647
-#define INT32_MAX 2147483647
+#define INT32_MAX 2147483647i32
 #define UINT_MAX 0xffffffff
-#define UINT32_MAX 0xffffffffU
+#define UINT32_MAX 0xffffffffui32  /* 4294967295U */
 #define LONG_MAX 2147483647L
 #define ULONG_MAX 0xffffffffUL
 #define DWORD_MAX 0xffffffffUL
 #define LONGLONG_MAX 9223372036854775807LL
 #define LONG64_MAX 9223372036854775807LL
-#define INT64_MAX 9223372036854775807LL
+#define INT64_MAX 9223372036854775807i64
 #define ULONGLONG_MAX 0xffffffffffffffffULL
 #define DWORDLONG_MAX 0xffffffffffffffffULL
 #define ULONG64_MAX 0xffffffffffffffffULL
 #define DWORD64_MAX 0xffffffffffffffffULL
-#define UINT64_MAX 0xffffffffffffffffULL
+#define UINT64_MAX 0xffffffffffffffffui64 /* 18446744073709551615ULL */
 #define INT128_MAX 170141183460469231731687303715884105727i128
 #define UINT128_MAX 0xffffffffffffffffffffffffffffffffui128
 #undef SIZE_T_MAX

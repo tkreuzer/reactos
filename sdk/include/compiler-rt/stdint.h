@@ -38,8 +38,8 @@ typedef short  int16_t;
 typedef unsigned short  uint16_t;
 typedef int  int32_t;
 typedef unsigned   uint32_t;
-__MINGW_EXTENSION typedef long long  int64_t;
-__MINGW_EXTENSION typedef unsigned long long   uint64_t;
+typedef long long  int64_t;
+typedef unsigned long long   uint64_t;
 
 /* 7.18.1.2  Minimum-width integer types */
 typedef signed char int_least8_t;
@@ -48,8 +48,8 @@ typedef short  int_least16_t;
 typedef unsigned short  uint_least16_t;
 typedef int  int_least32_t;
 typedef unsigned   uint_least32_t;
-__MINGW_EXTENSION typedef long long  int_least64_t;
-__MINGW_EXTENSION typedef unsigned long long   uint_least64_t;
+typedef long long  int_least64_t;
+typedef unsigned long long   uint_least64_t;
 
 /*  7.18.1.3  Fastest minimum-width integer types
  *  Not actually guaranteed to be fastest for all purposes
@@ -61,31 +61,31 @@ typedef short  int_fast16_t;
 typedef unsigned short  uint_fast16_t;
 typedef int  int_fast32_t;
 typedef unsigned  int  uint_fast32_t;
-__MINGW_EXTENSION typedef long long  int_fast64_t;
-__MINGW_EXTENSION typedef unsigned long long   uint_fast64_t;
+typedef long long  int_fast64_t;
+typedef unsigned long long   uint_fast64_t;
 
 /* 7.18.1.5  Greatest-width integer types */
-__MINGW_EXTENSION typedef long long  intmax_t;
-__MINGW_EXTENSION typedef unsigned long long   uintmax_t;
+typedef long long  intmax_t;
+typedef unsigned long long   uintmax_t;
 
 /* 7.18.2  Limits of specified-width integer types */
-#if !defined ( __cplusplus) || defined (__STDC_LIMIT_MACROS)
+//#if !defined ( __cplusplus) || defined (__STDC_LIMIT_MACROS)
 
 /* 7.18.2.1  Limits of exact-width integer types */
-#define INT8_MIN (-128)
-#define INT16_MIN (-32768)
-#define INT32_MIN (-2147483647 - 1)
-#define INT64_MIN  (-9223372036854775807LL - 1)
+#define INT8_MIN (-127i8 - 1)
+#define INT16_MIN (-32767i16 - 1)
+#define INT32_MIN (-2147483647i32 - 1)
+#define INT64_MIN  (-9223372036854775807i64 - 1)
 
-#define INT8_MAX 127
-#define INT16_MAX 32767
-#define INT32_MAX 2147483647
-#define INT64_MAX 9223372036854775807LL
+#define INT8_MAX 127i8
+#define INT16_MAX 32767i16
+#define INT32_MAX 2147483647i32
+#define INT64_MAX 9223372036854775807i64
 
-#define UINT8_MAX 0xff /* 255U */
-#define UINT16_MAX 0xffff /* 65535U */
-#define UINT32_MAX 0xffffffff  /* 4294967295U */
-#define UINT64_MAX 0xffffffffffffffffULL /* 18446744073709551615ULL */
+#define UINT8_MAX 0xffui8 /* 255U */
+#define UINT16_MAX 0xffffui16 /* 65535U */
+#define UINT32_MAX 0xffffffffui32  /* 4294967295U */
+#define UINT64_MAX 0xffffffffffffffffui64 /* 18446744073709551615ULL */
 
 /* 7.18.2.2  Limits of minimum-width integer types */
 #define INT_LEAST8_MIN INT8_MIN
@@ -157,10 +157,10 @@ __MINGW_EXTENSION typedef unsigned long long   uintmax_t;
 #endif
 
 #ifndef WCHAR_MIN  /* also in wchar.h */
-#define WCHAR_MIN 0
+#define WCHAR_MIN 0x0000
 #endif
 #ifndef WCHAR_MAX
-#define WCHAR_MAX ((wchar_t)-1) /* UINT16_MAX */
+#define WCHAR_MAX 0xffff /* UINT16_MAX */
 #endif
 
 /*
@@ -169,7 +169,7 @@ __MINGW_EXTENSION typedef unsigned long long   uintmax_t;
 #define WINT_MIN 0
 #define WINT_MAX ((wint_t)-1) /* UINT16_MAX */
 
-#endif /* !defined ( __cplusplus) || defined __STDC_LIMIT_MACROS */
+//#endif /* !defined ( __cplusplus) || defined __STDC_LIMIT_MACROS */
 
 
 /* 7.18.4  Macros for integer constants */
