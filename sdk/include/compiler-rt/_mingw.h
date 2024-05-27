@@ -274,7 +274,7 @@ allow GCC to optimize away some EH unwind code, at least in DW2 case.  */
 // TODO: define __has_cpp_attribute for GCC/Clang
 
 // ReactOS hacks for ucrt headers
-#ifndef _NO_CRT_STDIO_INLINE
+#if !defined(_NO_CRT_STDIO_INLINE) && !defined(_UCRT)
 #define _NO_CRT_STDIO_INLINE
 #endif
 #define _CRT_FUNCTIONS_REQUIRED 1
