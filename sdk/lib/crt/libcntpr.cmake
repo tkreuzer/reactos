@@ -30,6 +30,8 @@ target_compile_definitions(libcntpr
  PRIVATE    NO_RTL_INLINES
     _NTSYSTEM_
     _NTDLLBUILD_
+    _CORECRT_BUILD
+    _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
     _LIBCNT_
     __CRT__NO_INLINE
     CRTDLL)

@@ -44,6 +44,8 @@ target_compile_definitions(crt
     USE_MSVCRT_PREFIX
     _MSVCRT_LIB_
     _MSVCRT_
+    _CORECRT_BUILD
+    _CRT_DECLARE_GLOBAL_VARIABLES_DIRECTLY
     _MT
     CRTDLL)
 #add_pch(crt precomp.h)
