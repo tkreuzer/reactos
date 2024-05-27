@@ -1,4 +1,6 @@
 
+set(CMAKE_CXX_STANDARD 17)
+
 if(MSVC)
     # Disable warning C4083: expected ')'; found identifier '<warning identifier>'
     add_compile_options($<$<COMPILE_LANGUAGE:C,CXX>:/wd4083>)
