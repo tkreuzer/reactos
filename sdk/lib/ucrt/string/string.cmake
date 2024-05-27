@@ -141,11 +141,7 @@ endif()
 list(APPEND CRT_STRING_SOURCES
     string/strcat.c
     string/strcmp.c
-    string/strcspn.c
     string/strncat.c
     string/strncmp.c
     string/strncpy.c
-    string/strpbrk.c
-    string/strspn.c
 )
-
