@@ -20,12 +20,13 @@
 
 #ifdef __REACTOS__
 /* HACK This is a Vista+ API */
-static INT WINAPI LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD flags )
+static INT WINAPI _LCIDToLocaleName( LCID lcid, LPWSTR name, INT count, DWORD flags )
 {
     if (flags) FIXME( "unsupported flags %x\n", flags );
 
     return GetLocaleInfoW( lcid, LOCALE_SNAME | LOCALE_NOUSEROVERRIDE, name, count );
 }
+#define LCIDToLocaleName _LCIDToLocaleName
 #endif
 
 typedef struct HTMLPluginsCollection HTMLPluginsCollection;
