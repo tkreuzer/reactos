@@ -68,10 +68,6 @@ _CRT_BEGIN_C_HEADER
 #define _CRT_WIDE(_String) __CRT_WIDE(_String)
 #endif
 
-#ifndef _CONST_RETURN
- #define _CONST_RETURN
-#endif
-
 #ifndef __CRTDECL
 #define __CRTDECL __cdecl
 #endif
