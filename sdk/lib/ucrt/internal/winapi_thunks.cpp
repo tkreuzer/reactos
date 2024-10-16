@@ -449,7 +449,11 @@ static BOOL enum_system_locales_ex_nolock(
 
     static_enum_proc = __crt_fast_encode_pointer(enum_proc);
     BOOL const result = EnumSystemLocalesW(
-        [](LPWSTR locale_string) { return __crt_fast_decode_pointer(static_enum_proc)(locale_string, 0, 0); },
+        [](LPWSTR locale_string)
+        #if defined(__GNUC__) && !defined(__clang__)
+        __stdcall
+        #endif // __GNUC__
+        { return __crt_fast_decode_pointer(static_enum_proc)(locale_string, 0, 0); },
         LCID_INSTALLED);
     static_enum_proc = __crt_fast_encode_pointer(nullptr);
 
