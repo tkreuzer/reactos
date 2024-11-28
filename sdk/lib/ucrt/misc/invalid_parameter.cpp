@@ -166,25 +166,7 @@ extern "C" __declspec(noreturn) void __cdecl _invalid_parameter_noinfo_noreturn(
         EXCEPTION_POINTERS ExceptionPointers = {&ExceptionRecord, &ContextRecord};
 
         #ifdef _M_IX86
-        #ifdef _MSC_VER
-        __asm
-        {
-            mov dword ptr [ContextRecord.Eax  ], eax
-            mov dword ptr [ContextRecord.Ecx  ], ecx
-            mov dword ptr [ContextRecord.Edx  ], edx
-            mov dword ptr [ContextRecord.Ebx  ], ebx
-            mov dword ptr [ContextRecord.Esi  ], esi
-            mov dword ptr [ContextRecord.Edi  ], edi
-            mov word ptr  [ContextRecord.SegSs], ss
-            mov word ptr  [ContextRecord.SegCs], cs
-            mov word ptr  [ContextRecord.SegDs], ds
-            mov word ptr  [ContextRecord.SegEs], es
-            mov word ptr  [ContextRecord.SegFs], fs
-            mov word ptr  [ContextRecord.SegGs], gs
-            pushfd
-            pop [ContextRecord.EFlags]
-        }
-        #else // ^^^ _MSC_VER ^^^ // vvv !_MSC_VER vvv //
+        #if defined(__GNUC__) || defined(__clang__)
         __asm__ __volatile__(
             "movl %%eax, %0\n\t"
             "movl %%ecx, %1\n\t"
@@ -213,7 +195,25 @@ extern "C" __declspec(noreturn) void __cdecl _invalid_parameter_noinfo_noreturn(
             "=m" (ContextRecord.SegFs),
             "=m" (ContextRecord.SegGs),
             "=m" (ContextRecord.EFlags));
-        #endif // !_MSC_VER
+        #else // ^^^ __GNUC__ ^^^ // vvv !__GNUC__ vvv //
+        __asm
+        {
+            mov dword ptr [ContextRecord.Eax  ], eax
+            mov dword ptr [ContextRecord.Ecx  ], ecx
+            mov dword ptr [ContextRecord.Edx  ], edx
+            mov dword ptr [ContextRecord.Ebx  ], ebx
+            mov dword ptr [ContextRecord.Esi  ], esi
+            mov dword ptr [ContextRecord.Edi  ], edi
+            mov word ptr  [ContextRecord.SegSs], ss
+            mov word ptr  [ContextRecord.SegCs], cs
+            mov word ptr  [ContextRecord.SegDs], ds
+            mov word ptr  [ContextRecord.SegEs], es
+            mov word ptr  [ContextRecord.SegFs], fs
+            mov word ptr  [ContextRecord.SegGs], gs
+            pushfd
+            pop [ContextRecord.EFlags]
+        }
+        #endif // !__GNUC__
 
         ContextRecord.ContextFlags = CONTEXT_CONTROL;
 
