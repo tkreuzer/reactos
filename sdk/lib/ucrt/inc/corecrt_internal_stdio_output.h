@@ -111,8 +111,10 @@ template <typename Character>
 class console_output_adapter
     : public output_adapter_common<Character, console_output_adapter<Character>>
 {
+#ifndef _MSC_VER // For retarded compilers!
     using oac_base = output_adapter_common<Character, console_output_adapter<Character>>;
     using oac_base::write_string_impl;
+#endif
 public:
     typedef __acrt_stdio_char_traits<Character> char_traits;
 
@@ -143,8 +145,10 @@ template <typename Character>
 class stream_output_adapter
     : public output_adapter_common<Character, stream_output_adapter<Character>>
 {
+#ifndef _MSC_VER // For retarded compilers!
     using oac_base = output_adapter_common<Character, stream_output_adapter<Character>>;
     using oac_base::write_string_impl;
+#endif
 public:
     typedef __acrt_stdio_char_traits<Character> char_traits;
 
