@@ -168,33 +168,35 @@ extern "C" __declspec(noreturn) void __cdecl _invalid_parameter_noinfo_noreturn(
         #ifdef _M_IX86
         #if defined(__GNUC__) || defined(__clang__)
         __asm__ __volatile__(
-            "movl %%eax, %0\n\t"
-            "movl %%ecx, %1\n\t"
-            "movl %%edx, %2\n\t"
-            "movl %%ebx, %3\n\t"
-            "movl %%esi, %4\n\t"
-            "movl %%edi, %5\n\t"
-            "movw %%ss, %6\n\t"
-            "movw %%cs, %7\n\t"
-            "movw %%ds, %8\n\t"
-            "movw %%es, %9\n\t"
-            "movw %%fs, %10\n\t"
-            "movw %%gs, %11\n\t"
+            "movl %%eax, %[CxEax]\n\t"
+            "movl %%ecx, %[CxEcx]\n\t"
+            "movl %%edx, %[CxEdx]\n\t"
+            "movl %%ebx, %[CxEbx]\n\t"
+            "movl %%esi, %[CxEsi]\n\t"
+            "movl %%edi, %[CxEdi]\n\t"
+            : [CxEax] "=m" (ContextRecord.Eax),
+              [CxEcx] "=m" (ContextRecord.Ecx),
+              [CxEdx] "=m" (ContextRecord.Edx),
+              [CxEbx] "=m" (ContextRecord.Ebx),
+              [CxEsi] "=m" (ContextRecord.Esi),
+              [CxEdi] "=m" (ContextRecord.Edi));
+        __asm__ __volatile__(
+            "movw %%ss, %[CxSegSs]\n\t"
+            "movw %%cs, %[CxSegCs]\n\t"
+            "movw %%ds, %[CxSegDs]\n\t"
+            "movw %%es, %[CxSegEs]\n\t"
+            "movw %%fs, %[CxSegFs]\n\t"
+            "movw %%gs, %[CxSegGs]\n\t"
+            : [CxSegSs] "=m" (ContextRecord.SegSs),
+              [CxSegCs] "=m" (ContextRecord.SegCs),
+              [CxSegDs] "=m" (ContextRecord.SegDs),
+              [CxSegEs] "=m" (ContextRecord.SegEs),
+              [CxSegFs] "=m" (ContextRecord.SegFs),
+              [CxSegGs] "=m" (ContextRecord.SegGs));
+        __asm__ __volatile__(
             "pushfl\n\t"
-            "popl %12\n\t"
-            : "=m" (ContextRecord.Eax),
-            "=m" (ContextRecord.Ecx),
-            "=m" (ContextRecord.Edx),
-            "=m" (ContextRecord.Ebx),
-            "=m" (ContextRecord.Esi),
-            "=m" (ContextRecord.Edi),
-            "=m" (ContextRecord.SegSs),
-            "=m" (ContextRecord.SegCs),
-            "=m" (ContextRecord.SegDs),
-            "=m" (ContextRecord.SegEs),
-            "=m" (ContextRecord.SegFs),
-            "=m" (ContextRecord.SegGs),
-            "=m" (ContextRecord.EFlags));
+            "popl %[CxEFlags]\n\t"
+            : [CxEFlags] "=m" (ContextRecord.EFlags));
         #else // ^^^ __GNUC__ ^^^ // vvv !__GNUC__ vvv //
         __asm
         {
