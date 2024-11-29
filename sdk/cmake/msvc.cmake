@@ -44,6 +44,12 @@ endif()
 add_compile_options(/GS-)
 
 if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    add_compile_options(
+        -Wno-ignored-pragmas
+        -Wno-ignored-pragma-intrinsic
+        -Wno-microsoft-exception-spec
+        -fno-builtin-__readmsr
+    )
     if(ARCH STREQUAL "amd64")
         add_compile_options(-mcx16) # Generate CMPXCHG16B
     endif()
