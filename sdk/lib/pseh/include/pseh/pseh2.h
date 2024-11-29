@@ -24,7 +24,7 @@
 #define KJK_PSEH2_H_
 
 // Clang-cl x64 uses dummy PSEH, because the native implementation is broken and crashes clang.
-#if defined(_USE_NATIVE_SEH) || (defined(_MSC_VER) && !(defined(__clang__) && defined(_M_AMD64)))
+#if defined(_USE_NATIVE_SEH) || defined(_MSC_VER)
 
 #define _SEH2_TRY __try
 #define _SEH2_FINALLY __finally
