@@ -448,7 +448,7 @@ static BOOL enum_system_locales_ex_nolock(
     static LOCALE_ENUMPROCEX static_enum_proc;
 
     static_enum_proc = __crt_fast_encode_pointer(enum_proc);
-    BOOL const result = EnumSystemLocalesW(
+    BOOL const result = EnumSystemLocalesW((LOCALE_ENUMPROCW)
         [](LPWSTR locale_string)
         #if defined(__GNUC__) && !defined(__clang__)
         __stdcall
