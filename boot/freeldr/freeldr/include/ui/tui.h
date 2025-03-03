@@ -37,7 +37,7 @@ TuiTruncateStringEllipsis(
 BOOLEAN    TuiInitialize(VOID);                                    // Initialize User-Interface
 VOID    TuiUnInitialize(VOID);                                    // Un-initialize User-Interface
 
-VOID    TuiDrawBackdrop(VOID);                                    // Fills the entire screen with a backdrop
+VOID    TuiDrawBackdrop(ULONG DrawHeight);                        // Fills the entire screen with a backdrop
 VOID    TuiFillArea(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom, CHAR FillChar, UCHAR Attr /* Color Attributes */);    // Fills the area specified with FillChar and Attr
 VOID    TuiDrawShadow(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom);    // Draws a shadow on the bottom and right sides of the area specified
 
@@ -127,7 +127,7 @@ BOOLEAN    TuiEditBox(PCSTR MessageText, PCHAR EditTextBuffer, ULONG Length);
 UCHAR    TuiTextToColor(PCSTR ColorText);                        // Converts the text color into it's equivalent color value
 UCHAR    TuiTextToFillStyle(PCSTR FillStyleText);                // Converts the text fill into it's equivalent fill value
 
-VOID    TuiFadeInBackdrop(VOID);                                // Draws the backdrop and fades the screen in
+VOID    TuiFadeInBackdrop(ULONG DrawHeight);                     // Draws the backdrop and fades the screen in
 VOID    TuiFadeOut(VOID);                                        // Fades the screen out
 
 /* Menu Functions ************************************************************/

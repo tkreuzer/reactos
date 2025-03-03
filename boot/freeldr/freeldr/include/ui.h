@@ -53,7 +53,7 @@ extern const PCSTR UiMonthNames[12];
 
 BOOLEAN    UiInitialize(BOOLEAN ShowUi);                                // Initialize User-Interface
 VOID    UiUnInitialize(PCSTR BootText);                        // Un-initialize User-Interface
-VOID    UiDrawBackdrop(VOID);                                    // Fills the entire screen with a backdrop
+VOID    UiDrawBackdrop(ULONG DrawHeight);                      // Fills the entire screen with a backdrop
 VOID    UiFillArea(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom, CHAR FillChar, UCHAR Attr /* Color Attributes */);    // Fills the area specified with FillChar and Attr
 VOID    UiDrawShadow(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom);    // Draws a shadow on the bottom and right sides of the area specified
 VOID    UiDrawBox(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom, UCHAR VertStyle, UCHAR HorzStyle, BOOLEAN Fill, BOOLEAN Shadow, UCHAR Attr);    // Draws a box around the area specified
@@ -202,7 +202,7 @@ BOOLEAN    UiEditBox(PCSTR MessageText, PCHAR EditTextBuffer, ULONG Length);
 UCHAR    UiTextToColor(PCSTR ColorText);                        // Converts the text color into it's equivalent color value
 UCHAR    UiTextToFillStyle(PCSTR FillStyleText);                // Converts the text fill into it's equivalent fill value
 
-VOID    UiFadeInBackdrop(VOID);                                    // Draws the backdrop and fades the screen in
+VOID    UiFadeInBackdrop(ULONG DrawHeight);                     // Draws the backdrop and fades the screen in
 VOID    UiFadeOut(VOID);                                        // Fades the screen out
 
 /* Menu Functions ************************************************************/
@@ -254,7 +254,7 @@ typedef struct tagUIVTBL
     BOOLEAN (*Initialize)(VOID);
     VOID (*UnInitialize)(VOID);
 
-    VOID (*DrawBackdrop)(VOID);
+    VOID (*DrawBackdrop)(ULONG DrawHeight);
     VOID (*FillArea)(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom, CHAR FillChar, UCHAR Attr);
     VOID (*DrawShadow)(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom);
     VOID (*DrawBox)(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom, UCHAR VertStyle, UCHAR HorzStyle, BOOLEAN Fill, BOOLEAN Shadow, UCHAR Attr);
@@ -285,7 +285,7 @@ typedef struct tagUIVTBL
     BOOLEAN (*EditBox)(PCSTR MessageText, PCHAR EditTextBuffer, ULONG Length);
     UCHAR (*TextToColor)(PCSTR ColorText);
     UCHAR (*TextToFillStyle)(PCSTR FillStyleText);
-    VOID (*FadeInBackdrop)(VOID);
+    VOID (*FadeInBackdrop)(ULONG DrawHeight);
     VOID (*FadeOut)(VOID);
 
     BOOLEAN (*DisplayMenu)(

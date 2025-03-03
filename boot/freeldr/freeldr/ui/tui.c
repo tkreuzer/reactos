@@ -269,13 +269,13 @@ VOID TuiUnInitialize(VOID)
     MachVideoHideShowTextCursor(TRUE);
 }
 
-VOID TuiDrawBackdrop(VOID)
+VOID TuiDrawBackdrop(ULONG DrawHeight)
 {
     /* Fill in the background (excluding title box & status bar) */
     TuiFillArea(0,
                 TUI_TITLE_BOX_CHAR_HEIGHT,
                 UiScreenWidth - 1,
-                UiScreenHeight - 3,
+                DrawHeight - 2,
                 UiBackdropFillStyle,
                 ATTR(UiBackdropFgColor, UiBackdropBgColor));
 
@@ -979,7 +979,7 @@ UCHAR TuiTextToFillStyle(PCSTR FillStyleText)
     return LIGHT_FILL;
 }
 
-VOID TuiFadeInBackdrop(VOID)
+VOID TuiFadeInBackdrop(ULONG DrawHeight)
 {
     PPALETTE_ENTRY TuiFadePalette = NULL;
 
@@ -996,7 +996,7 @@ VOID TuiFadeInBackdrop(VOID)
     }
 
     // Draw the backdrop and title box
-    TuiDrawBackdrop();
+    TuiDrawBackdrop(UiGetScreenHeight());
 
     if (UiUseSpecialEffects && ! MachVideoIsPaletteFixed() && TuiFadePalette != NULL)
     {

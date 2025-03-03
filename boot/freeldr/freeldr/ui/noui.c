@@ -17,7 +17,7 @@ VOID NoUiUnInitialize(VOID)
 {
 }
 
-VOID NoUiDrawBackdrop(VOID)
+VOID NoUiDrawBackdrop(ULONG DrawHeight)
 {
 }
 
@@ -145,7 +145,7 @@ UCHAR NoUiTextToFillStyle(PCSTR FillStyleText)
     return 0;
 }
 
-VOID NoUiFadeInBackdrop(VOID)
+VOID NoUiFadeInBackdrop(ULONG DrawHeight)
 {
 }
 

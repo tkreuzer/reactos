@@ -215,7 +215,7 @@ BOOLEAN UiInitialize(BOOLEAN ShowUi)
     }
 
     /* Draw the backdrop and fade it in if special effects are enabled */
-    UiFadeInBackdrop();
+    UiFadeInBackdrop(UiGetScreenHeight());
 
     TRACE("UiInitialize() returning TRUE.\n");
     return TRUE;
@@ -223,16 +223,16 @@ BOOLEAN UiInitialize(BOOLEAN ShowUi)
 
 VOID UiUnInitialize(PCSTR BootText)
 {
-    UiDrawBackdrop();
+    UiDrawBackdrop(UiGetScreenHeight());
     UiDrawStatusText(BootText);
     UiInfoBox(BootText);
 
     UiVtbl.UnInitialize();
 }
 
-VOID UiDrawBackdrop(VOID)
+VOID UiDrawBackdrop(ULONG DrawHeight)
 {
-    UiVtbl.DrawBackdrop();
+    UiVtbl.DrawBackdrop(DrawHeight);
 }
 
 VOID UiFillArea(ULONG Left, ULONG Top, ULONG Right, ULONG Bottom, CHAR FillChar, UCHAR Attr /* Color Attributes */)
@@ -620,9 +620,9 @@ UiDisplayMenu(
                               KeyPressFilter, Context);
 }
 
-VOID UiFadeInBackdrop(VOID)
+VOID UiFadeInBackdrop(ULONG DrawHeight)
 {
-    UiVtbl.FadeInBackdrop();
+    UiVtbl.FadeInBackdrop(DrawHeight);
 }
 
 VOID UiFadeOut(VOID)
