@@ -1288,6 +1288,12 @@ typedef struct _PSP_RATE_APC
     KAPC RateApc;
 } PSP_RATE_APC, *PPSP_RATE_APC;
 
+typedef struct _EXP_PUSH_LOCK_RECORD
+{
+    PEX_PUSH_LOCK PushLock;
+    PVOID BackTrace[6];
+} EXP_PUSH_LOCK_RECORD, * PEXP_PUSH_LOCK_RECORD;
+
 //
 // Executive Thread (ETHREAD)
 //
@@ -1456,6 +1462,12 @@ typedef struct _ETHREAD
 #ifndef _WIN64
     volatile ULONG CycleTimeHigh;
 #endif
+#endif
+#if DBG
+    ULONG OwnedPushLocks;
+    ULONG64 PushLockRecordsUsed;
+    EXP_PUSH_LOCK_RECORD PushLockRecords[64];
+    PVOID LastSystemCallFuncion;
 #endif
 } ETHREAD;
 

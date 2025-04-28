@@ -27,6 +27,117 @@ ULONG ExPushLockSpinCount = 0;
 #define InterlockedAndPointer(ptr,val) InterlockedAnd((PLONG)ptr,(LONG)val)
 #endif
 
+extern PVOID PoolVector[2];
+
+VOID
+FASTCALL
+ExpDbgRecordPushlockAcquire(
+    IN PEX_PUSH_LOCK PushLock)
+{
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    PEXP_PUSH_LOCK_RECORD Record;
+
+    /* DbgPrint("[%lx] Pushlock %p acquired\n", HandleToUlong(PsGetCurrentThreadId()), PushLock); */ \
+    PsGetCurrentThread()->OwnedPushLocks++;
+    if (CurrentThread->OwnedPushLocks > 64)
+    {
+        __debugbreak();
+        ExpDbgDumpPushlockBackTraces();
+    }
+
+    ULONG Index;
+    for (Index = 0; Index < 64; Index++)
+    {
+        if (CurrentThread->PushLockRecords[Index].PushLock == PushLock)
+        {
+            __debugbreak();
+            return;
+        }
+    }
+
+    NT_VERIFY(BitScanForward64(&Index, ~CurrentThread->PushLockRecordsUsed));
+    ASSERT((CurrentThread->PushLockRecordsUsed & (1ull << Index)) == 0);
+    CurrentThread->PushLockRecordsUsed |= (1ull << Index);
+    Record = &CurrentThread->PushLockRecords[Index];
+    ASSERT(Record->PushLock == NULL);
+
+    Record->PushLock = PushLock;
+    RtlCaptureStackBackTrace(1,
+                             ARRAYSIZE(Record->BackTrace),
+                             Record->BackTrace,
+                             NULL);
+}
+
+VOID
+FASTCALL
+ExpDbgRecordPushlockRelease(
+    IN PEX_PUSH_LOCK PushLock)
+{
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    PEXP_PUSH_LOCK_RECORD Record;
+    /* DbgPrint("[%lx] Pushlock %p released\n", HandleToUlong(PsGetCurrentThreadId()), PushLock); */ \
+
+    ASSERT(CurrentThread->OwnedPushLocks > 0);
+    PsGetCurrentThread()->OwnedPushLocks--;
+
+    for (ULONG Index = 0; Index < 64; Index++)
+    {
+        Record = &CurrentThread->PushLockRecords[Index];
+        if (Record->PushLock == PushLock)
+        {
+            Record->PushLock = NULL;
+            ASSERT(CurrentThread->PushLockRecordsUsed & (1ull << Index));
+            CurrentThread->PushLockRecordsUsed &= ~(1ull << Index);
+            return;
+        }
+    }
+
+    __debugbreak();
+}
+
+VOID
+ExpDbgAssertPushLockNotHeld(
+    IN PEX_PUSH_LOCK PushLock)
+{
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    PEXP_PUSH_LOCK_RECORD Record;
+    for (ULONG Index = 0; Index < 64; Index++)
+    {
+        Record = &CurrentThread->PushLockRecords[Index];
+        if (Record->PushLock == PushLock)
+        {
+            __debugbreak();
+            return;
+        }
+    }
+}
+
+VOID
+FASTCALL
+ExpDbgDumpPushlockBackTraces(
+    VOID)
+{
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    PEXP_PUSH_LOCK_RECORD Record;
+
+    for (ULONG Index = 0; Index < 64; Index++)
+    {
+        Record = &CurrentThread->PushLockRecords[Index];
+        if (Record->PushLock != NULL)
+        {
+            DbgPrint("Pushlock %p:\n", Record->PushLock);
+            DbgPrint("%p %p %p %p %p %p\n",
+                     Record->BackTrace[0],
+                     Record->BackTrace[1],
+                     Record->BackTrace[2],
+                     Record->BackTrace[3],
+                     Record->BackTrace[4],
+                     Record->BackTrace[5]);
+        }
+    }
+}
+
+
 /*++
  * @name ExpInitializePushLocks
  *
@@ -648,6 +759,8 @@ ExfAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)
             OldValue = NewValue;
         }
     }
+
+    DBG_ACQUIRED_PUSHLOCK(PushLock);
 }
 
 /*++
@@ -810,6 +923,8 @@ ExfAcquirePushLockShared(PEX_PUSH_LOCK PushLock)
             ASSERT((WaitBlock->ShareCount == 0));
         }
     }
+
+    DBG_ACQUIRED_PUSHLOCK(PushLock);
 }
 
 /*++
@@ -837,6 +952,7 @@ ExfReleasePushLock(PEX_PUSH_LOCK PushLock)
 
     /* The caller must hold the push lock */
     ASSERT(OldValue.Locked);
+    if (PsGetCurrentThread()->OwnedPushLocks == 0) __debugbreak();
 
     while (TRUE)
     {
@@ -863,7 +979,10 @@ ExfReleasePushLock(PEX_PUSH_LOCK PushLock)
             NewValue.Ptr = InterlockedCompareExchangePointer(&PushLock->Ptr,
                                                              NewValue.Ptr,
                                                              OldValue.Ptr);
-            if (NewValue.Value == OldValue.Value) return;
+            if (NewValue.Value == OldValue.Value)
+            {
+                goto Exit;
+            }
 
             OldValue = NewValue;
         }
@@ -909,7 +1028,10 @@ ExfReleasePushLock(PEX_PUSH_LOCK PushLock)
                     /* The outstanding shared count is stored in the oldest exclusive waiter */
                     ASSERT(WaitBlock->Flags & EX_PUSH_LOCK_FLAGS_EXCLUSIVE);
 
-                    if (InterlockedDecrement(&WaitBlock->ShareCount) > 0) return;
+                    if (InterlockedDecrement(&WaitBlock->ShareCount) > 0)
+                    {
+                        goto Exit;
+                    }
                 }
             }
 
@@ -936,7 +1058,10 @@ ExfReleasePushLock(PEX_PUSH_LOCK PushLock)
                     NewValue.Ptr = InterlockedCompareExchangePointer(&PushLock->Ptr,
                                                                      NewValue.Ptr,
                                                                      OldValue.Ptr);
-                    if (NewValue.Value == OldValue.Value) return;
+                    if (NewValue.Value == OldValue.Value)
+                    {
+                        goto Exit;
+                    }
                 }
                 else
                 {
@@ -961,7 +1086,7 @@ ExfReleasePushLock(PEX_PUSH_LOCK PushLock)
                     {
                         /* Wake the waiters after the state update succeeds */
                         ExfWakePushLock(PushLock, WakeValue);
-                        return;
+                        goto Exit;
                     }
                 }
 
@@ -973,6 +1098,9 @@ ExfReleasePushLock(PEX_PUSH_LOCK PushLock)
             }
         }
     }
+
+Exit:
+    DBG_RELEASED_PUSHLOCK(PushLock);
 }
 
 /*++
@@ -996,6 +1124,7 @@ ExfReleasePushLockShared(PEX_PUSH_LOCK PushLock)
 {
     EX_PUSH_LOCK OldValue = *PushLock, NewValue, WakeValue;
     PEX_PUSH_LOCK_WAIT_BLOCK WaitBlock, LastWaitBlock;
+    if (PsGetCurrentThread()->OwnedPushLocks == 0) __debugbreak();
 
     /* The caller must hold the push lock */
     ASSERT(OldValue.Locked);
@@ -1023,7 +1152,10 @@ ExfReleasePushLockShared(PEX_PUSH_LOCK PushLock)
         NewValue.Ptr = InterlockedCompareExchangePointer(&PushLock->Ptr,
                                                          NewValue.Ptr,
                                                          OldValue.Ptr);
-        if (NewValue.Value == OldValue.Value) return;
+        if (NewValue.Value == OldValue.Value)
+        {
+            goto Exit;
+        }
 
         OldValue = NewValue;
     }
@@ -1062,7 +1194,10 @@ ExfReleasePushLockShared(PEX_PUSH_LOCK PushLock)
         ASSERT(WaitBlock->ShareCount > 0);
         ASSERT(WaitBlock->Flags & EX_PUSH_LOCK_FLAGS_EXCLUSIVE);
 
-        if (InterlockedDecrement(&WaitBlock->ShareCount) > 0) return;
+        if (InterlockedDecrement(&WaitBlock->ShareCount) > 0)
+        {
+            goto Exit;
+        }
     }
 
     /*
@@ -1088,7 +1223,10 @@ ExfReleasePushLockShared(PEX_PUSH_LOCK PushLock)
             NewValue.Ptr = InterlockedCompareExchangePointer(&PushLock->Ptr,
                                                              NewValue.Ptr,
                                                              OldValue.Ptr);
-            if (NewValue.Value == OldValue.Value) return;
+            if (NewValue.Value == OldValue.Value)
+            {
+                goto Exit;
+            }
         }
         else
         {
@@ -1113,7 +1251,7 @@ ExfReleasePushLockShared(PEX_PUSH_LOCK PushLock)
             {
                 /* Wake the waiters after the state update succeeds */
                 ExfWakePushLock(PushLock, WakeValue);
-                return;
+                goto Exit;
             }
         }
 
@@ -1123,6 +1261,9 @@ ExfReleasePushLockShared(PEX_PUSH_LOCK PushLock)
          */
         OldValue = NewValue;
     }
+
+Exit:
+    DBG_RELEASED_PUSHLOCK(PushLock);
 }
 
 /*++
@@ -1147,6 +1288,8 @@ ExfReleasePushLockExclusive(PEX_PUSH_LOCK PushLock)
 {
     EX_PUSH_LOCK NewValue, WakeValue;
     EX_PUSH_LOCK OldValue = *PushLock;
+
+    if (PsGetCurrentThread()->OwnedPushLocks == 0) __debugbreak();
 
     /* Loop until we can change */
     for (;;)
@@ -1199,6 +1342,8 @@ ExfReleasePushLockExclusive(PEX_PUSH_LOCK PushLock)
         /* Loop again */
         OldValue = NewValue;
     }
+
+    DBG_RELEASED_PUSHLOCK(PushLock);
 }
 
 /*++

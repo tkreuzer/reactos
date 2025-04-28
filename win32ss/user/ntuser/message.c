@@ -3094,6 +3094,8 @@ NtUserMessageCall( HWND hWnd,
 
     UserLeave();
 
+    if (PsGetCurrentThread()->OwnedPushLocks) __debugbreak();
+
     return Ret;
 }
 

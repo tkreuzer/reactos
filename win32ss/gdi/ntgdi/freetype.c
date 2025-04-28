@@ -5985,6 +5985,26 @@ IntAddNameFromFamInfo(LPWSTR psz, FONTFAMILYINFO *FamInfo)
     }
 }
 
+VOID
+ExpDbgAssertPushLockNotHeld(
+    IN PEX_PUSH_LOCK PushLock)
+{
+    PETHREAD CurrentThread = PsGetCurrentThread();
+    PEXP_PUSH_LOCK_RECORD Record;
+    for (ULONG Index = 0; Index < 64; Index++)
+    {
+        Record = &CurrentThread->PushLockRecords[Index];
+        if (Record->PushLock == PushLock)
+        {
+            __debugbreak();
+            return;
+        }
+    }
+}
+
+#define DBG_ASSERT_PUSHLOCK_NOT_HELD(PushLock) \
+    ExpDbgAssertPushLockNotHeld(PushLock);
+
 NTSTATUS
 FASTCALL
 TextIntRealizeFont(HFONT FontHandle, PTEXTOBJ pTextObj)
@@ -6009,6 +6029,7 @@ TextIntRealizeFont(HFONT FontHandle, PTEXTOBJ pTextObj)
         if (TextObj->fl & TEXTOBJECT_INIT)
         {
             TEXTOBJ_UnlockText(TextObj);
+            DBG_ASSERT_PUSHLOCK_NOT_HELD(&TextObj->lock);
             return STATUS_SUCCESS;
         }
     }
@@ -6095,6 +6116,11 @@ TextIntRealizeFont(HFONT FontHandle, PTEXTOBJ pTextObj)
     if (!pTextObj) TEXTOBJ_UnlockText(TextObj);
 
     ASSERT((NT_SUCCESS(Status) ^ (NULL == TextObj->Font)) != 0);
+
+    if (!pTextObj)
+    {
+        DBG_ASSERT_PUSHLOCK_NOT_HELD(&TextObj->lock);
+    }
 
     return Status;
 }

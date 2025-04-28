@@ -171,6 +171,12 @@ KiSystemCallHandler(
     /* Get the current thread */
     Thread = KeGetCurrentThread();
 
+    if (((PETHREAD)Thread)->OwnedPushLocks > 0)
+    {
+        __debugbreak();
+        ExpDbgDumpPushlockBackTraces();
+    }
+
     /* Set previous mode */
     Thread->PreviousMode = TrapFrame->PreviousMode = UserMode;
 
@@ -282,7 +288,22 @@ KiSystemCallHandler(
     }
     _SEH2_END;
 
+    ((PETHREAD)Thread)->LastSystemCallFuncion = (PVOID)DescriptorTable->Base[ServiceNumber];
     return (PVOID)DescriptorTable->Base[ServiceNumber];
+}
+
+VOID
+NTAPI
+KiPostSyscallDbgChecks(VOID)
+{
+    /* Get the current thread */
+    PETHREAD Thread = (PETHREAD)KeGetCurrentThread();
+
+    if (Thread->OwnedPushLocks > 0)
+    {
+        __debugbreak();
+        ExpDbgDumpPushlockBackTraces();
+    }
 }
 
 

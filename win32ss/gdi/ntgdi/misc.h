@@ -105,7 +105,7 @@ VOID
 ExAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)
 {
     /* Try acquiring the lock */
-    if (InterlockedBitTestAndSet((PLONG)PushLock, EX_PUSH_LOCK_LOCK_V))
+    //if (InterlockedBitTestAndSet((PLONG)PushLock, EX_PUSH_LOCK_LOCK_V))
     {
         /* Someone changed it, use the slow path */
         ExfAcquirePushLockExclusive(PushLock);
@@ -124,6 +124,8 @@ FORCEINLINE
 VOID
 ExReleasePushLockExclusive(PEX_PUSH_LOCK PushLock)
 {
+    ExfReleasePushLockExclusive(PushLock);
+#if 0
     EX_PUSH_LOCK OldValue;
 
     /* Unlock the pushlock */
@@ -135,6 +137,7 @@ ExReleasePushLockExclusive(PEX_PUSH_LOCK PushLock)
         /* Wake it up */
         ExfTryToWakePushLock(PushLock);
     }
+#endif
 }
 
 FORCEINLINE

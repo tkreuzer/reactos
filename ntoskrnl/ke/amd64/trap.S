@@ -792,6 +792,7 @@ FUNC KiInterruptDispatch
 ENDFUNC
 
 EXTERN KiSystemCallHandler:PROC
+EXTERN KiPostSyscallDbgChecks:PROC
 
 /*! \name KiSystemCallEntry64
  *
@@ -874,6 +875,13 @@ GLOBAL_LABEL KiSystemCall64Again
     mov r8, [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_R8]
     mov r9, [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_R9]
     call rax
+
+#if DBG
+    /* Call the post-syscall debug checks */
+    mov [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_Rax], rax
+    call KiPostSyscallDbgChecks
+    mov rax, [rsp + MAX_SYSCALL_PARAM_SIZE + KTRAP_FRAME_Rax]
+#endif
 
 GLOBAL_LABEL KiSystemServiceExit
 

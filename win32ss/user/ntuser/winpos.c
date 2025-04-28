@@ -2021,7 +2021,9 @@ co_WinPosSetWindowPos(
                      NewWindowRect.top - OldWindowRect.top);
    }
 
+   ULONG Before = PsGetCurrentThread()->OwnedPushLocks;
    DceResetActiveDCEs(Window); // For WS_VISIBLE changes.
+   if (Before != PsGetCurrentThread()->OwnedPushLocks) __debugbreak();
 
    // Change or update, set send non-client paint flag.
    if ( Window->style & WS_VISIBLE &&
