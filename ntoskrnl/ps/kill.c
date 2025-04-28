@@ -475,10 +475,7 @@ PspExitThread(IN NTSTATUS ExitStatus)
     /* Get the Current Thread and Process */
     Thread = PsGetCurrentThread();
     CurrentProcess = Thread->ThreadsProcess;
-    if (Thread->OwnedPushLocks != 0)
-    {
-        ExpDbgDumpPushlockBackTraces();
-    }
+    ASSERT((Thread) == PsGetCurrentThread());
 
     /* Can't terminate a thread if it attached another process */
     if (KeIsAttachedProcess())

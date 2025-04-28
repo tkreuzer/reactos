@@ -1178,13 +1178,6 @@ typedef struct _PSP_RATE_APC
     KAPC RateApc;
 } PSP_RATE_APC, *PPSP_RATE_APC;
 
-typedef struct _EXP_PUSH_LOCK_RECORD
-{
-    LIST_ENTRY ListEntry;
-    PEX_PUSH_LOCK PushLock;
-    PVOID BackTrace[6];
-} EXP_PUSH_LOCK_RECORD, * PEXP_PUSH_LOCK_RECORD;
-
 //
 // Executive Thread (ETHREAD)
 //
@@ -1346,12 +1339,6 @@ typedef struct _ETHREAD
 #if (NTDDI_VERSION >= NTDDI_WIN10_RS1) || defined(__REACTOS__)
     PUNICODE_STRING ThreadName;
     // TODO: Missing Win10+ members
-#endif
-#if DBG
-    ULONG OwnedPushLocks;
-    ULONG64 PushLockRecordsUsed;
-    LIST_ENTRY OwnedPushLocksList;
-    EXP_PUSH_LOCK_RECORD PushLockRecords[64];
 #endif
 } ETHREAD;
 

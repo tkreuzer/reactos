@@ -171,12 +171,6 @@ KiSystemCallHandler(
     /* Get the current thread */
     Thread = KeGetCurrentThread();
 
-    if (((PETHREAD)Thread)->OwnedPushLocks > 0)
-    {
-        __debugbreak();
-        ExpDbgDumpPushlockBackTraces();
-    }
-
     /* Set previous mode */
     Thread->PreviousMode = TrapFrame->PreviousMode = UserMode;
 
