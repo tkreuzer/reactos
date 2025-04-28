@@ -992,6 +992,32 @@ ExWaitForUnblockPushLock(
     IN PVOID WaitBlock
 );
 
+VOID
+FASTCALL
+ExpDbgRecordPushlockAcquire(
+    IN PEX_PUSH_LOCK PushLock
+);
+
+VOID
+FASTCALL
+ExpDbgRecordPushlockRelease(
+    IN PEX_PUSH_LOCK PushLock);
+
+VOID
+FASTCALL
+ExpDbgDumpPushlockBackTraces(
+    VOID);
+
+#if DBG
+#define DBG_ACQUIRED_PUSHLOCK(PushLock) \
+    ExpDbgRecordPushlockAcquire(PushLock);
+#define DBG_RELEASED_PUSHLOCK(PushLock) \
+    ExpDbgRecordPushlockRelease(PushLock);
+#else
+#define DBG_ACQUIRED_PUSHLOCK(PushLock)
+#define DBG_RELEASED_PUSHLOCK(PushLock)
+#endif
+
 /*++
  * @name _ExInitializePushLock
  * INTERNAL MACRO
@@ -1044,6 +1070,10 @@ ExAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)
         /* Someone changed it, use the slow path */
         ExfAcquirePushLockExclusive(PushLock);
     }
+    else
+    {
+        DBG_ACQUIRED_PUSHLOCK(PushLock);
+    }
 
     /* Sanity check */
     ASSERT(PushLock->Locked);
@@ -1081,6 +1111,7 @@ ExTryToAcquirePushLockExclusive(PEX_PUSH_LOCK PushLock)
 
     /* Got acquired */
     ASSERT (PushLock->Locked);
+    DBG_ACQUIRED_PUSHLOCK(PushLock);
     return TRUE;
 }
 
@@ -1115,6 +1146,10 @@ ExAcquirePushLockShared(PEX_PUSH_LOCK PushLock)
     {
         /* Someone changed it, use the slow path */
         ExfAcquirePushLockShared(PushLock);
+    }
+    else
+    {
+        DBG_ACQUIRED_PUSHLOCK(PushLock);
     }
 
     /* Sanity checks */
@@ -1227,6 +1262,10 @@ ExReleasePushLockShared(PEX_PUSH_LOCK PushLock)
         /* There are still other people waiting on it */
         ExfReleasePushLockShared(PushLock);
     }
+    else
+    {
+        DBG_RELEASED_PUSHLOCK(PushLock);
+    }
 }
 
 /*++
@@ -1273,6 +1312,8 @@ ExReleasePushLockExclusive(PEX_PUSH_LOCK PushLock)
         /* Wake it up */
         ExfTryToWakePushLock(PushLock);
     }
+
+    DBG_RELEASED_PUSHLOCK(PushLock);
 }
 
 /*++
@@ -1323,6 +1364,10 @@ ExReleasePushLock(PEX_PUSH_LOCK PushLock)
     {
         /* We have waiters, use the long path */
         ExfReleasePushLock(PushLock);
+    }
+    else
+    {
+        DBG_RELEASED_PUSHLOCK(PushLock);
     }
 }
 

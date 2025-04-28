@@ -597,6 +597,11 @@ CmpDereferenceKeyControlBlock(IN PCM_KEY_CONTROL_BLOCK Kcb)
 
     /* Do the dereference inside the lock */
     CmpAcquireKcbLockExclusive(Kcb);
+    if (PsGetCurrentThread()->OwnedPushLocks == 0)
+    {
+        __debugbreak();
+        CmpAcquireKcbLockExclusive(Kcb);
+    }
     CmpDereferenceKeyControlBlockWithLock(Kcb, FALSE);
     CmpReleaseKcbLockByKey(ConvKey);
 }
