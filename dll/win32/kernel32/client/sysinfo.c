@@ -633,3 +633,152 @@ GetCurrentPackageId(UINT32 *BufferLength,
     STUB;
     return APPMODEL_ERROR_NO_PACKAGE;
 }
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7) || defined(__REACTOS__)
+
+WINBASEAPI
+WORD
+WINAPI
+GetActiveProcessorGroupCount(
+    VOID)
+{
+    // TODO: support processor groups
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
+    return SharedUserData->ActiveGroupCount;
+#else
+    return 1;
+#endif
+}
+
+WINBASEAPI
+WORD
+WINAPI
+GetMaximumProcessorGroupCount(
+    VOID)
+{
+    // TODO: support processor groups (GetLogicalProcessorInformationEx)
+    return 1;
+}
+
+WINBASEAPI
+DWORD
+WINAPI
+GetActiveProcessorCount(
+    _In_ WORD GroupNumber)
+{
+    SYSTEM_BASIC_INFORMATION BasicInfo;
+    NTSTATUS Status;
+    ULONG ReturnLength;
+    ULONG ActiveProcessorCount;
+
+    // TODO: support processor groups (GetLogicalProcessorInformationEx)
+    if (GroupNumber > 0)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    Status = NtQuerySystemInformation(SystemBasicInformation,
+                                      &BasicInfo,
+                                      sizeof(BasicInfo),
+                                      &ReturnLength);
+    if (!NT_SUCCESS(Status))
+    {
+        BaseSetLastNTError(Status);
+        return 0;
+    }
+
+    /* Count bits in BasicInfo.ActiveProcessorsAffinityMask */
+    ActiveProcessorCount = 0;
+    for (ULONG i = 0; i < sizeof(ULONG_PTR) * 8; i++)
+    {
+        if (BasicInfo.ActiveProcessorsAffinityMask & (1 << i))
+        {
+            ActiveProcessorCount++;
+        }
+    }
+
+    return ActiveProcessorCount;
+}
+
+WINBASEAPI
+DWORD
+WINAPI
+GetMaximumProcessorCount(
+    _In_ WORD GroupNumber
+    )
+{
+    SYSTEM_BASIC_INFORMATION BasicInfo;
+    NTSTATUS Status;
+    ULONG ReturnLength;
+
+    // TODO: support processor groups (GetLogicalProcessorInformationEx)
+    if (GroupNumber > 0)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return 0;
+    }
+
+    Status = NtQuerySystemInformation(SystemBasicInformation,
+                                      &BasicInfo,
+                                      sizeof(BasicInfo),
+                                      &ReturnLength);
+    if (!NT_SUCCESS(Status))
+    {
+        BaseSetLastNTError(Status);
+        return 0;
+    }
+
+    return BasicInfo.NumberOfProcessors;
+}
+
+DWORD NtGetCurrentProcessorNumber();;
+
+VOID
+WINAPI
+GetCurrentProcessorNumberEx(
+    _Out_ PPROCESSOR_NUMBER ProcNumber)
+{
+    // TODO: support processor groups
+    ProcNumber->Group = 0;
+    ProcNumber->Reserved = 0;
+    ProcNumber->Number = NtGetCurrentProcessorNumber();
+}
+
+BOOL
+WINAPI
+GetLogicalProcessorInformationEx(
+    _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
+    _Out_writes_bytes_to_opt_(*ReturnedLength,*ReturnedLength) PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Buffer,
+    _Inout_ PDWORD ReturnedLength)
+{
+    NTSTATUS Status;
+
+    if (ReturnedLength == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    Status = NtQuerySystemInformationEx(SystemLogicalProcessorAndGroupInformation,
+                                        &RelationshipType,
+                                        sizeof(RelationshipType),
+                                        Buffer,
+                                        *ReturnedLength,
+                                        ReturnedLength);
+    if (Status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        SetLastError(ERROR_INSUFFICIENT_BUFFER);
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(Status))
+    {
+        BaseSetLastNTError(Status);
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+#endif // (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
