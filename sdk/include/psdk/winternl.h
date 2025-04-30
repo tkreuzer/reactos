@@ -478,6 +478,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemExceptionInformation = 33,
     SystemRegistryQuotaInformation = 37,
     SystemLookasideInformation = 45,
+    SystemCodeIntegrityInformation = 103,
     SystemPolicyInformation = 134,
 } SYSTEM_INFORMATION_CLASS;
 
