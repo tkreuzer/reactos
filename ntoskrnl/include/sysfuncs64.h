@@ -642,4 +642,5 @@ SVC_(WaitLowEventPair, 1)
 SVC_(WorkerFactoryWorkerReady, 1)
 #endif
 
-
+// FIXME
+SVC_(QuerySystemInformationEx, 6)
