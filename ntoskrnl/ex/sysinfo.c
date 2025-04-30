@@ -2823,8 +2823,7 @@ QSI_DEF(SystemFirmwareTableInformation)
 }
 
 /* Query/Set Calls Table */
-typedef
-struct _QSSI_CALLS
+typedef struct _QSSI_CALLS
 {
     NTSTATUS (* Query) (PVOID,ULONG,PULONG);
     NTSTATUS (* Set) (PVOID,ULONG);
@@ -2927,6 +2926,172 @@ C_ASSERT(SystemBasicInformation == 0);
 #define MIN_SYSTEM_INFO_CLASS (SystemBasicInformation)
 #define MAX_SYSTEM_INFO_CLASS RTL_NUMBER_OF(CallQS)
 
+#define QSIEX_USE(n) QSIEX##n
+#define SIEX_Q(n) [n] = {QSIEX_USE(n)}
+
+typedef struct _QSSIEX_CALLS
+{
+    NTSTATUS (*QueryEx) (PVOID,ULONG,PVOID,ULONG,PULONG);
+    //NTSTATUS (*SetEx) (PVOID,ULONG,PVOID,ULONG);
+} QSSIEX_CALLS;
+
+static
+NTSTATUS
+QSIEXSystemLogicalProcessorAndGroupInformation(
+    _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_to_(OutputBufferLength, *ReturnLength) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferLength,
+    _Out_ PULONG ReturnLength)
+{
+    LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)OutputBuffer;
+    ULONG NumberOfEntries, DataSize;
+
+    __debugbreak();
+
+    if (InputBufferLength < sizeof(RelationshipType))
+    {
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    RelationshipType = *(LOGICAL_PROCESSOR_RELATIONSHIP*)InputBuffer;
+
+    /* Get the required size */
+    switch (RelationshipType)
+    {
+        case RelationProcessorCore:
+            NumberOfEntries = KeNumberProcessors;
+            DataSize = FIELD_OFFSET(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, Processor) +
+                       NumberOfEntries * sizeof(PROCESSOR_RELATIONSHIP);
+            break;
+
+        case RelationProcessorPackage:
+#if 0
+        case RelationProcessorDie:
+        case RelationProcessorModule:
+#endif
+            NumberOfEntries = 1;
+            DataSize = FIELD_OFFSET(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, Processor) +
+                       NumberOfEntries * sizeof(PROCESSOR_RELATIONSHIP);
+            break;
+
+        case RelationNumaNode:
+#if 0
+        case RelationNumaNodeEx:
+#endif
+            NumberOfEntries = 1; // KeNumberNodes;
+            DataSize = FIELD_OFFSET(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, NumaNode) +
+                       NumberOfEntries * sizeof(NUMA_NODE_RELATIONSHIP);
+            break;
+
+        case RelationCache:
+            NumberOfEntries = 2;
+            DataSize = FIELD_OFFSET(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, Cache) +
+                       NumberOfEntries * sizeof(CACHE_RELATIONSHIP);
+            break;
+
+        case RelationGroup:
+            NumberOfEntries = 1; // TODO: support processor groups
+            DataSize = FIELD_OFFSET(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, Group) +
+                       NumberOfEntries * sizeof(GROUP_RELATIONSHIP);
+            break;
+
+        default:
+            return STATUS_INVALID_PARAMETER;
+    }
+
+    *ReturnLength = DataSize;
+
+    if (OutputBufferLength < DataSize);
+    {
+        return STATUS_INFO_LENGTH_MISMATCH;
+    }
+
+    RtlZeroMemory(OutputBuffer, DataSize);
+
+    Buffer->Relationship = RelationshipType;
+    Buffer->Size = DataSize;
+
+
+    switch (RelationshipType)
+    {
+        case RelationProcessorCore:
+        {
+            // Pretend that every processor is a core
+            PPROCESSOR_RELATIONSHIP Processor = &Buffer->Processor;
+            for (ULONG i = 0; i < KeNumberProcessors; ++i)
+            {
+                Processor->Flags = 0; // Shuld be set to 1, if the processor is a hyper-threaded core
+                //Processor->EfficiencyClass = 0;
+                Processor->GroupCount = 1;
+            }
+            break;
+        }
+
+        case RelationProcessorPackage:
+#if 0
+        case RelationProcessorDie:
+        case RelationProcessorModule:
+#endif
+        {
+            PPROCESSOR_RELATIONSHIP Processor = &Buffer->Processor;
+            Processor->Flags = 0; // Shuld be set to 1, if the processor is a hyper-threaded core
+            //Processor->EfficiencyClass = 0;
+            Processor->GroupCount = 1;
+            break;
+        }
+
+        case RelationNumaNode:
+        {
+            // TODO: support more than 1 noode
+            Buffer->NumaNode.NodeNumber = 0;
+            Buffer->NumaNode.GroupMask.Mask = 1; // FIXME
+            break;
+        }
+
+        case RelationCache:
+        {
+            PCACHE_RELATIONSHIP Cache = &Buffer->Cache;
+            Cache[0].Level = 1; // L1
+            Cache[0].Associativity = CACHE_FULLY_ASSOCIATIVE;
+            Cache[0].LineSize = 64;
+            Cache[0].CacheSize = 16 * 1024; // FIXME
+            Cache[0].Type = CacheUnified;
+            Cache[0].GroupMask.Group = 0;
+            Cache[0].GroupMask.Mask = KeActiveProcessors;
+            Cache[1].Level = 2; // L2
+            Cache[1].Associativity = KeGetPcr()->SecondLevelCacheAssociativity;
+            Cache[1].LineSize = 64;
+            Cache[1].CacheSize = KeGetPcr()->SecondLevelCacheSize;
+            Cache[1].Type = CacheUnified;
+            Cache[1].GroupMask.Group = 0;
+            Cache[1].GroupMask.Mask = KeActiveProcessors;
+            break;
+        }
+
+        case RelationGroup:
+        {
+            PGROUP_RELATIONSHIP Group = &Buffer->Group;
+            Group->MaximumGroupCount = 1; // TODO: support processor groups
+            Group->ActiveGroupCount = 1;
+            Group->GroupInfo[0].MaximumProcessorCount = KeNumberProcessors;
+            Group->GroupInfo[0].ActiveProcessorCount = KeNumberProcessors;
+            Group->GroupInfo[0].ActiveProcessorMask = KeActiveProcessors;
+            break;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+static
+QSSIEX_CALLS
+CallQSEx[] =
+{
+    SIEX_Q(SystemLogicalProcessorAndGroupInformation),
+};
+
 /*
  * @implemented
  */
@@ -2992,6 +3157,73 @@ NtQuerySystemInformation(
             Status = CallQS[SystemInformationClass].Query(SystemInformation,
                                                           SystemInformationLength,
                                                           &CapturedResultLength);
+
+            /* Save the result length to the caller */
+            if (ReturnLength)
+                *ReturnLength = CapturedResultLength;
+        }
+    }
+    _SEH2_EXCEPT(ExSystemExceptionFilter())
+    {
+        Status = _SEH2_GetExceptionCode();
+    }
+    _SEH2_END;
+
+    return Status;
+}
+
+__kernel_entry
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtQuerySystemInformationEx(
+    _In_ SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    _In_reads_bytes_opt_(InputBufferLength) PVOID InputBuffer,
+    _In_ ULONG InputBufferLength,
+    _Out_writes_bytes_to_opt_(SystemInformationLength, *ReturnLength) PVOID SystemInformation,
+    _In_ ULONG SystemInformationLength,
+    _Out_opt_ PULONG ReturnLength)
+{
+    NTSTATUS Status = STATUS_NOT_IMPLEMENTED;
+    ULONG CapturedResultLength = 0;
+    ULONG Alignment = TYPE_ALIGNMENT(ULONG);
+    KPROCESSOR_MODE PreviousMode;
+
+    PAGED_CODE();
+    __debugbreak();
+    PreviousMode = ExGetPreviousMode();
+
+    /* Check whether the request is valid. */
+    if ((SystemInformationClass > ARRAYSIZE(CallQSEx)) ||
+        (CallQSEx[SystemInformationClass].QueryEx == NULL))
+    {
+        return STATUS_INVALID_INFO_CLASS;
+    }
+
+    _SEH2_TRY
+    {
+        if (PreviousMode != KernelMode)
+        {
+            /* SystemKernelDebuggerInformation needs only BOOLEAN alignment */
+            if (SystemInformationClass == SystemKernelDebuggerInformation)
+                Alignment = TYPE_ALIGNMENT(BOOLEAN);
+
+            ProbeForWrite(SystemInformation, SystemInformationLength, Alignment);
+            if (ReturnLength != NULL)
+                ProbeForWriteUlong(ReturnLength);
+        }
+
+        if (ReturnLength)
+            *ReturnLength = 0;
+
+        if (CallQSEx[SystemInformationClass].QueryEx != NULL)
+        {
+            /* Hand the request to a subhandler */
+            Status = CallQSEx[SystemInformationClass].QueryEx(InputBuffer,
+                                                              InputBufferLength,
+                                                              SystemInformation,
+                                                              SystemInformationLength,
+                                                              &CapturedResultLength);
 
             /* Save the result length to the caller */
             if (ReturnLength)

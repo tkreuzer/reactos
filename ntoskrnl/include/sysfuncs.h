@@ -294,3 +294,6 @@
     SVC_(QueryPortInformationProcess, 0)
     SVC_(GetCurrentProcessorNumber, 0)
     SVC_(WaitForMultipleObjects32, 5)
+
+    // FIXME
+    SVC_(QuerySystemInformationEx, 6)
