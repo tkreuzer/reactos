@@ -692,7 +692,7 @@ GetActiveProcessorCount(
     ActiveProcessorCount = 0;
     for (ULONG i = 0; i < sizeof(ULONG_PTR) * 8; i++)
     {
-        if (BasicInfo.ActiveProcessorsAffinityMask & (1 << i))
+        if (BasicInfo.ActiveProcessorsAffinityMask & ((KAFFINITY)1 << i))
         {
             ActiveProcessorCount++;
         }
@@ -777,6 +777,125 @@ GetLogicalProcessorInformationEx(
         BaseSetLastNTError(Status);
         return FALSE;
     }
+
+    return TRUE;
+}
+
+WINBASEAPI
+BOOL
+WINAPI
+GetProcessGroupAffinity(
+    _In_ HANDLE hProcess,
+    _Inout_ PUSHORT GroupCount,
+    _Out_writes_(*GroupCount) PUSHORT GroupArray)
+{
+    if (GroupCount == NULL || GroupArray == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    // TODO: support processor groups
+    *GroupCount = 1;
+    GroupArray[0] = 0;
+
+    return TRUE;
+}
+
+WINBASEAPI
+BOOL
+WINAPI
+GetThreadGroupAffinity(
+    _In_ HANDLE hThread,
+    _Out_ PGROUP_AFFINITY GroupAffinity)
+{
+    NTSTATUS Status;
+
+    if (GroupAffinity == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    RtlZeroMemory(GroupAffinity, sizeof(*GroupAffinity));
+
+    Status = NtQueryInformationThread(hThread,
+                                      ThreadAffinityMask,
+                                      &GroupAffinity->Mask,
+                                      sizeof(GroupAffinity->Mask),
+                                      NULL);
+    if (!NT_SUCCESS(Status))
+    {
+        BaseSetLastNTError(Status);
+        return FALSE;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+BOOL
+WINAPI
+SetThreadGroupAffinity(
+    _In_ HANDLE hThread,
+    _In_ CONST GROUP_AFFINITY* GroupAffinity,
+    _Out_opt_ PGROUP_AFFINITY PreviousGroupAffinity)
+{
+    NTSTATUS Status;
+    KAFFINITY Affinity;
+
+    if (GroupAffinity == NULL)
+    {
+        DPRINT1("GroupAffinity is NULL\n");
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    if ((GroupAffinity->Group > 0) ||
+        (GroupAffinity->Mask == 0))
+    {
+        DPRINT1("GroupAffinity is invalid: Group = %d, Mask = %I64x\n",
+                GroupAffinity->Group,
+                GroupAffinity->Mask);
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return FALSE;
+    }
+
+    Affinity = GroupAffinity->Mask;
+    Status = NtSetInformationThread(hThread,
+                                    ThreadAffinityMask,
+                                    &Affinity,
+                                    sizeof(Affinity));
+    if (!NT_SUCCESS(Status))
+    {
+        BaseSetLastNTError(Status);
+        return FALSE;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+WINBASEAPI
+VOID
+WINAPI
+QueryInterruptTime(
+    _Out_ PULONGLONG lpInterruptTime)
+{
+    // FIXME: use KiReadSystemTime
+    *lpInterruptTime = *(PULONGLONG)&SharedUserData->InterruptTime;
+}
+
+BOOL
+WINAPI
+QueryUnbiasedInterruptTime(
+    _Out_ PULONGLONG UnbiasedTime)
+{
+    ULONGLONG InterruptTime;
+
+    QueryInterruptTime(&InterruptTime);
+
+#if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
+    InterruptTime -= SharedUserData->InterruptTimeBias;
+#endif
 
     return TRUE;
 }
