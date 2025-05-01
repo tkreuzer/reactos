@@ -161,7 +161,8 @@ ConsoleControlDispatcher(IN LPVOID lpThreadParameter)
             break;
     }
 
-    ASSERT(ConsoleInitialized);
+    //ASSERT(ConsoleInitialized);
+    if (!ConsoleInitialized) __debugbreak();
 
     RtlEnterCriticalSection(&ConsoleLock);
 
