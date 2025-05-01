@@ -875,7 +875,8 @@
 @ stdcall RtlGetCompressionWorkSpaceSize(long ptr ptr)
 @ stdcall RtlGetControlSecurityDescriptor(ptr ptr ptr)
 @ stdcall RtlGetCriticalSectionRecursionCount(ptr)
-@ stdcall RtlGetCurrentDirectory_U(long ptr)
+@ stdcall -arch=x86_64 RtlGetCurrentDirectory_U(long ptr) RtlGetCurrentDirectory_U_RtlpMsysDecoy # huge hack!
+@ stdcall -arch=!x86_64 RtlGetCurrentDirectory_U(long ptr)
 @ stdcall RtlGetCurrentPeb()
 @ stdcall RtlGetCurrentProcessorNumber() ; 5.2 SP1 and higher
 @ stdcall -stub -version=0x600+ RtlGetCurrentTransaction()
