@@ -18,6 +18,7 @@
 #else
 #define DEBUG_CHANNEL(ch)
 #endif
+#define WINE_DEFAULT_DEBUG_CHANNEL DEBUG_CHANNEL
 
 #define TRACE(fmt, ...)         TRACE__(gDebugChannel, fmt, ##__VA_ARGS__)
 #define WARN(fmt, ...)          WARN__(gDebugChannel, fmt, ##__VA_ARGS__)

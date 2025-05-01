@@ -27,6 +27,7 @@ list(APPEND SOURCE
 # They are only used when NT6 exports in kernel32 are enabled.
 if(DLL_EXPORT_VERSION GREATER_EQUAL 0x600)
     list(APPEND SOURCE
+        file.c
         ../client/console/vista.c)
 endif()
 

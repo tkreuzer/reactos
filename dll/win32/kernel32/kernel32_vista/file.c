@@ -20,6 +20,14 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA
  */
 
+#ifdef __REACTOS__
+#include "k32_vista.h"
+#include <ntndk.h>
+#include <stdarg.h>
+#include <stdio.h>
+#define NDEBUG
+#include <debug.h>
+#else
 #include <stdarg.h>
 #include <stdio.h>
 
@@ -41,8 +49,9 @@
 #include "kernelbase.h"
 #include "wine/exception.h"
 #include "wine/debug.h"
+#endif
 
-WINE_DEFAULT_DEBUG_CHANNEL(file);
+WINE_DEFAULT_DEBUG_CHANNEL(kernel32file);
 
 /* info structure for FindFirstFile handle */
 typedef struct
@@ -61,6 +70,8 @@ typedef struct
 } FIND_FIRST_INFO;
 
 #define FIND_FIRST_MAGIC  0xc0ffee11
+
+#if 0
 
 static const UINT max_entry_size = offsetof( FILE_BOTH_DIRECTORY_INFORMATION, FileName[256] );
 
@@ -3663,6 +3674,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH SetEndOfFile( HANDLE file )
     return set_ntstatus( status );
 }
 
+#endif
 
 /***********************************************************************
  *	SetFileInformationByHandle   (kernelbase.@)
@@ -3741,6 +3753,7 @@ BOOL WINAPI DECLSPEC_HOTPATCH SetFileInformationByHandle( HANDLE file, FILE_INFO
     return set_ntstatus( status );
 }
 
+#if 0
 
 /***********************************************************************
  *	SetFilePointer   (kernelbase.@)
@@ -4603,3 +4616,5 @@ HRESULT WINAPI QueryIoRingCapabilities(IORING_CAPABILITIES *caps)
 
     return E_NOTIMPL;
 }
+
+#endif

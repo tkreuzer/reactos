@@ -22,3 +22,17 @@
 
 /* Internal Kernel32 Header */
 #include "../include/kernel32.h"
+
+NTSTATUS
+NTAPI
+RtlDosPathNameToNtPathName_U_WithStatus(IN PCWSTR DosName,
+                                        OUT PUNICODE_STRING NtName,
+                                        OUT PCWSTR *PartName,
+                                        OUT PRTL_RELATIVE_NAME_U RelativeName);
+
+// from wine kernelbase.h
+static inline BOOL set_ntstatus( NTSTATUS status )
+{
+    if (status) SetLastError( RtlNtStatusToDosError( status ));
+    return !status;
+}
