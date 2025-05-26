@@ -115,7 +115,7 @@ add_library(msvcrt_shared
     ${msvcrt_shared_asm}
 )
 
-target_compile_definitions(msvcrt_shared PRIVATE _MSVCR_VER=0)
+target_compile_definitions(msvcrt_shared PRIVATE _MSVCR_VER=0 __UCRTSUPPORT__)
 #if(ARCH STREQUAL "i386")
     # ASM wrapper for Wine code, implemented in i386/__wine_RtlUnwind.s
     target_compile_definitions(msvcrt_shared PRIVATE RtlUnwind=__wine_RtlUnwind)
