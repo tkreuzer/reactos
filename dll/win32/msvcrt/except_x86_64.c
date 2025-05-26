@@ -91,6 +91,7 @@ ULONG_PTR get_exception_pc( DISPATCHER_CONTEXT *dispatch )
  *		longjmp (MSVCRT.@)
  */
 #ifndef __WINE_PE_BUILD
+#ifndef __UCRTSUPPORT__
 void __cdecl longjmp( _JUMP_BUFFER *jmp, int retval )
 {
     EXCEPTION_RECORD rec;
@@ -108,6 +109,7 @@ void __cdecl longjmp( _JUMP_BUFFER *jmp, int retval )
     }
     __wine_longjmp( (__wine_jmp_buf *)jmp, retval );
 }
+#endif /* __UCRTSUPPORT__ */
 #endif
 
 /*******************************************************************
