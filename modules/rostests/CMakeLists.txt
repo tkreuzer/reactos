@@ -1,4 +1,5 @@
 
+PROJECT(rostests)
 start_module_group(rostests)
 
 add_definitions(-DHAVE_APITEST)
