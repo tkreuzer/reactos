@@ -396,7 +396,7 @@ static void test__popen(const char *name)
     ret = fputs("child-to-parent\n", pipe);
     ok(ret != EOF, "fputs returned %x\n", ret);
 
-#ifdef __REACTOS__
+#if 0 // def __REACTOS__
     if (IsReactOS())
     {
         skip("Skipping _pclose, because it hangs on reactos\n");

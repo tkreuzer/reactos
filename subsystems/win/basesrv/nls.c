@@ -229,7 +229,7 @@ CSR_API(BaseSrvNlsCreateSection)
         case 10:
             DPRINT1("This type not yet supported\n");
             return STATUS_NOT_IMPLEMENTED;
-        case 11:
+        case 11:__debugbreak();
             /* Get the filename for this locale */
             if (!pGetCPFileNameFromRegistry(NlsMsg->LocaleId,
                                             FileNameBuffer,

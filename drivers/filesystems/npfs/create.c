@@ -803,7 +803,7 @@ NpFsdCreateNamedPipe(IN PDEVICE_OBJECT DeviceObject,
     PNAMED_PIPE_CREATE_PARAMETERS Parameters;
     IO_STATUS_BLOCK IoStatus;
     TRACE("Entered\n");
-
+    //__debugbreak();
     InitializeListHead(&DeferredList);
     Process = IoGetRequestorProcess(Irp);
 

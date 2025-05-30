@@ -473,9 +473,9 @@ static void test_setlocale(void)
         || !strcmp(ret, "Norwegian (Bokmal)_Norway.1252")
         || broken(!strcmp(ret, "Norwegian_Norway.1252")), /* WinME */
            "ret = %s\n", ret);
-
+__debugbreak();
     ret = setlocale(LC_ALL, "norwegian-bokmal");
-    ok(ret != NULL || broken (ret == NULL), "ret == NULL\n");
+    ok(ret != NULL || broken (ret == NULL), "ret == NULL\n"); // here
     if(ret)
         ok(!strcmp(ret, "Norwegian (Bokm\xe5l)_Norway.1252") /* XP - Win8 */
         || !strcmp(ret, "Norwegian Bokm\xe5l_Norway.1252") /* Win10 */

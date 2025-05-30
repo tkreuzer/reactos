@@ -722,7 +722,7 @@ void msvcrt_init_io(void)
   STARTUPINFOA  si;
   int           i;
   ioinfo        *fdinfo;
-
+//  __debugbreak();
   GetStartupInfoA(&si);
   if (si.cbReserved2 >= sizeof(unsigned int) && si.lpReserved2 != NULL)
   {
