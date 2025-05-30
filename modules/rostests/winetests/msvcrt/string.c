@@ -138,13 +138,13 @@ static void test_swab( void ) {
     char expected1[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ@#";
     char expected2[] = "ABCDEFGHIJKLMNOPQRSTUVWX$";
     char expected3[] = "$";
-    
+
     char from[30];
     char to[30];
-    
+
     int testsize;
-    
-    /* Test 1 - normal even case */                               
+
+    /* Test 1 - normal even case */
     memset(to,'$', sizeof(to));
     memset(from,'@', sizeof(from));
     testsize = 26;
@@ -152,7 +152,7 @@ static void test_swab( void ) {
     _swab( from, to, testsize );
     ok(memcmp(to,expected1,testsize) == 0, "Testing even size %d returned '%*.*s'\n", testsize, testsize, testsize, to);
 
-    /* Test 2 - uneven case  */                               
+    /* Test 2 - uneven case  */
     memset(to,'$', sizeof(to));
     memset(from,'@', sizeof(from));
     testsize = 25;
@@ -160,7 +160,7 @@ static void test_swab( void ) {
     _swab( from, to, testsize );
     ok(memcmp(to,expected2,testsize) == 0, "Testing odd size %d returned '%*.*s'\n", testsize, testsize, testsize, to);
 
-    /* Test 3 - from = to */                               
+    /* Test 3 - from = to */
     memset(to,'$', sizeof(to));
     memset(from,'@', sizeof(from));
     testsize = 26;
@@ -168,7 +168,7 @@ static void test_swab( void ) {
     _swab( to, to, testsize );
     ok(memcmp(to,expected1,testsize) == 0, "Testing overlapped size %d returned '%*.*s'\n", testsize, testsize, testsize, to);
 
-    /* Test 4 - 1 bytes */                               
+    /* Test 4 - 1 bytes */
     memset(to,'$', sizeof(to));
     memset(from,'@', sizeof(from));
     testsize = 1;
@@ -3555,7 +3555,7 @@ static void test__stricmp(void)
     ok(ret < 0, "_stricmp returned %d\n", ret);
     ret = _stricmp("abc\xa5\xa1", "abc");
     ok(ret > 0, "_stricmp returned %d\n", ret);
-
+    __debugbreak();
     if(!setlocale(LC_ALL, "polish")) {
         win_skip("stricmp tests\n");
         return;
@@ -3566,13 +3566,13 @@ static void test__stricmp(void)
     ret = _stricmp("a", "z");
     ok(ret < 0, "_stricmp returned %d\n", ret);
     ret = _stricmp("z", "a");
-    ok(ret > 0, "_stricmp returned %d\n", ret);
+    ok(ret > 0, "_stricmp returned %d\n", ret);__debugbreak();
     ret = _stricmp("\xa5", "\xb9");
-    ok(ret == 0, "_stricmp returned %d\n", ret);
+    ok(ret == 0, "_stricmp returned %d\n", ret); // here
     ret = _stricmp("a", "\xb9");
     ok(ret < 0, "_stricmp returned %d\n", ret);
     ret = _stricmp("\xa5\xa1", "\xb9\xa1"); /* valid gbk characters */
-    ok(ret == 0, "_stricmp returned %d\n", ret);
+    ok(ret == 0, "_stricmp returned %d\n", ret); // here
     ret = _stricmp("abc\xa5\xa1", "abc");
     ok(ret > 0, "_stricmp returned %d\n", ret);
 
@@ -4752,7 +4752,7 @@ static void test_SpecialCasing(void)
         {"Turkish", 'i', 'I'},  /* LATIN SMALL LETTER I */
         {"Turkish", 0x0131},    /* LATIN SMALL LETTER DOTLESS I */
     };
-
+    __debugbreak();
     for (i = 0; i < ARRAY_SIZE(ucases); i++) {
         if (!setlocale(LC_ALL, ucases[i].lang)) {
             win_skip("skipping special case tests for %s\n", ucases[i].lang);
@@ -4761,7 +4761,7 @@ static void test_SpecialCasing(void)
 
         ret = p_towlower(ucases[i].ch);
         exp = ucases[i].exp ? ucases[i].exp : ucases[i].ch;
-        ok(ret == exp, "expected lowercase %x, got %x for locale %s\n", exp, ret, ucases[i].lang);
+        ok(ret == exp, "expected lowercase %x, got %x for locale %s\n", exp, ret, ucases[i].lang); // 130,150,English/Turkish
     }
 
     for (i = 0; i < ARRAY_SIZE(lcases); i++) {
@@ -4772,7 +4772,7 @@ static void test_SpecialCasing(void)
 
         ret = p_towupper(lcases[i].ch);
         exp = lcases[i].exp ? lcases[i].exp : lcases[i].ch;
-        ok(ret == exp, "expected uppercase %x, got %x for locale %s\n", exp, ret, lcases[i].lang);
+        ok(ret == exp, "expected uppercase %x, got %x for locale %s\n", exp, ret, lcases[i].lang); // 131,111,English/Turkish
     }
 
     setlocale(LC_ALL, "C");
