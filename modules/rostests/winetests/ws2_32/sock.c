@@ -5294,7 +5294,7 @@ static void test_inet_pton(void)
 
         WSASetLastError(0xdeadbeef);
         addr = inet_addr(ipv4_tests[i].input);
-        ok(addr == ipv4_tests[i].ret ? ipv4_tests[i].addr : INADDR_NONE, "got addr %#08lx\n", addr);
+        ok(addr == (ipv4_tests[i].ret ? ipv4_tests[i].addr : INADDR_NONE), "got addr %#08lx\n", addr);
         ok(WSAGetLastError() == 0xdeadbeef, "got error %u\n", WSAGetLastError());
 
         winetest_pop_context();
