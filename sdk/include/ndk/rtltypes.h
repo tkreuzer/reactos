@@ -2072,6 +2072,31 @@ struct _RTL_MEMORY_STREAM
 
 #endif /* NTOS_MODE_USER */
 
+typedef struct _RTL_SYSTEM_TIME
+{
+    USHORT wYear;
+    USHORT wMonth;
+    USHORT wDayOfWeek;
+    USHORT wDay;
+    USHORT wHour;
+    USHORT wMinute;
+    USHORT wSecond;
+    USHORT wMilliseconds;
+} RTL_SYSTEM_TIME, *PRTL_SYSTEM_TIME;
+
+typedef struct _RTL_TIME_DYNAMIC_ZONE_INFORMATION
+{
+    LONG Bias;
+    WCHAR StandardName[32];
+    RTL_SYSTEM_TIME StandardDate;
+    LONG StandardBias;
+    WCHAR DaylightName[32];
+    RTL_SYSTEM_TIME DaylightDate;
+    LONG DaylightBias;
+    WCHAR TimeZoneKeyName[128];
+    BOOLEAN DynamicDaylightTimeDisabled;
+} RTL_DYNAMIC_TIME_ZONE_INFORMATION, *PRTL_DYNAMIC_TIME_ZONE_INFORMATION;
+
 #ifdef __cplusplus
 }
 #endif

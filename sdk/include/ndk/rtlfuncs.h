@@ -5202,6 +5202,13 @@ RtlFindActivationContextSectionGuid(
     void *ptr
 );
 
+NTSYSAPI
+NTSTATUS
+NTAPI
+RtlQueryDynamicTimeZoneInformation(
+    _Out_ RTL_DYNAMIC_TIME_ZONE_INFORMATION* DynamicTimeZoneInformation);
+
+
 #ifdef __cplusplus
 }
 #endif
