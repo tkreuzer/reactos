@@ -294,4 +294,45 @@ VerSetConditionMask(IN ULONGLONG ConditionMask,
     return ConditionMask;
 }
 
+NTSYSAPI
+BOOLEAN
+WINAPI
+RtlGetProductInfo(
+    _In_ ULONG OSMajorVersion,
+    _In_ ULONG OSMinorVersion,
+    _In_ ULONG SpMajorVersion,
+    _In_ ULONG SpMinorVersion,
+    _Out_ PULONG ReturnedProductType)
+{
+    if (ReturnedProductType == NULL)
+    {
+        return FALSE;
+    }
+
+    if (OSMajorVersion < 6)
+    {
+        *ReturnedProductType = PRODUCT_UNDEFINED;
+        return FALSE;
+    }
+
+    if (SharedUserData->NtProductType == NtProductWinNt)
+    {
+        *ReturnedProductType = PRODUCT_PROFESSIONAL;
+        return TRUE;
+    }
+    else if (SharedUserData->NtProductType == NtProductLanManNt)
+    {
+        *ReturnedProductType = PRODUCT_ENTERPRISE_SERVER;
+        return TRUE;
+    }
+    else if (SharedUserData->NtProductType == NtProductServer)
+    {
+        *ReturnedProductType = PRODUCT_STANDARD_SERVER;
+        return TRUE;
+    }
+
+    *ReturnedProductType = PRODUCT_UNDEFINED;
+    return FALSE;
+}
+
 /* EOF */
