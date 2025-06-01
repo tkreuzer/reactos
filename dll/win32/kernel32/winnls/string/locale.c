@@ -6248,3 +6248,38 @@ INT WINAPI ResolveLocaleName(LPCWSTR name, LPWSTR localename, INT len)
     return 0;
 }
 #endif // !__REACTOS__
+
+
+/***********************************************************************
+ *	GetDynamicTimeZoneInformation   (kernelbase.@)
+ */
+DWORD WINAPI DECLSPEC_HOTPATCH GetDynamicTimeZoneInformation( DYNAMIC_TIME_ZONE_INFORMATION *info )
+{
+    TIME_ZONE_INFORMATION tzi;
+    DWORD result;
+
+    if (info == NULL)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
+        return TIME_ZONE_ID_INVALID;
+    }
+
+    result = GetTimeZoneInformation(&tzi);
+    if (result == TIME_ZONE_ID_INVALID)
+    {
+        return result;
+    }
+
+    // FIXME: This is a huge HACK
+    info->Bias = tzi.Bias;
+    memcpy(info->StandardName, tzi.StandardName, sizeof(info->StandardName));
+    info->StandardDate = tzi.StandardDate;
+    info->StandardBias = tzi.StandardBias;
+    memcpy(info->DaylightName, tzi.DaylightName, sizeof(info->DaylightName));
+    info->DaylightDate = tzi.DaylightDate;
+    info->DaylightBias = tzi.DaylightBias;
+    memcpy(info->TimeZoneKeyName, tzi.StandardName, sizeof(info->TimeZoneKeyName));
+    info->DynamicDaylightTimeDisabled = TRUE;
+
+    return TIME_ZONE_ID_STANDARD;
+}
