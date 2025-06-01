@@ -172,4 +172,15 @@ RtlSetTimeZoneInformation(PRTL_TIME_ZONE_INFORMATION TimeZoneInformation)
     return Status;
 }
 
+NTSTATUS
+WINAPI
+RtlQueryDynamicTimeZoneInformation(
+    _Out_ RTL_DYNAMIC_TIME_ZONE_INFORMATION *DynamicTimeZoneInformation)
+{
+    return NtQuerySystemInformation(SystemDynamicTimeZoneInformation,
+                                    DynamicTimeZoneInformation,
+                                    sizeof(*DynamicTimeZoneInformation),
+                                    NULL );
+}
+
 /* EOF */
