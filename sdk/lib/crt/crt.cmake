@@ -2,7 +2,7 @@
 list(APPEND CRT_SOURCE
     ${CRT_CONIO_SOURCE}
     ${CRT_DIRECT_SOURCE}
-    ${CRT_EXCEPT_SOURCE}
+    #${CRT_EXCEPT_SOURCE}
     locale/locale.c
     ${CRT_MBSTRING_SOURCE}
     ${CRT_MEM_SOURCE}
