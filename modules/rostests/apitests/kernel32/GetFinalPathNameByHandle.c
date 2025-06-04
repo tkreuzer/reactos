@@ -27,6 +27,49 @@ FN_GetFinalPathNameByHandleW* pGetFinalPathNameByHandleW = NULL;
 #define FILE_NAME_NORMALIZED 0x0
 #define FILE_NAME_OPENED 0x8
 
+typedef
+BOOLEAN
+APIENTRY
+FN_CreateSymbolicLinkW (
+    _In_ LPCWSTR lpSymlinkFileName,
+    _In_ LPCWSTR lpTargetFileName,
+    _In_ DWORD dwFlags
+    );
+FN_CreateSymbolicLinkW* pCreateSymbolicLinkW = NULL;
+
+#define SYMBOLIC_LINK_FLAG_DIRECTORY 0x1
+#define SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE 0x2
+
+void Test_Params(void)
+{
+    static const WCHAR FilePath[] = L"\\SystemRoot";
+    HANDLE hFile;
+    DWORD Result;
+    WCHAR Buffer[MAX_PATH];
+
+    /* Open ntdll */
+    hFile = CreateFileW(FilePath,
+                        GENERIC_READ,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        NULL,
+                        OPEN_EXISTING,
+                        FILE_ATTRIBUTE_NORMAL,
+                        NULL);
+    ok(hFile != INVALID_HANDLE_VALUE, "File '%S': Opening failed\n", FilePath);
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        skip("File '%S': Opening failed\n", FilePath);
+        return;
+    }
+
+    SetLastError(0xdeadbeef);
+    Result = pGetFinalPathNameByHandleW(NULL, Buffer, ARRAYSIZE(Buffer), VOLUME_NAME_DOS);
+    ok_eq_ulong(Result, 0ul);
+    ok_err(ERROR_INVALID_HANDLE);
+
+
+}
+
 static void Test_File(void)
 {
     WCHAR FilePath[MAX_PATH];
@@ -355,6 +398,78 @@ static void Test_NetworkShare(void)
     ok_ntstatus(Status, NERR_Success);
 }
 
+
+void Test_SymLink(void)
+{
+    WCHAR PathBuffer[MAX_PATH];
+    WCHAR SymLinkPathBuffer[MAX_PATH];
+    WCHAR Buffer[MAX_PATH];
+    //WCHAR ExpectedString[MAX_PATH];
+    PWSTR FileName;
+    DWORD Result;
+    //SIZE_T ExpectedStringLength;
+    //DWORD dwError = 0;
+    HANDLE hFile;
+    BOOLEAN Success;
+
+    if (!pCreateSymbolicLinkW)
+    {
+        skip("CreateSymbolicLinkW not available\n");
+        return;
+    }
+
+    /* Get the full path name of the current executable */
+    Result = GetModuleFileNameW(NULL, PathBuffer, MAX_PATH);
+    ok(Result != 0, "GetModuleFileNameW failed: %ld\n", GetLastError());
+    if (Result == 0)
+    {
+        skip("GetModuleFileNameW failed: %ld\n", GetLastError());
+        return;
+    }
+
+    /* Create the symlink name */
+    wcscpy(SymLinkPathBuffer, PathBuffer);
+    FileName = wcsrchr(SymLinkPathBuffer, L'\\');
+    *FileName = L'\0';
+    wcscat(SymLinkPathBuffer, L"\\kernel32_apitest_symlink.exe");
+
+    /* If the symbolic link exists from a previous run, delete it */
+    DeleteFileW(SymLinkPathBuffer);
+
+    /* Create a symbolic link */
+    Success = pCreateSymbolicLinkW(SymLinkPathBuffer, PathBuffer, 0);
+    ok(Success, "CreateSymbolicLinkW failed: %ld\n", GetLastError());
+    if (!Success)
+    {
+        skip("CreateSymbolicLinkW failed: %ld\n", GetLastError());
+        return;
+    }
+
+    /* Open the symbolic link file */
+    hFile = CreateFileW(SymLinkPathBuffer,
+                        GENERIC_READ,
+                        FILE_SHARE_READ | FILE_SHARE_WRITE,
+                        NULL,
+                        OPEN_EXISTING,
+                        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT,
+                        NULL);
+    ok(hFile != INVALID_HANDLE_VALUE, "Failed to open file '%S'. Error: %ld\n",
+        SymLinkPathBuffer, GetLastError());
+    if (hFile == INVALID_HANDLE_VALUE)
+    {
+        skip("Failed to open file '%S'. Error: %ld\n", SymLinkPathBuffer, GetLastError());
+        DeleteFileW(SymLinkPathBuffer);
+        return;
+    }
+
+    Result = pGetFinalPathNameByHandleW(hFile, Buffer, ARRAYSIZE(Buffer), VOLUME_NAME_NT);
+    printf("Result = %ld, str='%S'\n", Result, Buffer);
+    Result = pGetFinalPathNameByHandleW(hFile, Buffer, ARRAYSIZE(Buffer), VOLUME_NAME_NT | FILE_NAME_OPENED);
+    printf("Result = %ld, str='%S'\n", Result, Buffer);
+
+}
+
+
 static void Test_Other(void)
 {
     WCHAR Buffer[MAX_PATH];
@@ -458,7 +573,12 @@ START_TEST(GetFinalPathNameByHandle)
         }
     }
 
+    pCreateSymbolicLinkW = (FN_CreateSymbolicLinkW*)
+        GetProcAddress(hmodKernel32, "CreateSymbolicLinkW");
+
+    Test_Params();
     Test_File();
     Test_NetworkShare();
+    Test_SymLink();
     Test_Other();
 }
