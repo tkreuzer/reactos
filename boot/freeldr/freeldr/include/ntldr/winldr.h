@@ -37,6 +37,16 @@ typedef struct _ARC_DISK_SIGNATURE_EX
     CHAR ArcName[MAX_PATH];
 } ARC_DISK_SIGNATURE_EX, *PARC_DISK_SIGNATURE_EX;
 
+typedef struct _LOADER_INFORMATION
+{
+    LIST_ENTRY LoadOrderListHead;
+    LIST_ENTRY MemoryDescriptorListHead;
+    LIST_ENTRY BootDriverListHead;
+    ULONG_PTR LoaderPagesSpanned;
+
+    // ...
+} LOADER_INFORMATION, *PLOADER_INFORMATION;
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 // ReactOS Loading Functions

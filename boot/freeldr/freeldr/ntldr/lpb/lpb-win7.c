@@ -1,0 +1,3 @@
+
+
+#define NTLDR_VERSION NTDDI_VISTASP1

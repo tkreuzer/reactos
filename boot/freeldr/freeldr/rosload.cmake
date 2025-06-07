@@ -17,6 +17,8 @@ list(APPEND ROSLOAD_SOURCE
     oslist.c
     lib/rtl/libsupp.c
     ${REACTOS_SOURCE_DIR}/ntoskrnl/config/cmboot.c
+    ntldr/lpb/lpb-vista-sp1.c
+    ntldr/lpb/lpb-win7.c
     ntldr/conversion.c
     ntldr/inffile.c
     ntldr/registry.c
