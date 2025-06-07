@@ -1,6 +1,10 @@
 #ifndef _ARC_
 #define _ARC_
 
+#ifndef NTLDR_VERSION
+#define NTLDR_VERSION NTDDI_VISTASP1 // This is what ReactOS uses
+#endif
+
 typedef ULONG ARC_STATUS;
 
 /* Avoid conflicts with errno.h */
@@ -315,6 +319,20 @@ typedef struct _SMBIOS_TABLE_HEADER
    UCHAR Revision;
 } SMBIOS_TABLE_HEADER, *PSMBIOS_TABLE_HEADER;
 
+typedef struct _SMBIOS3_TABLE_HEADER
+{
+   UCHAR Signature[5];
+   UCHAR Checksum;
+   UCHAR Length;
+   UCHAR MajorVersion;
+   UCHAR MinorVersion;
+   UCHAR Docrev;
+   UCHAR EntryPointRevision;
+   UCHAR Reserved;
+   ULONG StructureTableMaximumSize;
+   ULONG64 StructureTableAddress;
+} SMBIOS3_TABLE_HEADER, *PSMBIOS3_TABLE_HEADER;
+
 //
 // NLS Data Block
 //
@@ -360,12 +378,20 @@ typedef struct _HEADLESS_LOADER_BLOCK
     USHORT PciDeviceId;
     USHORT PciVendorId;
     UCHAR PciBusNumber;
+#if (NTLDR_VERSION >= NTDDI_VISTA)
+    USHORT PciBusSegment;
+#endif // (NTLDR_VERSION >= NTDDI_VISTA)
     UCHAR PciSlotNumber;
     UCHAR PciFunctionNumber;
     ULONG PciFlags;
     GUID SystemGUID;
     UCHAR IsMMIODevice;
     UCHAR TerminalType;
+#if (NTLDR_VERSION >= NTDDI_WIN10)
+    UCHAR InterfaceType;
+    UCHAR RegisterBitWidth;
+    UCHAR RegisterAccessSize;
+#endif // (NTLDR_VERSION >= NTDDI_WIN10)
 } HEADLESS_LOADER_BLOCK, *PHEADLESS_LOADER_BLOCK;
 
 typedef struct _NETWORK_LOADER_BLOCK
@@ -380,7 +406,163 @@ typedef struct _LOADER_PERFORMANCE_DATA
 {
     ULONGLONG StartTime;
     ULONGLONG EndTime;
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    ULONGLONG PreloadEndTime;
+    ULONGLONG TcbLoaderStartTime;
+    ULONGLONG LoadHypervisorTime;
+    ULONGLONG LaunchHypervisorTime;
+    ULONGLONG LoadVsmTime;
+    ULONGLONG LaunchVsmTime;
+#if (NTLDR_VERSION >= NTDDI_WIN10_19H1)
+    ULONGLONG ExecuteTransitionStartTime;
+    ULONGLONG ExecuteTransitionEndTime;
+#endif // (NTLDR_VERSION >= NTDDI_WIN10_19H1)
+    ULONGLONG LoadDriversTime;
+#endif // (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+#if (NTLDR_VERSION >= NTDDI_WIN10_19H1)
+    ULONGLONG CleanupVsmTime;
+#endif // (NTLDR_VERSION >= NTDDI_WIN10_19H1)
 } LOADER_PERFORMANCE_DATA, *PLOADER_PERFORMANCE_DATA;
+
+#if (NTLDR_VERSION == NTDDI_WIN7)
+
+typedef enum _TPM_BOOT_ENTROPY_RESULT_CODE
+{
+    TpmBootEntropyStructureUninitialized = 0,
+    TpmBootEntropyDisabledByPolicy = 1,
+    TpmBootEntropyNoTpmFound = 2,
+    TpmBootEntropyTpmError = 3,
+    TpmBootEntropySuccess = 4,
+} TPM_BOOT_ENTROPY_RESULT_CODE;
+
+typedef struct _TPM_BOOT_ENTROPY_LDR_RESULT
+{
+    ULONGLONG Policy;
+    TPM_BOOT_ENTROPY_RESULT_CODE ResultCode;
+    NTSTATUS ResultStatus;
+    ULONGLONG Time;
+    ULONG EntropyLength;
+    UCHAR EntropyData[4];
+    long __PADDING__[1];
+} TPM_BOOT_ENTROPY_LDR_RESULT, *PTPM_BOOT_ENTROPY_LDR_RESULT;
+
+#endif // (NTLDR_VERSION == NTDDI_WIN7)
+
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+
+typedef enum _BOOT_ENTROPY_SOURCE_ID
+{
+    BootEntropySourceNone = 0,
+    BootEntropySourceSeedfile = 1,
+    BootEntropySourceExternal = 2,
+    BootEntropySourceTpm = 3,
+    BootEntropySourceRdrand = 4,
+    BootEntropySourceTime = 5,
+    BootEntropySourceAcpiOem0 = 6,
+    BootEntropySourceUefi = 7,
+
+    // Windows 8.1+:
+    BootEntropySourceCng = 8,
+
+    // RS5+:
+    BootEntropySourceTcbTpm = 9,
+    BootEntropySourceTcbRdrand = 10,
+
+    //BootMaxEntropySources = 8,
+} BOOT_ENTROPY_SOURCE_ID, *PBOOT_ENTROPY_SOURCE_ID;
+
+typedef enum _BOOT_ENTROPY_SOURCE_RESULT_CODE
+{
+    BootEntropySourceStructureUninitialized = 0,
+    BootEntropySourceDisabledByPolicy = 1,
+    BootEntropySourceNotPresent = 2,
+    BootEntropySourceError = 3,
+    BootEntropySourceSuccess = 4,
+} BOOT_ENTROPY_SOURCE_RESULT_CODE, *PBOOT_ENTROPY_SOURCE_RESULT_CODE;
+
+typedef struct _BOOT_ENTROPY_SOURCE_LDR_RESULT
+{
+    BOOT_ENTROPY_SOURCE_ID SourceId;
+    LONG64 Policy;
+    BOOT_ENTROPY_SOURCE_RESULT_CODE ResultCode;
+    NTSTATUS ResultStatus;
+    ULONG64 Time;
+    ULONG EntropyLength;
+    UCHAR EntropyData[64];
+    long __PADDING__[1];
+} BOOT_ENTROPY_SOURCE_LDR_RESULT, *PBOOT_ENTROPY_SOURCE_LDR_RESULT;
+
+typedef struct _BOOT_ENTROPY_LDR_RESULT
+{
+    ULONG maxEntropySources;
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    BOOT_ENTROPY_SOURCE_LDR_RESULT EntropySourceResult[10];
+#elif (NTLDR_VERSION >= NTDDI_WINBLUE)
+    BOOT_ENTROPY_SOURCE_LDR_RESULT EntropySourceResult[8];
+#else // Windows 8
+    BOOT_ENTROPY_SOURCE_LDR_RESULT EntropySourceResult[7];
+#endif
+    UCHAR SeedBytesForCng[48];
+    UCHAR RngBytesForNtoskrnl[1024];
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS1)
+    UCHAR KdEntropy[32];
+#endif
+} BOOT_ENTROPY_LDR_RESULT, *PBOOT_ENTROPY_LDR_RESULT;
+
+typedef struct _LOADER_PARAMETER_HYPERVISOR_EXTENSION
+{
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    ULONG InitialHypervisorCrashdumpAreaPageCount;
+#endif
+    ULONG HypervisorCrashdumpAreaPageCount;
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    ULONG64 InitialHypervisorCrashdumpAreaSpa;
+#endif
+    ULONG64 HypervisorCrashdumpAreaSpa;
+    ULONG64 HypervisorLaunchStatus;
+    ULONG64 HypervisorLaunchStatusArg1;
+    ULONG64 HypervisorLaunchStatusArg2;
+    ULONG64 HypervisorLaunchStatusArg3;
+    ULONG64 HypervisorLaunchStatusArg4;
+} LOADER_PARAMETER_HYPERVISOR_EXTENSION, *PLOADER_PARAMETER_HYPERVISOR_EXTENSION;
+
+#endif // (NTLDR_VERSION >= NTDDI_WIN8)
+
+#if (NTLDR_VERSION == NTDDI_WIN8)
+typedef struct LOADER_PARAMETER_KD_EXTENSION
+{
+    ULONG64 Reserved[18];
+} LOADER_PARAMETER_KD_EXTENSION, *PLOADER_PARAMETER_KD_EXTENSION;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WINBLUE)
+typedef struct _LOADER_BUGCHECK_PARAMETERS
+{
+    ULONG BugcheckCode;
+    ULONG_PTR BugcheckParameter1;
+    ULONG_PTR BugcheckParameter2;
+    ULONG_PTR BugcheckParameter3;
+    ULONG_PTR BugcheckParameter4;
+} LOADER_BUGCHECK_PARAMETERS, *PLOADER_BUGCHECK_PARAMETERS;
+
+typedef struct _OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1
+{
+    UINT32 Version;
+    UINT32 AbnormalResetOccurred;
+    UINT32 OfflineMemoryDumpCapable;
+} OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1, *POFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1;
+
+typedef struct _OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2
+{
+    UINT32 Version;
+    UINT32 AbnormalResetOccurred;
+    UINT32 OfflineMemoryDumpCapable;
+    UINT64 ResetDataAddress;
+    UINT32 ResetDataSize;
+  /* 0x001c */ long __PADDING__[1];
+} OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2, *POFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2;
+
+#endif
 
 //
 // Extended Loader Parameter Block
@@ -392,20 +574,32 @@ typedef struct _LOADER_PARAMETER_EXTENSION
 {
     ULONG Size;
     PROFILE_PARAMETER_BLOCK Profile;
-    ULONG MajorVersion;             /* Not anymore present starting NT 6.1 */
-    ULONG MinorVersion;             /* Not anymore present starting NT 6.1 */
+#if (NTLDR_VERSION < NTDDI_WIN7)
+    ULONG MajorVersion;
+    ULONG MinorVersion;
+#endif
     PVOID EmInfFileImage;
     ULONG EmInfFileSize;
     PVOID TriageDumpBlock;
     //
     // NT 5.1
     //
-    ULONG_PTR LoaderPagesSpanned;   /* Not anymore present starting NT 6.2 */
+#if (NTLDR_VERSION >= NTDDI_WINXP)
+#if (NTLDR_VERSION < NTDDI_WIN8)
+    ULONG_PTR LoaderPagesSpanned;
+#endif
     PHEADLESS_LOADER_BLOCK HeadlessLoaderBlock;
+#if (NTLDR_VERSION >= NTDDI_WIN10)
+    PSMBIOS3_TABLE_HEADER SMBiosEPSHeader;
+#else
     PSMBIOS_TABLE_HEADER SMBiosEPSHeader;
+#endif
     PVOID DrvDBImage;
     ULONG DrvDBSize;
+#if (NTLDR_VERSION >= NTDDI_WINXPSP1)
     PNETWORK_LOADER_BLOCK NetworkLoaderBlock;
+#endif // (NTLDR_VERSION >= NTDDI_WINXPSP1)
+
     //
     // NT 5.2+
     //
@@ -414,25 +608,223 @@ typedef struct _LOADER_PARAMETER_EXTENSION
     PUCHAR HalpVectorToIRQL;
 #endif
     LIST_ENTRY FirmwareDescriptorListHead;
-    PVOID AcpiTable;
-    ULONG AcpiTableSize;
+#endif // (NTLDR_VERSION >= NTDDI_WINXP)
+
     //
     // NT 5.2 SP1+
     //
-/** NT-version-dependent flags **/
-    ULONG BootViaWinload:1;
-    ULONG BootViaEFI:1;
-    ULONG Reserved:30;
-/********************************/
+#if (NTLDR_VERSION >= NTDDI_WS03SP1)
+    PVOID AcpiTable;
+    ULONG AcpiTableSize;
+#endif // (NTLDR_VERSION >= NTDDI_WS03SP1)
+
+#if  (NTLDR_VERSION >= NTDDI_VISTA)
+    struct
+    {
+        // NT-version-dependent flags
+#if (NTLDR_VERSION == NTDDI_VISTA) || (NTLDR_VERSION == NTDDI_VISTASP1)
+        ULONG BootViaWinload:1; // 6.0 only
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN7)
+        ULONG LastBootSucceeded : 1; // 6.1 and higher
+        ULONG LastBootShutdown : 1; // 6.1 and higher
+        ULONG IoPortAccessSupported : 1; // 6.1 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+        ULONG BootDebuggerActive : 1; // 6.2 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WINBLUE)
+        ULONG StrongCodeGuarantees : 1; // 6.3 and higher
+        ULONG HardStrongCodeGuarantees : 1; // 6.3 and higher
+        ULONG SidSharingDisabled : 1; // 6.3 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10)
+        ULONG TpmInitialized : 1; // 10.0 and higher
+        ULONG VsmConfigured : 1; // 10.0 and higher
+        ULONG IumEnabled : 1; // 10.0 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_TH2)
+        ULONG IsSmbboot : 1; // 1511 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS1)
+        ULONG BootLogEnabled : 1; // 1607 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+        ULONG DriverVerifierEnabled : 1; // 1809 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_19H1)
+        ULONG SuppressMonitorX : 1; // 1903 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_VB)
+        ULONG KernelCetEnabled : 1; // 2004 and higher
+        ULONG SuppressSmap : 1; // 2004 and higher
+#endif
+#if (NTLDR_VERSION == NTDDI_WIN10_RS4)
+        ULONG FeatureSettings : 7; // 1803 only
+#else // ...
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS4)
+        ULONG FeatureSimulations : 6; // 1803 and higher
+#endif
+#if (NTLDR_VERSION == NTDDI_WIN10_RS4)
+        ULONG MicrocodeOptedOut : 1; // 1803 only
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+        ULONG MicrocodeSelfHosting : 1; // 1809 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS4)
+        ULONG XhciLegacyHandoffSkip : 1; // 1803 and higher
+#endif
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+        ULONG DisableInsiderOptInHVCI : 1; // 1809 and higher
+#endif
+        // ULONG Reserved : ?;
+    };
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    LOADER_PERFORMANCE_DATA LoaderPerformanceData;
+#else
     PLOADER_PERFORMANCE_DATA LoaderPerformanceData;
+#endif // (NTLDR_VERSION >= NTDDI_WIN10_RS5)
     LIST_ENTRY BootApplicationPersistentData;
     PVOID WmdTestResult;
     GUID BootIdentifier;
+#endif // (NTLDR_VERSION >= NTDDI_VISTA)
+
     //
-    // NT 6
+    // NT 6 SP1
     //
+#if (NTLDR_VERSION >= NTDDI_VISTASP1)
     ULONG ResumePages;
     PVOID DumpHeader;
+#endif // (NTLDR_VERSION >= 0x06000100)
+
+#if (NTLDR_VERSION >= NTDDI_WIN7)
+    PVOID BgContext;
+    PVOID NumaLocalityInfo;
+    PVOID NumaGroupAssignment;
+    LIST_ENTRY AttachedHives;
+    ULONG MemoryCachingRequirementsCount;
+    PVOID MemoryCachingRequirements;
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+    BOOT_ENTROPY_LDR_RESULT BootEntropyResult;
+#else
+    TPM_BOOT_ENTROPY_LDR_RESULT TpmBootEntropyResult;
+#endif
+    ULONG64 ProcessorCounterFrequency;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+    LOADER_PARAMETER_HYPERVISOR_EXTENSION HypervisorExtension;
+    GUID HardwareConfigurationId;
+    LIST_ENTRY HalExtensionModuleList;
+    ULONG64 SystemTime;
+    ULONG64 TimeStampAtSystemTimeRead;
+    union
+    {
+        ULONG64 BootFlags;
+        struct
+        {
+            ULONG64 DbgMenuOsSelection : 1; /* bit position: 0 */
+            ULONG64 DbgHiberBoot : 1; /* bit position: 1 */
+            ULONG64 DbgSoftRestart : 1; /* bit position: 2 */
+        };
+    };
+    union
+    {
+        ULONG64 InternalBootFlags;
+        struct
+        {
+            ULONG64 DbgUtcBootTime : 1; /* bit position: 0 */
+            ULONG64 DbgRtcBootTime : 1; /* bit position: 1 */
+            ULONG64 DbgNoLegacyServices : 1; /* bit position: 2 */
+        };
+    };
+    PVOID WfsFPData;
+    ULONG WfsFPDataSize;
+#if (NTLDR_VERSION == NTDDI_WIN8)
+    LOADER_PARAMETER_KD_EXTENSION KdExtension;
+#endif
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WINBLUE)
+    LOADER_BUGCHECK_PARAMETERS BugcheckParameters;
+    PVOID  ApiSetSchema;
+    ULONG ApiSetSchemaSize;
+    LIST_ENTRY ApiSetSchemaExtensions;
+    UNICODE_STRING AcpiBiosVersion;
+    UNICODE_STRING SmbiosVersion;
+    UNICODE_STRING EfiVersion;
+    struct _DEBUG_DEVICE_DESCRIPTOR* KdDebugDevice;
+#if (NTLDR_VERSION >= NTDDI_WIN10)
+    OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V2 OfflineCrashdumpConfigurationTable;
+#else
+    OFFLINE_CRASHDUMP_CONFIGURATION_TABLE_V1 OfflineCrashdumpConfigurationTable;
+#endif
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10)
+    UNICODE_STRING ManufacturingProfile;
+    PVOID BbtBuffer;
+    ULONG64 XsaveAllowedFeatures;
+    ULONG XsaveFlags;
+    PVOID BootOptions;
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS1)
+    ULONG IumEnablement;
+    ULONG IumPolicy;
+    INT32 IumStatus;
+#endif
+    ULONG BootId;
+    struct _LOADER_PARAMETER_CI_EXTENSION* CodeIntegrityData;
+    ULONG CodeIntegrityDataSize;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_TH2)
+    LOADER_HIVE_RECOVERY_INFO SystemHiveRecoveryInfo;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS1)
+    ULONG SoftRestartCount;
+    INT64 SoftRestartTime;
+    PVOID HypercallCodeVa;
+    PVOID HalVirtualAddress;
+    ULONG64 HalNumberOfBytes;
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    struct _LEAP_SECOND_DATA *LeapSecondData;
+#endif
+    ULONG MajorRelease;
+    ULONG Reserved1;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS2)
+    CHAR NtBuildLab[224];
+    CHAR NtBuildLabEx[224];
+    LOADER_RESET_REASON ResetReason;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS4)
+    ULONG MaxPciBusNumber;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS5)
+    ULONG FeatureSettings;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_19H1)
+    ULONG HotPatchReserveSize;
+    ULONG RetpolineReserveSize;
+    struct
+    {
+        PVOID CodeBase;
+        ULONGLONG CodeSize;
+    } MiniExecutive;
+    VSM_PERFORMANCE_DATA VsmPerformanceData;
+#endif
+
+#if (NTLDR_VERSION >= NTDDI_WIN10_VB)
+    NUMA_MEMORY_RANGE *NumaMemoryRanges;
+    ULONG NumaMemoryRangeCount;
+    ULONG IommuFaultPolicy;
+#endif
 } LOADER_PARAMETER_EXTENSION, *PLOADER_PARAMETER_EXTENSION;
 
 //
@@ -509,8 +901,16 @@ typedef struct _EFI_FIRMWARE_INFORMATION
 {
     ULONG FirmwareVersion;
     PVIRTUAL_EFI_RUNTIME_SERVICES VirtualEfiRuntimeServices;
-    ULONG SetVirtualAddressMapStatus;
+    NTSTATUS SetVirtualAddressMapStatus;
     ULONG MissedMappingsCount;
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+    LIST_ENTRY FirmwareResourceList;
+#endif // (NTLDR_VERSION >= NTDDI_WIN8)
+#if (NTLDR_VERSION >= NTDDI_WINBLUE)
+    PVOID EfiMemoryMap;
+    ULONG EfiMemoryMapSize;
+    ULONG EfiMemoryMapDescriptorSize;
+#endif // (NTLDR_VERSION >= NTDDI_WINBLUE)
 } EFI_FIRMWARE_INFORMATION, *PEFI_FIRMWARE_INFORMATION;
 
 typedef struct _PCAT_FIRMWARE_INFORMATION
@@ -537,13 +937,34 @@ typedef struct _FIRMWARE_INFORMATION_LOADER_BLOCK
 //
 typedef struct _LOADER_PARAMETER_BLOCK
 {
+#if (NTLDR_VERSION >= NTDDI_WIN7)
+    ULONG OsMajorVersion;
+    ULONG OsMinorVersion;
+    ULONG Size;
+#if (NTLDR_VERSION >= NTDDI_WIN10_TH2)
+    ULONG OsLoaderSecurityVersion;
+#else
+    ULONG Reserved;
+#endif (NTLDR_VERSION >= NTDDI_WIN10_TH2)
+#endif // (NTLDR_VERSION >= NTDDI_WIN7)
     LIST_ENTRY LoadOrderListHead;
     LIST_ENTRY MemoryDescriptorListHead;
     LIST_ENTRY BootDriverListHead;
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+    LIST_ENTRY EarlyLaunchListHead;
+    LIST_ENTRY CoreDriverListHead;
+#endif // (NTLDR_VERSION >= NTDDI_WIN8)
+#if (NTLDR_VERSION >= NTDDI_WIN10)
+    LIST_ENTRY CoreExtensionsDriverListHead;
+    LIST_ENTRY TpmCoreDriverListHead;
+#endif // (NTLDR_VERSION >= NTDDI_WIN10)
     ULONG_PTR KernelStack;
     ULONG_PTR Prcb;
     ULONG_PTR Process;
     ULONG_PTR Thread;
+#if (NTLDR_VERSION >= NTDDI_WIN8)
+    ULONG KernelStackSize;
+#endif // (NTLDR_VERSION >= NTDDI_WIN8)
     ULONG RegistryLength;
     PVOID RegistryBase;
     PCONFIGURATION_COMPONENT_DATA ConfigurationRoot;
@@ -554,18 +975,33 @@ typedef struct _LOADER_PARAMETER_BLOCK
     PSTR LoadOptions;
     PNLS_DATA_BLOCK NlsData;
     PARC_DISK_INFORMATION ArcDiskInformation;
+#if (NTLDR_VERSION < NTDDI_WIN8)
     PVOID OemFontFile;
-    struct _SETUP_LOADER_BLOCK *SetupLdrBlock;
+#endif // (NTLDR_VERSION < NTDDI_WIN8)
+#if (NTLDR_VERSION < NTDDI_WIN7)
+    union
+    {
+        struct _SETUP_LOADER_BLOCK* SetupLdrBlock; // old name?
+        struct _SETUP_LOADER_BLOCK* SetupLoaderBlock;
+    };
+#endif // (NTLDR_VERSION < NTDDI_WIN7)
     PLOADER_PARAMETER_EXTENSION Extension;
     union
     {
         I386_LOADER_BLOCK I386;
         ALPHA_LOADER_BLOCK Alpha;
-        IA64_LOADER_BLOCK IA64;
-        PPC_LOADER_BLOCK PowerPC;
-        ARM_LOADER_BLOCK Arm;
+        IA64_LOADER_BLOCK Ia64; // Windows 2003: IA64
+        PPC_LOADER_BLOCK PowerPC; // Not in Vista
+        ARM_LOADER_BLOCK Arm; // Not in Vista
     } u;
+#if (NTLDR_VERSION >= NTDDI_VISTA)
     FIRMWARE_INFORMATION_LOADER_BLOCK FirmwareInformation;
+#endif // (NTLDR_VERSION < NTDDI_VISTA)
+#if (NTLDR_VERSION >= NTDDI_WIN10_RS4)
+    PSTR OsBootstatPathName;
+    PSTR ArcOSDataDeviceName;
+    PSTR ArcWindowsSysPartName;
+#endif // (NTLDR_VERSION == NTDDI_WIN10_RS4)
 } LOADER_PARAMETER_BLOCK, *PLOADER_PARAMETER_BLOCK;
 
 typedef int CONFIGTYPE;
