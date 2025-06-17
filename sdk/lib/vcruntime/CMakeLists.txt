@@ -25,6 +25,7 @@ add_compile_definitions(
 if(${ARCH} STREQUAL "i386")
     list(APPEND VCRT_COMMON_ASM_SOURCES
         i386/__security_check_cookie.s
+        i386/_chkesp.s
     )
 elseif(${ARCH} STREQUAL "amd64")
     list(APPEND VCRT_COMMON_ASM_SOURCES
