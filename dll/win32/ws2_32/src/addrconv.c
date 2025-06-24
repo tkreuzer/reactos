@@ -66,90 +66,61 @@
 /*
  * @implemented
  */
-ULONG
-WSAAPI
-inet_addr(IN  CONST CHAR FAR* cp)
+/***********************************************************************
+ *      inet_addr   (ws2_32.11)
+ */
+u_long WINAPI inet_addr( const char *str )
 {
-    register u_long val, base, n;
-    register unsigned char c;
-    u_long parts[4], *pp = parts;
-    if (!cp) return INADDR_ANY;
-    if (!isdigit(*cp)) return INADDR_NONE;
+    unsigned long a[4] = { 0 };
+    const char *s = str;
+    unsigned char *d;
+    unsigned int i;
+    u_long addr;
+    char *z;
 
-again:
-    /*
-     * Collect number up to ``.''.
-     * Values are specified as for C:
-     * 0x=hex, 0=octal, other=decimal.
-     */
-    val = 0; base = 10;
-    if (*cp == '0') {
-        if (*++cp == 'x' || *cp == 'X')
-            base = 16, cp++;
-        else
-            base = 8;
+    DPRINT1( "str %s.\n", str );
+
+    if (!s)
+    {
+        SetLastError( WSAEFAULT );
+        return INADDR_NONE;
     }
-    while ((c = *cp)) {
-        if (isdigit(c)) {
-            val = (val * base) + (c - '0');
-            cp++;
-            continue;
-        }
-        if (base == 16 && isxdigit(c)) {
-            val = (val << 4) + (c + 10 - (islower(c) ? 'a' : 'A'));
-            cp++;
-            continue;
-        }
-        break;
+
+    d = (unsigned char *)&addr;
+
+    if (s[0] == ' ' && !s[1]) return 0;
+
+    for (i = 0; i < 4; ++i)
+    {
+        a[i] = strtoul( s, &z, 0 );
+        if (z == s || !isdigit( *s )) return INADDR_NONE;
+        if (!*z || isspace(*z)) break;
+        if (*z != '.') return INADDR_NONE;
+        s = z + 1;
     }
-    if (*cp == '.') {
-        /*
-         * Internet format:
-         *    a.b.c.d
-         *    a.b.c    (with c treated as 16-bits)
-         *    a.b    (with b treated as 24 bits)
-         */
-        if (pp >= parts + 4) return (INADDR_NONE);
-        *pp++ = val;
-        cp++;
-        goto again;
+
+    if (i == 4) return INADDR_NONE;
+
+    switch (i)
+    {
+        case 0:
+            a[1] = a[0] & 0xffffff;
+            a[0] >>= 24;
+            /* fallthrough */
+        case 1:
+            a[2] = a[1] & 0xffff;
+            a[1] >>= 16;
+            /* fallthrough */
+        case 2:
+            a[3] = a[2] & 0xff;
+            a[2] >>= 8;
     }
-    /*
-     * Check for trailing characters.
-     */
-    if (*cp && !isspace((UCHAR)*cp)) return (INADDR_NONE);
-
-    *pp++ = val;
-    /*
-     * Concoct the address according to
-     * the number of parts specified.
-     */
-    n = (u_long)(pp - parts);
-    switch (n) {
-
-    case 1:                /* a -- 32 bits */
-        val = parts[0];
-        break;
-
-    case 2:                /* a.b -- 8.24 bits */
-        val = (parts[0] << 24) | (parts[1] & 0xffffff);
-        break;
-
-    case 3:                /* a.b.c -- 8.8.16 bits */
-        val = (parts[0] << 24) | ((parts[1] & 0xff) << 16) |
-            (parts[2] & 0xffff);
-        break;
-
-    case 4:                /* a.b.c.d -- 8.8.8.8 bits */
-        val = (parts[0] << 24) | ((parts[1] & 0xff) << 16) |
-              ((parts[2] & 0xff) << 8) | (parts[3] & 0xff);
-        break;
-
-    default:
-        return (INADDR_NONE);
+    for (i = 0; i < 4; ++i)
+    {
+        if (a[i] > 255) return INADDR_NONE;
+        d[i] = a[i];
     }
-    val = htonl(val);
-    return (val);
+    return addr;
 }
 
 /*
