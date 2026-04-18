@@ -20,23 +20,6 @@ include(libcntpr.cmake)
 include(msvcrtex.cmake)
 include(oldnames.cmake)
 
-add_library(user32_wsprintf
-    printf/streamout.c
-    printf/wstreamout.c
-    printf/wsprintfA.c
-    printf/wsprintfW.c
-    printf/wvsprintfA.c
-    printf/wvsprintfW.c
-    printf/wvsnprintfA.c
-    printf/wvsnprintfW.c
-    string/strnlen.c
-    string/wcsnlen.c
-    string/mbstowcs_nt.c
-    string/wcstombs_nt.c)
-
-add_dependencies(user32_wsprintf psdk)
-target_compile_definitions(user32_wsprintf PRIVATE _USER32_WSPRINTF)
-
 if(MSVC AND ARCH STREQUAL "i386")
     add_asm_files(ftol2_asm
         math/i386/ftol2_asm.s
