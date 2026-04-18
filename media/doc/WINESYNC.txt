@@ -356,6 +356,7 @@ user32 -
   win32ss/user/user32/misc/exticon.c       # Synced to WineStaging-1.7.55
   win32ss/user/user32/misc/resources.c     # Partially synced to WineStaging-1.7.55
   win32ss/user/user32/misc/winhelp.c       # Last sync date unknown
+  win32ss/user/user32/misc/wsprintf.c      # Synced to Wine-10.0
 
   win32ss/user/user32/windows/cursoricon   # Forked from Wine-1.2-rc7
   win32ss/user/user32/windows/defwnd.c     # Forked

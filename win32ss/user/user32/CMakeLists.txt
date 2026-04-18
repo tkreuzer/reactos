@@ -39,6 +39,7 @@ list(APPEND SOURCE
     misc/usrapihk.c
     misc/winhelp.c
     misc/winsta.c
+    misc/wsprintf.c
     windows/accel.c
     windows/caret.c
     windows/class.c
@@ -81,8 +82,9 @@ add_library(user32 MODULE
     user32.rc
     ${CMAKE_CURRENT_BINARY_DIR}/user32.def)
 
+target_compile_definitions(user32 PRIVATE ARRAY_SIZE=ARRAYSIZE)
 set_module_type(user32 win32dll UNICODE ENTRYPOINT DllMain 12)
-target_link_libraries(user32 user32_vista_static user32_optional_vista user32_wsprintf wine win32ksys ${PSEH_LIB})
+target_link_libraries(user32 user32_vista_static user32_optional_vista wine win32ksys ${PSEH_LIB})
 add_dependencies(user32 asm)
 
 add_delay_importlibs(user32 usp10 libpng)
