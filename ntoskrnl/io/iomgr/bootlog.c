@@ -232,8 +232,6 @@ IopCreateLogFile(VOID)
 
     DPRINT("IopSaveBootLogToFile() called\n");
 
-    ExAcquireResourceExclusiveLite(&IopBootLogResource, TRUE);
-
     RtlInitUnicodeString(&FileName,
                          L"\\SystemRoot\\rosboot.log");
     InitializeObjectAttributes(&ObjectAttributes,

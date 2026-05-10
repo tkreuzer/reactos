@@ -223,6 +223,7 @@ PsLocateSystemDll(VOID)
                          &HardErrorParameters,
                          OptionOk,
                          &HardErrorResponse);
+        ZwClose(FileHandle);
         return Status;
     }
 
