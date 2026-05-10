@@ -41,7 +41,11 @@ CmpIsHiveAlreadyLoaded(IN HANDLE KeyHandle,
     if (!NT_SUCCESS(Status)) return Loaded;
 
     /* Don't touch deleted KCBs */
-    if (KeyBody->KeyControlBlock->Delete) return Loaded;
+    if (KeyBody->KeyControlBlock->Delete)
+    {
+        ObDereferenceObject(KeyBody);
+        return Loaded;
+    }
 
     Hive = CONTAINING_RECORD(KeyBody->KeyControlBlock->KeyHive, CMHIVE, Hive);
 
