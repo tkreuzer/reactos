@@ -364,7 +364,7 @@ CmpInitializeMachineDependentConfiguration(IN PLOADER_PARAMETER_BLOCK LoaderBloc
             if (!Prcb->CpuID)
             {
                 /* Build 80x86-style string for older CPUs */
-                sprintf(Buffer,
+                snprintf(Buffer, sizeof(Buffer),
                         "80%u86-%c%x",
                         Prcb->CpuType,
                         (Prcb->CpuStep >> 8) + 'A',
@@ -373,7 +373,7 @@ CmpInitializeMachineDependentConfiguration(IN PLOADER_PARAMETER_BLOCK LoaderBloc
             else
             {
                 /* Build full ID string for newer CPUs */
-                sprintf(Buffer,
+                snprintf(Buffer, sizeof(Buffer),
                         CmpFullCpuID,
                         "x86",
                         Prcb->CpuType,
@@ -398,7 +398,7 @@ CmpInitializeMachineDependentConfiguration(IN PLOADER_PARAMETER_BLOCK LoaderBloc
             }
 
             /* ID string has the same style for all 64-bit CPUs */
-            sprintf(Buffer,
+            snprintf(Buffer, sizeof(Buffer),
                     CmpFullCpuID,
                     FamilyId,
                     Prcb->CpuType,
@@ -437,7 +437,11 @@ CmpInitializeMachineDependentConfiguration(IN PLOADER_PARAMETER_BLOCK LoaderBloc
                 ConfigData.ComponentEntry.Identifier = Buffer;
 
                 /* For 386 cpus, the CPU pp is the identifier */
-                if (Prcb->CpuType == 3) strcpy(Buffer, "80387");
+                if (Prcb->CpuType == 3)
+                {
+                    strncpy(Buffer, "80387", sizeof(Buffer) - 1);
+                    Buffer[sizeof(Buffer) - 1] = '\0';
+                }
 
                 /* Save the ID string length now that we've created it */
                 ConfigData.ComponentEntry.IdentifierLength = (ULONG)strlen(Buffer) + 1;
