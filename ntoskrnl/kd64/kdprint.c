@@ -531,16 +531,27 @@ KdpDprintf(
 {
     STRING String;
     USHORT Length;
+    int Ret;
     va_list ap;
     CHAR Buffer[512];
 
     /* Format the string */
     va_start(ap, Format);
-    Length = (USHORT)_vsnprintf(Buffer,
-                                sizeof(Buffer),
-                                Format,
-                                ap);
+    Ret = _vsnprintf(Buffer,
+                     sizeof(Buffer),
+                     Format,
+                     ap);
     va_end(ap);
+
+    /* Check for overflow: _vsnprintf returns -1 if output was truncated */
+    if (Ret < 0)
+    {
+        Length = sizeof(Buffer) - 1;
+    }
+    else
+    {
+        Length = (USHORT)Ret;
+    }
 
     /* Set it up */
     String.Buffer = Buffer;

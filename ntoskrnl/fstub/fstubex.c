@@ -1889,7 +1889,7 @@ IoGetBootDiskInformation(IN OUT PBOOTDISK_INFORMATION BootDiskInformation,
     for (DiskNumber = 0; DiskNumber < DiskCount; DiskNumber++)
     {
         /* Create the device name */
-        sprintf(Buffer, "\\Device\\Harddisk%lu\\Partition0", DiskNumber);
+        snprintf(Buffer, sizeof(Buffer), "\\Device\\Harddisk%lu\\Partition0", DiskNumber);
         RtlInitAnsiString(&DeviceStringA, Buffer);
         Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
         if (!NT_SUCCESS(Status))
@@ -1977,14 +1977,17 @@ IoGetBootDiskInformation(IN OUT PBOOTDISK_INFORMATION BootDiskInformation,
                 IopVerifyDiskSignature(DriveLayout, ArcDiskSignature, &Signature))
             {
                 /* Create ARC name */
-                sprintf(ArcBuffer, "\\ArcName\\%s", ArcDiskSignature->ArcName);
+                if (snprintf(ArcBuffer, sizeof(ArcBuffer), "\\ArcName\\%s", ArcDiskSignature->ArcName) >= (int)sizeof(ArcBuffer))
+                {
+                    DPRINT1("ArcName path too long, truncated\n");
+                }
                 RtlInitAnsiString(&ArcNameStringA, ArcBuffer);
 
                 /* Browse all partitions */
                 for (PartitionNumber = 1; PartitionNumber <= DriveLayout->PartitionCount; PartitionNumber++)
                 {
                     /* Create its device name */
-                    sprintf(Buffer, "\\Device\\Harddisk%lu\\Partition%lu", DiskNumber, PartitionNumber);
+                    snprintf(Buffer, sizeof(Buffer), "\\Device\\Harddisk%lu\\Partition%lu", DiskNumber, PartitionNumber);
                     RtlInitAnsiString(&DeviceStringA, Buffer);
                     Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
                     if (!NT_SUCCESS(Status))
@@ -1999,7 +2002,10 @@ IoGetBootDiskInformation(IN OUT PBOOTDISK_INFORMATION BootDiskInformation,
                     }
 
                     /* Create partial ARC name */
-                    sprintf(ArcBuffer, "%spartition(%lu)", ArcDiskSignature->ArcName, PartitionNumber);
+                    if (snprintf(ArcBuffer, sizeof(ArcBuffer), "%spartition(%lu)", ArcDiskSignature->ArcName, PartitionNumber) >= (int)sizeof(ArcBuffer))
+                    {
+                        DPRINT1("ArcName partition path too long, truncated\n");
+                    }
                     RtlInitAnsiString(&ArcNameStringA, ArcBuffer);
 
                     /* If it's matching boot string */

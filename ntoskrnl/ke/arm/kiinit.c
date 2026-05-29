@@ -431,12 +431,12 @@ ULONG
 DbgPrintEarly(const char *fmt, ...)
 {
     va_list args;
-    unsigned int i;
+    int Ret;
     char Buffer[1024];
     PCHAR String = Buffer;
 
     va_start(args, fmt);
-    i = vsprintf(Buffer, fmt, args);
+    Ret = vsnprintf(Buffer, sizeof(Buffer), fmt, args);
     va_end(args);
 
     /* Output the message */

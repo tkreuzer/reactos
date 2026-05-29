@@ -3163,6 +3163,7 @@ KdbpPrint(
 {
     static CHAR Buffer[4096];
     ULONG Length;
+    int Ret;
     va_list ap;
 
     /* Check if the user has aborted output of the current command */
@@ -3171,9 +3172,20 @@ KdbpPrint(
 
     /* Build the string */
     va_start(ap, Format);
-    Length = _vsnprintf(Buffer, sizeof(Buffer) - 1, Format, ap);
-    Buffer[Length] = '\0';
+    Ret = _vsnprintf(Buffer, sizeof(Buffer) - 1, Format, ap);
     va_end(ap);
+
+    /* Check for overflow: _vsnprintf returns -1 if output was truncated */
+    if (Ret < 0)
+    {
+        Length = sizeof(Buffer) - 1;
+        Buffer[Length] = '\0';
+    }
+    else
+    {
+        Length = (ULONG)Ret;
+        Buffer[Length] = '\0';
+    }
 
     /* Actually print it */
     KdbpPagerInternal(Buffer, Length, FALSE);

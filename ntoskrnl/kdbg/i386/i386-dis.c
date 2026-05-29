@@ -3129,8 +3129,21 @@ putop (const char *template, int sizeflag)
 static void
 oappend (const char *s)
 {
-  strcpy (obufp, s);
-  obufp += strlen (s);
+  size_t slen = strlen(s);
+  size_t remaining = sizeof(obuf) - (obufp - obuf) - 1;
+  
+  /* Only copy what fits in the buffer */
+  if (slen > remaining)
+    slen = remaining;
+  
+  if (slen > 0)
+  {
+    memcpy(obufp, s, slen);
+    obufp += slen;
+  }
+  
+  /* Ensure null termination */
+  *obufp = '\0';
 }
 
 static void

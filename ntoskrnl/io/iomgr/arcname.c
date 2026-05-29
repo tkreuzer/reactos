@@ -52,14 +52,20 @@ IopCreateArcNames(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                  &ArcDiskInfo->DiskSignatureListHead);
 
     /* Create the firmware system loader / HAL partition global name */
-    sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcHalDeviceName);
+    if (snprintf(Buffer, sizeof(Buffer), "\\ArcName\\%s", LoaderBlock->ArcHalDeviceName) >= (int)sizeof(Buffer))
+    {
+        DPRINT1("ArcHalDeviceName path too long, truncated\n");
+    }
     RtlInitAnsiString(&ArcString, Buffer);
     Status = RtlAnsiStringToUnicodeString(&IoArcHalDeviceName, &ArcString, TRUE);
     if (!NT_SUCCESS(Status))
         return Status;
 
     /* Create the OS boot partition global name */
-    sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName);
+    if (snprintf(Buffer, sizeof(Buffer), "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName) >= (int)sizeof(Buffer))
+    {
+        DPRINT1("ArcBootDeviceName path too long, truncated\n");
+    }
     RtlInitAnsiString(&ArcString, Buffer);
     Status = RtlAnsiStringToUnicodeString(&IoArcBootDeviceName, &ArcString, TRUE);
     if (!NT_SUCCESS(Status))
@@ -100,7 +106,10 @@ IopCreateArcNames(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         }
 
         /* Get ARC booting device name (in net(0) something) */
-        sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName);
+        if (snprintf(Buffer, sizeof(Buffer), "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName) >= (int)sizeof(Buffer))
+        {
+            DPRINT1("ArcBootDeviceName path too long, truncated\n");
+        }
         RtlInitAnsiString(&ArcString, Buffer);
         Status = RtlAnsiStringToUnicodeString(&BootDeviceName, &ArcString, TRUE);
         if (NT_SUCCESS(Status))
@@ -303,7 +312,7 @@ IopCreateArcNamesCd(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
             }
 
             /* Finally, build proper device name */
-            sprintf(Buffer, "\\Device\\CdRom%lu", DeviceNumber.DeviceNumber);
+            snprintf(Buffer, sizeof(Buffer), "\\Device\\CdRom%lu", DeviceNumber.DeviceNumber);
             RtlInitAnsiString(&DeviceStringA, Buffer);
             Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
             if (!NT_SUCCESS(Status))
@@ -315,7 +324,7 @@ IopCreateArcNamesCd(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         else
         {
             /* Create device name for the cd */
-            sprintf(Buffer, "\\Device\\CdRom%lu", EnabledDisks++);
+            snprintf(Buffer, sizeof(Buffer), "\\Device\\CdRom%lu", EnabledDisks++);
             RtlInitAnsiString(&DeviceStringA, Buffer);
             Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
             if (!NT_SUCCESS(Status))
@@ -373,7 +382,10 @@ IopCreateArcNamesCd(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
         if (CheckSum + ArcDiskSignature->CheckSum == 0)
         {
             /* Create ARC name */
-            sprintf(ArcBuffer, "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName);
+            if (snprintf(ArcBuffer, sizeof(ArcBuffer), "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName) >= (int)sizeof(ArcBuffer))
+            {
+                DPRINT1("ArcBootDeviceName path too long, truncated\n");
+            }
             RtlInitAnsiString(&ArcNameStringA, ArcBuffer);
             Status = RtlAnsiStringToUnicodeString(&ArcNameStringW, &ArcNameStringA, TRUE);
             if (NT_SUCCESS(Status))
@@ -553,7 +565,7 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
         else
         {
             /* Create device name for the disk */
-            sprintf(Buffer, "\\Device\\Harddisk%lu\\Partition0", DiskNumber);
+            snprintf(Buffer, sizeof(Buffer), "\\Device\\Harddisk%lu\\Partition0", DiskNumber);
             RtlInitAnsiString(&DeviceStringA, Buffer);
             Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
             if (!NT_SUCCESS(Status))
@@ -712,7 +724,7 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                  (ArcDiskSignature->CheckSum + CheckSum == 0)))
             {
                 /* Create device name */
-                sprintf(Buffer, "\\Device\\Harddisk%lu\\Partition0",
+                snprintf(Buffer, sizeof(Buffer), "\\Device\\Harddisk%lu\\Partition0",
                         (DeviceNumber.DeviceNumber != ULONG_MAX) ? DeviceNumber.DeviceNumber : DiskNumber);
                 RtlInitAnsiString(&DeviceStringA, Buffer);
                 Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
@@ -722,7 +734,10 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                 }
 
                 /* Create ARC name */
-                sprintf(ArcBuffer, "\\ArcName\\%s", ArcDiskSignature->ArcName);
+                if (snprintf(ArcBuffer, sizeof(ArcBuffer), "\\ArcName\\%s", ArcDiskSignature->ArcName) >= (int)sizeof(ArcBuffer))
+                {
+                    DPRINT1("ArcName path too long, truncated\n");
+                }
                 RtlInitAnsiString(&ArcNameStringA, ArcBuffer);
                 Status = RtlAnsiStringToUnicodeString(&ArcNameStringW, &ArcNameStringA, TRUE);
                 if (!NT_SUCCESS(Status))
@@ -742,7 +757,7 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                 for (i = 1; i <= DriveLayout->PartitionCount; i++)
                 {
                     /* Create device name */
-                    sprintf(Buffer, "\\Device\\Harddisk%lu\\Partition%lu",
+                    snprintf(Buffer, sizeof(Buffer), "\\Device\\Harddisk%lu\\Partition%lu",
                             (DeviceNumber.DeviceNumber != ULONG_MAX) ? DeviceNumber.DeviceNumber : DiskNumber, i);
                     RtlInitAnsiString(&DeviceStringA, Buffer);
                     Status = RtlAnsiStringToUnicodeString(&DeviceStringW, &DeviceStringA, TRUE);
@@ -752,7 +767,10 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                     }
 
                     /* Create partial ARC name */
-                    sprintf(ArcBuffer, "%spartition(%lu)", ArcDiskSignature->ArcName, i);
+                    if (snprintf(ArcBuffer, sizeof(ArcBuffer), "%spartition(%lu)", ArcDiskSignature->ArcName, i) >= (int)sizeof(ArcBuffer))
+                    {
+                        DPRINT1("ArcName partition path too long, truncated\n");
+                    }
                     RtlInitAnsiString(&ArcNameStringA, ArcBuffer);
 
                     /* Is that boot device? */
@@ -780,7 +798,10 @@ IopCreateArcNamesDisk(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
                     }
 
                     /* Create complete ARC name */
-                    sprintf(ArcBuffer, "\\ArcName\\%spartition(%lu)", ArcDiskSignature->ArcName, i);
+                    if (snprintf(ArcBuffer, sizeof(ArcBuffer), "\\ArcName\\%spartition(%lu)", ArcDiskSignature->ArcName, i) >= (int)sizeof(ArcBuffer))
+                    {
+                        DPRINT1("ArcName complete path too long, truncated\n");
+                    }
                     RtlInitAnsiString(&ArcNameStringA, ArcBuffer);
                     Status = RtlAnsiStringToUnicodeString(&ArcNameStringW, &ArcNameStringA, TRUE);
                     if (!NT_SUCCESS(Status))
@@ -848,7 +869,10 @@ IopReassignSystemRoot(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
     HANDLE LinkHandle;
 
     /* Create the Unicode name for the current ARC boot device */
-    sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName);
+    if (snprintf(Buffer, sizeof(Buffer), "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName) >= (int)sizeof(Buffer))
+    {
+        DPRINT1("ArcBootDeviceName path too long, truncated\n");
+    }
     RtlInitAnsiString(&TargetString, Buffer);
     Status = RtlAnsiStringToUnicodeString(&TargetName, &TargetString, TRUE);
     if (!NT_SUCCESS(Status)) return FALSE;
@@ -913,7 +937,10 @@ IopReassignSystemRoot(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
     ObCloseHandle(LinkHandle, KernelMode);
 
     /* Now create the new name for it */
-    sprintf(Buffer, "%s%s", ArcString.Buffer, LoaderBlock->NtBootPathName);
+    if (snprintf(Buffer, sizeof(Buffer), "%s%s", ArcString.Buffer, LoaderBlock->NtBootPathName) >= (int)sizeof(Buffer))
+    {
+        DPRINT1("Boot path too long, truncated\n");
+    }
 
     /* Copy it into the passed parameter and null-terminate it */
     RtlCopyString(NtBootPath, &ArcString);

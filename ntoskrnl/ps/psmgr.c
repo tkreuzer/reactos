@@ -484,8 +484,10 @@ PspInitPhase0(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                               NULL);
 
     /* Copy the process names */
-    strcpy(PsIdleProcess->ImageFileName, "Idle");
-    strcpy(PsInitialSystemProcess->ImageFileName, "System");
+    strncpy(PsIdleProcess->ImageFileName, "Idle", sizeof(PsIdleProcess->ImageFileName) - 1);
+    PsIdleProcess->ImageFileName[sizeof(PsIdleProcess->ImageFileName) - 1] = '\0';
+    strncpy(PsInitialSystemProcess->ImageFileName, "System", sizeof(PsInitialSystemProcess->ImageFileName) - 1);
+    PsInitialSystemProcess->ImageFileName[sizeof(PsInitialSystemProcess->ImageFileName) - 1] = '\0';
 
     /* Allocate a structure for the audit name */
     PsInitialSystemProcess->SeAuditProcessCreationInfo.ImageFileName =

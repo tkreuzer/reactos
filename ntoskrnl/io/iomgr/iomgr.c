@@ -405,7 +405,10 @@ IopMarkBootPartition(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
     PFILE_OBJECT FileObject;
 
     /* Build the ARC device name */
-    sprintf(Buffer, "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName);
+    if (snprintf(Buffer, sizeof(Buffer), "\\ArcName\\%s", LoaderBlock->ArcBootDeviceName) >= (int)sizeof(Buffer))
+    {
+        DPRINT1("ArcBootDeviceName path too long, truncated\n");
+    }
     RtlInitAnsiString(&DeviceString, Buffer);
     Status = RtlAnsiStringToUnicodeString(&DeviceName, &DeviceString, TRUE);
     if (!NT_SUCCESS(Status)) return FALSE;

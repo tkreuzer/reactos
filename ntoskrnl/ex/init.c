@@ -168,10 +168,12 @@ ExpCreateSystemRootLink(IN PLOADER_PARAMETER_BLOCK LoaderBlock)
                                SePublicDefaultUnrestrictedSd);
 
     /* Build the ARC name */
-    sprintf(Buffer,
-            "\\ArcName\\%s%s",
+    if (snprintf(Buffer, sizeof(Buffer), "\\ArcName\\%s%s",
             LoaderBlock->ArcBootDeviceName,
-            LoaderBlock->NtBootPathName);
+            LoaderBlock->NtBootPathName) >= (int)sizeof(Buffer))
+    {
+        DPRINT1("ARC name path too long, truncated\n");
+    }
     Buffer[strlen(Buffer) - 1] = ANSI_NULL;
 
     /* Convert it to Unicode */
@@ -1072,7 +1074,7 @@ ExpInitializeExecutive(IN ULONG Cpu,
 #endif
 
     /* Setup NT System Root Path */
-    sprintf(Buffer, "C:%s", LoaderBlock->NtBootPathName);
+    snprintf(Buffer, sizeof(Buffer), "C:%s", LoaderBlock->NtBootPathName);
 
     /* Convert to ANSI_STRING and null-terminate it */
     RtlInitString(&AnsiPath, Buffer);
