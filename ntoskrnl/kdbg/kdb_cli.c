@@ -3176,12 +3176,10 @@ KdbpPrint(
     va_end(ap);
 
     /* Check for overflow: _vsnprintf returns -1 if output was truncated.
-     * On success, _vsnprintf null-terminates the buffer.
-     * On truncation, we need to explicitly null-terminate. */
+     * _vsnprintf null-terminates the buffer when the size parameter includes space for it. */
     if (Ret < 0)
     {
         Length = sizeof(Buffer) - 1;
-        Buffer[Length] = '\0';
     }
     else
     {
