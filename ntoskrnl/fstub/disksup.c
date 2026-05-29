@@ -957,9 +957,11 @@ xHalIoAssignDriveLetters(IN PLOADER_PARAMETER_BLOCK LoaderBlock,
         /* For a remote boot, assign X drive letter */
         NtSystemPath[0] = 'X';
         NtSystemPath[1] = ':';
-        /* And copy the end of the boot path - use strncat with a conservative upper bound */
+        /* And copy the end of the boot path - use strncpy with bounds checking */
         /* Assuming NtSystemPath buffer is at least 260 bytes (typical MAX_PATH) */
-        strncat((PSTR)NtSystemPath, Last, 256);
+        strncpy((PSTR)&NtSystemPath[2], Last, 256);
+        /* Ensure null termination */
+        NtSystemPath[259] = '\0';
 
         /* If we had to remove the trailing separator, remove it here too */
         if (Saved != NULL)

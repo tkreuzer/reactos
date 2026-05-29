@@ -3175,7 +3175,9 @@ KdbpPrint(
     Ret = _vsnprintf(Buffer, sizeof(Buffer) - 1, Format, ap);
     va_end(ap);
 
-    /* Check for overflow: _vsnprintf returns -1 if output was truncated */
+    /* Check for overflow: _vsnprintf returns -1 if output was truncated.
+     * On success, _vsnprintf null-terminates the buffer.
+     * On truncation, we need to explicitly null-terminate. */
     if (Ret < 0)
     {
         Length = sizeof(Buffer) - 1;
@@ -3184,7 +3186,6 @@ KdbpPrint(
     else
     {
         Length = (ULONG)Ret;
-        Buffer[Length] = '\0';
     }
 
     /* Actually print it */
