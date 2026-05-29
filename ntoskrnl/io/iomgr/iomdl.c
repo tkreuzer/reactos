@@ -105,6 +105,7 @@ IoBuildPartialMdl(IN PMDL SourceMdl,
                        MDL_SOURCE_IS_NONPAGED_POOL |
                        MDL_MAPPED_TO_SYSTEM_VA |
                        MDL_IO_SPACE);
+    ULONG PageCount;
 
     /* Calculate the offset */
     Offset = (ULONG)((ULONG_PTR)VirtualAddress -
@@ -121,7 +122,7 @@ IoBuildPartialMdl(IN PMDL SourceMdl,
     TargetMdl->ByteOffset = BYTE_OFFSET(VirtualAddress);
 
     /* Recalculate the length in pages */
-    Length = ADDRESS_AND_SIZE_TO_SPAN_PAGES(VirtualAddress, Length);
+    PageCount = ADDRESS_AND_SIZE_TO_SPAN_PAGES(VirtualAddress, Length);
 
     /* Set the MDL Flags */
     TargetMdl->MdlFlags &= (MDL_ALLOCATED_FIXED_SIZE | MDL_ALLOCATED_MUST_SUCCEED);
@@ -135,7 +136,12 @@ IoBuildPartialMdl(IN PMDL SourceMdl,
     Offset = (ULONG)(((ULONG_PTR)TargetMdl->StartVa -
                       (ULONG_PTR)SourceMdl->StartVa) >> PAGE_SHIFT);
     SourcePages += Offset;
-    RtlCopyMemory(TargetPages, SourcePages, Length * sizeof(PFN_NUMBER));
+    
+    /* Ensure the target MDL was allocated with enough space for the PFN array
+     * The MDL should have been allocated via IoAllocateMdl with the correct page count */
+    ASSERT(PageCount <= (TargetMdl->Size - sizeof(MDL)) / sizeof(PFN_NUMBER));
+    
+    RtlCopyMemory(TargetPages, SourcePages, PageCount * sizeof(PFN_NUMBER));
 }
 
 /*

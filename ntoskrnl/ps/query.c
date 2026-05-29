@@ -56,7 +56,7 @@ PCSTR
 PspDumpProcessInfoClassName(
     _In_ PROCESSINFOCLASS ProcessInformationClass)
 {
-    static CHAR UnknownClassName[11];
+    static CHAR UnknownClassName[16];
 
 #define DBG_PROCESS_INFO_CLASS(InfoClass)   [InfoClass] = #InfoClass
     static const PCSTR ProcessInfoClasses[] =
@@ -118,7 +118,7 @@ PspDumpProcessInfoClassName(
         return ProcessInfoClasses[ProcessInformationClass];
     }
 
-    sprintf(UnknownClassName, "%lu", ProcessInformationClass);
+    snprintf(UnknownClassName, sizeof(UnknownClassName), "%lu", ProcessInformationClass);
     return UnknownClassName;
 }
 
@@ -127,7 +127,7 @@ PCSTR
 PspDumpThreadInfoClassName(
     _In_ THREADINFOCLASS ThreadInformationClass)
 {
-    static CHAR UnknownClassName[11];
+    static CHAR UnknownClassName[16];
 
 #define DBG_THREAD_INFO_CLASS(InfoClass)   [InfoClass] = #InfoClass
     static const PCSTR ThreadInfoClasses[] =
@@ -196,7 +196,7 @@ PspDumpThreadInfoClassName(
         return ThreadInfoClasses[ThreadInformationClass];
     }
 
-    sprintf(UnknownClassName, "%lu", ThreadInformationClass);
+    snprintf(UnknownClassName, sizeof(UnknownClassName), "%lu", ThreadInformationClass);
     return UnknownClassName;
 }
 #endif // #if DBG

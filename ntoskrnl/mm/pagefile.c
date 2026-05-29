@@ -110,7 +110,14 @@ VOID
 NTAPI
 MmBuildMdlFromPages(PMDL Mdl, PPFN_NUMBER Pages)
 {
-    memcpy(Mdl + 1, Pages, sizeof(PFN_NUMBER) * (PAGE_ROUND_UP(Mdl->ByteOffset+Mdl->ByteCount)/PAGE_SIZE));
+    SIZE_T PageCount = PAGE_ROUND_UP(Mdl->ByteOffset + Mdl->ByteCount) / PAGE_SIZE;
+    SIZE_T CopySize = sizeof(PFN_NUMBER) * PageCount;
+
+    /* Ensure the MDL was allocated with enough space for the PFN array
+     * The MDL should have been allocated via IoAllocateMdl with the correct page count */
+    ASSERT(PageCount <= (Mdl->Size - sizeof(MDL)) / sizeof(PFN_NUMBER));
+
+    memcpy(Mdl + 1, Pages, CopySize);
 }
 
 
