@@ -171,9 +171,13 @@ CcRosFlushVacb (
 
     /*
      * Remove the VACB from the dirty list before flushing. The return value
-     * tells us whether the VACB was actually dirty at this point; if it was
-     * already clean (concurrent flush beat us here) we still proceed with
-     * MmFlushSegment for correctness but must not re-mark dirty on failure.
+     * tells us whether the VACB was actually dirty at this point.
+     * If WasMarked is FALSE a concurrent flush already removed it from the
+     * dirty list. We still call MmFlushSegment because the caller expects a
+     * reliable status: if we returned STATUS_SUCCESS immediately, the caller
+     * would believe the data was safely written when in fact the concurrent
+     * flush may have failed. We must not re-mark dirty on failure in this
+     * case, however, as we were not the one who removed the VACB from the list.
      */
     WasMarked = CcRosUnmarkDirtyVacb(Vacb, TRUE);
 
@@ -623,6 +627,12 @@ CcRosReleaseVacb (
      * race with a concurrent CcRosUnmarkDirtyVacb; however CcRosMarkDirtyVacb
      * re-checks Dirty under the lock and is a safe no-op if the VACB has
      * already been re-marked dirty by another thread in the meantime.
+     * If Vacb->Dirty is TRUE at the check (so we skip marking) and a concurrent
+     * flush then immediately unmarks it, that flush's MmFlushSegment call covers
+     * all dirty section pages, including those written by the caller of this
+     * function. Should that flush fail, CcRosFlushVacb re-marks the VACB dirty
+     * (WasMarked == TRUE path), ensuring those pages are retried. No dirty data
+     * can be silently lost through this race.
      */
     if (Dirty && !Vacb->Dirty)
     {
