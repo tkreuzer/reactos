@@ -438,12 +438,13 @@ NtUserEnumDisplayDevices(
             /* Check the buffer size */
             if (pDisplayDevice->cb)
             {
+                DWORD cbCopy = min(pDisplayDevice->cb, sizeof(dispdev));
+
                 /* Probe the output buffer */
-                pDisplayDevice->cb = min(pDisplayDevice->cb, sizeof(dispdev));
-                ProbeForWrite(pDisplayDevice, pDisplayDevice->cb, 1);
+                ProbeForWrite(pDisplayDevice, cbCopy, 1);
 
                 /* Copy as much as the given buffer allows */
-                RtlCopyMemory(pDisplayDevice, &dispdev, pDisplayDevice->cb);
+                RtlCopyMemory(pDisplayDevice, &dispdev, cbCopy);
             }
         }
         _SEH2_EXCEPT(EXCEPTION_EXECUTE_HANDLER)
