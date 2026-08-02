@@ -1163,5 +1163,3 @@ private:
 }
 
 #endif
-
-#include "ke_x.h"
