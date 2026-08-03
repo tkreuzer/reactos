@@ -660,7 +660,7 @@ AhciGetControllerProperties(
     Controller->MaxChannels = CountSetBits(Controller->ChannelBitmap);
     if (Controller->MaxChannels == 0)
     {
-        ASSERT(Controller->MaxChannels == 0);
+        ASSERT(FALSE);
         return STATUS_DEVICE_HARDWARE_ERROR;
     }
 
