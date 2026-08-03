@@ -158,7 +158,7 @@ PciIdeXPdoStartDevice(
         Status = PciIdeConnectInterrupt(ChanData);
         if (!NT_SUCCESS(Status))
         {
-            ERR("CH %lu: Could not connect to interrupt\n", ChanData->Channel, Status);
+            ERR("CH %lu: Could not connect to interrupt %lx\n", ChanData->Channel, Status);
             return Status;
         }
 
