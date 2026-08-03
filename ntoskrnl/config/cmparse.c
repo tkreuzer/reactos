@@ -688,13 +688,15 @@ CmpDoOpen(IN PHHIVE Hive,
 
                 /*
                  * The symlink has been found. As in the similar case above,
-                 * the KCB of the symlink exclusively, we don't want anybody
-                 * to mess it up.
+                 * lock the KCB of the symlink exclusively; we don't want
+                 * anybody to mess it up.  The lock is now exclusive so
+                 * update IsLockShared accordingly.
                  */
                 CmpUnLockKcbArray(KcbsLocked);
                 CmpAcquireKcbLockExclusiveByIndex(GET_HASH_INDEX((*CachedKcb)->ConvKey));
                 KcbsLocked[0] = 1;
                 KcbsLocked[1] = GET_HASH_INDEX((*CachedKcb)->ConvKey);
+                IsLockShared = FALSE;
             }
             else
             {
@@ -1610,19 +1612,26 @@ CmpLookInCache(
     if (KeyFoundInCache)
     {
         /*
-         * Before we change the KCB we must dereference the prior
-         * KCB that we no longer need it.
+         * Reference the new KCB before dropping the old one. If this
+         * fails we must unlock the KCBs and release the temporary
+         * reference we took at the start of this function before
+         * returning, so that the caller sees a clean state.
+         */
+        if (!CmpReferenceKeyControlBlock(CurrentKcb))
+        {
+            /* This key is opened too many times, bail out */
+            DPRINT1("Could not reference the KCB, too many references (KCB 0x%p)\n", CurrentKcb);
+            CmpUnLockKcbArray(LockedKcbs);
+            CmpDereferenceKeyControlBlock(*Kcb);
+            return STATUS_UNSUCCESSFUL;
+        }
+
+        /*
+         * Dereference the prior KCB that we no longer need
+         * and switch to the newly referenced one.
          */
         CmpDereferenceKeyControlBlock(*Kcb);
         *Kcb = CurrentKcb;
-
-        /* Reference the new KCB now */
-        if (!CmpReferenceKeyControlBlock(*Kcb))
-        {
-            /* This key is opened too many times, bail out */
-            DPRINT1("Could not reference the KCB, too many references (KCB 0x%p)\n", Kcb);
-            return STATUS_UNSUCCESSFUL;
-        }
 
         /* Update hive and cell data from current KCB */
         *Hive = CurrentKcb->KeyHive;
