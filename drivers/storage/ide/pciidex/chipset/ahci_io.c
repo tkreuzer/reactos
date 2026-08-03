@@ -346,15 +346,15 @@ AtaAhciPortHandleInterrupt(
     ULONG InterruptStatus, CommandsIssued, CommandsCompleted;
     AHCI_PORT_REGISTER CommandRegister;
 
-    /* Clear all pending events */
+    /* Clear interface errors FIRST */
+    AHCI_PORT_WRITE(ChanData->IoBase, PxSataError,
+                    AHCI_PORT_READ(ChanData->IoBase, PxSataError));
+
+    /* Then clear port interrupt status */
     InterruptStatus = AHCI_PORT_READ(ChanData->IoBase, PxInterruptStatus);
     AHCI_PORT_WRITE(ChanData->IoBase, PxInterruptStatus, InterruptStatus);
 
     TRACE("CH %lu: Intr %08lx\n", ChanData->Channel, InterruptStatus);
-
-    /* Clear interface errors */
-    AHCI_PORT_WRITE(ChanData->IoBase, PxSataError,
-                    AHCI_PORT_READ(ChanData->IoBase, PxSataError));
 
     /* Determine commands that have completed */
     if (ChanData->ActiveQueuedSlotsBitmap != 0)

@@ -325,7 +325,7 @@ AtaAhciFbsControl(
         ChanData->ChanInfo &= ~CHANNEL_FLAG_FBS_ENABLED;
     }
 
-    if ((FbsControl & NewFbsControl) ^ AHCI_FBS_ENABLE)
+    if ((FbsControl ^ NewFbsControl) & AHCI_FBS_ENABLE)
     {
         AHCI_PORT_WRITE(ChanData->IoBase, PxFisSwitchingControl, NewFbsControl);
     }
