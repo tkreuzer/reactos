@@ -1260,6 +1260,7 @@ Return Value:
         _SEH2_TRY {
 
             DebugTrace( 0, Dbg, "Passing Multiple Irps on to Disk Driver\n", 0 );
+            //DbgPrint("#### [%04u] IRP %p FatNonCachedIo: Passing Multiple Irps on to Disk Driver.\n", (ULONG)(ULONG_PTR)PsGetCurrentThreadId(), Irp);
 
             FatMultipleAsync( IrpContext,
                               FcbOrDcb->Vcb,
@@ -1282,6 +1283,7 @@ Return Value:
         return STATUS_PENDING;
     }
 
+    //DbgPrint("#### [%04u] IRP %p FatNonCachedIo: Waiting for completion.\n", (ULONG)(ULONG_PTR)PsGetCurrentThreadId(), Irp);
     FatWaitSync( IrpContext );
 
 
@@ -2454,6 +2456,7 @@ Return Value:
     PIRP MasterIrp = Context->MasterIrp;
 
     DebugTrace(+1, Dbg, "FatMultiSyncCompletionRoutine, Context = %p\n", Context );
+    //DbgPrint("#### [%04u] IRP %p FatMultiSyncCompletionRoutine.\n", (ULONG)(ULONG_PTR)PsGetCurrentThreadId(), Irp);
 
     //
     //  If we got an error (or verify required), remember it in the Irp
@@ -2556,6 +2559,7 @@ Return Value:
     BOOLEAN PostRequest = FALSE;
 
     DebugTrace(+1, Dbg, "FatMultiAsyncCompletionRoutine, Context = %p\n", Context );
+    //DbgPrint("#### [%04u] IRP %p FatMultiAsyncCompletionRoutine.\n", (ULONG)(ULONG_PTR)PsGetCurrentThreadId(), Irp);
 
     //
     //  If we got an error (or verify required), remember it in the Irp
@@ -3072,6 +3076,7 @@ Return Value:
     PFAT_IO_CONTEXT Context = Contxt;
 
     DebugTrace(+1, Dbg, "FatSingleSyncCompletionRoutine, Context = %p\n", Context );
+    //DbgPrint("#### [%04u] IRP %p FatSingleSyncCompletionRoutine.\n", (ULONG)(ULONG_PTR)PsGetCurrentThreadId(), Irp);
 
     FatDoCompletionZero( Irp, Context );
 
@@ -3147,6 +3152,7 @@ Return Value:
     BOOLEAN PostRequest = FALSE;
 
     DebugTrace(+1, Dbg, "FatSingleAsyncCompletionRoutine, Context = %p\n", Context );
+    //DbgPrint("#### [%04u] IRP %p FatSingleAsyncCompletionRoutine.\n", (ULONG)(ULONG_PTR)PsGetCurrentThreadId(), Irp);
 
     //
     //  Fill in the information field correctedly if this worked.
