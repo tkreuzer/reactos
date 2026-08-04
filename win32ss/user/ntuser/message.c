@@ -2584,8 +2584,8 @@ NtUserMessageCall( HWND hWnd,
            Window = UserGetWindowObject(hWnd);
            if (!Window)
            {
-               UserLeave();
-               return FALSE;
+               Ret = FALSE;
+               break;
            }
            UserRefObjectCo(Window, &Ref);
         }
